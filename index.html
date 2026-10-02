@@ -498,15 +498,30 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="site.js"></script>
-<!-- PrimeGuard Website Assistant chat widget (ElevenLabs) -->
+<!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
+<button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
+  <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
+</button>
 <elevenlabs-convai
+  id="pg-chat-widget"
   agent-id="agent_2101m3yzmj8yefes67e0cs30d44x"
   variant="compact"
   avatar-image-url="assets/primeguard-logo-gold-badge.png"
   avatar-orb-color-1="#c9a24b"
   avatar-orb-color-2="#8a6d2a"
-  expand-text="Chat with us"
 ></elevenlabs-convai>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+<script>
+(function () {
+  var launcher = document.getElementById('pg-chat-launcher');
+  var widget = document.getElementById('pg-chat-widget');
+  function openChat() { if (widget && widget.startConversation) widget.startConversation(); }
+  launcher.addEventListener('click', openChat);
+  if (widget) {
+    widget.addEventListener('conversationStarted', function () { launcher.classList.add('hidden'); });
+    widget.addEventListener('conversationEnded', function () { launcher.classList.remove('hidden'); });
+  }
+})();
+</script>
 </body>
 </html>
