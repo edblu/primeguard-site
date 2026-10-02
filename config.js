@@ -1,12 +1,14 @@
 /* ============================================================
    PRIMEGUARD SITE CONFIG — EDIT THIS ONE SPOT
    ------------------------------------------------------------
-   Phone and email are NOT yet confirmed with Edwin.
-   Change the two values below and the whole site updates:
+   Contact info confirmed with Edwin 2026-10-02.
+   Change the values below and the whole site updates:
    header, hero, contact section, footer, and the form.
+   NOTE: assigned to window.SITE_CONFIG (not const) because
+   site.js reads it via window.SITE_CONFIG.
    ============================================================ */
 
-const SITE_CONFIG = {
+window.SITE_CONFIG = {
   phoneDisplay: "(786) 422-9674",          // shown to visitors
   phoneHref: "tel:+17864229674",           // click-to-call link
   email: "primeguardllc.office@pgpbiz.com", // shown + used by the form
