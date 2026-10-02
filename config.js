@@ -15,7 +15,7 @@ const SITE_CONFIG = {
 
   // --- Phase 2 integrations (fill these in; site degrades gracefully if empty) ---
   leadEndpoint: "https://script.google.com/macros/s/AKfycbyZvYyTY7GXMdPd6bQcgRyjXgozuOb8jmSkTmCSQT9R0N5w4fKz80ybms5AkjGIvQQA/exec",      // POST target for quote-form leads (JSON). Empty = mailto fallback.
-  bookingUrl: "#",       // online booking page embedded in the "Book now" modal. "#" = "coming soon".
+  bookingUrl: "https://cal.com/primeguard/free-estimate",       // online booking page embedded in the "Book now" modal. "#" = "coming soon".
   reviewGoogle: "#",     // Google review page URL — button hidden while empty/"#"
   reviewFacebook: "#",   // Facebook review page URL — button hidden while empty/"#"
   reviewThumbtack: "https://www.thumbtack.com/fl/miami/pressure-washing/primeguard-preservation-llc/service/591657911686586383",   // Thumbtack review page URL — button hidden while empty/"#"
