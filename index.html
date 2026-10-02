@@ -515,23 +515,47 @@
 (function () {
   var launcher = document.getElementById('pg-chat-launcher');
   var widget = document.getElementById('pg-chat-widget');
-  var tries = 0;
-  function openChat() {
-    if (!widget) return;
-    var ready = false;
-    try { ready = !!(widget.shadowRoot || typeof widget.startConversation === 'function'); } catch (e) { ready = false; }
-    if (!ready && tries < 5) { tries++; setTimeout(openChat, 600); return; }
-    if (!ready) return;
-    // Use the widget's own launcher button when reachable — the real open path.
-    try {
-      var root = widget.shadowRoot;
-      if (root) {
-        var btn = root.querySelector('button');
-        if (btn) { btn.click(); return; }
-      }
-    } catch (e) { /* closed shadow root — fall through */ }
-    if (typeof widget.startConversation === 'function') widget.startConversation();
+
+  function widgetRoot() {
+    try { return widget && widget.shadowRoot ? widget.shadowRoot : null; }
+    catch (e) { return null; }
   }
+  // The widget's own floating button (aria-label "Open chat"). We hide it and
+  // keep the gold circle as the only visible entry point; taps are forwarded
+  // to the real button so we always use the widget's own open path.
+  function internalLauncher() {
+    var root = widgetRoot();
+    if (!root) return null;
+    return root.querySelector('button[aria-label="Open chat"]') || root.querySelector('button');
+  }
+  function hideInternalLauncher() {
+    var root = widgetRoot();
+    if (!root) return;
+    var btn = root.querySelector('button[aria-label="Open chat"]');
+    if (btn && btn.style.display !== 'none') btn.style.setProperty('display', 'none', 'important');
+  }
+
+  var openTries = 0;
+  function openChat() {
+    var btn = internalLauncher();
+    if (btn) { openTries = 0; btn.click(); return; }
+    if (openTries < 10) { openTries++; setTimeout(openChat, 500); }
+  }
+
+  // Wait for the widget to upgrade + render, then hide its default button.
+  // A MutationObserver re-hides it if the widget re-renders the button.
+  var initTries = 0;
+  function init() {
+    var root = widgetRoot();
+    if (root) {
+      hideInternalLauncher();
+      try { new MutationObserver(hideInternalLauncher).observe(root, { childList: true, subtree: true }); } catch (e) {}
+      return;
+    }
+    if (initTries < 40) { initTries++; setTimeout(init, 500); }
+  }
+  init();
+
   launcher.addEventListener('click', openChat);
   if (widget) {
     widget.addEventListener('conversationStarted', function () { launcher.classList.add('hidden'); });

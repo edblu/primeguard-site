@@ -793,9 +793,8 @@ html { scrollbar-width: thin; scrollbar-color: #8a6d2a #0a0a0c; }
   .btn-gold:hover, .btn-gold:active { transform: none; }
 }
 
-/* ---------- AI chat: custom gold-circle launcher (default widget launcher hidden) ---------- */
+/* ---------- AI chat: custom gold-circle launcher (widget's own launcher hidden via JS) ---------- */
 elevenlabs-convai {
-  display: none !important;
   --elevenlabs-convai-widget-width: 380px;
   --elevenlabs-convai-widget-height: 600px;
 }
