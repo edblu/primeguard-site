@@ -1,0 +1,194 @@
+/* PrimeGuard Preservation LLC — gold badge identity: black + gold */
+
+:root {
+  --black: #0b0b0c;
+  --black-2: #131315;
+  --gold: #c9a24b;
+  --gold-light: #e8c97a;
+  --gold-dark: #9a7a2e;
+  --cream: #f5f1e6;
+  --muted: #a8a29a;
+  --line: rgba(201, 162, 75, 0.25);
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--black);
+  color: var(--cream);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; color: var(--cream); }
+h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); letter-spacing: 0.01em; }
+h1 em { font-style: italic; color: var(--gold-light); }
+h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); margin-bottom: 12px; }
+h3 { font-size: 1.35rem; }
+
+a { color: var(--gold-light); }
+
+.section-kicker {
+  text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.75rem;
+  color: var(--gold); font-weight: 600; margin-bottom: 10px;
+}
+.section-lead { color: var(--muted); max-width: 620px; margin-bottom: 36px; font-size: 1.05rem; }
+.section { padding: 84px 0; }
+.section-dark { background: var(--black-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block; padding: 13px 28px; border-radius: 4px;
+  font-weight: 600; font-size: 0.95rem; text-decoration: none;
+  letter-spacing: 0.04em; transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid transparent; cursor: pointer; font-family: var(--sans);
+}
+.btn-lg { padding: 16px 34px; font-size: 1.02rem; }
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
+  color: #1a1405;
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201, 162, 75, 0.35); }
+.btn-outline { border-color: var(--gold); color: var(--gold-light); background: rgba(0,0,0,0.35); }
+.btn-outline:hover { background: rgba(201, 162, 75, 0.12); }
+
+/* ---------- Header ---------- */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(11, 11, 12, 0.92); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.header-inner { display: flex; align-items: center; gap: 20px; padding-top: 12px; padding-bottom: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; margin-right: auto; }
+.brand-logo { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--gold); }
+.brand-text { font-family: var(--serif); font-size: 1.35rem; color: var(--cream); line-height: 1.1; }
+.brand-text span { display: block; font-family: var(--sans); font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); }
+.main-nav { display: flex; gap: 26px; }
+.main-nav a { color: var(--cream); text-decoration: none; font-size: 0.92rem; font-weight: 500; letter-spacing: 0.05em; }
+.main-nav a:hover { color: var(--gold-light); }
+.btn-call { white-space: nowrap; }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; overflow: hidden; padding: 120px 0 110px; }
+.hero-bg {
+  position: absolute; inset: 0;
+  background: url("assets/primeguard-banner-gold.jpg") center 30% / cover no-repeat;
+}
+.hero-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(11,11,12,0.72) 0%, rgba(11,11,12,0.55) 45%, rgba(11,11,12,0.94) 100%);
+}
+.hero-inner { position: relative; z-index: 1; max-width: 760px; }
+.hero-kicker { color: var(--gold); text-transform: uppercase; letter-spacing: 0.25em; font-size: 0.78rem; font-weight: 600; margin-bottom: 18px; }
+.hero-sub { font-size: 1.15rem; color: #ddd6c4; margin: 20px 0 34px; max-width: 620px; }
+.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-hours { margin-top: 26px; color: var(--muted); font-size: 0.9rem; letter-spacing: 0.04em; }
+
+/* ---------- Trust strip ---------- */
+.strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0e0e10; }
+.strip-inner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding-top: 26px; padding-bottom: 26px; }
+.strip-item strong { display: block; font-family: var(--serif); font-size: 1.15rem; color: var(--gold-light); }
+.strip-item span { font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- Services ---------- */
+.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.service-card {
+  background: var(--black-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 30px 28px; display: flex; flex-direction: column; gap: 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.service-card:hover { border-color: var(--gold); transform: translateY(-3px); }
+.service-card h3 { color: var(--gold-light); }
+.service-card .price { color: var(--muted); font-size: 0.95rem; }
+.service-card .price strong { color: var(--cream); font-size: 1.6rem; font-family: var(--serif); }
+.service-card p { color: #cfc9ba; font-size: 0.95rem; flex: 1; }
+.card-link {
+  color: var(--gold-light); font-weight: 600; font-size: 0.9rem; text-decoration: none;
+  letter-spacing: 0.05em; text-transform: uppercase; margin-top: 6px;
+  border-bottom: 1px solid var(--line); padding-bottom: 4px; align-self: flex-start;
+}
+.card-link:hover { border-color: var(--gold-light); }
+
+/* ---------- About ---------- */
+.about-inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 60px; align-items: center; }
+.about-copy p { color: #cfc9ba; margin-bottom: 16px; }
+.about-list { list-style: none; margin-top: 24px; display: grid; gap: 12px; }
+.about-list li { padding-left: 30px; position: relative; color: var(--cream); font-weight: 500; }
+.about-list li::before {
+  content: ""; position: absolute; left: 0; top: 8px; width: 14px; height: 8px;
+  border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(-45deg);
+}
+.about-badge img { width: 100%; max-width: 340px; border-radius: 50%; border: 3px solid var(--gold); display: block; margin: 0 auto; box-shadow: 0 20px 60px rgba(201,162,75,0.18); }
+
+/* ---------- Contact ---------- */
+.contact-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px; align-items: start; }
+.info-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(201,162,75,0.15); }
+.info-label { text-transform: uppercase; letter-spacing: 0.15em; font-size: 0.72rem; color: var(--gold); font-weight: 600; padding-top: 4px; }
+.info-value { color: var(--cream); font-size: 1.05rem; }
+.info-link { text-decoration: none; font-weight: 600; }
+.info-link:hover { color: var(--gold-light); }
+.contact-info .btn { margin-top: 26px; }
+
+.quote-form { background: var(--black-2); border: 1px solid var(--line); border-radius: 8px; padding: 34px 30px; }
+.quote-form h3 { margin-bottom: 20px; color: var(--gold-light); }
+.quote-form label { display: block; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.04em; color: #cfc9ba; margin-bottom: 16px; }
+.quote-form input, .quote-form select, .quote-form textarea {
+  display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
+  background: #0b0b0c; border: 1px solid rgba(201,162,75,0.3); border-radius: 4px;
+  color: var(--cream); font-family: var(--sans); font-size: 0.95rem;
+}
+.quote-form input:focus, .quote-form select:focus, .quote-form textarea:focus { outline: none; border-color: var(--gold); }
+.quote-form textarea { resize: vertical; }
+.quote-form .btn { width: 100%; }
+.form-note { font-size: 0.8rem; color: var(--muted); margin-top: 12px; text-align: center; }
+
+/* ---------- Footer ---------- */
+.site-footer { border-top: 1px solid var(--line); background: #080809; padding: 48px 0 110px; }
+.footer-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+.footer-brand { display: flex; gap: 16px; align-items: center; }
+.footer-brand img { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--gold); }
+.footer-brand p { color: var(--cream); font-weight: 600; line-height: 1.5; }
+.footer-brand p span { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
+.footer-contact { display: grid; gap: 8px; justify-items: end; text-align: right; }
+.footer-contact a { color: var(--gold-light); text-decoration: none; font-weight: 600; }
+.footer-contact span { color: var(--muted); font-size: 0.9rem; }
+.footer-copy { grid-column: 1 / -1; color: #6b655a; font-size: 0.82rem; margin-top: 10px; }
+
+/* ---------- Mobile call bar ---------- */
+.mobile-callbar { display: none; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .about-inner, .contact-grid { grid-template-columns: 1fr; gap: 36px; }
+  .about-badge { order: -1; }
+  .about-badge img { max-width: 220px; }
+  .strip-inner { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  .main-nav { display: none; }
+  .header-inner .btn-call { padding: 10px 18px; font-size: 0.85rem; }
+  .hero { padding: 84px 0 80px; }
+  .hero-cta .btn { flex: 1; text-align: center; }
+  .footer-inner { grid-template-columns: 1fr; }
+  .footer-contact { justify-items: start; text-align: left; }
+  .site-footer { padding-bottom: 150px; }
+  .mobile-callbar {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    background: rgba(11, 11, 12, 0.96); border-top: 1px solid var(--gold);
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    backdrop-filter: blur(10px);
+  }
+  .mobile-callbar a {
+    display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
+    color: #1a1405; padding: 14px; border-radius: 6px; letter-spacing: 0.03em;
+  }
+}
