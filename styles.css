@@ -792,3 +792,14 @@ html { scrollbar-width: thin; scrollbar-color: #8a6d2a #0a0a0c; }
   .work-card:hover .work-ph img { transform: none; }
   .btn-gold:hover, .btn-gold:active { transform: none; }
 }
+
+/* ---------- AI chat widget: compact gold launcher ---------- */
+elevenlabs-convai {
+  --elevenlabs-convai-widget-width: 380px;
+  --elevenlabs-convai-widget-height: 600px;
+  z-index: 9000;
+}
+/* lift above the mobile call bar so they never overlap */
+@media (max-width: 768px) {
+  elevenlabs-convai { position: fixed; bottom: 88px; right: 16px; }
+}
