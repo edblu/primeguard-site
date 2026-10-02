@@ -795,7 +795,7 @@ html { scrollbar-width: thin; scrollbar-color: #8a6d2a #0a0a0c; }
 
 /* ---------- AI chat: custom gold-circle launcher (default widget launcher hidden) ---------- */
 elevenlabs-convai {
-  display: none;
+  display: none !important;
   --elevenlabs-convai-widget-width: 380px;
   --elevenlabs-convai-widget-height: 600px;
 }

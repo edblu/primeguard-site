@@ -515,7 +515,23 @@
 (function () {
   var launcher = document.getElementById('pg-chat-launcher');
   var widget = document.getElementById('pg-chat-widget');
-  function openChat() { if (widget && widget.startConversation) widget.startConversation(); }
+  var tries = 0;
+  function openChat() {
+    if (!widget) return;
+    var ready = false;
+    try { ready = !!(widget.shadowRoot || typeof widget.startConversation === 'function'); } catch (e) { ready = false; }
+    if (!ready && tries < 5) { tries++; setTimeout(openChat, 600); return; }
+    if (!ready) return;
+    // Use the widget's own launcher button when reachable — the real open path.
+    try {
+      var root = widget.shadowRoot;
+      if (root) {
+        var btn = root.querySelector('button');
+        if (btn) { btn.click(); return; }
+      }
+    } catch (e) { /* closed shadow root — fall through */ }
+    if (typeof widget.startConversation === 'function') widget.startConversation();
+  }
   launcher.addEventListener('click', openChat);
   if (widget) {
     widget.addEventListener('conversationStarted', function () { launcher.classList.add('hidden'); });
