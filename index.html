@@ -91,6 +91,18 @@
   </div>
 </section>
 
+<!-- ================= FREE QUOTES PROMO ================= -->
+<section class="promo-band">
+  <div class="wrap promo-inner reveal">
+    <div class="promo-text">
+      <p class="promo-kicker" data-i18n="promo_kicker">Free quotes</p>
+      <h2><span data-i18n="promo_title_a">Take advantage of</span> <span data-i18n="promo_title_b">FREE quotes</span></h2>
+      <p data-i18n="promo_sub">Every estimate is free and no-pressure. Tell us about your project and we'll reply with upfront pricing, usually the same day.</p>
+    </div>
+    <a class="btn btn-dark btn-lg" href="#contact"><span data-i18n="promo_cta">Get my free quote</span></a>
+  </div>
+</section>
+
 <!-- ================= SERVICES ================= -->
 <section class="section" id="services">
   <div class="wrap">
@@ -522,6 +534,11 @@
     try { return widget && widget.shadowRoot ? widget.shadowRoot : null; }
     catch (e) { return null; }
   }
+  function openButton() {
+    var root = widgetRoot(); if (!root) return null;
+    return root.querySelector('button[aria-label="Open chat"]')
+        || root.querySelector('button');
+  }
   // The widget's own trigger UI: the floating orb button and the "Message"
   // teaser pill. We hide both and keep the gold circle as the only entry
   // point; taps are forwarded to the real open button (the widget's own path).
@@ -549,21 +566,18 @@
     if (panelOpen) { closeChat(); return; }
     widget.style.removeProperty('display');
     if (panelPresent()) { panelOpen = true; syncChrome(); return; }
-    var root = widgetRoot();
-    var btn = root && root.querySelector('button[aria-label="Open chat"]');
+    var btn = openButton();
     if (btn) { openTries = 0; btn.click(); panelOpen = true; syncChrome(); return; }
     if (openTries < 10) { openTries++; setTimeout(openChat, 500); }
   }
   function closeChat() {
-    var root = widgetRoot();
     var done = false;
-    if (root) {
-      var collapse = root.querySelector('button[aria-label="Collapse"]');
+    var toggle = openButton();
+    if (toggle) {
+      var root = widgetRoot();
+      var collapse = root && root.querySelector('button[aria-label="Collapse"]');
       if (collapse) { collapse.click(); done = true; }
-      else {
-        var toggle = root.querySelector('button[aria-label="Open chat"]');
-        if (toggle) { toggle.click(); done = true; }
-      }
+      else { toggle.click(); done = true; }
     }
     if (!done) widget.style.setProperty('display', 'none', 'important');
     panelOpen = false;

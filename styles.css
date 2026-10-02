@@ -696,6 +696,51 @@ body.modal-open { overflow: hidden; }
   transform: translateY(0);
   box-shadow: 0 3px 12px rgba(201, 162, 75, 0.3), inset 0 2px 8px rgba(0, 0, 0, 0.28);
 }
+/* --- Dark button for use on the gold promo band --- */
+.btn-dark {
+  background: linear-gradient(180deg, #241b0c, #120d05);
+  color: #f6d67c;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(246, 214, 124, 0.25);
+}
+.btn-dark:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(246, 214, 124, 0.3);
+  color: #ffe9a8;
+}
+.btn-dark:active { transform: translateY(0); }
+
+/* --- Free-quotes promo band --- */
+.promo-band {
+  background: linear-gradient(115deg, #f2d98c 0%, #ddb155 45%, #bd9040 100%);
+  color: #1c1405;
+  padding: 46px 0;
+  position: relative;
+  overflow: hidden;
+}
+.promo-band::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(600px 200px at 85% 20%, rgba(255, 255, 255, 0.35), transparent 70%);
+}
+.promo-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 28px; flex-wrap: wrap; position: relative;
+}
+.promo-kicker {
+  text-transform: uppercase; letter-spacing: 3px; font-size: 13px;
+  font-weight: 800; opacity: 0.7; margin: 0 0 8px;
+}
+.promo-text h2 {
+  font-size: clamp(30px, 4.5vw, 48px); line-height: 1.05;
+  margin: 0 0 10px; font-weight: 800; letter-spacing: -0.5px;
+}
+.promo-text p { margin: 0; font-size: 17px; max-width: 620px; font-weight: 500; opacity: 0.85; }
+@media (max-width: 768px) {
+  .promo-inner { flex-direction: column; text-align: center; }
+  .promo-text p { margin: 0 auto; }
+}
 
 /* --- 3D card depth: rich resting shadows, subtle tilt-lift on hover --- */
 .service-card, .plan-card { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35); }
