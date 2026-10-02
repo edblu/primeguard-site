@@ -88,7 +88,29 @@
       footer_rights: "All rights reserved.",
       booking_title: "Book your service",
       booking_soon: "Online booking coming soon — call us at",
-      close: "Close"
+      close: "Close",
+      login: "Log in", login_aria: "Log in to your account", my_account: "My account",
+      auth_title_login: "Welcome back", auth_title_signup: "Create your account",
+      auth_tab_login: "Log in", auth_tab_signup: "Sign up",
+      auth_email: "Email", auth_password: "Password",
+      auth_submit_login: "Log in", auth_submit_signup: "Create account",
+      auth_or: "or", auth_google: "Continue with Google",
+      auth_error_default: "Something went wrong. Please try again.",
+      auth_error_credential: "Email or password didn't match. Try again.",
+      auth_error_inuse: "That email already has an account. Log in instead.",
+      auth_error_weak: "Password needs at least 6 characters.",
+      auth_error_email: "That email address doesn't look right.",
+      auth_error_many: "Too many attempts — try again in a few minutes.",
+      auth_error_popup: "The sign-in window was blocked. Allow popups and try again.",
+      auth_soon_title: "Accounts are coming soon",
+      auth_soon_body: "We're putting the finishing touches on customer accounts. You can still request service as a guest — no account needed.",
+      profile_title: "My profile",
+      profile_name: "Full name", profile_phone: "Phone",
+      profile_address: "Service address", ph_address: "Street, city, ZIP",
+      profile_service: "Preferred service", profile_none: "No preference",
+      profile_save: "Save", profile_saved: "Saved.",
+      profile_save_error: "Couldn't save. Check your connection and try again.",
+      profile_logout: "Log out"
     },
     es: {
       page_title: "PrimeGuard Preservation LLC — Servicios de propiedad en Miami-Dade",
@@ -162,7 +184,29 @@
       footer_rights: "Todos los derechos reservados.",
       booking_title: "Reserve su servicio",
       booking_soon: "La reserva en línea llegará pronto — llámenos al",
-      close: "Cerrar"
+      close: "Cerrar",
+      login: "Iniciar sesión", login_aria: "Inicie sesión en su cuenta", my_account: "Mi cuenta",
+      auth_title_login: "Bienvenido de nuevo", auth_title_signup: "Cree su cuenta",
+      auth_tab_login: "Iniciar sesión", auth_tab_signup: "Registrarse",
+      auth_email: "Correo electrónico", auth_password: "Contraseña",
+      auth_submit_login: "Iniciar sesión", auth_submit_signup: "Crear cuenta",
+      auth_or: "o", auth_google: "Continuar con Google",
+      auth_error_default: "Hubo un problema. Inténtelo de nuevo.",
+      auth_error_credential: "El correo o la contraseña no coinciden. Inténtelo de nuevo.",
+      auth_error_inuse: "Ese correo ya tiene una cuenta. Inicie sesión.",
+      auth_error_weak: "La contraseña necesita al menos 6 caracteres.",
+      auth_error_email: "Ese correo electrónico no parece válido.",
+      auth_error_many: "Demasiados intentos. Inténtelo en unos minutos.",
+      auth_error_popup: "Se bloqueó la ventana de acceso. Permita las ventanas emergentes e inténtelo de nuevo.",
+      auth_soon_title: "Las cuentas llegarán pronto",
+      auth_soon_body: "Estamos terminando los detalles de las cuentas de clientes. Puede solicitar un servicio como invitado, sin necesidad de cuenta.",
+      profile_title: "Mi perfil",
+      profile_name: "Nombre completo", profile_phone: "Teléfono",
+      profile_address: "Dirección del servicio", ph_address: "Calle, ciudad, código postal",
+      profile_service: "Servicio preferido", profile_none: "Sin preferencia",
+      profile_save: "Guardar", profile_saved: "Guardado.",
+      profile_save_error: "No se pudo guardar. Revise su conexión e inténtelo de nuevo.",
+      profile_logout: "Cerrar sesión"
     }
   };
 
@@ -366,19 +410,25 @@
       message: els.message.value.trim(),
       language: currentLang,
       timestamp: new Date().toISOString(),
-      source: "primeguard-site"
+      source: "primeguard-site",
+      uid: currentUser ? currentUser.uid : null
     };
 
     if (!leadEndpoint) { mailtoFallback(lead); return; }
 
     var btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
+    // Apps Script endpoints don't return CORS headers, so a normal
+    // cross-origin fetch with a JSON content-type dies at preflight.
+    // Send as no-cors + text/plain (a CORS "simple request"): the lead
+    // is delivered, but the response is opaque, so resolution is treated
+    // as success. (Server-side failures can't be detected this way; the
+    // endpoint itself was verified separately.)
     fetch(leadEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(lead)
-    }).then(function (res) {
-      if (!res.ok) throw new Error("lead endpoint returned " + res.status);
     }).then(function () {
       setFormStatus("success", t("form_success"));
       form.reset();
@@ -487,6 +537,7 @@
     });
     renderFormNote();
     if (!modal.hidden) renderBooking();
+    updateAuthButtons();
   }
 
   document.querySelectorAll(".lang-toggle button").forEach(function (b) {
@@ -498,6 +549,296 @@
       applyI18n();
     });
   });
+
+  /* ============================================================
+     Customer accounts (Firebase Auth + Firestore).
+     SDK loaded via CDN (firebase-compat) — see index.html.
+     Config: SITE_CONFIG.firebase (object), or null = "coming soon" mode.
+     Never throws when the config is missing or the CDN is blocked.
+
+     Firestore rules required (also saved in RULES.txt):
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /users/{uid} {
+             allow read, write: if request.auth != null && request.auth.uid == uid;
+           }
+         }
+       }
+     ============================================================ */
+  var firebaseCfg = cfg.firebase || null;
+  var fbAuth = null, fbDb = null, currentUser = null, userProfile = {};
+
+  function firebaseUsable() {
+    return !!firebaseCfg && typeof firebase !== "undefined";
+  }
+
+  function initFirebase() {
+    if (!firebaseUsable()) return false;
+    try {
+      if (!(firebase.apps && firebase.apps.length)) firebase.initializeApp(firebaseCfg);
+      fbAuth = firebase.auth();
+      fbDb = firebase.firestore();
+      return true;
+    } catch (e) {
+      fbAuth = null; fbDb = null;
+      return false;
+    }
+  }
+
+  /* ----- Auth modal ----- */
+  var authModal = document.getElementById("authModal");
+  var authMain = document.getElementById("authMain");
+  var authSoon = document.getElementById("authSoon");
+  var authForm = document.getElementById("authForm");
+  var authEmail = document.getElementById("authEmail");
+  var authPassword = document.getElementById("authPassword");
+  var authError = document.getElementById("authError");
+  var authSubmit = document.getElementById("authSubmit");
+  var authSubmitLabel = document.getElementById("authSubmitLabel");
+  var authTitle = document.getElementById("authTitle");
+  var authTabLogin = document.getElementById("authTabLogin");
+  var authTabSignup = document.getElementById("authTabSignup");
+  var authGoogle = document.getElementById("authGoogle");
+  var authMode = "login";
+
+  function openAuth() {
+    closeMenu();
+    authError.hidden = true;
+    if (!fbAuth) {
+      authMain.hidden = true;
+      authSoon.hidden = false;
+    } else {
+      authSoon.hidden = true;
+      authMain.hidden = false;
+      setAuthMode("login");
+    }
+    authModal.hidden = false;
+    document.body.classList.add("modal-open");
+  }
+  function closeAuth() {
+    authModal.hidden = true;
+    document.body.classList.remove("modal-open");
+    authError.hidden = true;
+    authForm.reset();
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    authTabLogin.classList.toggle("active", mode === "login");
+    authTabSignup.classList.toggle("active", mode === "signup");
+    authTitle.setAttribute("data-i18n", mode === "login" ? "auth_title_login" : "auth_title_signup");
+    authTitle.textContent = t(authTitle.getAttribute("data-i18n"));
+    authSubmitLabel.setAttribute("data-i18n", mode === "login" ? "auth_submit_login" : "auth_submit_signup");
+    authSubmitLabel.textContent = t(authSubmitLabel.getAttribute("data-i18n"));
+    authError.hidden = true;
+  }
+
+  function authErrorMessage(code) {
+    switch (code) {
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+      case "auth/invalid-credential":
+        return t("auth_error_credential");
+      case "auth/email-already-in-use":
+        return t("auth_error_inuse");
+      case "auth/weak-password":
+        return t("auth_error_weak");
+      case "auth/invalid-email":
+        return t("auth_error_email");
+      case "auth/too-many-requests":
+        return t("auth_error_many");
+      case "auth/popup-blocked":
+      case "auth/popup-closed-by-user":
+        return t("auth_error_popup");
+      default:
+        return t("auth_error_default");
+    }
+  }
+  function showAuthError(code) {
+    authError.textContent = authErrorMessage(code);
+    authError.hidden = false;
+  }
+
+  authTabLogin.addEventListener("click", function () { setAuthMode("login"); });
+  authTabSignup.addEventListener("click", function () { setAuthMode("signup"); });
+
+  authForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!fbAuth) return;
+    if (!authForm.checkValidity()) { authForm.reportValidity(); return; }
+    authError.hidden = true;
+    authSubmit.disabled = true;
+    var email = authEmail.value.trim();
+    var pw = authPassword.value;
+    var p = authMode === "signup"
+      ? fbAuth.createUserWithEmailAndPassword(email, pw)
+      : fbAuth.signInWithEmailAndPassword(email, pw);
+    p.then(function () {
+      closeAuth();
+    }).catch(function (err) {
+      showAuthError(err && err.code);
+    }).then(function () {
+      authSubmit.disabled = false;
+    });
+  });
+
+  authGoogle.addEventListener("click", function () {
+    if (!fbAuth || typeof firebase === "undefined") return;
+    authError.hidden = true;
+    authGoogle.disabled = true;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    fbAuth.signInWithPopup(provider).then(function () {
+      closeAuth();
+    }).catch(function (err) {
+      showAuthError(err && err.code);
+    }).then(function () {
+      authGoogle.disabled = false;
+    });
+  });
+
+  /* ----- Profile modal ----- */
+  var profileModal = document.getElementById("profileModal");
+  var profileForm = document.getElementById("profileForm");
+  var profName = document.getElementById("profName");
+  var profPhone = document.getElementById("profPhone");
+  var profAddress = document.getElementById("profAddress");
+  var profService = document.getElementById("profService");
+  var profSave = document.getElementById("profSave");
+  var profStatus = document.getElementById("profStatus");
+  var profLogout = document.getElementById("profLogout");
+
+  function openProfile() {
+    closeMenu();
+    loadProfileIntoForm();
+    profStatus.hidden = true;
+    profileModal.hidden = false;
+    document.body.classList.add("modal-open");
+  }
+  function closeProfile() {
+    profileModal.hidden = true;
+    document.body.classList.remove("modal-open");
+    profStatus.hidden = true;
+  }
+
+  function loadProfileIntoForm() {
+    var p = userProfile || {};
+    profName.value = p.name || "";
+    profPhone.value = p.phone || "";
+    profAddress.value = p.address || "";
+    profService.value = p.service || "";
+  }
+
+  profileForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!currentUser || !fbDb) return;
+    profStatus.hidden = true;
+    profSave.disabled = true;
+    var data = {
+      name: profName.value.trim(),
+      phone: profPhone.value.trim(),
+      address: profAddress.value.trim(),
+      service: profService.value,
+      email: currentUser.email || "",
+      updatedAt: new Date().toISOString()
+    };
+    fbDb.collection("users").doc(currentUser.uid).set(data, { merge: true }).then(function () {
+      userProfile = Object.assign({}, userProfile, data);
+      profStatus.className = "form-status success";
+      profStatus.textContent = t("profile_saved");
+      profStatus.hidden = false;
+      updateAuthButtons();
+      prefillQuoteForm();
+    }).catch(function () {
+      profStatus.className = "form-status error";
+      profStatus.textContent = t("profile_save_error");
+      profStatus.hidden = false;
+    }).then(function () {
+      profSave.disabled = false;
+    });
+  });
+
+  profLogout.addEventListener("click", function () {
+    if (fbAuth) fbAuth.signOut();
+    closeProfile();
+  });
+
+  /* ----- Auth state -> header buttons + quote form prefill ----- */
+  function firstName() {
+    var n = ((userProfile && userProfile.name) || (currentUser && currentUser.displayName) || "").trim();
+    if (n) return n.split(/\s+/)[0];
+    var em = (currentUser && currentUser.email) || "";
+    return em ? em.split("@")[0] : t("my_account");
+  }
+
+  function updateAuthButtons() {
+    var loggedIn = !!currentUser;
+    ["authBtnLabel", "authBtnLabelMobile"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (loggedIn) {
+        el.removeAttribute("data-i18n"); // keep applyI18n from overwriting the name
+        el.textContent = firstName();
+      } else {
+        el.setAttribute("data-i18n", "login");
+        el.textContent = t("login");
+      }
+    });
+  }
+
+  function prefillQuoteForm() {
+    if (!currentUser || !form) return;
+    var map = {
+      name: (userProfile && userProfile.name) || currentUser.displayName || "",
+      phone: (userProfile && userProfile.phone) || "",
+      email: currentUser.email || ""
+    };
+    ["name", "phone", "email"].forEach(function (k) {
+      var field = form.elements[k];
+      if (field && !field.value && map[k]) field.value = map[k];
+    });
+  }
+
+  document.querySelectorAll("[data-auth-open]").forEach(function (el) {
+    el.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (currentUser && fbAuth) openProfile();
+      else openAuth();
+    });
+  });
+
+  document.getElementById("authClose").addEventListener("click", closeAuth);
+  authModal.addEventListener("click", function (e) {
+    if (e.target === authModal) closeAuth();
+  });
+  document.getElementById("profileClose").addEventListener("click", closeProfile);
+  profileModal.addEventListener("click", function (e) {
+    if (e.target === profileModal) closeProfile();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (!authModal.hidden) closeAuth();
+    if (!profileModal.hidden) closeProfile();
+  });
+
+  if (initFirebase() && fbAuth) {
+    fbAuth.onAuthStateChanged(function (user) {
+      currentUser = user;
+      userProfile = {};
+      if (user && fbDb) {
+        fbDb.collection("users").doc(user.uid).get().then(function (doc) {
+          if (doc && doc.exists) userProfile = doc.data() || {};
+          updateAuthButtons();
+          prefillQuoteForm();
+        }).catch(function () {
+          updateAuthButtons();
+          prefillQuoteForm();
+        });
+      } else {
+        updateAuthButtons();
+      }
+    });
+  }
 
   /* ---------- Init ---------- */
   setupReviews();
