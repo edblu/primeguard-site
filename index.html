@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -509,7 +509,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="site.js"></script>
+<script src="site.js?v=4"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -522,6 +522,7 @@
   avatar-image-url="assets/primeguard-logo-gold-badge.png"
   avatar-orb-color-1="#c9a24b"
   avatar-orb-color-2="#8a6d2a"
+  markdown-link-allowed-hosts="cal.com"
 ></elevenlabs-convai>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 <script>
@@ -536,18 +537,34 @@
   }
   function openButton() {
     var root = widgetRoot(); if (!root) return null;
-    return root.querySelector('button[aria-label="Open chat"]')
+    return root.querySelector('button[aria-label="Message"]')
         || root.querySelector('button');
   }
-  // The widget's own trigger UI: the floating orb button and the "Message"
-  // teaser pill. We hide both and keep the gold circle as the only entry
-  // point; taps are forwarded to the real open button (the widget's own path).
+  // Top-level shadow child hosting the open panel (contains the message box).
+  function panelChild() {
+    var root = widgetRoot(); if (!root) return null;
+    var ta = root.querySelector('textarea[aria-label="Text message input"]');
+    if (!ta) return null;
+    var el = ta;
+    while (el.parentNode && el.parentNode !== root) el = el.parentNode;
+    return (el && el !== root) ? el : null;
+  }
+  // Hide ALL of the widget's own trigger UI (orb, Message pill, badge):
+  // every shadow child except the open panel and style tags, plus every
+  // button outside the panel. The gold circle is the only launcher.
+  // (Programmatic clicks on hidden buttons still work, so opening is unaffected.)
   function hideTriggerUI() {
     var root = widgetRoot(); if (!root) return;
-    ['button[aria-label="Open chat"]', 'button[aria-label="Message"]'].forEach(function (sel) {
-      Array.prototype.forEach.call(root.querySelectorAll(sel), function (b) {
-        if (b.style.display !== 'none') b.style.setProperty('display', 'none', 'important');
-      });
+    var panel = panelChild();
+    Array.prototype.forEach.call(root.children, function (child) {
+      var tag = child.tagName;
+      if (tag === 'STYLE' || tag === 'LINK') return;
+      if (panel && (child === panel || panel.contains(child))) return;
+      if (child.style.display !== 'none') child.style.setProperty('display', 'none', 'important');
+    });
+    Array.prototype.forEach.call(root.querySelectorAll('button'), function (b) {
+      if (panel && panel.contains(b)) return;
+      if (b.style.display !== 'none') b.style.setProperty('display', 'none', 'important');
     });
   }
   function panelPresent() {
