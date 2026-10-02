@@ -20,13 +20,21 @@
       <span class="brand-text">PrimeGuard <span>Preservation LLC</span></span>
     </a>
     <nav class="main-nav" id="mainNav" aria-label="Primary">
-      <a href="#services">Services</a>
-      <a href="#government">Government</a>
-      <a href="#about">About</a>
-      <a href="#contact">Contact</a>
+      <a href="#services" data-i18n="nav_services">Services</a>
+      <a href="#work" data-i18n="nav_work">Work</a>
+      <a href="#reviews" data-i18n="nav_reviews">Reviews</a>
+      <a href="#government" data-i18n="nav_government">Government</a>
+      <a href="#about" data-i18n="nav_about">About</a>
+      <a href="#contact" data-i18n="nav_contact">Contact</a>
+      <a class="btn btn-gold btn-nav-book" href="#booking" data-book-open><span data-i18n="book_now">Book now</span></a>
       <a class="btn btn-gold btn-nav-call" data-phone-href href="#"><span data-phone>Call</span></a>
     </nav>
     <div class="header-actions">
+      <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria="lang_label">
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="es">ES</button>
+      </div>
+      <button class="btn btn-gold btn-book" data-book-open><span data-i18n="book_now">Book now</span></button>
       <a class="btn btn-gold btn-call" data-phone-href href="#"><span data-phone>Call</span></a>
       <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
         <span></span><span></span><span></span>
@@ -44,26 +52,29 @@
   </div>
   <div class="hero-glow" aria-hidden="true"></div>
   <div class="wrap hero-inner">
-    <p class="hero-kicker reveal">Miami-Dade County · Property Services</p>
-    <h1 class="reveal">Property care,<br><span class="gold-text">perfected.</span></h1>
-    <p class="hero-sub reveal">Five essential services, one smart call. Vetted pros, upfront pricing, and photo proof on every visit — across Miami-Dade County.</p>
+    <p class="hero-kicker reveal" data-i18n="hero_kicker">Miami-Dade County · Property Services</p>
+    <h1 class="reveal"><span data-i18n="hero_title_a">Property care,</span><br><span class="gold-text" data-i18n="hero_title_b">perfected.</span></h1>
+    <p class="hero-sub reveal" data-i18n="hero_sub">Five essential services, one smart call. Vetted pros, upfront pricing, and photo proof on every visit — across Miami-Dade County.</p>
 
     <div class="search-wrap reveal">
       <div class="search-bar">
         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
-        <input type="search" id="serviceSearch" placeholder="What service do you need? Try “lawn”…" aria-label="Search services" autocomplete="off">
-        <button class="search-clear" id="searchClear" aria-label="Clear search" hidden>×</button>
+        <input type="search" id="serviceSearch" placeholder="What service do you need? Try “lawn”…" data-i18n-ph="search_ph" aria-label="Search services" data-i18n-aria="search_aria" autocomplete="off">
+        <button class="search-clear" id="searchClear" aria-label="Clear search" data-i18n-aria="search_clear_aria" hidden>×</button>
       </div>
       <div class="search-chips" aria-label="Popular services">
-        <button type="button" class="chip" data-chip="Pressure Washing">Pressure Washing</button>
-        <button type="button" class="chip" data-chip="Lawn Care">Lawn Care</button>
-        <button type="button" class="chip" data-chip="Junk Removal">Junk Removal</button>
-        <button type="button" class="chip" data-chip="Make-Ready">Make-Ready</button>
-        <button type="button" class="chip" data-chip="Handyman">Handyman</button>
+        <button type="button" class="chip" data-chip="Pressure Washing" data-i18n="chip_pressure">Pressure Washing</button>
+        <button type="button" class="chip" data-chip="Lawn Care" data-i18n="chip_lawn">Lawn Care</button>
+        <button type="button" class="chip" data-chip="Junk Removal" data-i18n="chip_junk">Junk Removal</button>
+        <button type="button" class="chip" data-chip="Make-Ready" data-i18n="chip_makeready">Make-Ready</button>
+        <button type="button" class="chip" data-chip="Handyman" data-i18n="chip_handyman">Handyman</button>
       </div>
     </div>
 
     <p class="hero-hours reveal"><span data-hours></span> · <span data-area></span></p>
+    <div class="hero-cta reveal">
+      <button class="btn btn-gold btn-lg" data-book-open><span data-i18n="book_now">Book now</span></button>
+    </div>
   </div>
   <a class="hero-scroll" href="#services" aria-label="Scroll to services">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -73,68 +84,133 @@
 <!-- ================= TRUST STRIP ================= -->
 <section class="strip">
   <div class="wrap strip-inner">
-    <div class="strip-item reveal"><strong>Vetted pros</strong><span>Every tech is background-checked</span></div>
-    <div class="strip-item reveal"><strong>Photo proof</strong><span>Before &amp; after photos every visit</span></div>
-    <div class="strip-item reveal"><strong>Upfront pricing</strong><span>You approve the price first</span></div>
-    <div class="strip-item reveal"><strong>Local</strong><span>Based in Miami-Dade County</span></div>
+    <div class="strip-item reveal"><strong data-i18n="strip1_t">Vetted pros</strong><span data-i18n="strip1_s">Every tech is background-checked</span></div>
+    <div class="strip-item reveal"><strong data-i18n="strip2_t">Photo proof</strong><span data-i18n="strip2_s">Before &amp; after photos every visit</span></div>
+    <div class="strip-item reveal"><strong data-i18n="strip3_t">Upfront pricing</strong><span data-i18n="strip3_s">You approve the price first</span></div>
+    <div class="strip-item reveal"><strong data-i18n="strip4_t">Local</strong><span data-i18n="strip4_s">Based in Miami-Dade County</span></div>
   </div>
 </section>
 
 <!-- ================= SERVICES ================= -->
 <section class="section" id="services">
   <div class="wrap">
-    <p class="section-kicker reveal">What we do</p>
-    <h2 class="reveal">Services &amp; pricing</h2>
-    <p class="section-lead reveal">Straightforward work at straightforward prices. Final quote confirmed before we start — no surprises.</p>
+    <p class="section-kicker reveal" data-i18n="svc_kicker">What we do</p>
+    <h2 class="reveal" data-i18n="svc_title">Services &amp; pricing</h2>
+    <p class="section-lead reveal" data-i18n="svc_lead">Straightforward work at straightforward prices. Final quote confirmed before we start — no surprises.</p>
 
     <div class="services-grid" id="servicesGrid">
 
       <article class="service-card reveal" id="svc-pressure-washing" data-name="pressure washing" data-desc="driveways walkways patios exteriors brought back to clean years of grime gone in an afternoon">
         <img class="card-img" src="assets/service-pressure-washing.webp" alt="Technician pressure washing a driveway clean" loading="lazy">
-        <div class="card-top"><h3>Pressure Washing</h3></div>
-        <p class="price">from <strong>$149</strong></p>
-        <p class="card-desc">Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.</p>
-        <a class="card-link" data-phone-href href="#">Get a quote</a>
+        <div class="card-top"><h3 data-i18n="svc1_t">Pressure Washing</h3></div>
+        <p class="price"><span data-i18n="from">from</span> <strong>$149</strong></p>
+        <p class="card-desc" data-i18n="svc1_d">Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.</p>
+        <a class="card-link" data-phone-href href="#" data-i18n="quote_link">Get a quote</a>
       </article>
 
       <article class="service-card reveal" id="svc-lawn-care" data-name="lawn care" data-desc="mowing edging cleanup schedule south florida year-round growing season grass yard">
         <img class="card-img" src="assets/service-lawn-care.webp" alt="Freshly striped manicured lawn" loading="lazy">
-        <div class="card-top"><h3>Lawn Care</h3></div>
-        <p class="price">from <strong>$45</strong></p>
-        <p class="card-desc">Mowing, edging, and cleanup on a schedule you can count on — through South Florida's year-round growing season.</p>
-        <a class="card-link" data-phone-href href="#">Get a quote</a>
+        <div class="card-top"><h3 data-i18n="svc2_t">Lawn Care</h3></div>
+        <p class="price"><span data-i18n="from">from</span> <strong>$45</strong></p>
+        <p class="card-desc" data-i18n="svc2_d">Mowing, edging, and cleanup on a schedule you can count on — through South Florida's year-round growing season.</p>
+        <a class="card-link" data-phone-href href="#" data-i18n="quote_link">Get a quote</a>
       </article>
 
       <article class="service-card reveal" id="svc-junk-removal" data-name="debris junk removal" data-desc="yard debris old furniture clutter hauled away trash hauling you point we lift">
         <img class="card-img" src="assets/service-junk-removal.webp" alt="Crew loading debris into a work truck" loading="lazy">
-        <div class="card-top"><h3>Debris &amp; Junk Removal</h3></div>
-        <p class="price">from <strong>$89</strong></p>
-        <p class="card-desc">Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.</p>
-        <a class="card-link" data-phone-href href="#">Get a quote</a>
+        <div class="card-top"><h3 data-i18n="svc3_t">Debris &amp; Junk Removal</h3></div>
+        <p class="price"><span data-i18n="from">from</span> <strong>$89</strong></p>
+        <p class="card-desc" data-i18n="svc3_d">Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.</p>
+        <a class="card-link" data-phone-href href="#" data-i18n="quote_link">Get a quote</a>
       </article>
 
       <article class="service-card reveal" id="svc-make-ready" data-name="make-ready cleaning" data-desc="turnover cleans rentals listings guest-ready kitchens baths floors move-in move-out">
         <img class="card-img" src="assets/service-make-ready.webp" alt="Sparkling clean move-in ready interior" loading="lazy">
-        <div class="card-top"><h3>Make-Ready Cleaning</h3></div>
-        <p class="price">from <strong>$179</strong></p>
-        <p class="card-desc">Turnover cleans that get rentals and listings guest-ready — kitchens, baths, floors, and details.</p>
-        <a class="card-link" data-phone-href href="#">Get a quote</a>
+        <div class="card-top"><h3 data-i18n="svc4_t">Make-Ready Cleaning</h3></div>
+        <p class="price"><span data-i18n="from">from</span> <strong>$179</strong></p>
+        <p class="card-desc" data-i18n="svc4_d">Turnover cleans that get rentals and listings guest-ready — kitchens, baths, floors, and details.</p>
+        <a class="card-link" data-phone-href href="#" data-i18n="quote_link">Get a quote</a>
       </article>
 
       <article class="service-card reveal" id="svc-handyman" data-name="handyman services" data-desc="small repairs punch-list items done right first time maintenance fix">
         <img class="card-img" src="assets/service-handyman.webp" alt="Handyman performing a home repair" loading="lazy">
-        <div class="card-top"><h3>Handyman Services</h3></div>
-        <p class="price">from <strong>$65</strong></p>
-        <p class="card-desc">Small repairs and punch-list items done right the first time. One call handles the whole list.</p>
-        <a class="card-link" data-phone-href href="#">Get a quote</a>
+        <div class="card-top"><h3 data-i18n="svc5_t">Handyman Services</h3></div>
+        <p class="price"><span data-i18n="from">from</span> <strong>$65</strong></p>
+        <p class="card-desc" data-i18n="svc5_d">Small repairs and punch-list items done right the first time. One call handles the whole list.</p>
+        <a class="card-link" data-phone-href href="#" data-i18n="quote_link">Get a quote</a>
       </article>
 
     </div>
 
     <div class="search-empty" id="searchEmpty" hidden>
-      <p class="search-empty-title">No match for “<span id="searchEmptyTerm"></span>”</p>
-      <p class="search-empty-sub">Tell us what you need — we probably do it.</p>
-      <a class="btn btn-gold" data-phone-href href="#">Call <span data-phone></span></a>
+      <p class="search-empty-title"><span data-i18n="no_match">No match for</span> “<span id="searchEmptyTerm"></span>”</p>
+      <p class="search-empty-sub" data-i18n="no_match_sub">Tell us what you need — we probably do it.</p>
+      <a class="btn btn-gold" data-phone-href href="#"><span data-i18n="call">Call</span> <span data-phone></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OUR WORK ================= -->
+<section class="section section-alt" id="work">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="work_kicker">Our work</p>
+    <h2 class="reveal" data-i18n="work_title">Before &amp; after</h2>
+    <p class="section-lead reveal" data-i18n="work_lead">Real project photos are on the way.</p>
+    <div class="work-grid">
+
+      <!--
+        SWAP IN REAL PHOTOS HERE: replace each .work-ph div below with an <img>.
+        Example:
+          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
+        becomes:
+          <img class="work-ph work-before" src="assets/work-1-before.jpg" alt="Driveway before pressure washing">
+        Do the same for .work-after. Keep the data-i18n spans only on placeholder divs.
+      -->
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
+      </figure>
+
+      <!-- SWAP IN REAL PHOTOS: same pattern — replace .work-ph divs with <img class="work-ph ..." src="assets/work-2-before.jpg"> / work-2-after.jpg -->
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
+      </figure>
+
+      <!-- SWAP IN REAL PHOTOS: same pattern — replace .work-ph divs with <img class="work-ph ..." src="assets/work-3-before.jpg"> / work-3-after.jpg -->
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
+      </figure>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= REVIEWS ================= -->
+<section class="section" id="reviews">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="reviews_kicker">Reviews</p>
+    <h2 class="reveal" data-i18n="reviews_title">What our customers say</h2>
+    <p class="section-lead reveal" data-i18n="reviews_empty">We're just getting started — be the first to review us.</p>
+    <!--
+      REVIEW LINKS: paste the real review-page URLs into config.js
+      (reviewGoogle, reviewFacebook, reviewThumbtack). Any button whose
+      URL is empty or "#" is hidden automatically.
+    -->
+    <div class="reviews-grid reveal">
+      <a class="btn btn-outline" id="reviewGoogle" href="#" target="_blank" rel="noopener"><span data-i18n="review_google">Review on Google</span></a>
+      <a class="btn btn-outline" id="reviewFacebook" href="#" target="_blank" rel="noopener"><span data-i18n="review_facebook">Review on Facebook</span></a>
+      <a class="btn btn-outline" id="reviewThumbtack" href="#" target="_blank" rel="noopener"><span data-i18n="review_thumbtack">Review on Thumbtack</span></a>
     </div>
   </div>
 </section>
@@ -143,15 +219,15 @@
 <section class="section section-alt" id="about">
   <div class="wrap about-inner">
     <div class="about-copy">
-      <p class="section-kicker reveal">Who we are</p>
-      <h2 class="reveal">A higher standard of property care</h2>
-      <p class="reveal">PrimeGuard Preservation is a Miami-Dade property services company built on a simple idea: the work should be excellent, the price should be clear, and you should never have to wonder what happened while you were away.</p>
-      <p class="reveal">Every visit is handled by a vetted professional and documented with before-and-after photos, so you see exactly what your money bought. Homeowners, landlords, and property managers across the county trust us with the details that keep a property looking sharp.</p>
+      <p class="section-kicker reveal" data-i18n="about_kicker">Who we are</p>
+      <h2 class="reveal" data-i18n="about_title">A higher standard of property care</h2>
+      <p class="reveal" data-i18n="about_p1">PrimeGuard Preservation is a Miami-Dade property services company built on a simple idea: the work should be excellent, the price should be clear, and you should never have to wonder what happened while you were away.</p>
+      <p class="reveal" data-i18n="about_p2">Every visit is handled by a vetted professional and documented with before-and-after photos, so you see exactly what your money bought. Homeowners, landlords, and property managers across the county trust us with the details that keep a property looking sharp.</p>
       <ul class="about-list reveal">
-        <li>Background-checked, vetted pros on every job</li>
-        <li>Before-and-after photo documentation, every visit</li>
-        <li>Upfront pricing — approved by you before work begins</li>
-        <li>One call for five services, across Miami-Dade County</li>
+        <li data-i18n="about_li1">Background-checked, vetted pros on every job</li>
+        <li data-i18n="about_li2">Before-and-after photo documentation, every visit</li>
+        <li data-i18n="about_li3">Upfront pricing — approved by you before work begins</li>
+        <li data-i18n="about_li4">One call for five services, across Miami-Dade County</li>
       </ul>
     </div>
     <div class="about-badge reveal">
@@ -163,31 +239,31 @@
 <!-- ================= GOVERNMENT ================= -->
 <section class="section section-alt" id="government">
   <div class="wrap">
-    <p class="section-kicker reveal">Public sector</p>
-    <h2 class="reveal">Government &amp; institutional contracting</h2>
-    <p class="section-lead reveal">PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline — vetted crews, photo documentation, upfront pricing — to government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.</p>
+    <p class="section-kicker reveal" data-i18n="gov_kicker">Public sector</p>
+    <h2 class="reveal" data-i18n="gov_title">Government &amp; institutional contracting</h2>
+    <p class="section-lead reveal" data-i18n="gov_lead">PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline — vetted crews, photo documentation, upfront pricing — to government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.</p>
     <div class="gov-grid">
       <div class="gov-card reveal">
-        <h3>Registered &amp; ready</h3>
+        <h3 data-i18n="gov_card1_t">Registered &amp; ready</h3>
         <dl class="gov-ids">
           <div><dt>UEI</dt><dd>C5S5K2928NL1</dd></div>
           <div><dt>CAGE</dt><dd>22BQ3</dd></div>
         </dl>
-        <p class="gov-note">Active SAM.gov registration. Capability statement available on request.</p>
+        <p class="gov-note" data-i18n="gov_note">Active SAM.gov registration. Capability statement available on request.</p>
       </div>
       <div class="gov-card reveal">
-        <h3>Capability areas</h3>
+        <h3 data-i18n="gov_card2_t">Capability areas</h3>
         <ul class="gov-list">
-          <li>Grounds &amp; facilities maintenance</li>
-          <li>Janitorial services</li>
-          <li>Property preservation</li>
-          <li>Debris removal</li>
+          <li data-i18n="gov_li1">Grounds &amp; facilities maintenance</li>
+          <li data-i18n="gov_li2">Janitorial services</li>
+          <li data-i18n="gov_li3">Property preservation</li>
+          <li data-i18n="gov_li4">Debris removal</li>
         </ul>
       </div>
     </div>
     <div class="gov-cta reveal">
-      <p>Contracting officers and facility managers: tell us about your requirement.</p>
-      <a class="btn btn-gold btn-lg" data-email-href href="#">Email <span data-email></span></a>
+      <p data-i18n="gov_cta_p">Contracting officers and facility managers: tell us about your requirement.</p>
+      <a class="btn btn-gold btn-lg" data-email-href href="#"><span data-i18n="email_word">Email</span> <span data-email></span></a>
     </div>
   </div>
 </section>
@@ -195,56 +271,61 @@
 <!-- ================= CONTACT ================= -->
 <section class="section" id="contact">
   <div class="wrap">
-    <p class="section-kicker reveal">Get in touch</p>
-    <h2 class="reveal">Request service</h2>
-    <p class="section-lead reveal">Call, email, or send the form — we reply during business hours.</p>
+    <p class="section-kicker reveal" data-i18n="contact_kicker">Get in touch</p>
+    <h2 class="reveal" data-i18n="contact_title">Request service</h2>
+    <p class="section-lead reveal" data-i18n="contact_lead">Call, email, or send the form — we reply during business hours.</p>
     <div class="contact-grid">
       <div class="contact-info reveal">
         <div class="info-row">
-          <span class="info-label">Phone</span>
+          <span class="info-label" data-i18n="info_phone">Phone</span>
           <a class="info-value info-link" data-phone-href href="#"><span data-phone></span></a>
         </div>
         <div class="info-row">
-          <span class="info-label">Email</span>
+          <span class="info-label" data-i18n="info_email">Email</span>
           <a class="info-value info-link" data-email-href href="#"><span data-email></span></a>
         </div>
         <div class="info-row">
-          <span class="info-label">Hours</span>
+          <span class="info-label" data-i18n="info_hours">Hours</span>
           <span class="info-value" data-hours></span>
         </div>
         <div class="info-row">
-          <span class="info-label">Service area</span>
+          <span class="info-label" data-i18n="info_area">Service area</span>
           <span class="info-value" data-area></span>
         </div>
-        <a class="btn btn-gold btn-lg" data-phone-href href="#">Call now</a>
+        <a class="btn btn-gold btn-lg" data-phone-href href="#" data-i18n="call_now">Call now</a>
       </div>
       <form class="quote-form reveal" id="quoteForm" novalidate>
-        <h3>Get a fast quote</h3>
-        <label>Full name
-          <input type="text" name="name" required autocomplete="name" placeholder="Your name">
+        <h3 data-i18n="form_title">Get a fast quote</h3>
+        <label><span data-i18n="form_name">Full name</span>
+          <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
         </label>
-        <label>Phone
+        <label><span data-i18n="form_phone">Phone</span>
           <input type="tel" name="phone" required autocomplete="tel" placeholder="(305) 555-1234">
         </label>
-        <label>Email
+        <label><span data-i18n="form_email">Email</span>
           <input type="email" name="email" autocomplete="email" placeholder="you@email.com">
         </label>
-        <label>Service needed
+        <label><span data-i18n="form_service">Service needed</span>
           <select name="service" required>
-            <option value="" disabled selected>Choose a service</option>
-            <option>Pressure Washing</option>
-            <option>Lawn Care</option>
-            <option>Debris &amp; Junk Removal</option>
-            <option>Make-Ready Cleaning</option>
-            <option>Handyman Services</option>
-            <option>Something else</option>
+            <option value="" disabled selected data-i18n="choose_service">Choose a service</option>
+            <option value="Pressure Washing" data-i18n="svc1_t">Pressure Washing</option>
+            <option value="Lawn Care" data-i18n="svc2_t">Lawn Care</option>
+            <option value="Debris &amp; Junk Removal" data-i18n="svc3_t">Debris &amp; Junk Removal</option>
+            <option value="Make-Ready Cleaning" data-i18n="svc4_t">Make-Ready Cleaning</option>
+            <option value="Handyman Services" data-i18n="svc5_t">Handyman Services</option>
+            <option value="Something else" data-i18n="opt_else">Something else</option>
           </select>
         </label>
-        <label>Details
-          <textarea name="message" rows="4" placeholder="Tell us about the job — size, location, timing."></textarea>
+        <label><span data-i18n="form_details">Details</span>
+          <textarea name="message" rows="4" placeholder="Tell us about the job — size, location, timing." data-i18n-ph="ph_details"></textarea>
         </label>
-        <button type="submit" class="btn btn-gold btn-lg">Send request</button>
-        <p class="form-note">This opens your email app with the request ready to send. No account needed.</p>
+        <!-- Honeypot: invisible to humans, bots fill it and get silently discarded -->
+        <label class="hp-field" aria-hidden="true">Company
+          <input type="text" name="company" tabindex="-1" autocomplete="off">
+        </label>
+        <button type="submit" class="btn btn-gold btn-lg" data-i18n="send_request">Send request</button>
+        <p class="form-status" id="formStatus" role="status" aria-live="polite" hidden></p>
+        <p class="form-note" id="formNote">This opens your email app with the request ready to send. No account needed.</p>
       </form>
     </div>
   </div>
@@ -262,13 +343,22 @@
       <a data-email-href href="#"><span data-email></span></a>
       <span data-hours></span>
     </div>
-    <p class="footer-copy">© <span id="year"></span> PrimeGuard Preservation LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="year"></span> PrimeGuard Preservation LLC. <span data-i18n="footer_rights">All rights reserved.</span></p>
   </div>
 </footer>
 
 <!-- Sticky mobile call bar -->
 <div class="mobile-callbar">
-  <a data-phone-href href="#">Call <span data-phone></span></a>
+  <a data-phone-href href="#"><span data-i18n="call">Call</span> <span data-phone></span></a>
+</div>
+
+<!-- ================= BOOKING MODAL ================= -->
+<div class="modal-overlay" id="bookingModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bookingTitle">
+    <button class="modal-close" id="bookingClose" aria-label="Close" data-i18n-aria="close">×</button>
+    <h3 id="bookingTitle">Book your service</h3>
+    <div class="modal-body" id="bookingBody"></div>
+  </div>
 </div>
 
 <script src="config.js"></script>
