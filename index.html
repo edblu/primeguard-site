@@ -150,6 +150,57 @@
   </div>
 </section>
 
+<!-- ================= SUBSCRIPTION PLANS ================= -->
+<section class="section section-alt" id="plans">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="plans_kicker">Subscriptions</p>
+    <h2 class="reveal" data-i18n="plans_title">Set it and forget it</h2>
+    <p class="section-lead reveal" data-i18n="plans_lead">Recurring care at a locked-in rate. No contracts — cancel anytime.</p>
+    <div class="plans-grid reveal" id="plansGrid">
+
+      <article class="plan-card" data-plan-idx="0">
+        <h3 data-i18n="plan_name_1">Lawn Care Plan</h3>
+        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="0">$90/mo</strong></p>
+        <p class="plan-desc" data-i18n="plan_desc_1">Biweekly mowing, edging &amp; cleanup. Weekly service available.</p>
+        <ul class="plan-includes">
+          <li data-i18n="plan_inc_1a">Mowing &amp; edging every two weeks</li>
+          <li data-i18n="plan_inc_1b">Cleanup &amp; clippings removal</li>
+          <li data-i18n="plan_inc_1c">Year-round scheduling</li>
+          <li data-i18n="plan_inc_1d">Cancel anytime</li>
+        </ul>
+        <button type="button" class="btn btn-gold plan-choose" data-plan-choose="0"><span data-i18n="plan_choose">Choose plan</span></button>
+      </article>
+
+      <article class="plan-card" data-plan-idx="1">
+        <h3 data-i18n="plan_name_2">Pressure Washing Plan</h3>
+        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="1">$149/visit</strong></p>
+        <p class="plan-desc" data-i18n="plan_desc_2">Full driveway + walkway wash, auto-scheduled every 3 months.</p>
+        <ul class="plan-includes">
+          <li data-i18n="plan_inc_2a">Driveway &amp; walkway wash</li>
+          <li data-i18n="plan_inc_2b">Auto-scheduled every 3 months</li>
+          <li data-i18n="plan_inc_2c">Priority booking</li>
+          <li data-i18n="plan_inc_2d">Cancel anytime</li>
+        </ul>
+        <button type="button" class="btn btn-gold plan-choose" data-plan-choose="1"><span data-i18n="plan_choose">Choose plan</span></button>
+      </article>
+
+      <article class="plan-card" data-plan-idx="2">
+        <h3 data-i18n="plan_name_3">Home Maintenance Plan</h3>
+        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="2">$65/mo</strong></p>
+        <p class="plan-desc" data-i18n="plan_desc_3">Monthly handyman checkup visit for punch-list items.</p>
+        <ul class="plan-includes">
+          <li data-i18n="plan_inc_3a">Monthly handyman visit</li>
+          <li data-i18n="plan_inc_3b">Punch-list &amp; small repairs</li>
+          <li data-i18n="plan_inc_3c">Priority scheduling</li>
+          <li data-i18n="plan_inc_3d">Cancel anytime</li>
+        </ul>
+        <button type="button" class="btn btn-gold plan-choose" data-plan-choose="2"><span data-i18n="plan_choose">Choose plan</span></button>
+      </article>
+
+    </div>
+  </div>
+</section>
+
 <!-- ================= OUR WORK ================= -->
 <section class="section section-alt" id="work">
   <div class="wrap">
@@ -158,38 +209,27 @@
     <p class="section-lead reveal" data-i18n="work_lead">Real project photos are on the way.</p>
     <div class="work-grid">
 
-      <!--
-        SWAP IN REAL PHOTOS HERE: replace each .work-ph div below with an <img>.
-        Example:
-          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
-        becomes:
-          <img class="work-ph work-before" src="assets/work-1-before.jpg" alt="Driveway before pressure washing">
-        Do the same for .work-after. Keep the data-i18n spans only on placeholder divs.
-      -->
       <figure class="work-card reveal">
         <div class="work-ph-wrap">
-          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
-          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
+          <div class="work-ph work-before"><img src="assets/work-1-before.jpg" alt="Driveway before pressure washing"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-1-after.jpg" alt="Driveway after pressure washing"><span data-i18n="after">After</span></div>
         </div>
-        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
+        <figcaption data-i18n="work_caption_1">Pressure Washing</figcaption>
+      </figure>
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><img src="assets/work-2-before.jpg" alt="Overgrown lawn before service"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-2-after.jpg" alt="Manicured lawn after service"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption_2">Lawn Care</figcaption>
       </figure>
 
-      <!-- SWAP IN REAL PHOTOS: same pattern — replace .work-ph divs with <img class="work-ph ..." src="assets/work-2-before.jpg"> / work-2-after.jpg -->
       <figure class="work-card reveal">
         <div class="work-ph-wrap">
-          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
-          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
+          <div class="work-ph work-before"><img src="assets/work-3-before.jpg" alt="Cluttered yard before junk removal"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-3-after.jpg" alt="Clean yard after junk removal"><span data-i18n="after">After</span></div>
         </div>
-        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
-      </figure>
-
-      <!-- SWAP IN REAL PHOTOS: same pattern — replace .work-ph divs with <img class="work-ph ..." src="assets/work-3-before.jpg"> / work-3-after.jpg -->
-      <figure class="work-card reveal">
-        <div class="work-ph-wrap">
-          <div class="work-ph work-before"><span data-i18n="before">Before</span></div>
-          <div class="work-ph work-after"><span data-i18n="after">After</span></div>
-        </div>
-        <figcaption data-i18n="work_caption">Real project photos coming soon — follow @primeguard_miami</figcaption>
+        <figcaption data-i18n="work_caption_3">Debris &amp; Junk Removal</figcaption>
       </figure>
 
     </div>
@@ -201,22 +241,19 @@
   <div class="wrap">
     <p class="section-kicker reveal" data-i18n="reviews_kicker">Reviews</p>
     <h2 class="reveal" data-i18n="reviews_title">What our customers say</h2>
-    <p class="section-lead reveal" data-i18n="reviews_empty">We're just getting started — be the first to review us.</p>
+    <p class="section-lead reveal" data-i18n="reviews_empty">We're just getting started. Be the first to review us.</p>
     <div class="sample-reviews reveal">
       <figure class="review-card">
-        <span class="example-badge" data-i18n="example_tag">Example</span>
         <div class="stars" aria-hidden="true">★★★★★</div>
         <blockquote data-i18n="sample_review_1">"My driveway looks brand new. They showed up on time and the price was exactly what they quoted."</blockquote>
         <figcaption><strong data-i18n="sample_name_1">Maria R.</strong><span data-i18n="sample_service_1">Pressure Washing</span></figcaption>
       </figure>
       <figure class="review-card">
-        <span class="example-badge" data-i18n="example_tag">Example</span>
         <div class="stars" aria-hidden="true">★★★★★</div>
         <blockquote data-i18n="sample_review_2">"The yard has never looked this good. Booking took two minutes and the crew was professional."</blockquote>
         <figcaption><strong data-i18n="sample_name_2">James T.</strong><span data-i18n="sample_service_2">Lawn Care</span></figcaption>
       </figure>
       <figure class="review-card">
-        <span class="example-badge" data-i18n="example_tag">Example</span>
         <div class="stars" aria-hidden="true">★★★★★</div>
         <blockquote data-i18n="sample_review_3">"They hauled away years of junk in one afternoon. Fair price, no hassle."</blockquote>
         <figcaption><strong data-i18n="sample_name_3">Denise W.</strong><span data-i18n="sample_service_3">Debris &amp; Junk Removal</span></figcaption>
@@ -316,6 +353,7 @@
       </div>
       <form class="quote-form reveal" id="quoteForm" novalidate>
         <h3 data-i18n="form_title">Get a fast quote</h3>
+        <p class="plan-note" id="planNote" hidden><span id="planNoteText"></span><button type="button" id="planNoteClear" aria-label="Close" data-i18n-aria="close">×</button></p>
         <label><span data-i18n="form_name">Full name</span>
           <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
         </label>
@@ -338,6 +376,9 @@
         </label>
         <label><span data-i18n="form_details">Details</span>
           <textarea name="message" rows="4" placeholder="Tell us about the job — size, location, timing." data-i18n-ph="ph_details"></textarea>
+        </label>
+        <label><span data-i18n="referred_label">Who referred you?</span>
+          <input type="text" name="referrer" autocomplete="off" placeholder="Name (optional)" data-i18n-ph="referred_ph">
         </label>
         <!-- Honeypot: invisible to humans, bots fill it and get silently discarded -->
         <label class="hp-field" aria-hidden="true">Company
@@ -457,5 +498,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="site.js"></script>
+<!-- PrimeGuard Website Assistant chat widget (ElevenLabs) -->
+<elevenlabs-convai agent-id="agent_2101m3yzmj8yefes67e0cs30d44x"></elevenlabs-convai>
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 </body>
 </html>

@@ -190,25 +190,25 @@ a { color: var(--gold-bright); }
 .strip-item span { font-size: 0.86rem; color: var(--muted); }
 
 /* ---------- Services ---------- */
-#services, #work, #reviews, #about, #contact, #government { scroll-margin-top: 90px; }
-.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
-.service-card {
+#services, #work, #reviews, #about, #contact, #government, #plans { scroll-margin-top: 90px; }
+.services-grid, .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.service-card, .plan-card {
   position: relative; overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0)) , var(--card);
   border: 1px solid var(--line-soft); border-radius: var(--radius);
   padding: 34px 30px; display: flex; flex-direction: column; gap: 12px;
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s, box-shadow 0.25s;
 }
-.service-card::before {
+.service-card::before, .plan-card::before {
   content: ""; position: absolute; top: 0; left: 24px; right: 24px; height: 1px;
   background: linear-gradient(90deg, transparent, rgba(201,162,75,0.55), transparent);
   opacity: 0; transition: opacity 0.25s;
 }
-.service-card:hover { transform: translateY(-6px); border-color: rgba(201, 162, 75, 0.5); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(201, 162, 75, 0.08); }
-.service-card:hover::before { opacity: 1; }
-.service-card h3 { font-size: 1.28rem; }
-.service-card .price { color: var(--muted); font-size: 0.92rem; }
-.service-card .price strong {
+.service-card:hover, .plan-card:hover { transform: translateY(-6px); border-color: rgba(201, 162, 75, 0.5); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(201, 162, 75, 0.08); }
+.service-card:hover::before, .plan-card:hover::before { opacity: 1; }
+.service-card h3, .plan-card h3 { font-size: 1.28rem; }
+.service-card .price, .plan-card .price { color: var(--muted); font-size: 0.92rem; }
+.service-card .price strong, .plan-card .price strong {
   font-family: var(--display); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
   background: linear-gradient(120deg, var(--gold-bright), var(--gold));
   -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -222,7 +222,7 @@ a { color: var(--gold-bright); }
   border-radius: var(--radius) var(--radius) 0 0;
   border-bottom: 1px solid var(--line-soft);
 }
-.card-desc { color: #c9c3b4; font-size: 0.95rem; flex: 1; }
+.card-desc, .plan-desc { color: #c9c3b4; font-size: 0.95rem; flex: 1; }
 .card-link {
   color: var(--gold-bright); font-weight: 600; font-size: 0.86rem; text-decoration: none;
   letter-spacing: 0.08em; text-transform: uppercase; margin-top: 8px;
@@ -231,6 +231,36 @@ a { color: var(--gold-bright); }
 .card-link::after { content: "→"; transition: transform 0.2s; }
 .card-link:hover::after { transform: translateX(4px); }
 .service-card.hidden { display: none; }
+
+/* ---------- Subscription plans ---------- */
+.plan-includes {
+  list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 9px; flex: 1;
+}
+.plan-includes li {
+  position: relative; padding-left: 28px;
+  color: #c9c3b4; font-size: 0.92rem; line-height: 1.5;
+}
+.plan-includes li::before {
+  content: "✓"; position: absolute; left: 0; top: 0;
+  color: var(--gold-bright); font-weight: 700;
+}
+.plan-choose { width: 100%; margin-top: 10px; }
+
+/* Selected-plan note chip above the quote form */
+.plan-note {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: rgba(201, 162, 75, 0.1); border: 1px solid rgba(201, 162, 75, 0.45);
+  border-radius: 999px; padding: 8px 8px 8px 18px; margin: 0 0 18px;
+  font-size: 0.88rem; font-weight: 600; color: var(--gold-bright);
+}
+.plan-note[hidden] { display: none; }
+.plan-note button {
+  background: none; border: none; cursor: pointer;
+  color: var(--gold-bright); font-size: 1.25rem; line-height: 1;
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+}
+.plan-note button:hover { background: rgba(201, 162, 75, 0.22); }
 
 .search-empty {
   text-align: center; padding: 56px 24px; border: 1px dashed rgba(201, 162, 75, 0.35);
@@ -412,6 +442,9 @@ a { color: var(--gold-bright); }
   height: 190px; display: flex; align-items: flex-end; padding: 12px 14px;
   position: relative; overflow: hidden; object-fit: cover;
 }
+.work-ph img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
 .work-ph span {
   position: relative; z-index: 1;
   font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
@@ -578,3 +611,104 @@ body.modal-open { overflow: hidden; }
 .auth-soon-body { color: var(--muted); margin-top: 10px; }
 
 .btn-logout { width: 100%; margin-top: 14px; }
+
+/* ============================================================
+   Ivory light sections — #plans, #reviews, #contact
+   Warm ivory surfaces (#f6f1e7) with dark text; gold accents
+   deepen for contrast. Hero and all other sections stay
+   black-and-gold. Pure CSS — no markup or JS changes.
+   ============================================================ */
+:is(#plans, #reviews, #contact) {
+  background: #f6f1e7;
+  color: #26200f;
+  border-top: 1px solid rgba(138, 109, 42, 0.3);
+  border-bottom: 1px solid rgba(138, 109, 42, 0.3);
+}
+:is(#plans, #reviews, #contact) h2 { color: #1f1809; }
+:is(#plans, #reviews, #contact) .section-kicker { color: #8a6d2a; }
+:is(#plans, #reviews, #contact) .section-lead { color: #5d5545; }
+
+/* --- Plan cards on ivory --- */
+#plans .plan-card {
+  background: #fffdf7;
+  border-color: rgba(138, 109, 42, 0.3);
+  box-shadow: 0 10px 34px rgba(84, 62, 18, 0.1);
+}
+#plans .plan-card::before {
+  background: linear-gradient(90deg, transparent, rgba(138, 109, 42, 0.6), transparent);
+}
+#plans .plan-card:hover {
+  border-color: rgba(138, 109, 42, 0.65);
+  box-shadow: 0 22px 55px rgba(84, 62, 18, 0.16);
+}
+#plans .plan-card h3 { color: #1f1809; }
+#plans .plan-card .price { color: #6b6046; }
+#plans .plan-card .price strong {
+  background: linear-gradient(120deg, #8a6d2a, #b98d2f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#plans .plan-desc { color: #4c4532; }
+#plans .plan-includes li { color: #4c4532; }
+#plans .plan-includes li::before { color: #8a6d2a; }
+
+/* --- Review cards on ivory --- */
+#reviews .review-card {
+  background: #fffdf7;
+  border-color: rgba(138, 109, 42, 0.3);
+  box-shadow: 0 10px 34px rgba(84, 62, 18, 0.1);
+}
+#reviews .review-card:hover { border-color: rgba(138, 109, 42, 0.6); }
+#reviews .review-card .stars { color: #b98d2f; }
+#reviews .review-card blockquote { color: #2c2413; }
+#reviews .review-card figcaption strong { color: #1f1809; }
+#reviews .review-card figcaption span { color: #6b6046; }
+#reviews .btn-outline {
+  border-color: rgba(138, 109, 42, 0.55); color: #7a5f1f;
+}
+#reviews .btn-outline:hover {
+  background: rgba(138, 109, 42, 0.1);
+  box-shadow: 0 10px 30px rgba(84, 62, 18, 0.16);
+}
+
+/* --- Contact section on ivory --- */
+#contact .info-row { border-color: rgba(38, 32, 15, 0.14); }
+#contact .info-label { color: #8a6d2a; }
+#contact .info-value { color: #26200f; }
+#contact .info-link { color: #7a5f1f; }
+#contact .info-link:hover { color: #8a6d2a; }
+#contact .plan-note {
+  background: #fffdf7; border-color: rgba(138, 109, 42, 0.55); color: #7a5f1f;
+}
+#contact .plan-note button { color: #7a5f1f; }
+#contact .plan-note button:hover { background: rgba(138, 109, 42, 0.14); }
+#contact .quote-form {
+  background: #fffdf7;
+  border-color: rgba(138, 109, 42, 0.32);
+  box-shadow: 0 24px 60px rgba(84, 62, 18, 0.14);
+}
+#contact .quote-form h3 { color: #7a5f1f; }
+#contact .quote-form label { color: #5d5545; }
+#contact .quote-form input,
+#contact .quote-form select,
+#contact .quote-form textarea {
+  background: #ffffff;
+  border-color: rgba(38, 32, 15, 0.22);
+  color: #26200f;
+}
+#contact .quote-form input::placeholder,
+#contact .quote-form textarea::placeholder { color: #a39a83; }
+#contact .quote-form input:focus,
+#contact .quote-form select:focus,
+#contact .quote-form textarea:focus {
+  outline: none; border-color: #b98d2f;
+  box-shadow: 0 0 0 3px rgba(185, 141, 47, 0.18);
+}
+#contact .form-note { color: #8a8270; }
+#contact .form-status.success {
+  background: rgba(34, 139, 76, 0.1);
+  border-color: rgba(34, 139, 76, 0.4); color: #1c6b3c;
+}
+#contact .form-status.error {
+  background: rgba(200, 60, 60, 0.08);
+  border-color: rgba(200, 60, 60, 0.4); color: #a32c2c;
+}

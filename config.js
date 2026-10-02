@@ -24,5 +24,14 @@ window.SITE_CONFIG = {
 
   // --- Customer accounts (Firebase). Parent fills the real config object later.
   // null/empty = "Accounts coming soon" mode; the site never breaks without it.
-  firebase: null
+  firebase: null,
+
+  // --- Subscription plans (STARTING prices — Edwin adjusts these freely).
+  // price: shown on the plan card (injected by site.js). service: must match
+  // a value in the quote-form service dropdown so "Choose plan" preselects it.
+  plans: [
+    { price: "$90/mo",     service: "Lawn Care" },
+    { price: "$149/visit", service: "Pressure Washing" },
+    { price: "$65/mo",     service: "Handyman Services" }
+  ]
 };

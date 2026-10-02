@@ -46,14 +46,41 @@
       svc5_t: "Handyman Services",
       svc5_d: "Small repairs and punch-list items done right the first time. One call handles the whole list.",
       from: "from", quote_link: "Get a quote",
+      plans_kicker: "Subscriptions", plans_title: "Set it and forget it",
+      plans_lead: "Recurring care at a locked-in rate. No contracts — cancel anytime.",
+      plan_choose: "Choose plan",
+      plan_selected: "You selected", plan_onetime: "One-time",
+      plan_name_1: "Lawn Care Plan",
+      plan_desc_1: "Biweekly mowing, edging & cleanup. Weekly service available.",
+      plan_inc_1a: "Mowing & edging every two weeks",
+      plan_inc_1b: "Cleanup & clippings removal",
+      plan_inc_1c: "Year-round scheduling",
+      plan_inc_1d: "Cancel anytime",
+      plan_name_2: "Pressure Washing Plan",
+      plan_desc_2: "Full driveway + walkway wash, auto-scheduled every 3 months.",
+      plan_inc_2a: "Driveway & walkway wash",
+      plan_inc_2b: "Auto-scheduled every 3 months",
+      plan_inc_2c: "Priority booking",
+      plan_inc_2d: "Cancel anytime",
+      plan_name_3: "Home Maintenance Plan",
+      plan_desc_3: "Monthly handyman checkup visit for punch-list items.",
+      plan_inc_3a: "Monthly handyman visit",
+      plan_inc_3b: "Punch-list & small repairs",
+      plan_inc_3c: "Priority scheduling",
+      plan_inc_3d: "Cancel anytime",
+      referred_label: "Who referred you?", referred_ph: "Name (optional)",
+      lead_plan_label: "Plan", lead_referred_label: "Referred by",
       no_match: "No match for", no_match_sub: "Tell us what you need — we probably do it.",
       call: "Call",
       work_kicker: "Our work", work_title: "Before & after",
       work_lead: "Real project photos are on the way.",
       before: "Before", after: "After",
       work_caption: "Project photos coming soon",
+      work_caption_1: "Pressure Washing",
+      work_caption_2: "Lawn Care",
+      work_caption_3: "Debris & Junk Removal",
       reviews_kicker: "Reviews", reviews_title: "What our customers say",
-      reviews_empty: "We're just getting started — be the first to review us.",
+      reviews_empty: "We're just getting started. Be the first to review us.",
       example_tag: "Example",
       sample_review_1: "\"My driveway looks brand new. They showed up on time and the price was exactly what they quoted.\"",
       sample_name_1: "Maria R.", sample_service_1: "Pressure Washing",
@@ -149,14 +176,41 @@
       svc5_t: "Servicios de reparaciones",
       svc5_d: "Reparaciones menores y listas de pendientes, bien hechas desde la primera vez. Una llamada resuelve toda la lista.",
       from: "desde", quote_link: "Pida un presupuesto",
+      plans_kicker: "Suscripciones", plans_title: "Prográmelo y olvídese",
+      plans_lead: "Cuidado recurrente a precio fijo. Sin contratos: cancele cuando quiera.",
+      plan_choose: "Elegir plan",
+      plan_selected: "Usted seleccionó", plan_onetime: "Único",
+      plan_name_1: "Plan de cuidado del césped",
+      plan_desc_1: "Corte quincenal, bordeado y limpieza. Servicio semanal disponible.",
+      plan_inc_1a: "Corte y bordeado cada dos semanas",
+      plan_inc_1b: "Limpieza y retiro de recortes",
+      plan_inc_1c: "Programación todo el año",
+      plan_inc_1d: "Cancele cuando quiera",
+      plan_name_2: "Plan de lavado a presión",
+      plan_desc_2: "Lavado completo de entrada y acera, programado automáticamente cada 3 meses.",
+      plan_inc_2a: "Lavado de entrada y acera",
+      plan_inc_2b: "Programación automática cada 3 meses",
+      plan_inc_2c: "Reserva prioritaria",
+      plan_inc_2d: "Cancele cuando quiera",
+      plan_name_3: "Plan de mantenimiento del hogar",
+      plan_desc_3: "Visita mensual de reparaciones para su lista de pendientes.",
+      plan_inc_3a: "Visita mensual de reparaciones",
+      plan_inc_3b: "Lista de pendientes y reparaciones menores",
+      plan_inc_3c: "Programación prioritaria",
+      plan_inc_3d: "Cancele cuando quiera",
+      referred_label: "¿Quién lo refirió?", referred_ph: "Nombre (opcional)",
+      lead_plan_label: "Plan", lead_referred_label: "Referido por",
       no_match: "Sin resultados para", no_match_sub: "Díganos lo que necesita — probablemente lo hacemos.",
       call: "Llamar",
       work_kicker: "Nuestro trabajo", work_title: "Antes y después",
       work_lead: "Las fotos reales de nuestros proyectos están en camino.",
       before: "Antes", after: "Después",
       work_caption: "Fotos del proyecto próximamente",
+      work_caption_1: "Lavado a presión",
+      work_caption_2: "Cuidado del césped",
+      work_caption_3: "Remoción de escombros",
       reviews_kicker: "Reseñas", reviews_title: "Lo que dicen nuestros clientes",
-      reviews_empty: "Estamos empezando — sea el primero en dejarnos una reseña.",
+      reviews_empty: "Estamos empezando. Sea el primero en dejarnos una reseña.",
       example_tag: "Ejemplo",
       sample_review_1: "\"Mi entrada parece nueva. Llegaron puntuales y el precio fue exactamente el cotizado.\"",
       sample_name_1: "Maria R.", sample_service_1: "Lavado a presión",
@@ -421,7 +475,7 @@
       phone: els.phone.value.trim(),
       email: els.email.value.trim(),
       service: els.service.value,
-      message: els.message.value.trim(),
+      message: planMessagePrefix(els) + els.message.value.trim(),
       language: currentLang,
       timestamp: new Date().toISOString(),
       source: "primeguard-site",
@@ -446,12 +500,79 @@
     }).then(function () {
       setFormStatus("success", t("form_success"));
       form.reset();
+      clearPlanSelection();
     }).catch(function () {
       setFormStatus("error", t("form_error"));
     }).then(function () {
       btn.disabled = false;
     });
   });
+
+  /* ---------- Subscription plans ---------- */
+  // cfg.plans: [{ price, service }]. Display strings come from i18n
+  // (plan_name_N / plan_desc_N / plan_inc_Nx); prices come from config.
+  var plans = Array.isArray(cfg.plans) ? cfg.plans : [];
+  var plansSection = document.getElementById("plans");
+  var planNote = document.getElementById("planNote");
+  var planNoteText = document.getElementById("planNoteText");
+  var planNoteClear = document.getElementById("planNoteClear");
+  var selectedPlan = -1; // index into plans; -1 = none (one-time request)
+
+  function planLabel() {
+    return selectedPlan >= 0 ? t("plan_name_" + (selectedPlan + 1)) : t("plan_onetime");
+  }
+
+  // Prefix packed into the lead message so the Apps Script needs no changes.
+  function planMessagePrefix(els) {
+    var ref = (els.referrer && els.referrer.value.trim()) || "-";
+    return t("lead_plan_label") + ": " + planLabel() + "\n" +
+           t("lead_referred_label") + ": " + ref + "\n---\n";
+  }
+
+  function renderPlanPrices() {
+    document.querySelectorAll("[data-plan-price]").forEach(function (el) {
+      var i = parseInt(el.getAttribute("data-plan-price"), 10);
+      el.textContent = (plans[i] && plans[i].price) || "";
+    });
+  }
+
+  function renderPlanNote() {
+    if (!planNote) return;
+    if (selectedPlan >= 0) {
+      planNoteText.textContent = t("plan_selected") + ": " + t("plan_name_" + (selectedPlan + 1));
+      planNote.hidden = false;
+    } else {
+      planNote.hidden = true;
+    }
+  }
+
+  function selectPlan(i) {
+    if (!(plans[i])) return;
+    selectedPlan = i;
+    // Preselect the matching service in the quote-form dropdown.
+    var svc = plans[i].service;
+    var sel = form.elements.service;
+    if (sel && svc) {
+      for (var k = 0; k < sel.options.length; k++) {
+        if (sel.options[k].value === svc) { sel.selectedIndex = k; break; }
+      }
+    }
+    renderPlanNote();
+    var contact = document.getElementById("contact");
+    if (contact) contact.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function clearPlanSelection() {
+    selectedPlan = -1;
+    renderPlanNote();
+  }
+
+  document.querySelectorAll("[data-plan-choose]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      selectPlan(parseInt(btn.getAttribute("data-plan-choose"), 10));
+    });
+  });
+  if (planNoteClear) planNoteClear.addEventListener("click", clearPlanSelection);
 
   /* ---------- Booking modal ---------- */
   var modal = document.getElementById("bookingModal");
@@ -550,6 +671,7 @@
       b.classList.toggle("active", b.getAttribute("data-lang") === currentLang);
     });
     renderFormNote();
+    renderPlanNote();
     if (!modal.hidden) renderBooking();
     updateAuthButtons();
   }
@@ -856,5 +978,7 @@
 
   /* ---------- Init ---------- */
   setupReviews();
+  renderPlanPrices();
+  if (!plans.length && plansSection) plansSection.style.display = "none";
   applyI18n();
 })();
