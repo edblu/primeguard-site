@@ -655,3 +655,140 @@ body.modal-open { overflow: hidden; }
 }
 #contact .plan-note button { color: var(--gold-bright); }
 #contact .plan-note button:hover { background: rgba(201, 162, 75, 0.14); }
+
+/* ============================================================
+   Visual polish pass — depth, dimensionality, refined rhythm
+   (Edwin: "not just functional — beautiful." 3D, tasteful.)
+   Pure CSS — no markup, i18n, or JS changes.
+   ============================================================ */
+
+/* --- Typography & section rhythm --- */
+.section { padding: 112px 0; }
+.section h2 { font-size: clamp(2.05rem, 4.4vw, 2.95rem); letter-spacing: -0.025em; margin-bottom: 16px; }
+.section-kicker { display: flex; align-items: center; gap: 10px; }
+.section-kicker::before {
+  content: ""; width: 26px; height: 2px; border-radius: 2px; flex: none;
+  background: linear-gradient(90deg, var(--gold), rgba(201, 162, 75, 0));
+}
+.section-lead { font-size: 1.08rem; line-height: 1.7; margin-bottom: 48px; }
+
+/* --- Hero presence: layered depth on the first impression --- */
+.hero h1 {
+  letter-spacing: -0.03em;
+  text-shadow: 0 3px 34px rgba(0, 0, 0, 0.65), 0 0 90px rgba(201, 162, 75, 0.14);
+}
+.hero .gold-text { filter: drop-shadow(0 3px 14px rgba(201, 162, 75, 0.3)); }
+.hero-sub { text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
+
+/* --- Dimensional gold buttons: gradient + inset light + press state --- */
+.btn-gold {
+  box-shadow: 0 6px 24px rgba(201, 162, 75, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 6px rgba(138, 109, 42, 0.35);
+}
+.btn-gold:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(201, 162, 75, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 6px rgba(138, 109, 42, 0.35);
+}
+.btn-gold:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 12px rgba(201, 162, 75, 0.3), inset 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+/* --- 3D card depth: rich resting shadows, subtle tilt-lift on hover --- */
+.service-card, .plan-card { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35); }
+.service-card:hover, .plan-card:hover {
+  transform: perspective(1100px) rotateX(1.6deg) translateY(-8px);
+  border-color: rgba(201, 162, 75, 0.55);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 46px rgba(201, 162, 75, 0.1);
+}
+.work-card:hover {
+  transform: perspective(1100px) rotateX(1.6deg) translateY(-8px);
+  border-color: rgba(201, 162, 75, 0.55);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 46px rgba(201, 162, 75, 0.1);
+}
+.review-card { box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32); }
+.review-card:hover {
+  transform: perspective(1100px) rotateX(1.6deg) translateY(-6px);
+  border-color: rgba(201, 162, 75, 0.55);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(201, 162, 75, 0.1);
+}
+.gov-card {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s, box-shadow 0.25s;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
+}
+.gov-card:hover {
+  transform: perspective(1100px) rotateX(1.6deg) translateY(-6px);
+  border-color: rgba(201, 162, 75, 0.5);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(201, 162, 75, 0.08);
+}
+
+/* --- Gallery polish: crisp images, elegant labels, smooth zoom --- */
+.work-ph img { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.work-card:hover .work-ph img { transform: scale(1.06); }
+.work-ph span {
+  font-size: 0.72rem; letter-spacing: 0.22em; padding: 6px 14px;
+  color: var(--gold-bright); background: rgba(8, 8, 10, 0.62);
+  border-color: rgba(201, 162, 75, 0.4);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.work-card figcaption {
+  padding: 16px 22px; font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-bright);
+}
+
+/* --- Premium form inputs: inset depth + gold focus glow --- */
+.quote-form input, .quote-form select, .quote-form textarea,
+.auth-form input, .profile-form input, .profile-form select {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.quote-form input:focus, .quote-form select:focus, .quote-form textarea:focus,
+.auth-form input:focus, .profile-form input:focus, .profile-form select:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 162, 75, 0.16), 0 0 28px rgba(201, 162, 75, 0.14);
+}
+.quote-form label > span, .auth-form label > span, .profile-form label > span {
+  font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* --- Trust strip: faint gold sheen for layered depth --- */
+.strip {
+  background: linear-gradient(180deg, rgba(201, 162, 75, 0.06), transparent 55%), rgba(13, 13, 16, 0.7);
+}
+.strip-item strong { text-shadow: 0 2px 12px rgba(201, 162, 75, 0.25); }
+
+/* --- Micro-details --- */
+::selection { background: rgba(201, 162, 75, 0.4); color: #fff8e7; }
+html { scrollbar-width: thin; scrollbar-color: #8a6d2a #0a0a0c; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0a0a0c; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8a6d2a, #5c4a1e);
+  border-radius: 8px; border: 2px solid #0a0a0c;
+}
+::-webkit-scrollbar-thumb:hover { background: #c9a24b; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.quote-form input:focus-visible, .quote-form select:focus-visible, .quote-form textarea:focus-visible,
+.auth-form input:focus-visible, .profile-form input:focus-visible, .profile-form select:focus-visible,
+.search-bar input:focus-visible { outline: none; }
+
+/* --- Mobile polish (390px) --- */
+@media (max-width: 760px) {
+  .section { padding: 84px 0; }
+  .section-lead { margin-bottom: 36px; }
+  .hero-cta .btn { width: 100%; text-align: center; }
+  .services-grid, .plans-grid, .work-grid, .sample-reviews, .gov-grid { gap: 16px; }
+  .service-card, .plan-card { padding: 28px 24px; }
+  .quote-form { padding: 28px 22px; }
+}
+
+/* --- Respect reduced motion: no tilt/zoom/press transforms --- */
+@media (prefers-reduced-motion: reduce) {
+  .service-card:hover, .plan-card:hover, .work-card:hover,
+  .review-card:hover, .gov-card:hover { transform: none; }
+  .work-card:hover .work-ph img { transform: none; }
+  .btn-gold:hover, .btn-gold:active { transform: none; }
+}
