@@ -613,102 +613,45 @@ body.modal-open { overflow: hidden; }
 .btn-logout { width: 100%; margin-top: 14px; }
 
 /* ============================================================
-   Ivory light sections — #plans, #reviews, #contact
-   Warm ivory surfaces (#f6f1e7) with dark text; gold accents
-   deepen for contrast. Hero and all other sections stay
-   black-and-gold. Pure CSS — no markup or JS changes.
+   Cinematic photo backgrounds — #plans, #reviews, #contact
+   Full-bleed photographic backgrounds with a dark cinematic
+   scrim so the light black-and-gold theme stays readable.
+   Pure CSS — no markup or JS changes.
    ============================================================ */
 :is(#plans, #reviews, #contact) {
-  background: #f6f1e7;
-  color: #26200f;
-  border-top: 1px solid rgba(138, 109, 42, 0.3);
-  border-bottom: 1px solid rgba(138, 109, 42, 0.3);
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  border-top: 1px solid rgba(201, 162, 75, 0.25);
+  border-bottom: 1px solid rgba(201, 162, 75, 0.25);
 }
-:is(#plans, #reviews, #contact) h2 { color: #1f1809; }
-:is(#plans, #reviews, #contact) .section-kicker { color: #8a6d2a; }
-:is(#plans, #reviews, #contact) .section-lead { color: #5d5545; }
+#plans { background-image: url("assets/bg-plans.jpg"); }
+#reviews { background-image: url("assets/bg-reviews.jpg"); }
+#contact { background-image: url("assets/bg-contact.jpg"); }
+/* dark cinematic scrim over the photo */
+:is(#plans, #reviews, #contact)::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0.8), rgba(8, 8, 10, 0.62) 50%, rgba(8, 8, 10, 0.82));
+}
+:is(#plans, #reviews, #contact) > .wrap { position: relative; z-index: 1; }
 
-/* --- Plan cards on ivory --- */
-#plans .plan-card {
-  background: #fffdf7;
-  border-color: rgba(138, 109, 42, 0.3);
-  box-shadow: 0 10px 34px rgba(84, 62, 18, 0.1);
+/* lift cards and form off the photo with translucent dark glass */
+#plans .plan-card, #reviews .review-card {
+  background: rgba(16, 16, 20, 0.82);
+  border-color: rgba(201, 162, 75, 0.35);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
-#plans .plan-card::before {
-  background: linear-gradient(90deg, transparent, rgba(138, 109, 42, 0.6), transparent);
-}
-#plans .plan-card:hover {
-  border-color: rgba(138, 109, 42, 0.65);
-  box-shadow: 0 22px 55px rgba(84, 62, 18, 0.16);
-}
-#plans .plan-card h3 { color: #1f1809; }
-#plans .plan-card .price { color: #6b6046; }
-#plans .plan-card .price strong {
-  background: linear-gradient(120deg, #8a6d2a, #b98d2f);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-#plans .plan-desc { color: #4c4532; }
-#plans .plan-includes li { color: #4c4532; }
-#plans .plan-includes li::before { color: #8a6d2a; }
-
-/* --- Review cards on ivory --- */
-#reviews .review-card {
-  background: #fffdf7;
-  border-color: rgba(138, 109, 42, 0.3);
-  box-shadow: 0 10px 34px rgba(84, 62, 18, 0.1);
-}
-#reviews .review-card:hover { border-color: rgba(138, 109, 42, 0.6); }
-#reviews .review-card .stars { color: #b98d2f; }
-#reviews .review-card blockquote { color: #2c2413; }
-#reviews .review-card figcaption strong { color: #1f1809; }
-#reviews .review-card figcaption span { color: #6b6046; }
-#reviews .btn-outline {
-  border-color: rgba(138, 109, 42, 0.55); color: #7a5f1f;
-}
-#reviews .btn-outline:hover {
-  background: rgba(138, 109, 42, 0.1);
-  box-shadow: 0 10px 30px rgba(84, 62, 18, 0.16);
-}
-
-/* --- Contact section on ivory --- */
-#contact .info-row { border-color: rgba(38, 32, 15, 0.14); }
-#contact .info-label { color: #8a6d2a; }
-#contact .info-value { color: #26200f; }
-#contact .info-link { color: #7a5f1f; }
-#contact .info-link:hover { color: #8a6d2a; }
-#contact .plan-note {
-  background: #fffdf7; border-color: rgba(138, 109, 42, 0.55); color: #7a5f1f;
-}
-#contact .plan-note button { color: #7a5f1f; }
-#contact .plan-note button:hover { background: rgba(138, 109, 42, 0.14); }
+#plans .plan-card:hover, #reviews .review-card:hover { border-color: rgba(201, 162, 75, 0.6); }
 #contact .quote-form {
-  background: #fffdf7;
-  border-color: rgba(138, 109, 42, 0.32);
-  box-shadow: 0 24px 60px rgba(84, 62, 18, 0.14);
+  background: rgba(16, 16, 20, 0.86);
+  border-color: rgba(201, 162, 75, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
-#contact .quote-form h3 { color: #7a5f1f; }
-#contact .quote-form label { color: #5d5545; }
-#contact .quote-form input,
-#contact .quote-form select,
-#contact .quote-form textarea {
-  background: #ffffff;
-  border-color: rgba(38, 32, 15, 0.22);
-  color: #26200f;
+#contact .plan-note {
+  background: rgba(16, 16, 20, 0.85); border-color: rgba(201, 162, 75, 0.5);
+  color: var(--gold-bright);
 }
-#contact .quote-form input::placeholder,
-#contact .quote-form textarea::placeholder { color: #a39a83; }
-#contact .quote-form input:focus,
-#contact .quote-form select:focus,
-#contact .quote-form textarea:focus {
-  outline: none; border-color: #b98d2f;
-  box-shadow: 0 0 0 3px rgba(185, 141, 47, 0.18);
-}
-#contact .form-note { color: #8a8270; }
-#contact .form-status.success {
-  background: rgba(34, 139, 76, 0.1);
-  border-color: rgba(34, 139, 76, 0.4); color: #1c6b3c;
-}
-#contact .form-status.error {
-  background: rgba(200, 60, 60, 0.08);
-  border-color: rgba(200, 60, 60, 0.4); color: #a32c2c;
-}
+#contact .plan-note button { color: var(--gold-bright); }
+#contact .plan-note button:hover { background: rgba(201, 162, 75, 0.14); }
