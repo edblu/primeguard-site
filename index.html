@@ -501,6 +501,7 @@
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
+  <span class="chat-launcher-x" aria-hidden="true">&times;</span>
 </button>
 <elevenlabs-convai
   id="pg-chat-widget"
@@ -515,52 +516,82 @@
 (function () {
   var launcher = document.getElementById('pg-chat-launcher');
   var widget = document.getElementById('pg-chat-widget');
+  var panelOpen = false;
 
   function widgetRoot() {
     try { return widget && widget.shadowRoot ? widget.shadowRoot : null; }
     catch (e) { return null; }
   }
-  // The widget's own floating button (aria-label "Open chat"). We hide it and
-  // keep the gold circle as the only visible entry point; taps are forwarded
-  // to the real button so we always use the widget's own open path.
-  function internalLauncher() {
-    var root = widgetRoot();
-    if (!root) return null;
-    return root.querySelector('button[aria-label="Open chat"]') || root.querySelector('button');
+  // The widget's own trigger UI: the floating orb button and the "Message"
+  // teaser pill. We hide both and keep the gold circle as the only entry
+  // point; taps are forwarded to the real open button (the widget's own path).
+  function hideTriggerUI() {
+    var root = widgetRoot(); if (!root) return;
+    ['button[aria-label="Open chat"]', 'button[aria-label="Message"]'].forEach(function (sel) {
+      Array.prototype.forEach.call(root.querySelectorAll(sel), function (b) {
+        if (b.style.display !== 'none') b.style.setProperty('display', 'none', 'important');
+      });
+    });
   }
-  function hideInternalLauncher() {
-    var root = widgetRoot();
-    if (!root) return;
-    var btn = root.querySelector('button[aria-label="Open chat"]');
-    if (btn && btn.style.display !== 'none') btn.style.setProperty('display', 'none', 'important');
+  function panelPresent() {
+    var root = widgetRoot(); if (!root) return false;
+    return !!root.querySelector('textarea[aria-label="Text message input"]');
+  }
+  // panelOpen=true: the gold circle becomes an X close button above the panel.
+  // panelOpen=false: the gold circle sits bottom-right as the chat entry point.
+  function syncChrome() {
+    launcher.classList.toggle('is-open', panelOpen);
+    launcher.setAttribute('aria-label', panelOpen ? 'Close chat' : 'Chat with us');
   }
 
   var openTries = 0;
   function openChat() {
-    var btn = internalLauncher();
-    if (btn) { openTries = 0; btn.click(); return; }
+    if (panelOpen) { closeChat(); return; }
+    widget.style.removeProperty('display');
+    if (panelPresent()) { panelOpen = true; syncChrome(); return; }
+    var root = widgetRoot();
+    var btn = root && root.querySelector('button[aria-label="Open chat"]');
+    if (btn) { openTries = 0; btn.click(); panelOpen = true; syncChrome(); return; }
     if (openTries < 10) { openTries++; setTimeout(openChat, 500); }
   }
+  function closeChat() {
+    var root = widgetRoot();
+    var done = false;
+    if (root) {
+      var collapse = root.querySelector('button[aria-label="Collapse"]');
+      if (collapse) { collapse.click(); done = true; }
+      else {
+        var toggle = root.querySelector('button[aria-label="Open chat"]');
+        if (toggle) { toggle.click(); done = true; }
+      }
+    }
+    if (!done) widget.style.setProperty('display', 'none', 'important');
+    panelOpen = false;
+    syncChrome();
+  }
+  launcher.addEventListener('click', openChat);
 
-  // Wait for the widget to upgrade + render, then hide its default button.
-  // A MutationObserver re-hides it if the widget re-renders the button.
+  // Wait for the widget to upgrade + render, hide its trigger UI, and watch
+  // for re-renders (the widget recreates its buttons). If the widget ever
+  // dismisses its own panel, restore the launcher.
   var initTries = 0;
   function init() {
     var root = widgetRoot();
     if (root) {
-      hideInternalLauncher();
-      try { new MutationObserver(hideInternalLauncher).observe(root, { childList: true, subtree: true }); } catch (e) {}
+      hideTriggerUI();
+      try {
+        new MutationObserver(function () {
+          hideTriggerUI();
+          if (panelOpen && !panelPresent() && widget.style.display !== 'none') {
+            panelOpen = false; syncChrome();
+          }
+        }).observe(root, { childList: true, subtree: true });
+      } catch (e) {}
       return;
     }
     if (initTries < 40) { initTries++; setTimeout(init, 500); }
   }
   init();
-
-  launcher.addEventListener('click', openChat);
-  if (widget) {
-    widget.addEventListener('conversationStarted', function () { launcher.classList.add('hidden'); });
-    widget.addEventListener('conversationEnded', function () { launcher.classList.remove('hidden'); });
-  }
 })();
 </script>
 </body>

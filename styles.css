@@ -810,6 +810,17 @@ elevenlabs-convai {
 .chat-launcher:active { transform: scale(0.96); }
 .chat-launcher img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .chat-launcher.hidden { display: none; }
+.chat-launcher-x {
+  display: none; width: 100%; height: 100%; border-radius: 50%;
+  align-items: center; justify-content: center;
+  font-size: 26px; line-height: 1; color: #1a1408; font-weight: 700;
+}
+/* When the chat panel is open, the gold circle becomes an X close button
+   floating just above the panel (no overlap with panel controls). */
+.chat-launcher.is-open { bottom: 624px; right: 24px; width: 48px; height: 48px; z-index: 10001; }
+.chat-launcher.is-open img { display: none; }
+.chat-launcher.is-open .chat-launcher-x { display: flex; }
+.chat-launcher.is-open::after { display: none; }
 .chat-launcher::after {
   content: ""; position: absolute; inset: -2px; border-radius: 50%;
   border: 2px solid rgba(232, 198, 106, 0.55);
@@ -822,6 +833,7 @@ elevenlabs-convai {
 }
 @media (max-width: 768px) {
   .chat-launcher { right: 16px; bottom: 88px; width: 56px; height: 56px; }
+  .chat-launcher.is-open { top: 76px; bottom: auto; right: 16px; width: 44px; height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .chat-launcher::after { animation: none; }
