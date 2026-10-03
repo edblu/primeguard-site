@@ -894,6 +894,22 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 .chat-launcher.is-open img { display: none; }
 .chat-launcher.is-open .chat-launcher-x { display: flex; }
 .chat-launcher.is-open::after { display: none; }
+/* Restart-conversation button: visible only while the chat panel is open,
+   sits just left of the gold X close button. */
+.chat-restart {
+  position: fixed; z-index: 10001; cursor: pointer;
+  width: 48px; height: 48px; border-radius: 50%;
+  bottom: 624px; right: 84px;
+  background: radial-gradient(circle at 32% 30%, #e8c66a, #8a6d2a 78%);
+  border: 2px solid rgba(232, 198, 106, 0.85);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 26px rgba(201, 162, 75, 0.35);
+  color: #1a1408; font-size: 24px; font-weight: 700; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s ease;
+}
+.chat-restart:hover { transform: scale(1.08); }
+.chat-restart:active { transform: scale(0.96); }
+.chat-restart[hidden] { display: none; }
 .chat-launcher::after {
   content: ""; position: absolute; inset: -2px; border-radius: 50%;
   border: 2px solid rgba(232, 198, 106, 0.55);
@@ -907,6 +923,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 @media (max-width: 768px) {
   .chat-launcher { right: 16px; bottom: 88px; width: 56px; height: 56px; }
   .chat-launcher.is-open { top: 76px; bottom: auto; right: 16px; width: 44px; height: 44px; }
+  .chat-restart { top: 76px; bottom: auto; right: 70px; width: 44px; height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .chat-launcher::after { animation: none; }
