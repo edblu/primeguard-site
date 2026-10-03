@@ -843,6 +843,9 @@ elevenlabs-convai {
   --elevenlabs-convai-widget-width: 380px;
   --elevenlabs-convai-widget-height: 600px;
 }
+/* The widget host is fully hidden until the panel opens: this guarantees
+   none of the widget's own trigger UI can ever peek out behind our launcher. */
+elevenlabs-convai.pg-hidden { display: none !important; }
 .chat-launcher {
   position: fixed; right: 22px; bottom: 22px; z-index: 9000;
   width: 62px; height: 62px; border-radius: 50%; cursor: pointer; padding: 5px;

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -509,7 +509,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="site.js?v=4"></script>
+<script src="site.js?v=5"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -534,6 +534,13 @@
   function widgetRoot() {
     try { return widget && widget.shadowRoot ? widget.shadowRoot : null; }
     catch (e) { return null; }
+  }
+  // The whole widget host stays display:none until the panel opens, so none
+  // of the widget's own trigger UI can ever peek out behind our gold launcher.
+  function setHostHidden(h) {
+    if (!widget) return;
+    if (h) widget.classList.add('pg-hidden');
+    else widget.classList.remove('pg-hidden');
   }
   function openButton() {
     var root = widgetRoot(); if (!root) return null;
@@ -581,7 +588,8 @@
   var openTries = 0;
   function openChat() {
     if (panelOpen) { closeChat(); return; }
-    widget.style.removeProperty('display');
+    hideTriggerUI();
+    setHostHidden(false);
     if (panelPresent()) { panelOpen = true; syncChrome(); return; }
     var btn = openButton();
     if (btn) { openTries = 0; btn.click(); panelOpen = true; syncChrome(); return; }
@@ -596,9 +604,10 @@
       if (collapse) { collapse.click(); done = true; }
       else { toggle.click(); done = true; }
     }
-    if (!done) widget.style.setProperty('display', 'none', 'important');
     panelOpen = false;
     syncChrome();
+    setHostHidden(true);
+    hideTriggerUI();
   }
   launcher.addEventListener('click', openChat);
 
@@ -607,14 +616,15 @@
   // dismisses its own panel, restore the launcher.
   var initTries = 0;
   function init() {
+    setHostHidden(true);
     var root = widgetRoot();
     if (root) {
       hideTriggerUI();
       try {
         new MutationObserver(function () {
           hideTriggerUI();
-          if (panelOpen && !panelPresent() && widget.style.display !== 'none') {
-            panelOpen = false; syncChrome();
+          if (panelOpen && !panelPresent()) {
+            panelOpen = false; syncChrome(); setHostHidden(true);
           }
         }).observe(root, { childList: true, subtree: true });
       } catch (e) {}
