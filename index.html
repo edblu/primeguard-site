@@ -550,8 +550,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js?v=10"></script>
-<script src="site.js?v=10"></script>
+<script src="config.js?v=11"></script>
+<script src="site.js?v=11"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -701,14 +701,29 @@ window.addEventListener('hashchange', function () {
     try { r = ta.getBoundingClientRect(); } catch (e) { return false; }
     return r.width > 0 && r.height > 0;
   }
-  // The minimized pill: a wide, visible button labeled "Message".
+  // The minimized pill: a wide, visible button labeled "Message". It can live
+  // in the widget's shadow DOM *or* as a fixed-position element in the page's
+  // light DOM (the widget renders its re-engagement pill outside the shadow
+  // root after the first close) — so search both.
   function visibleMessagePill() {
-    var root = widgetRoot(); if (!root) return null;
-    var btns = root.querySelectorAll('button[aria-label="Message"]');
-    for (var i = 0; i < btns.length; i++) {
-      var b = btns[i];
-      if (b.style.display === 'none') continue;
-      var r;
+    var i, b, r;
+    var root = widgetRoot();
+    if (root) {
+      var btns = root.querySelectorAll('button[aria-label="Message"]');
+      for (i = 0; i < btns.length; i++) {
+        b = btns[i];
+        if (b.style.display === 'none') continue;
+        try { r = b.getBoundingClientRect(); } catch (e) { continue; }
+        if (r.width > 40 && r.height > 0) return b;
+      }
+    }
+    var docs = document.querySelectorAll('button[aria-label="Message"]');
+    for (i = 0; i < docs.length; i++) {
+      b = docs[i];
+      if (b.id === 'pg-chat-launcher' || b.id === 'pg-chat-restart') continue;
+      var cs;
+      try { cs = getComputedStyle(b); } catch (e) { continue; }
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
       try { r = b.getBoundingClientRect(); } catch (e) { continue; }
       if (r.width > 40 && r.height > 0) return b;
     }
