@@ -531,6 +531,9 @@ body.modal-open { overflow: hidden; }
 .plan-summary strong { font-size: 1.15rem; color: var(--gold-bright); }
 .plan-summary span { font-weight: 700; color: var(--text); white-space: nowrap; }
 .plan-summary p { margin: 8px 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
+.plan-summary .plan-inc-title { margin: 14px 0 6px; font-weight: 700; color: var(--text); font-size: 0.9rem; }
+.plan-summary .plan-includes { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.9rem; line-height: 1.7; }
+.plan-summary .plan-includes li::marker { color: var(--gold); }
 #planForm { display: grid; gap: 14px; }
 #planForm label { display: grid; gap: 6px; font-size: 0.9rem; font-weight: 600; color: var(--text); }
 #planForm input {

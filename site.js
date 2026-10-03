@@ -52,6 +52,7 @@
       plans_kicker: "Subscriptions", plans_title: "Set it and forget it",
       plans_lead: "Recurring care at a locked-in rate. No contracts — cancel anytime.",
       plan_choose: "Choose plan",
+      plan_included_title: "What's included:",
       plan_signup_title: "Join the plan", plan_continue_pay: "Continue to secure payment",
       plan_notify_me: "Notify me when payment opens",
       plan_secure_note: "Secure checkout powered by Stripe. Cancel anytime.",
@@ -194,6 +195,7 @@
       plans_kicker: "Suscripciones", plans_title: "Prográmelo y olvídese",
       plans_lead: "Cuidado recurrente a precio fijo. Sin contratos: cancele cuando quiera.",
       plan_choose: "Elegir plan",
+      plan_included_title: "Qué incluye:",
       plan_signup_title: "Únete al plan", plan_continue_pay: "Continuar al pago seguro",
       plan_notify_me: "Avísame cuando el pago esté listo",
       plan_secure_note: "Pago seguro con Stripe. Cancela cuando quieras.",
@@ -665,6 +667,18 @@
     if (planSummaryName) planSummaryName.textContent = t("plan_name_" + (i + 1));
     if (planSummaryPrice) planSummaryPrice.textContent = (plans[i] && plans[i].price) || "";
     if (planSummaryDesc) planSummaryDesc.textContent = t("plan_desc_" + (i + 1));
+    var incList = document.getElementById("planSummaryInc");
+    if (incList) {
+      incList.innerHTML = "";
+      ["a", "b", "c", "d"].forEach(function (sfx) {
+        var txt = t("plan_inc_" + (i + 1) + sfx);
+        if (txt && txt.indexOf("plan_inc_") !== 0) {
+          var li = document.createElement("li");
+          li.textContent = txt;
+          incList.appendChild(li);
+        }
+      });
+    }
     if (planForm) planForm.hidden = false;
     if (planSuccess) planSuccess.hidden = true;
     if (planFormError) planFormError.hidden = true;
