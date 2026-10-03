@@ -550,14 +550,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js?v=9"></script>
-<script src="site.js?v=9"></script>
+<script src="config.js?v=10"></script>
+<script src="site.js?v=10"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
   <span class="chat-launcher-x" aria-hidden="true">&times;</span>
 </button>
 <button id="pg-chat-restart" class="chat-restart" aria-label="Start new conversation" title="Start new conversation" hidden>↻</button>
+<div id="pg-chat-toast" class="chat-toast" hidden></div>
 <elevenlabs-convai
   id="pg-chat-widget"
   agent-id="agent_2101m3yzmj8yefes67e0cs30d44x"
@@ -689,6 +690,41 @@ window.addEventListener('hashchange', function () {
     var root = widgetRoot(); if (!root) return false;
     return !!root.querySelector('textarea[aria-label="Text message input"]');
   }
+  // panelPresent() only checks the textarea EXISTS — but the widget can sit
+  // in a minimized "pill" state where the textarea is in the DOM yet not
+  // rendered. This checks it's actually visible.
+  function textareaVisible() {
+    var root = widgetRoot(); if (!root) return false;
+    var ta = root.querySelector('textarea[aria-label="Text message input"]');
+    if (!ta) return false;
+    var r;
+    try { r = ta.getBoundingClientRect(); } catch (e) { return false; }
+    return r.width > 0 && r.height > 0;
+  }
+  // The minimized pill: a wide, visible button labeled "Message".
+  function visibleMessagePill() {
+    var root = widgetRoot(); if (!root) return null;
+    var btns = root.querySelectorAll('button[aria-label="Message"]');
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      if (b.style.display === 'none') continue;
+      var r;
+      try { r = b.getBoundingClientRect(); } catch (e) { continue; }
+      if (r.width > 40 && r.height > 0) return b;
+    }
+    return null;
+  }
+  // After opening, the widget sometimes lands in the pill state (happens on
+  // re-open after a close). Click the pill until the full panel is visible —
+  // one tap on the gold circle always ends at the open chat.
+  function settlePanel(tries) {
+    tries = (tries == null) ? 10 : tries;
+    if (!panelOpen || tries <= 0) return;
+    if (textareaVisible()) { hideTriggerUI(); return; }
+    var pill = visibleMessagePill();
+    if (pill) { try { pill.click(); } catch (e) {} }
+    setTimeout(function () { settlePanel(tries - 1); }, 500);
+  }
   // panelOpen=true: the gold circle becomes an X close button above the panel.
   // panelOpen=false: the gold circle sits bottom-right as the chat entry point.
   function syncChrome() {
@@ -702,9 +738,9 @@ window.addEventListener('hashchange', function () {
     if (panelOpen) { closeChat(); return; }
     hideTriggerUI();
     setHostHidden(false);
-    if (panelPresent()) { panelOpen = true; syncChrome(); return; }
+    if (textareaVisible()) { panelOpen = true; syncChrome(); return; }
     var btn = openButton();
-    if (btn) { openTries = 0; btn.click(); panelOpen = true; syncChrome(); return; }
+    if (btn) { openTries = 0; btn.click(); panelOpen = true; syncChrome(); settlePanel(); return; }
     if (openTries < 10) { openTries++; setTimeout(openChat, 500); }
   }
   function closeChat() {
@@ -738,11 +774,76 @@ window.addEventListener('hashchange', function () {
     panelOpen = false;
     openTries = 0;
     initTries = 0;
+    errorNotified = false;
     syncChrome();
     init();
     setTimeout(function () { if (!panelOpen) openChat(); }, 1600);
   }
-  if (restartBtn) restartBtn.addEventListener('click', restartChat);
+  if (restartBtn) restartBtn.addEventListener('click', function () {
+    // Manual retry gets a fresh budget of auto-reconnect attempts.
+    chatRestarts = 0;
+    lastRestartTime = 0;
+    hideChatToast();
+    restartChat();
+  });
+
+  // ---- Connection-error detection + auto-reconnect ----
+  var chatToast = document.getElementById('pg-chat-toast');
+  var toastTimer = null;
+  var errorNotified = false;
+  var chatRestarts = 0;
+  var lastRestartTime = 0;
+
+  function showChatToast(msg, sticky) {
+    if (!chatToast) return;
+    chatToast.textContent = msg;
+    chatToast.hidden = false;
+    if (toastTimer) clearTimeout(toastTimer);
+    if (!sticky) {
+      toastTimer = setTimeout(function () { chatToast.hidden = true; }, 4500);
+    }
+  }
+  function hideChatToast() {
+    if (!chatToast) return;
+    if (toastTimer) clearTimeout(toastTimer);
+    chatToast.hidden = true;
+  }
+  if (chatToast) chatToast.addEventListener('click', function () { hideChatToast(); });
+
+  function chatHasError() {
+    var root = widgetRoot(); if (!root) return false;
+    var txt = '';
+    try { txt = root.textContent || ''; } catch (e) { return false; }
+    return txt.indexOf('An error occurred') >= 0 ||
+           txt.indexOf('connection was closed') >= 0;
+  }
+  // The error state is terminal (the visitor can't send anything), so
+  // reconnect automatically: fresh widget = fresh conversation. After 3
+  // failed attempts inside a minute, stop auto-retrying and leave a
+  // persistent notice pointing at the manual ↻ button.
+  function handleChatError() {
+    var now = Date.now();
+    if (now - lastRestartTime > 60000) chatRestarts = 0;
+    if (chatRestarts >= 3) {
+      showChatToast('Still having trouble connecting. Tap \u21BB to try again.', true);
+      return;
+    }
+    chatRestarts++;
+    lastRestartTime = now;
+    showChatToast('Connection lost \u2014 starting a new conversation\u2026');
+    setTimeout(restartChat, 1200);
+  }
+  function checkChatError() {
+    if (!panelOpen) return;
+    var hasError = chatHasError();
+    if (hasError && !errorNotified) {
+      errorNotified = true;
+      handleChatError();
+    } else if (!hasError && errorNotified) {
+      errorNotified = false;
+      hideChatToast();
+    }
+  }
 
   // Wait for the widget to upgrade + render, hide its trigger UI, and watch
   // for re-renders (the widget recreates its buttons). If the widget ever
@@ -756,6 +857,7 @@ window.addEventListener('hashchange', function () {
       try {
         new MutationObserver(function () {
           hideTriggerUI();
+          checkChatError();
           if (panelOpen && !panelPresent()) {
             panelOpen = false; syncChrome(); setHostHidden(true);
           }
