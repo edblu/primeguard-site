@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -361,6 +361,7 @@
           <span class="info-value" data-area></span>
         </div>
         <a class="btn btn-gold btn-lg" data-phone-href href="#" data-i18n="call_now">Call now</a>
+        <a class="btn btn-outline btn-lg" href="#human-chat" data-i18n="chat_team">Chat with our team</a>
       </div>
       <form class="quote-form reveal" id="quoteForm" novalidate>
         <h3 data-i18n="form_title">Get a fast quote</h3>
@@ -508,7 +509,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="site.js?v=6"></script>
+<script src="site.js?v=7"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -524,6 +525,35 @@
   markdown-link-allowed-hosts="cal.com"
 ></elevenlabs-convai>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+<!-- tawk.to human live chat: widget hidden by default, opened via #human-chat.
+     Visitor tracking + Edwin's mobile notifications run regardless. -->
+<script type="text/javascript">
+var Tawk_API = Tawk_API || {};
+Tawk_API.onLoad = function () { try { Tawk_API.hideWidget(); } catch (e) {} };
+Tawk_API.onChatMinimized = function () { try { Tawk_API.hideWidget(); } catch (e) {} };
+(function () {
+  var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+  s1.async = true;
+  s1.src = 'https://embed.tawk.to/6ac058de3e307f34bc156bb0/1k3vlm99r';
+  s1.charset = 'UTF-8';
+  s1.setAttribute('crossorigin', '*');
+  s0.parentNode.insertBefore(s1, s0);
+})();
+function openHumanChat() {
+  try {
+    if (window.Tawk_API && Tawk_API.maximize) {
+      Tawk_API.showWidget();
+      Tawk_API.maximize();
+      return;
+    }
+  } catch (e) {}
+  window.open('https://tawk.to/chat/6ac058de3e307f34bc156bb0/1k3vlm99r', '_blank');
+}
+if (location.hash === '#human-chat') { setTimeout(openHumanChat, 1200); }
+window.addEventListener('hashchange', function () {
+  if (location.hash === '#human-chat') openHumanChat();
+});
+</script>
 <script>
 (function () {
   var launcher = document.getElementById('pg-chat-launcher');
