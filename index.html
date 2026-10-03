@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 
@@ -509,7 +509,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="site.js?v=5"></script>
+<script src="site.js?v=6"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -556,6 +556,43 @@
     while (el.parentNode && el.parentNode !== root) el = el.parentNode;
     return (el && el !== root) ? el : null;
   }
+  // Tight bounding box of the open panel, for geometry checks.
+  function panelBox() {
+    var root = widgetRoot(); if (!root) return null;
+    var ta = root.querySelector('textarea[aria-label="Text message input"]');
+    if (!ta) return null;
+    var el = ta;
+    while (el && el !== root) {
+      try {
+        if (getComputedStyle(el).position === 'fixed') return el.getBoundingClientRect();
+      } catch (e) { break; }
+      el = el.parentNode;
+    }
+    return ta.getBoundingClientRect();
+  }
+  // Hide the widget's floating collapse/expand toggle that appears below the
+  // open panel (our gold X is the only close control). Buttons inside the
+  // panel's own box (e.g. its expand button) are preserved.
+  function hideFloatingToggle() {
+    var root = widgetRoot(); if (!root) return;
+    var box = panelBox(); if (!box) return;
+    Array.prototype.forEach.call(
+      root.querySelectorAll('button[aria-label="Collapse"],button[aria-label="Expand"]'),
+      function (b) {
+        var r;
+        try { r = b.getBoundingClientRect(); } catch (e) { return; }
+        var outside = r.bottom <= box.top + 4 || r.top >= box.bottom - 4 ||
+                      r.right <= box.left + 4 || r.left >= box.right - 4;
+        if (outside) {
+          b.style.setProperty('display', 'none', 'important');
+          var p = b.parentNode;
+          if (p && p !== root && p.tagName === 'DIV') {
+            p.style.setProperty('display', 'none', 'important');
+          }
+        }
+      }
+    );
+  }
   // Hide ALL of the widget's own trigger UI (orb, Message pill, badge):
   // every shadow child except the open panel and style tags, plus every
   // button outside the panel. The gold circle is the only launcher.
@@ -573,6 +610,7 @@
       if (panel && panel.contains(b)) return;
       if (b.style.display !== 'none') b.style.setProperty('display', 'none', 'important');
     });
+    hideFloatingToggle();
   }
   function panelPresent() {
     var root = widgetRoot(); if (!root) return false;
