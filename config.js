@@ -38,5 +38,5 @@ window.SITE_CONFIG = {
   // --- Stripe Payment Links (Edwin pastes these in after creating the
   // products in Stripe; empty string = "payment coming soon" mode).
   // Order must match `plans` above: [lawn, pressure washing, maintenance].
-  stripeLinks: [ "", "", "" ]
+  stripeLinks: [ "https://buy.stripe.com/7sY5kxdkm59HgmndYP9R600", "https://buy.stripe.com/00w00d1BE45D4DF1c39R601", "https://buy.stripe.com/6oU8wJ2FIgSpeefdYP9R602" ]
 };
