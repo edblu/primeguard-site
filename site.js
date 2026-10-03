@@ -52,6 +52,15 @@
       plans_kicker: "Subscriptions", plans_title: "Set it and forget it",
       plans_lead: "Recurring care at a locked-in rate. No contracts — cancel anytime.",
       plan_choose: "Choose plan",
+      plan_signup_title: "Join the plan", plan_continue_pay: "Continue to secure payment",
+      plan_notify_me: "Notify me when payment opens",
+      plan_secure_note: "Secure checkout powered by Stripe. Cancel anytime.",
+      plan_prefer_call: "Prefer to talk it through?", plan_call_us: "Call us",
+      plan_success_msg: "You're on the list! We'll call you shortly to complete your plan signup and schedule your first visit.",
+      lead_address_label: "Service address", lead_payment_label: "Payment",
+      lead_payment_stripe: "Redirected to Stripe checkout", lead_payment_pending: "Online payment pending — call to complete",
+      ph_address: "Street address, Miami, FL", form_required: "Please fill in every field.",
+      form_address: "Service address",
       plan_selected: "You selected", plan_onetime: "One-time",
       plan_name_1: "Lawn Care Plan",
       plan_desc_1: "Biweekly mowing, edging & cleanup. Weekly service available.",
@@ -185,6 +194,15 @@
       plans_kicker: "Suscripciones", plans_title: "Prográmelo y olvídese",
       plans_lead: "Cuidado recurrente a precio fijo. Sin contratos: cancele cuando quiera.",
       plan_choose: "Elegir plan",
+      plan_signup_title: "Únete al plan", plan_continue_pay: "Continuar al pago seguro",
+      plan_notify_me: "Avísame cuando el pago esté listo",
+      plan_secure_note: "Pago seguro con Stripe. Cancela cuando quieras.",
+      plan_prefer_call: "¿Prefieres hablarlo?", plan_call_us: "Llámanos",
+      plan_success_msg: "¡Estás en la lista! Te llamaremos pronto para completar tu registro y programar tu primera visita.",
+      lead_address_label: "Dirección del servicio", lead_payment_label: "Pago",
+      lead_payment_stripe: "Redirigido al pago de Stripe", lead_payment_pending: "Pago en línea pendiente — llamar para completar",
+      ph_address: "Dirección, Miami, FL", form_required: "Completa todos los campos.",
+      form_address: "Dirección del servicio",
       plan_selected: "Usted seleccionó", plan_onetime: "Único",
       plan_name_1: "Plan de cuidado del césped",
       plan_desc_1: "Corte quincenal, bordeado y limpieza. Servicio semanal disponible.",
@@ -555,17 +573,7 @@
   function selectPlan(i) {
     if (!(plans[i])) return;
     selectedPlan = i;
-    // Preselect the matching service in the quote-form dropdown.
-    var svc = plans[i].service;
-    var sel = form.elements.service;
-    if (sel && svc) {
-      for (var k = 0; k < sel.options.length; k++) {
-        if (sel.options[k].value === svc) { sel.selectedIndex = k; break; }
-      }
-    }
-    renderPlanNote();
-    var contact = document.getElementById("contact");
-    if (contact) contact.scrollIntoView({ behavior: "smooth", block: "start" });
+    openPlanModal(i);
   }
 
   function clearPlanSelection() {
@@ -635,6 +643,96 @@
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !modal.hidden) closeBooking();
+  });
+
+  /* ---------- Plan signup modal ---------- */
+  var planModal = document.getElementById("planModal");
+  var planClose = document.getElementById("planClose");
+  var planSummaryName = document.getElementById("planSummaryName");
+  var planSummaryPrice = document.getElementById("planSummaryPrice");
+  var planSummaryDesc = document.getElementById("planSummaryDesc");
+  var planForm = document.getElementById("planForm");
+  var planFormError = document.getElementById("planFormError");
+  var planPayBtn = document.getElementById("planPayBtn");
+  var planSuccess = document.getElementById("planSuccess");
+  var signupPlan = -1;
+
+  function stripeLinks() {
+    return Array.isArray(cfg.stripeLinks) ? cfg.stripeLinks : [];
+  }
+  function openPlanModal(i) {
+    signupPlan = i;
+    if (planSummaryName) planSummaryName.textContent = t("plan_name_" + (i + 1));
+    if (planSummaryPrice) planSummaryPrice.textContent = (plans[i] && plans[i].price) || "";
+    if (planSummaryDesc) planSummaryDesc.textContent = t("plan_desc_" + (i + 1));
+    if (planForm) planForm.hidden = false;
+    if (planSuccess) planSuccess.hidden = true;
+    if (planFormError) planFormError.hidden = true;
+    // If Stripe isn't wired yet, the pay button becomes a "notify me" signup.
+    var link = (stripeLinks()[i] || "").trim();
+    if (planPayBtn) {
+      var label = planPayBtn.querySelector("span");
+      if (label) label.textContent = link ? t("plan_continue_pay") : t("plan_notify_me");
+    }
+    if (planModal) {
+      planModal.hidden = false;
+      document.body.classList.add("modal-open");
+    }
+  }
+  function closePlanModal() {
+    if (planModal) planModal.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+  if (planClose) planClose.addEventListener("click", closePlanModal);
+  if (planModal) planModal.addEventListener("click", function (e) {
+    if (e.target === planModal) closePlanModal();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && planModal && !planModal.hidden) closePlanModal();
+  });
+  if (planForm) planForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = planForm.elements.name.value.trim();
+    var phone = planForm.elements.phone.value.trim();
+    var email = planForm.elements.email.value.trim();
+    var address = planForm.elements.address.value.trim();
+    if (!name || !phone || !email || !address) {
+      if (planFormError) {
+        planFormError.textContent = t("form_required");
+        planFormError.hidden = false;
+      }
+      return;
+    }
+    if (planFormError) planFormError.hidden = true;
+    var link = (stripeLinks()[signupPlan] || "").trim();
+    var msg = t("lead_plan_label") + ": " + t("plan_name_" + (signupPlan + 1)) +
+      " (" + ((plans[signupPlan] && plans[signupPlan].price) || "") + ")\n" +
+      t("lead_address_label") + ": " + address + "\n---\n" +
+      t("lead_payment_label") + ": " + (link ? t("lead_payment_stripe") : t("lead_payment_pending"));
+    var lead = {
+      name: name, phone: phone, email: email, service: "",
+      message: msg, language: currentLang,
+      timestamp: new Date().toISOString(),
+      source: "primeguard-site-plan",
+      uid: currentUser ? currentUser.uid : null
+    };
+    function afterSave() {
+      if (link) {
+        var url = link + (link.indexOf("?") >= 0 ? "&" : "?") +
+          "prefilled_email=" + encodeURIComponent(email);
+        window.location.href = url;
+      } else {
+        planForm.hidden = true;
+        if (planSuccess) planSuccess.hidden = false;
+      }
+    }
+    if (!leadEndpoint) { mailtoFallback(lead); afterSave(); return; }
+    fetch(leadEndpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(lead)
+    }).then(afterSave).catch(afterSave);
   });
 
   /* ---------- Review buttons (shown only when URLs are configured) ---------- */

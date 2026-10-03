@@ -505,11 +505,53 @@
   </div>
 </div>
 
+<!-- ================= PLAN SIGNUP ================= -->
+<div class="modal-overlay" id="planModal" hidden>
+  <div class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+    <button class="modal-close" id="planClose" aria-label="Close" data-i18n-aria="close">×</button>
+    <h3 id="planModalTitle" data-i18n="plan_signup_title">Join the plan</h3>
+    <div class="modal-body">
+      <div class="plan-summary" id="planSummary">
+        <div>
+          <strong id="planSummaryName"></strong>
+          <span id="planSummaryPrice"></span>
+        </div>
+        <p id="planSummaryDesc"></p>
+      </div>
+      <form id="planForm" novalidate>
+        <label><span data-i18n="form_name">Full name</span>
+          <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
+        </label>
+        <label><span data-i18n="form_phone">Phone</span>
+          <input type="tel" name="phone" required autocomplete="tel" placeholder="(305) 555-1234">
+        </label>
+        <label><span data-i18n="form_email">Email</span>
+          <input type="email" name="email" required autocomplete="email" placeholder="you@email.com">
+        </label>
+        <label><span data-i18n="form_address">Service address</span>
+          <input type="text" name="address" required autocomplete="street-address" placeholder="Street address, Miami, FL" data-i18n-ph="ph_address">
+        </label>
+        <p class="form-error" id="planFormError" hidden></p>
+        <button type="submit" class="btn btn-gold btn-lg btn-block" id="planPayBtn">
+          <span data-i18n="plan_continue_pay">Continue to secure payment</span>
+        </button>
+        <p class="plan-secure" data-i18n="plan_secure_note">Secure checkout powered by Stripe. Cancel anytime.</p>
+        <p class="plan-alt"><span data-i18n="plan_prefer_call">Prefer to talk it through?</span>
+          <a data-phone-href href="#"><span data-i18n="plan_call_us">Call us</span></a>
+        </p>
+      </form>
+      <div class="plan-success" id="planSuccess" hidden>
+        <p data-i18n="plan_success_msg">You're on the list! We'll call you shortly to complete your plan signup and schedule your first visit.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js"></script>
-<script src="site.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="site.js?v=8"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">

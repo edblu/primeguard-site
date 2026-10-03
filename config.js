@@ -33,5 +33,10 @@ window.SITE_CONFIG = {
     { price: "$90/mo",     service: "Lawn Care" },
     { price: "$149/visit", service: "Pressure Washing" },
     { price: "$65/mo",     service: "Handyman Services" }
-  ]
+  ],
+
+  // --- Stripe Payment Links (Edwin pastes these in after creating the
+  // products in Stripe; empty string = "payment coming soon" mode).
+  // Order must match `plans` above: [lawn, pressure washing, maintenance].
+  stripeLinks: [ "", "", "" ]
 };
