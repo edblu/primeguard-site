@@ -550,8 +550,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js?v=11"></script>
-<script src="site.js?v=11"></script>
+<script src="config.js?v=12"></script>
+<script src="site.js?v=12"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
@@ -692,14 +692,34 @@ window.addEventListener('hashchange', function () {
   }
   // panelPresent() only checks the textarea EXISTS — but the widget can sit
   // in a minimized "pill" state where the textarea is in the DOM yet not
-  // rendered. This checks it's actually visible.
+  // rendered. The widget hides things with opacity/visibility (not just
+  // display:none), so a rect check alone lies — walk the ancestor chain
+  // (crossing the shadow boundary) checking computed style.
+  function elTrulyVisible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    try {
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return false;
+    } catch (e) { return false; }
+    var node = el, guard = 0;
+    while (node && guard < 40) {
+      guard++;
+      var cs;
+      try { cs = getComputedStyle(node); } catch (e) { break; }
+      if (!cs) break;
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+      var op = parseFloat(cs.opacity);
+      if (!isNaN(op) && op === 0) return false;
+      if (node.parentNode) { node = node.parentNode; continue; }
+      var gr = (node.getRootNode) ? node.getRootNode() : null;
+      if (gr && gr.host) { node = gr.host; continue; }
+      break;
+    }
+    return true;
+  }
   function textareaVisible() {
     var root = widgetRoot(); if (!root) return false;
-    var ta = root.querySelector('textarea[aria-label="Text message input"]');
-    if (!ta) return false;
-    var r;
-    try { r = ta.getBoundingClientRect(); } catch (e) { return false; }
-    return r.width > 0 && r.height > 0;
+    return elTrulyVisible(root.querySelector('textarea[aria-label="Text message input"]'));
   }
   // The minimized pill: a wide, visible button labeled "Message". It can live
   // in the widget's shadow DOM *or* as a fixed-position element in the page's
@@ -712,20 +732,16 @@ window.addEventListener('hashchange', function () {
       var btns = root.querySelectorAll('button[aria-label="Message"]');
       for (i = 0; i < btns.length; i++) {
         b = btns[i];
-        if (b.style.display === 'none') continue;
         try { r = b.getBoundingClientRect(); } catch (e) { continue; }
-        if (r.width > 40 && r.height > 0) return b;
+        if (r.width > 40 && elTrulyVisible(b)) return b;
       }
     }
     var docs = document.querySelectorAll('button[aria-label="Message"]');
     for (i = 0; i < docs.length; i++) {
       b = docs[i];
       if (b.id === 'pg-chat-launcher' || b.id === 'pg-chat-restart') continue;
-      var cs;
-      try { cs = getComputedStyle(b); } catch (e) { continue; }
-      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
       try { r = b.getBoundingClientRect(); } catch (e) { continue; }
-      if (r.width > 40 && r.height > 0) return b;
+      if (r.width > 40 && elTrulyVisible(b)) return b;
     }
     return null;
   }
