@@ -425,7 +425,6 @@ a { color: var(--gold-bright); }
 .lang-toggle button:not(.active):hover { color: var(--text); }
 
 /* ---------- Phase 2: Book now buttons ---------- */
-.btn-book { white-space: nowrap; padding: 11px 22px; }
 .btn-nav-book { display: none; }
 .hero-cta { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
 
@@ -542,7 +541,6 @@ body.modal-open { overflow: hidden; }
 /* ---------- Phase 2: responsive additions ---------- */
 @media (max-width: 760px) {
   .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
-  .header-actions .btn-book { display: none; }
   .lang-toggle button { padding: 8px 10px; }
   .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
   .header-actions .btn-auth { display: none; }
