@@ -913,6 +913,9 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 .chat-restart:hover { transform: scale(1.08); }
 .chat-restart:active { transform: scale(0.96); }
 .chat-restart[hidden] { display: none; }
+/* Third gold button (expand): same style, sits left of the restart button. */
+.chat-expand { right: 144px; }
+.chat-expand[hidden] { display: none; }
 /* Toast shown when the chat connection drops (auto-reconnect status). */
 .chat-toast {
   position: fixed; z-index: 10002;
@@ -938,6 +941,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   .chat-launcher { right: 16px; bottom: 88px; width: 56px; height: 56px; }
   .chat-launcher.is-open { top: 76px; bottom: auto; right: 16px; width: 44px; height: 44px; }
   .chat-restart { top: 76px; bottom: auto; right: 70px; width: 44px; height: 44px; }
+  .chat-expand { top: 76px; bottom: auto; right: 124px; width: 44px; height: 44px; }
   .chat-toast { left: 16px; right: 16px; top: 130px; bottom: auto; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -552,14 +552,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js?v=13"></script>
-<script src="site.js?v=13"></script>
+<script src="config.js?v=14"></script>
+<script src="site.js?v=14"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
   <span class="chat-launcher-x" aria-hidden="true">&times;</span>
 </button>
 <button id="pg-chat-restart" class="chat-restart" aria-label="Start new conversation" title="Start new conversation" hidden>↻</button>
+<button id="pg-chat-expand" class="chat-restart chat-expand" aria-label="Expand chat" title="Expand chat" hidden>⤢</button>
 <div id="pg-chat-toast" class="chat-toast" hidden></div>
 <elevenlabs-convai
   id="pg-chat-widget"
@@ -604,6 +605,7 @@ window.addEventListener('hashchange', function () {
 (function () {
   var launcher = document.getElementById('pg-chat-launcher');
   var restartBtn = document.getElementById('pg-chat-restart');
+  var expandBtn = document.getElementById('pg-chat-expand');
   var widget = document.getElementById('pg-chat-widget');
   var panelOpen = false;
 
@@ -632,40 +634,17 @@ window.addEventListener('hashchange', function () {
     while (el.parentNode && el.parentNode !== root) el = el.parentNode;
     return (el && el !== root) ? el : null;
   }
-  // Tight bounding box of the open panel, for geometry checks.
-  function panelBox() {
-    var root = widgetRoot(); if (!root) return null;
-    var ta = root.querySelector('textarea[aria-label="Text message input"]');
-    if (!ta) return null;
-    var el = ta;
-    while (el && el !== root) {
-      try {
-        if (getComputedStyle(el).position === 'fixed') return el.getBoundingClientRect();
-      } catch (e) { break; }
-      el = el.parentNode;
-    }
-    return ta.getBoundingClientRect();
-  }
-  // Hide the widget's floating collapse/expand toggle that appears below the
-  // open panel (our gold X is the only close control). Buttons inside the
-  // panel's own box (e.g. its expand button) are preserved.
+  // Hide the widget's own expand/collapse controls (floating toggle AND the
+  // in-panel one — ours is the gold ⤢ button now). Only the buttons
+  // themselves are hidden, never their containers. Programmatic clicks on
+  // hidden buttons still work, so open/close/expand are unaffected.
+  // Substring match: the in-panel button's label is "Expand widget".
   function hideFloatingToggle() {
     var root = widgetRoot(); if (!root) return;
-    var box = panelBox(); if (!box) return;
     Array.prototype.forEach.call(
-      root.querySelectorAll('button[aria-label="Collapse"],button[aria-label="Expand"]'),
+      root.querySelectorAll('button[aria-label*="Collapse"],button[aria-label*="Expand"]'),
       function (b) {
-        var r;
-        try { r = b.getBoundingClientRect(); } catch (e) { return; }
-        var outside = r.bottom <= box.top + 4 || r.top >= box.bottom - 4 ||
-                      r.right <= box.left + 4 || r.left >= box.right - 4;
-        if (outside) {
-          b.style.setProperty('display', 'none', 'important');
-          var p = b.parentNode;
-          if (p && p !== root && p.tagName === 'DIV') {
-            p.style.setProperty('display', 'none', 'important');
-          }
-        }
+        b.style.setProperty('display', 'none', 'important');
       }
     );
   }
@@ -764,6 +743,7 @@ window.addEventListener('hashchange', function () {
     launcher.classList.toggle('is-open', panelOpen);
     launcher.setAttribute('aria-label', panelOpen ? 'Close chat' : 'Chat with us');
     if (restartBtn) restartBtn.hidden = !panelOpen;
+    if (expandBtn) expandBtn.hidden = !panelOpen;
   }
 
   var openTries = 0;
@@ -781,7 +761,7 @@ window.addEventListener('hashchange', function () {
     var toggle = openButton();
     if (toggle) {
       var root = widgetRoot();
-      var collapse = root && root.querySelector('button[aria-label="Collapse"]');
+      var collapse = root && (root.querySelector('button[aria-label*="Collapse"]') || root.querySelector('button[aria-label="Collapse"]'));
       if (collapse) { collapse.click(); done = true; }
       else { toggle.click(); done = true; }
     }
@@ -818,6 +798,15 @@ window.addEventListener('hashchange', function () {
     lastRestartTime = 0;
     hideChatToast();
     restartChat();
+  });
+
+  // Gold ⤢ button proxies the widget's own expand/collapse control:
+  // click "Expand" when the panel is compact, "Collapse" when expanded.
+  if (expandBtn) expandBtn.addEventListener('click', function () {
+    var root = widgetRoot(); if (!root) return;
+    var t = root.querySelector('button[aria-label*="Expand"]') ||
+            root.querySelector('button[aria-label*="Collapse"]');
+    if (t) { try { t.click(); } catch (e) {} }
   });
 
   // ---- Connection-error detection + auto-reconnect ----
