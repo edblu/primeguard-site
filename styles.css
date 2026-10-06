@@ -969,3 +969,12 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 @media (max-width: 768px) {
   .vendors-form iframe { height: 1400px; }
 }
+
+/* ================= FOOTER LINKS ================= */
+.footer-links { display: flex; gap: 24px; justify-content: center; margin: 20px 0 8px; }
+.footer-links a { color: var(--muted); text-decoration: none; font-weight: 600; }
+.footer-links a:hover { color: var(--gold, #d4a843); }
+/* ================= CAREERS PAGE ================= */
+.careers-hero { padding: 140px 0 60px; text-align: center; }
+.careers-hero h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); letter-spacing: -0.025em; margin-bottom: 16px; }
+.careers-hero .section-lead { margin: 0 auto 12px; text-align: center; }
