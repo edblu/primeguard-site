@@ -1001,3 +1001,29 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 .careers-hero .section-kicker { color: #f5d67b; justify-content: center; }
 .careers-hero .section-lead { color: rgba(255,255,255,0.88); margin: 0 auto; text-align: center; max-width: 680px; font-size: 1.12rem; }
 .careers-hero .section-kicker::before { background: #d4a843; }
+
+/* ================= GRADIENT SECTION TREATMENT ================= */
+.grad-text {
+  background: linear-gradient(100deg, #f5d67b 0%, #d4a843 40%, #fff3d6 65%, #c9982f 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.grad-text-green {
+  background: linear-gradient(100deg, #e8d189 0%, #9db88a 50%, #e8d189 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.section { position: relative; }
+.section::before {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: min(720px, 80%); height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,168,67,0.5), transparent);
+  pointer-events: none;
+}
+.section-kicker {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 6px 16px; border-radius: 999px;
+  background: linear-gradient(100deg, rgba(212,168,67,0.14), rgba(212,168,67,0.05));
+  border: 1px solid rgba(212,168,67,0.28);
+  font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #e8c96a; margin-bottom: 18px;
+}
+.section-kicker::before { display: none; }
