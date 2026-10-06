@@ -974,9 +974,30 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 .footer-links { display: flex; gap: 24px; justify-content: center; margin: 20px 0 8px; }
 .footer-links a { color: var(--muted); text-decoration: none; font-weight: 600; }
 .footer-links a:hover { color: var(--gold, #d4a843); }
-/* ================= CAREERS PAGE ================= */
-.careers-hero { padding: 140px 0 60px; text-align: center; }
-.careers-hero h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); letter-spacing: -0.025em; margin-bottom: 16px; }
-.careers-hero .section-lead { margin: 0 auto 12px; text-align: center; }
 
 .vendors-cta { text-align: center; margin: 12px 0 8px; }
+
+/* ================= CAREERS HERO (redesigned) ================= */
+.careers-hero {
+  position: relative;
+  padding: 180px 0 110px;
+  text-align: center;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.55) 45%, rgba(120,85,15,0.55) 100%),
+    url("assets/careers-crew.jpg") center 35% / cover no-repeat;
+}
+.careers-hero::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px;
+  background: linear-gradient(to bottom, transparent, var(--bg, #0d0d0d));
+  pointer-events: none;
+}
+.careers-hero .wrap { position: relative; z-index: 1; }
+.careers-hero h1 {
+  font-size: clamp(2.4rem, 5.5vw, 3.6rem); letter-spacing: -0.025em; margin-bottom: 18px;
+  background: linear-gradient(100deg, #f5d67b 0%, #d4a843 45%, #fff3d6 70%, #d4a843 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.careers-hero .section-kicker { color: #f5d67b; justify-content: center; }
+.careers-hero .section-lead { color: rgba(255,255,255,0.88); margin: 0 auto; text-align: center; max-width: 680px; font-size: 1.12rem; }
+.careers-hero .section-kicker::before { background: #d4a843; }
