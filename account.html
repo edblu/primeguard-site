@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account | PrimeGuard Preservation</title>
+<meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html"><img src="assets/logo.png" alt="PrimeGuard Preservation logo"><span>PrimeGuard <em>Preservation</em></span></a>
+    <nav class="main-nav">
+      <a href="index.html#services">Services</a>
+      <a href="index.html#plans">Plans</a>
+      <a href="index.html#work">Work</a>
+      <a href="index.html#reviews">Reviews</a>
+      <a href="index.html#government">Government</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn btn-gold" href="index.html#contact">Book now</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="account-hero">
+    <div class="container">
+      <p class="section-kicker">Customer portal</p>
+      <h1 class="grad-text">My account</h1>
+      <p class="section-lead">Manage your profile, request services, and track your jobs in one place.</p>
+    </div>
+  </section>
+
+  <section class="section account-section">
+    <div class="container">
+      <!-- Shown when Firebase is not configured yet -->
+      <div id="account-coming-soon" class="card hidden">
+        <h2>Accounts are launching soon</h2>
+        <p>We're putting the finishing touches on customer accounts. Check back shortly, or <a href="index.html#contact">request service</a> right now, no account needed.</p>
+      </div>
+
+      <!-- Auth forms (logged out) -->
+      <div id="auth-forms" class="hidden">
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active" type="button">Log in</button>
+          <button id="tab-signup" class="auth-tab" type="button">Sign up</button>
+        </div>
+
+        <form id="form-login" class="card auth-card">
+          <h2>Welcome back</h2>
+          <label>Email<input type="email" id="login-email" required autocomplete="email"></label>
+          <label>Password<input type="password" id="login-password" required autocomplete="current-password"></label>
+          <p class="form-error hidden" id="login-error"></p>
+          <button class="btn btn-gold" type="submit">Log in</button>
+          <button class="btn btn-ghost" type="button" id="google-login">Continue with Google</button>
+        </form>
+
+        <form id="form-signup" class="card auth-card hidden">
+          <h2>Create your account</h2>
+          <label>Full name<input type="text" id="signup-name" required autocomplete="name"></label>
+          <label>Email<input type="email" id="signup-email" required autocomplete="email"></label>
+          <label>Phone<input type="tel" id="signup-phone" autocomplete="tel" placeholder="(305) 555-1234"></label>
+          <label>Password<input type="password" id="signup-password" required minlength="6" autocomplete="new-password"></label>
+          <p class="form-error hidden" id="signup-error"></p>
+          <button class="btn btn-gold" type="submit">Create account</button>
+          <button class="btn btn-ghost" type="button" id="google-signup">Continue with Google</button>
+        </form>
+      </div>
+
+      <!-- Dashboard (logged in) -->
+      <div id="account-dashboard" class="hidden">
+        <div class="dashboard-head">
+          <h2 id="dashboard-greeting">Hello</h2>
+          <button class="btn btn-ghost" type="button" id="logout-btn">Log out</button>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <h3>My profile</h3>
+            <form id="profile-form">
+              <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
+              <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
+              <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
+              <p class="form-error hidden" id="profile-error"></p>
+              <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
+              <button class="btn btn-gold" type="submit">Save profile</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3>My service requests</h3>
+            <div id="requests-list"><p class="muted">No requests yet. <a href="index.html#contact">Request service</a> to get started.</p></div>
+          </div>
+
+          <div class="card">
+            <h3>My jobs</h3>
+            <div id="jobs-list"><p class="muted">No jobs yet. Your completed and scheduled jobs will appear here with photos.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <img src="assets/logo.png" alt="PrimeGuard Preservation logo">
+      <p>PrimeGuard Preservation LLC<br>Miami, Florida</p>
+    </div>
+    <div class="footer-links">
+      <a href="index.html#services">Services</a>
+      <a href="index.html#work">Work</a>
+      <a href="index.html#reviews">Reviews</a>
+      <a href="index.html#government">Government</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#contact">Contact</a>
+      <a href="careers.html">Careers</a>
+    </div>
+  </div>
+  <div class="footer-bottom"><p>&copy; 2026 PrimeGuard Preservation LLC. All rights reserved.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="account.js"></script>
+</body>
+</html>
