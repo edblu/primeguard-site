@@ -122,6 +122,11 @@
       email_word: "Email",
       contact_kicker: "Get in touch", contact_title: "Request service",
       contact_lead: "Call, email, or send the form — we reply during business hours.",
+      exit_kicker: "Before you go", exit_title: "Wait, don't leave yet!",
+      exit_sub: "Get a free estimate in under 60 seconds, and we will prioritize your booking.",
+      exit_name_ph: "Your name", exit_phone_ph: "Phone number",
+      exit_cta: "Get my free estimate", exit_dismiss: "No thanks, I will pay full price",
+      exit_done_t: "You're in!", exit_done_s: "We'll call you shortly with your free estimate.",
       vendors_kicker: "Partner with us", vendors_title: "Steady work for your crew",
       vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and we pay the same day.",
       vendors_step1_t: "Register", vendors_step1_d: "Fill out the form below. It takes two minutes and puts you in our system.",
@@ -274,6 +279,11 @@
       email_word: "Correo electrónico",
       contact_kicker: "Contáctenos", contact_title: "Solicite un servicio",
       contact_lead: "Llámenos, escríbanos o envíe el formulario — respondemos en horario de oficina.",
+      exit_kicker: "Antes de irse", exit_title: "¡Espere, no se vaya todavía!",
+      exit_sub: "Reciba un estimado gratis en menos de 60 segundos, y priorizaremos su reserva.",
+      exit_name_ph: "Su nombre", exit_phone_ph: "Número de teléfono",
+      exit_cta: "Quiero mi estimado gratis", exit_dismiss: "No gracias, pagaré el precio completo",
+      exit_done_t: "¡Listo!", exit_done_s: "Le llamaremos en breve con su estimado gratis.",
       vendors_kicker: "Asóciese con nosotros", vendors_title: "Trabajo constante para su equipo",
       vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y pagamos el mismo día.",
       vendors_step1_t: "Regístrese", vendors_step1_d: "Complete el formulario a continuación. Toma dos minutos y lo pone en nuestro sistema.",
@@ -1111,6 +1121,67 @@
       }
     });
   }
+
+  /* ---------- Exit-intent popup ("don't leave yet") ---------- */
+  (function exitIntent() {
+    var modal = document.getElementById("exitModal");
+    if (!modal) return;
+    try { if (sessionStorage.getItem("pg_exit_shown")) return; } catch (e) {}
+    var shown = false;
+    function show() {
+      if (shown) return; shown = true;
+      try { sessionStorage.setItem("pg_exit_shown", "1"); } catch (e) {}
+      modal.hidden = false;
+      modal.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+    function hide() {
+      modal.classList.remove("open");
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+    // Desktop: cursor heading for the top edge (toward back button / tab close)
+    document.addEventListener("mouseout", function (e) {
+      if (!e.relatedTarget && e.clientY <= 8) show();
+    });
+    // Mobile / no-mouse fallback: 60s timer, only after real scrolling
+    var scrolled = false;
+    window.addEventListener("scroll", function () {
+      if (window.scrollY > 500) scrolled = true;
+    }, { passive: true });
+    setTimeout(function () { if (scrolled) show(); }, 60000);
+    modal.querySelector(".exit-close").addEventListener("click", hide);
+    modal.querySelector(".exit-dismiss").addEventListener("click", hide);
+    modal.addEventListener("click", function (e) { if (e.target === modal) hide(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && shown) hide(); });
+    document.getElementById("exitForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var name = f.exitName.value.trim(), phone = f.exitPhone.value.trim();
+      if (!name || !phone) return;
+      var lead = {
+        name: name, phone: phone,
+        service: "Exit-intent offer",
+        message: "Exit-intent popup lead from " + location.pathname,
+        source: "exit-intent-popup",
+        uid: currentUser ? currentUser.uid : null
+      };
+      var done = function () {
+        modal.querySelector(".exit-card").innerHTML =
+          '<button class="exit-close" aria-label="Close" type="button">&times;</button>' +
+          '<h3 class="grad-text">' + t("exit_done_t") + "</h3>" +
+          '<p class="exit-sub">' + t("exit_done_s") + "</p>";
+        modal.querySelector(".exit-close").addEventListener("click", hide);
+      };
+      if (leadEndpoint) {
+        fetch(leadEndpoint, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(lead)
+        }).then(done).catch(done);
+      } else { done(); }
+    });
+  })();
 
   /* ---------- Init ---------- */
   setupReviews();

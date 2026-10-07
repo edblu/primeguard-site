@@ -919,5 +919,21 @@ window.addEventListener('hashchange', function () {
   init();
 })();
 </script>
+
+<!-- Exit-intent popup: "don't leave yet" lead capture -->
+<div class="exit-modal" id="exitModal" role="dialog" aria-modal="true" aria-labelledby="exitTitle" hidden>
+  <div class="exit-card">
+    <button class="exit-close" aria-label="Close" type="button">&times;</button>
+    <p class="section-kicker" data-i18n="exit_kicker">Before you go</p>
+    <h3 id="exitTitle" class="grad-text" data-i18n="exit_title">Wait, don't leave yet!</h3>
+    <p class="exit-sub" data-i18n="exit_sub">Get a free estimate in under 60 seconds, and we will prioritize your booking.</p>
+    <form id="exitForm" class="exit-form" novalidate>
+      <input type="text" name="exitName" data-i18n-ph="exit_name_ph" placeholder="Your name" required autocomplete="name">
+      <input type="tel" name="exitPhone" data-i18n-ph="exit_phone_ph" placeholder="Phone number" required autocomplete="tel">
+      <button type="submit" class="btn btn-gold btn-lg" data-i18n="exit_cta">Get my free estimate</button>
+    </form>
+    <button class="exit-dismiss" type="button" data-i18n="exit_dismiss">No thanks, I will pay full price</button>
+  </div>
+</div>
 </body>
 </html>
