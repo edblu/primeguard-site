@@ -161,6 +161,27 @@
       bun2_d: "From cluttered to guest-ready in days. We clear it out, then make it shine.",
       bun3_t: "Whole Property Refresh", bun3_s: "Lawn Care + Pressure Washing + Handyman",
       bun3_d: "Every corner handled in one visit. Yard, exterior, and the fix-it list — done.",
+      plan_modal_kicker: "You're one step away",
+      plan_trust_1: "Secure Stripe checkout", plan_trust_2: "Cancel anytime", plan_trust_3: "Vetted pros",
+      bb_title: "Or build your own bundle",
+      bb_lead: "Pick the services you need. Your price updates live. No phone call needed.",
+      bb_total: "Estimated total", bb_continue: "Continue",
+      bb_note: "Final quote confirmed before we start. No surprises.",
+      ord_kicker: "Almost done", ord_title: "Your order",
+      ord_date: "Preferred date",
+      ord_notes_ph: "Anything we should know?",
+      ord_submit: "Place my order",
+      ord_secure: "No payment due today. We confirm your final price before any work begins.",
+      ord_done_t: "Order received!",
+      ord_done_s: "Your ticket is in the system. We will call you shortly to confirm your price and schedule.",
+      ord_ref: "Reference",
+      ord_err: "Please fill in your name, phone, and address.",
+      ref_kicker: "Refer & earn", ref_title: "Give $20, get $20",
+      ref_lead: "Know someone who needs property care? Share your personal code. They get $20 off their first service, and you get a $20 credit after their job is done.",
+      ref_name: "Your name", ref_gen: "Get my code",
+      ref_your_code: "Your code", ref_copy: "Copy", ref_copied: "Copied!",
+      ref_how: "They just mention your code in the quote form. That is all it takes.",
+      ref_need_name: "Enter your name first.",
       vendors_kicker: "Partner with us", vendors_title: "Steady work for your crew",
       vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and we pay the same day.",
       vendors_step1_t: "Register", vendors_step1_d: "Fill out the form below. It takes two minutes and puts you in our system.",
@@ -352,6 +373,27 @@
       bun2_d: "De desordenado a listo para huéspedes en días. Lo despejamos y lo dejamos brillar.",
       bun3_t: "Renovación Total", bun3_s: "Césped + Lavado a presión + Reparaciones",
       bun3_d: "Todo resuelto en una visita. Patio, exterior y la lista de reparaciones — listo.",
+      plan_modal_kicker: "Estás a un paso",
+      plan_trust_1: "Pago seguro con Stripe", plan_trust_2: "Cancele cuando quiera", plan_trust_3: "Personal verificado",
+      bb_title: "O arme su propio paquete",
+      bb_lead: "Elija los servicios que necesita. Su precio se actualiza en vivo. Sin llamadas.",
+      bb_total: "Total estimado", bb_continue: "Continuar",
+      bb_note: "Precio final confirmado antes de empezar. Sin sorpresas.",
+      ord_kicker: "Casi listo", ord_title: "Su pedido",
+      ord_date: "Fecha preferida",
+      ord_notes_ph: "¿Algo que debamos saber?",
+      ord_submit: "Hacer mi pedido",
+      ord_secure: "Sin pago hoy. Confirmamos su precio final antes de empezar.",
+      ord_done_t: "¡Pedido recibido!",
+      ord_done_s: "Su ticket está en el sistema. Le llamaremos en breve para confirmar precio y horario.",
+      ord_ref: "Referencia",
+      ord_err: "Complete su nombre, teléfono y dirección.",
+      ref_kicker: "Refiera y gane", ref_title: "Regale $20, gane $20",
+      ref_lead: "¿Conoce a alguien que necesite cuidado de propiedad? Comparta su código personal. Ellos reciben $20 de descuento en su primer servicio y usted recibe $20 de crédito cuando terminen su trabajo.",
+      ref_name: "Su nombre", ref_gen: "Obtener mi código",
+      ref_your_code: "Su código", ref_copy: "Copiar", ref_copied: "¡Copiado!",
+      ref_how: "Solo mencionan su código en el formulario. Así de fácil.",
+      ref_need_name: "Ingrese su nombre primero.",
       vendors_kicker: "Asóciese con nosotros", vendors_title: "Trabajo constante para su equipo",
       vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y pagamos el mismo día.",
       vendors_step1_t: "Regístrese", vendors_step1_d: "Complete el formulario a continuación. Toma dos minutos y lo pone en nuestro sistema.",
@@ -1299,6 +1341,143 @@
     svc.addEventListener("change", render);
     size.addEventListener("change", render);
     render();
+  })();
+
+  /* ---------- Bundle builder + ticket order ---------- */
+  (function bundleBuilder() {
+    var items = document.querySelectorAll(".bb-item");
+    var totalEl = document.getElementById("bbTotal");
+    var contBtn = document.getElementById("bbContinue");
+    if (!items.length || !totalEl || !contBtn) return;
+    var SVC_NAMES = { lawn: "svc2_t", pressure: "svc1_t", junk: "svc3_t", makeready: "svc4_t", handyman: "svc5_t" };
+    function selected() {
+      var out = [];
+      items.forEach(function (label) {
+        var box = label.querySelector('input[type="checkbox"]');
+        if (box && box.checked) {
+          var price = parseFloat(box.getAttribute("data-bb-price")) || 0;
+          var size = parseFloat(label.querySelector("[data-bb-size]").value) || 1;
+          out.push({
+            key: box.getAttribute("data-bb-svc"),
+            name: t(SVC_NAMES[box.getAttribute("data-bb-svc")] || "svc1_t"),
+            price: Math.round(price * size)
+          });
+        }
+      });
+      return out;
+    }
+    function render() {
+      var sel = selected();
+      var total = sel.reduce(function (a, b) { return a + b.price; }, 0);
+      totalEl.textContent = "$" + total;
+      contBtn.disabled = !sel.length;
+      return { sel: sel, total: total };
+    }
+    items.forEach(function (label) {
+      label.querySelectorAll("input, select").forEach(function (el) {
+        el.addEventListener("change", render);
+      });
+    });
+    render();
+
+    // Order modal
+    var modal = document.getElementById("orderModal");
+    var orderLines = document.getElementById("orderLines");
+    var orderTotal = document.getElementById("orderTotal");
+    var orderSummaryLine = document.getElementById("orderSummaryLine");
+    var form = document.getElementById("orderForm");
+    var success = document.getElementById("orderSuccess");
+    var errEl = document.getElementById("orderFormError");
+    var refCode = document.getElementById("orderRefCode");
+    var current = { sel: [], total: 0 };
+    function openOrder() {
+      if (!modal) return;
+      current = render();
+      orderLines.innerHTML = "";
+      current.sel.forEach(function (it) {
+        var div = document.createElement("div");
+        div.className = "order-line";
+        var a = document.createElement("span"); a.textContent = it.name;
+        var b = document.createElement("span"); b.textContent = "$" + it.price;
+        div.appendChild(a); div.appendChild(b);
+        orderLines.appendChild(div);
+      });
+      orderTotal.textContent = "$" + current.total;
+      orderSummaryLine.textContent = current.sel.map(function (i) { return i.name; }).join(" + ");
+      form.hidden = false; success.hidden = true; errEl.hidden = true;
+      modal.hidden = false;
+      document.body.classList.add("modal-open");
+    }
+    function closeOrder() {
+      if (!modal) return;
+      modal.hidden = true;
+      document.body.classList.remove("modal-open");
+    }
+    contBtn.addEventListener("click", openOrder);
+    var closeBtn = document.getElementById("orderClose");
+    if (closeBtn) closeBtn.addEventListener("click", closeOrder);
+    if (modal) modal.addEventListener("click", function (e) { if (e.target === modal) closeOrder(); });
+    if (form) form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = form.name.value.trim(), phone = form.phone.value.trim(), address = form.address.value.trim();
+      if (!name || !phone || !address) {
+        errEl.textContent = t("ord_err"); errEl.hidden = false; return;
+      }
+      errEl.hidden = true;
+      var ref = "PG-" + Date.now().toString(36).toUpperCase().slice(-6);
+      var ticket = {
+        type: "ticket-order", status: "new", ref: ref,
+        items: current.sel, total: current.total,
+        name: name, phone: phone, email: form.email.value.trim(),
+        address: address, date: form.date.value.trim(), notes: form.notes.value.trim(),
+        source: "bundle-builder", page: location.pathname,
+        uid: currentUser ? currentUser.uid : null
+      };
+      var done = function () {
+        refCode.textContent = ref;
+        form.hidden = true; success.hidden = false;
+      };
+      if (leadEndpoint) {
+        fetch(leadEndpoint, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(ticket)
+        }).then(done).catch(done);
+      } else { done(); }
+    });
+  })();
+
+  /* ---------- Referral code generator ---------- */
+  (function referrals() {
+    var nameInput = document.getElementById("refName");
+    var genBtn = document.getElementById("refGen");
+    var row = document.getElementById("refCodeRow");
+    var codeEl = document.getElementById("refCode");
+    var copyBtn = document.getElementById("refCopy");
+    if (!genBtn || !nameInput) return;
+    function makeCode(name) {
+      var base = name.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8) || "FRIEND";
+      var num = Math.floor(100 + Math.random() * 900);
+      return base + "-" + num;
+    }
+    genBtn.addEventListener("click", function () {
+      var name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        nameInput.placeholder = t("ref_need_name");
+        return;
+      }
+      codeEl.textContent = makeCode(name);
+      row.hidden = false;
+      if (copyBtn) copyBtn.textContent = t("ref_copy");
+    });
+    if (copyBtn) copyBtn.addEventListener("click", function () {
+      var code = codeEl.textContent;
+      function ok() { copyBtn.textContent = t("ref_copied"); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(ok).catch(ok);
+      } else { ok(); }
+    });
   })();
 
   /* ---------- Init ---------- */

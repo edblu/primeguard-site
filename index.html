@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <div class="announce-bar"><a href="#contact"><span data-i18n="announce">Limited slots this week — get your free estimate today</span></a></div>
@@ -295,6 +295,69 @@
       </article>
     </div>
   </div>
+
+    <div class="bundle-builder reveal">
+      <h3 data-i18n="bb_title">Or build your own bundle</h3>
+      <p class="bb-lead" data-i18n="bb_lead">Pick the services you need. Your price updates live. No phone call needed.</p>
+      <div class="bb-services">
+        <label class="bb-item">
+          <input type="checkbox" data-bb-svc="lawn" data-bb-price="45">
+          <span class="bb-name" data-i18n="svc2_t">Lawn Care</span>
+          <select data-bb-size aria-label="Size">
+            <option value="1" data-i18n="est_s">Small</option>
+            <option value="1.3" data-i18n="est_m">Medium</option>
+            <option value="1.6" data-i18n="est_l">Large</option>
+          </select>
+          <em class="bb-from">$45+</em>
+        </label>
+        <label class="bb-item">
+          <input type="checkbox" data-bb-svc="pressure" data-bb-price="149">
+          <span class="bb-name" data-i18n="svc1_t">Pressure Washing</span>
+          <select data-bb-size aria-label="Size">
+            <option value="1" data-i18n="est_s">Small</option>
+            <option value="1.3" data-i18n="est_m">Medium</option>
+            <option value="1.6" data-i18n="est_l">Large</option>
+          </select>
+          <em class="bb-from">$149+</em>
+        </label>
+        <label class="bb-item">
+          <input type="checkbox" data-bb-svc="junk" data-bb-price="89">
+          <span class="bb-name" data-i18n="svc3_t">Debris &amp; Junk Removal</span>
+          <select data-bb-size aria-label="Size">
+            <option value="1" data-i18n="est_s">Small</option>
+            <option value="1.3" data-i18n="est_m">Medium</option>
+            <option value="1.6" data-i18n="est_l">Large</option>
+          </select>
+          <em class="bb-from">$89+</em>
+        </label>
+        <label class="bb-item">
+          <input type="checkbox" data-bb-svc="makeready" data-bb-price="179">
+          <span class="bb-name" data-i18n="svc4_t">Make-Ready Cleaning</span>
+          <select data-bb-size aria-label="Size">
+            <option value="1" data-i18n="est_s">Small</option>
+            <option value="1.3" data-i18n="est_m">Medium</option>
+            <option value="1.6" data-i18n="est_l">Large</option>
+          </select>
+          <em class="bb-from">$179+</em>
+        </label>
+        <label class="bb-item">
+          <input type="checkbox" data-bb-svc="handyman" data-bb-price="65">
+          <span class="bb-name" data-i18n="svc5_t">Handyman Services</span>
+          <select data-bb-size aria-label="Size">
+            <option value="1" data-i18n="est_s">Small</option>
+            <option value="2" data-i18n="est_m">Medium</option>
+            <option value="4" data-i18n="est_l">Large</option>
+          </select>
+          <em class="bb-from">$65+</em>
+        </label>
+      </div>
+      <div class="bb-total-row">
+        <span data-i18n="bb_total">Estimated total</span>
+        <strong id="bbTotal">$0</strong>
+      </div>
+      <button type="button" class="btn btn-gold btn-lg" id="bbContinue" disabled data-i18n="bb_continue">Continue</button>
+      <p class="bb-note" data-i18n="bb_note">Final quote confirmed before we start. No surprises.</p>
+    </div>
 </section>
 
 <!-- ================= OUR WORK ================= -->
@@ -479,6 +542,28 @@
   </div>
 </section>
 
+
+<!-- ================= REFERRALS ================= -->
+<section class="section" id="referrals">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="ref_kicker">Refer &amp; earn</p>
+    <h2 class="reveal grad-text" data-i18n="ref_title">Give $20, get $20</h2>
+    <p class="section-lead reveal" data-i18n="ref_lead">Know someone who needs property care? Share your personal code. They get $20 off their first service, and you get a $20 credit after their job is done.</p>
+    <div class="referral-box reveal">
+      <label><span data-i18n="ref_name">Your name</span>
+        <input type="text" id="refName" placeholder="Your name" data-i18n-ph="ph_name" autocomplete="name">
+      </label>
+      <button type="button" class="btn btn-gold" id="refGen" data-i18n="ref_gen">Get my code</button>
+      <div class="ref-code-row" id="refCodeRow" hidden>
+        <span data-i18n="ref_your_code">Your code</span>
+        <strong id="refCode"></strong>
+        <button type="button" class="btn btn-outline" id="refCopy" data-i18n="ref_copy">Copy</button>
+      </div>
+      <p class="ref-how" data-i18n="ref_how">They just mention your code in the quote form. That is all it takes.</p>
+    </div>
+  </div>
+</section>
+
 <!-- ================= CONTACT ================= -->
 <section class="section" id="contact">
   <div class="wrap">
@@ -658,21 +743,64 @@
   </div>
 </div>
 
+
+<!-- ================= ORDER / TICKET MODAL ================= -->
+<div class="modal-overlay" id="orderModal" hidden>
+  <div class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="orderTitle">
+    <button class="modal-close" id="orderClose" aria-label="Close" data-i18n-aria="close">×</button>
+    <div class="plan-modal-hero">
+      <p class="section-kicker" data-i18n="ord_kicker">Almost done</p>
+      <h3 id="orderTitle" data-i18n="ord_title">Your order</h3>
+      <p class="plan-modal-desc" id="orderSummaryLine"></p>
+    </div>
+    <div class="modal-body">
+      <div class="order-lines" id="orderLines"></div>
+      <div class="order-total-row"><span data-i18n="bb_total">Estimated total</span><strong id="orderTotal">$0</strong></div>
+      <form id="orderForm" novalidate>
+        <label><span data-i18n="form_name">Full name</span>
+          <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
+        </label>
+        <label><span data-i18n="form_phone">Phone</span>
+          <input type="tel" name="phone" required autocomplete="tel" placeholder="(305) 555-1234">
+        </label>
+        <label><span data-i18n="form_email">Email</span>
+          <input type="email" name="email" autocomplete="email" placeholder="you@email.com">
+        </label>
+        <label><span data-i18n="form_address">Service address</span>
+          <input type="text" name="address" required autocomplete="street-address" placeholder="Street address, Miami, FL" data-i18n-ph="ph_address">
+        </label>
+        <label><span data-i18n="ord_date">Preferred date</span>
+          <input type="text" name="date" placeholder="e.g. This Saturday morning">
+        </label>
+        <label><span data-i18n="form_details">Details</span>
+          <textarea name="notes" rows="2" placeholder="Anything we should know?" data-i18n-ph="ord_notes_ph"></textarea>
+        </label>
+        <p class="form-error" id="orderFormError" hidden></p>
+        <button type="submit" class="btn btn-gold btn-lg btn-block" data-i18n="ord_submit">Place my order</button>
+        <p class="plan-secure" data-i18n="ord_secure">No payment due today. We confirm your final price before any work begins.</p>
+      </form>
+      <div class="plan-success" id="orderSuccess" hidden>
+        <h3 class="grad-text" data-i18n="ord_done_t">Order received!</h3>
+        <p data-i18n="ord_done_s">Your ticket is in the system. We will call you shortly to confirm your price and schedule.</p>
+        <p class="order-ref"><span data-i18n="ord_ref">Reference</span>: <strong id="orderRefCode"></strong></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= PLAN SIGNUP ================= -->
 <div class="modal-overlay" id="planModal" hidden>
   <div class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
     <button class="modal-close" id="planClose" aria-label="Close" data-i18n-aria="close">×</button>
-    <h3 id="planModalTitle" data-i18n="plan_signup_title">Join the plan</h3>
+    <div class="plan-modal-hero">
+      <p class="section-kicker" data-i18n="plan_modal_kicker">You&apos;re one step away</p>
+      <h3 id="planModalTitle"><span id="planSummaryName"></span></h3>
+      <p class="plan-modal-price" id="planSummaryPrice"></p>
+      <p class="plan-modal-desc" id="planSummaryDesc"></p>
+    </div>
     <div class="modal-body">
-      <div class="plan-summary" id="planSummary">
-        <div>
-          <strong id="planSummaryName"></strong>
-          <span id="planSummaryPrice"></span>
-        </div>
-        <p id="planSummaryDesc"></p>
-        <p class="plan-inc-title" data-i18n="plan_included_title">What's included:</p>
-        <ul class="plan-includes" id="planSummaryInc"></ul>
-      </div>
+      <p class="plan-inc-title" data-i18n="plan_included_title">What&apos;s included:</p>
+      <ul class="plan-includes plan-modal-perks" id="planSummaryInc"></ul>
       <form id="planForm" novalidate>
         <label><span data-i18n="form_name">Full name</span>
           <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
@@ -691,6 +819,11 @@
           <span data-i18n="plan_continue_pay">Continue to secure payment</span>
         </button>
         <p class="plan-secure" data-i18n="plan_secure_note">Secure checkout powered by Stripe. Cancel anytime.</p>
+        <div class="plan-trust">
+          <span data-i18n="plan_trust_1">Secure Stripe checkout</span>
+          <span data-i18n="plan_trust_2">Cancel anytime</span>
+          <span data-i18n="plan_trust_3">Vetted pros</span>
+        </div>
         <p class="plan-alt"><span data-i18n="plan_prefer_call">Prefer to talk it through?</span>
           <a data-phone-href href="#"><span data-i18n="plan_call_us">Call us</span></a>
         </p>
@@ -706,7 +839,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=17"></script>
-<script src="site.js?v=17"></script>
+<script src="site.js?v=18"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
