@@ -147,5 +147,73 @@
   </div>
   <div class="footer-bottom"><p>&copy; 2026 PrimeGuard Preservation LLC. All rights reserved.</p></div>
 </footer>
+
+<!-- Exit-intent popup: "don't leave yet" lead capture -->
+<div class="exit-modal" id="exitModal" role="dialog" aria-modal="true" aria-labelledby="exitTitle" hidden>
+  <div class="exit-card">
+    <button class="exit-close" aria-label="Close" type="button">&times;</button>
+    <p class="section-kicker" data-i18n="exit_kicker">Before you go</p>
+    <h3 id="exitTitle" class="grad-text" data-i18n="exit_title">Wait, don't leave yet!</h3>
+    <p class="exit-sub" data-i18n="exit_sub">Get a free estimate in under 60 seconds, and we will prioritize your booking.</p>
+    <form id="exitForm" class="exit-form" novalidate>
+      <input type="text" name="exitName" data-i18n-ph="exit_name_ph" placeholder="Your name" required autocomplete="name">
+      <input type="tel" name="exitPhone" data-i18n-ph="exit_phone_ph" placeholder="Phone number" required autocomplete="tel">
+      <button type="submit" class="btn btn-gold btn-lg" data-i18n="exit_cta">Get my free estimate</button>
+    </form>
+    <button class="exit-dismiss" type="button" data-i18n="exit_dismiss">No thanks, I will pay full price</button>
+  </div>
+</div>
+
+<script src="../config.js"></script>
+<script>
+(function () {
+  var modal = document.getElementById("exitModal");
+  if (!modal) return;
+  try { if (sessionStorage.getItem("pg_exit_shown")) return; } catch (e) {}
+  var shown = false;
+  function show() {
+    if (shown) return; shown = true;
+    try { sessionStorage.setItem("pg_exit_shown", "1"); } catch (e) {}
+    modal.hidden = false; modal.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function hide() {
+    modal.classList.remove("open"); modal.hidden = true;
+    document.body.style.overflow = "";
+  }
+  document.addEventListener("mouseout", function (e) {
+    if (!e.relatedTarget && e.clientY <= 8) show();
+  });
+  var scrolled = false;
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 500) scrolled = true;
+  }, { passive: true });
+  setTimeout(function () { if (scrolled) show(); }, 60000);
+  modal.querySelector(".exit-close").addEventListener("click", hide);
+  modal.querySelector(".exit-dismiss").addEventListener("click", hide);
+  modal.addEventListener("click", function (e) { if (e.target === modal) hide(); });
+  document.getElementById("exitForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    var name = f.exitName.value.trim(), phone = f.exitPhone.value.trim();
+    if (!name || !phone) return;
+    var ep = (window.SITE_CONFIG && window.SITE_CONFIG.leadEndpoint) || "";
+    var done = function () {
+      modal.querySelector(".exit-card").innerHTML =
+        '<button class="exit-close" aria-label="Close" type="button">&times;</button>' +
+        '<h3 class="grad-text">You are in!</h3>' +
+        '<p class="exit-sub">We will call you shortly with your free estimate.</p>';
+      modal.querySelector(".exit-close").addEventListener("click", hide);
+    };
+    if (ep) {
+      fetch(ep, { method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ name: name, phone: phone, service: "Exit-intent offer",
+          message: "Exit-intent popup lead from " + location.pathname, source: "exit-intent-popup" })
+      }).then(done).catch(done);
+    } else { done(); }
+  });
+})();
+</script>
 </body>
 </html>
