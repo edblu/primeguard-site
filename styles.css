@@ -655,16 +655,21 @@ body.modal-open { overflow: hidden; }
 }
 #plans { background-image: url("assets/bg-plans.jpg"); }
 #reviews { background-image: url("assets/bg-reviews.jpg"); }
-#contact { background-image: url("assets/bg-contact.jpg"); }
+#contact {
+  background-image: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(212,168,67,0.13), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 88% 78%, rgba(212,168,67,0.07), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 8% 75%, rgba(212,168,67,0.05), transparent 70%),
+    linear-gradient(180deg, #101014, #0a0a0c);
+}
 /* dark cinematic scrim over the photo */
 :is(#plans, #reviews, #contact)::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(8, 8, 10, 0.8), rgba(8, 8, 10, 0.62) 50%, rgba(8, 8, 10, 0.82));
 }
 /* Contact section: heavier scrim + text shadow so white text stays readable over the bright photo */
-#contact::before {
-  background: linear-gradient(180deg, rgba(5, 5, 8, 0.94), rgba(5, 5, 8, 0.88) 45%, rgba(5, 5, 8, 0.95));
-}
+#contact::before { background: none; }
 #contact .section-lead, #contact .info-value, #contact .info-label, #contact .section-kicker {
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.95);
 }
