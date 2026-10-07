@@ -663,7 +663,7 @@ body.modal-open { overflow: hidden; }
 }
 /* Contact section: heavier scrim + text shadow so white text stays readable over the bright photo */
 #contact::before {
-  background: linear-gradient(180deg, rgba(5, 5, 8, 0.9), rgba(5, 5, 8, 0.78) 45%, rgba(5, 5, 8, 0.92));
+  background: linear-gradient(180deg, rgba(5, 5, 8, 0.94), rgba(5, 5, 8, 0.88) 45%, rgba(5, 5, 8, 0.95));
 }
 #contact .section-lead, #contact .info-value, #contact .info-label, #contact .section-kicker {
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.95);
