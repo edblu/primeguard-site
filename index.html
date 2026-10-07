@@ -23,6 +23,8 @@
 <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
+<div class="announce-bar"><a href="#contact"><span data-i18n="announce">Limited slots this week — get your free estimate today</span></a></div>
+
 
 <!-- ================= HEADER ================= -->
 <header class="site-header" id="siteHeader">
@@ -178,6 +180,42 @@
   </div>
 </section>
 
+
+<!-- ================= INSTANT ESTIMATOR ================= -->
+<section class="section" id="estimator">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="est_kicker">Instant estimate</p>
+    <h2 class="reveal grad-text" data-i18n="est_title">What will it cost?</h2>
+    <p class="section-lead reveal" data-i18n="est_lead">Pick a service and a size for a ballpark figure in seconds.</p>
+    <div class="estimator reveal">
+      <div class="est-row">
+        <label><span data-i18n="est_service">Service</span>
+          <select id="estService">
+            <option value="pressure" data-i18n="svc1_t">Pressure Washing</option>
+            <option value="lawn" data-i18n="svc2_t">Lawn Care</option>
+            <option value="junk" data-i18n="svc3_t">Debris &amp; Junk Removal</option>
+            <option value="makeready" data-i18n="svc4_t">Make-Ready Cleaning</option>
+            <option value="handyman" data-i18n="svc5_t">Handyman Services</option>
+          </select>
+        </label>
+        <label><span data-i18n="est_size">Size</span>
+          <select id="estSize">
+            <option value="0" data-i18n="est_s">Small</option>
+            <option value="1" data-i18n="est_m">Medium</option>
+            <option value="2" data-i18n="est_l">Large</option>
+          </select>
+        </label>
+      </div>
+      <div class="est-result">
+        <p class="est-label" data-i18n="est_result">Your ballpark estimate</p>
+        <p class="est-price" id="estPrice">$149</p>
+        <p class="est-note" data-i18n="est_note">Ballpark only — your final quote is confirmed before we start. No surprises.</p>
+        <a class="btn btn-gold btn-lg" href="#contact" data-i18n="est_cta">Get my exact quote</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= SUBSCRIPTION PLANS ================= -->
 <section class="section section-alt" id="plans">
   <div class="wrap">
@@ -229,12 +267,53 @@
   </div>
 </section>
 
+
+<!-- ================= BUNDLES ================= -->
+<section class="section section-alt" id="bundles">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="bun_kicker">Bundle &amp; save</p>
+    <h2 class="reveal grad-text" data-i18n="bun_title">Services that go together</h2>
+    <p class="section-lead reveal" data-i18n="bun_lead">Book them together and save. Bundle pricing is confirmed in your free quote — you always approve before we start.</p>
+    <div class="bundles-grid">
+      <article class="bundle-card reveal">
+        <h3 data-i18n="bun1_t">Curb Appeal Combo</h3>
+        <p class="bundle-svcs" data-i18n="bun1_s">Lawn Care + Pressure Washing</p>
+        <p data-i18n="bun1_d">The one-two punch for instant curb appeal. Fresh stripes, spotless driveway.</p>
+        <a class="btn btn-gold" href="#contact" data-i18n="bun_cta">Get bundle quote</a>
+      </article>
+      <article class="bundle-card reveal">
+        <h3 data-i18n="bun2_t">Turnover Package</h3>
+        <p class="bundle-svcs" data-i18n="bun2_s">Junk Removal + Make-Ready Cleaning</p>
+        <p data-i18n="bun2_d">From cluttered to guest-ready in days. We clear it out, then make it shine.</p>
+        <a class="btn btn-gold" href="#contact" data-i18n="bun_cta">Get bundle quote</a>
+      </article>
+      <article class="bundle-card reveal">
+        <h3 data-i18n="bun3_t">Whole Property Refresh</h3>
+        <p class="bundle-svcs" data-i18n="bun3_s">Lawn Care + Pressure Washing + Handyman</p>
+        <p data-i18n="bun3_d">Every corner handled in one visit. Yard, exterior, and the fix-it list — done.</p>
+        <a class="btn btn-gold" href="#contact" data-i18n="bun_cta">Get bundle quote</a>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ================= OUR WORK ================= -->
 <section class="section section-alt" id="work">
   <div class="wrap">
     <p class="section-kicker reveal" data-i18n="work_kicker">Our work</p>
     <h2 class="reveal grad-text" data-i18n="work_title">Before &amp; after</h2>
     <p class="section-lead reveal" data-i18n="work_lead">Real project photos are on the way.</p>
+
+    <div class="ba-slider reveal" id="baSlider">
+      <img class="ba-img ba-after" src="assets/work-1-after.jpg" alt="Driveway after pressure washing">
+      <div class="ba-before" id="baBefore">
+        <img class="ba-img" src="assets/work-1-before.jpg" alt="Driveway before pressure washing">
+      </div>
+      <div class="ba-handle" id="baHandle"><span></span></div>
+      <span class="ba-tag ba-tag-before" data-i18n="before">Before</span>
+      <span class="ba-tag ba-tag-after" data-i18n="after">After</span>
+    </div>
+    <p class="ba-hint" data-i18n="ba_hint">Drag to compare</p>
     <div class="work-grid">
 
       <figure class="work-card reveal">
@@ -297,6 +376,53 @@
       <a class="btn btn-outline" id="reviewFacebook" href="#" target="_blank" rel="noopener"><span data-i18n="review_facebook">Review on Facebook</span></a>
       <a class="btn btn-outline" id="reviewThumbtack" href="#" target="_blank" rel="noopener"><span data-i18n="review_thumbtack">Review on Thumbtack</span></a>
     </div>
+  </div>
+</section>
+
+
+<!-- ================= FAQ ================= -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="faq_kicker">Questions</p>
+    <h2 class="reveal grad-text" data-i18n="faq_title">Before you ask</h2>
+    <div class="faq-list reveal">
+      <details class="faq-item">
+        <summary data-i18n="faq1_q">Do I need to be home during the service?</summary>
+        <p data-i18n="faq1_a">No. As long as we have access to the area, gates, and an outdoor water spigot if needed, we handle everything and send before &amp; after photos.</p>
+      </details>
+      <details class="faq-item">
+        <summary data-i18n="faq2_q">How fast can you come out?</summary>
+        <p data-i18n="faq2_a">Most jobs are scheduled within 48 hours. Need it sooner? Call us and we will do our best to fit you in.</p>
+      </details>
+      <details class="faq-item">
+        <summary data-i18n="faq3_q">What happens if it rains?</summary>
+        <p data-i18n="faq3_a">We watch the forecast and reschedule outdoor work at no charge. You always know before we roll a truck.</p>
+      </details>
+      <details class="faq-item">
+        <summary data-i18n="faq4_q">How do I pay?</summary>
+        <p data-i18n="faq4_a">After the job is done and you are happy. We accept cards and cash — no deposits for most services.</p>
+      </details>
+      <details class="faq-item">
+        <summary data-i18n="faq5_q">Are your pros vetted?</summary>
+        <p data-i18n="faq5_a">Yes. Every tech is background-checked and trained on our checklist before touching your property.</p>
+      </details>
+      <details class="faq-item">
+        <summary data-i18n="faq6_q">What if I am not happy with the work?</summary>
+        <p data-i18n="faq6_a">Tell us within 48 hours and we will come back and make it right — free. That is our promise.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GUARANTEE ================= -->
+<section class="guarantee-band">
+  <div class="wrap guarantee-inner reveal">
+    <div>
+      <p class="section-kicker" data-i18n="gua_kicker">Our promise</p>
+      <h2 class="grad-text" data-i18n="gua_title">Love it, or we make it right.</h2>
+      <p class="guarantee-sub" data-i18n="gua_sub">If anything isn't perfect, tell us within 48 hours and we'll come back and fix it — free.</p>
+    </div>
+    <a class="btn btn-gold btn-lg" href="#contact" data-i18n="gua_cta">Book risk-free</a>
   </div>
 </section>
 

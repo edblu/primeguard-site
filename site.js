@@ -127,6 +127,40 @@
       exit_name_ph: "Your name", exit_phone_ph: "Phone number",
       exit_cta: "Get my free estimate", exit_dismiss: "No thanks, I will pay full price",
       exit_done_t: "You're in!", exit_done_s: "We'll call you shortly with your free estimate.",
+      announce: "Limited slots this week — get your free estimate today",
+      est_kicker: "Instant estimate", est_title: "What will it cost?",
+      est_lead: "Pick a service and a size for a ballpark figure in seconds.",
+      est_service: "Service", est_size: "Size",
+      est_s: "Small", est_m: "Medium", est_l: "Large",
+      est_result: "Your ballpark estimate",
+      est_note: "Ballpark only — your final quote is confirmed before we start. No surprises.",
+      est_cta: "Get my exact quote",
+      ba_hint: "Drag to compare",
+      faq_kicker: "Questions", faq_title: "Before you ask",
+      faq1_q: "Do I need to be home during the service?",
+      faq1_a: "No. As long as we have access to the area, gates, and an outdoor water spigot if needed, we handle everything and send before & after photos.",
+      faq2_q: "How fast can you come out?",
+      faq2_a: "Most jobs are scheduled within 48 hours. Need it sooner? Call us and we will do our best to fit you in.",
+      faq3_q: "What happens if it rains?",
+      faq3_a: "We watch the forecast and reschedule outdoor work at no charge. You always know before we roll a truck.",
+      faq4_q: "How do I pay?",
+      faq4_a: "After the job is done and you are happy. We accept cards and cash — no deposits for most services.",
+      faq5_q: "Are your pros vetted?",
+      faq5_a: "Yes. Every tech is background-checked and trained on our checklist before touching your property.",
+      faq6_q: "What if I am not happy with the work?",
+      faq6_a: "Tell us within 48 hours and we will come back and make it right — free. That is our promise.",
+      gua_kicker: "Our promise", gua_title: "Love it, or we make it right.",
+      gua_sub: "If anything isn't perfect, tell us within 48 hours and we'll come back and fix it — free.",
+      gua_cta: "Book risk-free",
+      bun_kicker: "Bundle & save", bun_title: "Services that go together",
+      bun_lead: "Book them together and save. Bundle pricing is confirmed in your free quote — you always approve before we start.",
+      bun_cta: "Get bundle quote",
+      bun1_t: "Curb Appeal Combo", bun1_s: "Lawn Care + Pressure Washing",
+      bun1_d: "The one-two punch for instant curb appeal. Fresh stripes, spotless driveway.",
+      bun2_t: "Turnover Package", bun2_s: "Junk Removal + Make-Ready Cleaning",
+      bun2_d: "From cluttered to guest-ready in days. We clear it out, then make it shine.",
+      bun3_t: "Whole Property Refresh", bun3_s: "Lawn Care + Pressure Washing + Handyman",
+      bun3_d: "Every corner handled in one visit. Yard, exterior, and the fix-it list — done.",
       vendors_kicker: "Partner with us", vendors_title: "Steady work for your crew",
       vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and we pay the same day.",
       vendors_step1_t: "Register", vendors_step1_d: "Fill out the form below. It takes two minutes and puts you in our system.",
@@ -284,6 +318,40 @@
       exit_name_ph: "Su nombre", exit_phone_ph: "Número de teléfono",
       exit_cta: "Quiero mi estimado gratis", exit_dismiss: "No gracias, pagaré el precio completo",
       exit_done_t: "¡Listo!", exit_done_s: "Le llamaremos en breve con su estimado gratis.",
+      announce: "Cupos limitados esta semana — pida su estimado gratis hoy",
+      est_kicker: "Estimado instantáneo", est_title: "¿Cuánto costará?",
+      est_lead: "Elija un servicio y un tamaño para un estimado aproximado en segundos.",
+      est_service: "Servicio", est_size: "Tamaño",
+      est_s: "Pequeño", est_m: "Mediano", est_l: "Grande",
+      est_result: "Su estimado aproximado",
+      est_note: "Solo aproximado — su precio final se confirma antes de empezar. Sin sorpresas.",
+      est_cta: "Quiero mi precio exacto",
+      ba_hint: "Arrastre para comparar",
+      faq_kicker: "Preguntas", faq_title: "Antes de preguntar",
+      faq1_q: "¿Necesito estar en casa durante el servicio?",
+      faq1_a: "No. Siempre que tengamos acceso al área, los portones y la llave de agua exterior si es necesario, nos encargamos de todo y le enviamos fotos del antes y después.",
+      faq2_q: "¿Qué tan rápido pueden venir?",
+      faq2_a: "La mayoría de los trabajos se programan en 48 horas. ¿Lo necesita antes? Llámenos y haremos lo posible por atenderle.",
+      faq3_q: "¿Qué pasa si llueve?",
+      faq3_a: "Vigilamos el pronóstico y reprogramamos el trabajo exterior sin costo. Usted siempre lo sabrá antes de que salgamos.",
+      faq4_q: "¿Cómo pago?",
+      faq4_a: "Después del trabajo, cuando usted esté satisfecho. Aceptamos tarjetas y efectivo — sin depósitos en la mayoría de los servicios.",
+      faq5_q: "¿Su personal está verificado?",
+      faq5_a: "Sí. Cada técnico pasa verificación de antecedentes y capacitación antes de tocar su propiedad.",
+      faq6_q: "¿Qué pasa si no quedo satisfecho?",
+      faq6_a: "Avísenos en 48 horas y regresaremos a corregirlo — gratis. Esa es nuestra promesa.",
+      gua_kicker: "Nuestra promesa", gua_title: "Le encantará, o lo corregimos.",
+      gua_sub: "Si algo no queda perfecto, avísenos en 48 horas y regresaremos a corregirlo — gratis.",
+      gua_cta: "Reserve sin riesgo",
+      bun_kicker: "Combine y ahorre", bun_title: "Servicios que van juntos",
+      bun_lead: "Resérvelos juntos y ahorre. El precio del paquete se confirma en su estimado gratis — usted siempre aprueba antes de empezar.",
+      bun_cta: "Pedir precio del paquete",
+      bun1_t: "Combo de Atractivo Exterior", bun1_s: "Corte de césped + Lavado a presión",
+      bun1_d: "El golpe doble para un atractivo instantáneo. Líneas frescas, entrada impecable.",
+      bun2_t: "Paquete de Entrega", bun2_s: "Retiro de escombros + Limpieza",
+      bun2_d: "De desordenado a listo para huéspedes en días. Lo despejamos y lo dejamos brillar.",
+      bun3_t: "Renovación Total", bun3_s: "Césped + Lavado a presión + Reparaciones",
+      bun3_d: "Todo resuelto en una visita. Patio, exterior y la lista de reparaciones — listo.",
       vendors_kicker: "Asóciese con nosotros", vendors_title: "Trabajo constante para su equipo",
       vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y pagamos el mismo día.",
       vendors_step1_t: "Regístrese", vendors_step1_d: "Complete el formulario a continuación. Toma dos minutos y lo pone en nuestro sistema.",
@@ -1181,6 +1249,56 @@
         }).then(done).catch(done);
       } else { done(); }
     });
+  })();
+
+  /* ---------- Before/after slider ---------- */
+  (function beforeAfter() {
+    var slider = document.getElementById("baSlider");
+    if (!slider) return;
+    var before = document.getElementById("baBefore");
+    var handle = document.getElementById("baHandle");
+    var dragging = false;
+    function setPos(clientX) {
+      var r = slider.getBoundingClientRect();
+      var pct = ((clientX - r.left) / r.width) * 100;
+      pct = Math.max(2, Math.min(98, pct));
+      before.style.clipPath = "inset(0 " + (100 - pct) + "% 0 0)";
+      handle.style.left = pct + "%";
+    }
+    slider.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      slider.setPointerCapture(e.pointerId);
+      setPos(e.clientX);
+    });
+    slider.addEventListener("pointermove", function (e) {
+      if (dragging) setPos(e.clientX);
+    });
+    ["pointerup", "pointercancel"].forEach(function (ev) {
+      slider.addEventListener(ev, function () { dragging = false; });
+    });
+  })();
+
+  /* ---------- Instant estimator ---------- */
+  (function estimator() {
+    var svc = document.getElementById("estService");
+    var size = document.getElementById("estSize");
+    var out = document.getElementById("estPrice");
+    if (!svc || !size || !out) return;
+    // Ballpark figures derived from advertised starting prices; final quote confirmed before work.
+    var PRICES = {
+      pressure: [149, 189, 249],
+      lawn: [45, 60, 80],
+      junk: [89, 129, 189],
+      makeready: [179, 229, 299],
+      handyman: [65, 130, 260]
+    };
+    function render() {
+      var p = (PRICES[svc.value] || PRICES.pressure)[parseInt(size.value, 10) || 0];
+      out.textContent = "$" + p;
+    }
+    svc.addEventListener("change", render);
+    size.addEventListener("change", render);
+    render();
   })();
 
   /* ---------- Init ---------- */
