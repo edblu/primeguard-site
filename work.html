@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Refer &amp; Earn — Give $20, Get $20 | PrimeGuard Preservation LLC</title>
-<meta name="description" content="Know someone who needs property care in Miami-Dade? Share your personal PrimeGuard code. They get $20 off their first service, you get a $20 credit.">
+<title>Our Work — Before &amp; After | PrimeGuard Preservation LLC</title>
+<meta name="description" content="Before-and-after results from PrimeGuard Preservation LLC jobs across Miami-Dade County: pressure washing, lawn care, and junk removal.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PrimeGuard Preservation LLC">
-<meta property="og:title" content="Refer & Earn — Give $20, Get $20 | PrimeGuard Preservation LLC">
-<meta property="og:description" content="Share your personal code. They get $20 off their first service, you get a $20 credit after their job is done.">
-<meta property="og:url" content="https://primeguardmia.com/referrals.html">
+<meta property="og:title" content="Our Work — Before & After | PrimeGuard Preservation LLC">
+<meta property="og:description" content="Drag to compare. Real before-and-after results from jobs across Miami-Dade County.">
+<meta property="og:url" content="https://primeguardmia.com/work.html">
 <meta property="og:image" content="https://primeguardmia.com/assets/primeguard-banner-gold.jpg">
-<link rel="canonical" href="https://primeguardmia.com/referrals.html">
+<link rel="canonical" href="https://primeguardmia.com/work.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -49,51 +49,52 @@
   </div>
 </header>
 
-<!-- ================= REFERRALS HERO ================= -->
+<!-- ================= WORK HERO ================= -->
 <section class="careers-hero">
   <div class="wrap">
-    <p class="section-kicker reveal" data-i18n="ref_kicker">Refer &amp; earn</p>
-    <h1 class="reveal grad-text" data-i18n="ref_title">Give $20, get $20</h1>
-    <p class="section-lead reveal" data-i18n="ref_lead">Know someone who needs property care? Share your personal code. They get $20 off their first service, and you get a $20 credit after their job is done.</p>
+    <p class="section-kicker reveal" data-i18n="work_kicker">Our work</p>
+    <h1 class="reveal grad-text" data-i18n="work_title">Before &amp; after</h1>
+    <p class="section-lead reveal" data-i18n="work_lead">Real project photos are on the way.</p>
   </div>
 </section>
 
-<!-- ================= HOW IT WORKS ================= -->
-<section class="section" style="padding-top:0">
+<!-- ================= BEFORE / AFTER ================= -->
+<section class="section section-alt" style="padding-top:0">
   <div class="wrap">
-    <div class="gov-grid vendors-steps">
-      <div class="gov-card reveal">
-        <h3><span class="step-num">1</span> <span data-i18n="ref_step1_t">Get your code</span></h3>
-        <p data-i18n="ref_step1_d">Type your name below and generate your personal referral code. It is yours to keep.</p>
+    <div class="ba-slider reveal" id="baSlider">
+      <img class="ba-img ba-after" src="assets/work-1-after.jpg" alt="Driveway after pressure washing">
+      <div class="ba-before" id="baBefore">
+        <img class="ba-img" src="assets/work-1-before.jpg" alt="Driveway before pressure washing">
       </div>
-      <div class="gov-card reveal">
-        <h3><span class="step-num">2</span> <span data-i18n="ref_step2_t">Share it</span></h3>
-        <p data-i18n="ref_step2_d">Text it to a neighbor, post it in your group chat, mention it over the fence. However you share, it works.</p>
-      </div>
-      <div class="gov-card reveal">
-        <h3><span class="step-num">3</span> <span data-i18n="ref_step3_t">You both get $20</span></h3>
-        <p data-i18n="ref_step3_d">They mention your code in the quote form and get $20 off their first service. After their job is done, you get a $20 credit.</p>
-      </div>
+      <div class="ba-handle" id="baHandle"><span></span></div>
+      <span class="ba-tag ba-tag-before" data-i18n="before">Before</span>
+      <span class="ba-tag ba-tag-after" data-i18n="after">After</span>
     </div>
-  </div>
-</section>
-
-<!-- ================= CODE GENERATOR ================= -->
-<section class="section" style="padding-top:0">
-  <div class="wrap">
-    <div class="referral-box reveal">
-      <label><span data-i18n="ref_name">Your name</span>
-        <input type="text" id="refName" placeholder="Your name" data-i18n-ph="ph_name" autocomplete="name">
-      </label>
-      <button type="button" class="btn btn-gold" id="refGen" data-i18n="ref_gen">Get my code</button>
-      <div class="ref-code-row" id="refCodeRow" hidden>
-        <span data-i18n="ref_your_code">Your code</span>
-        <strong id="refCode"></strong>
-        <button type="button" class="btn btn-outline" id="refCopy" data-i18n="ref_copy">Copy</button>
-      </div>
-      <p class="ref-how" data-i18n="ref_how">They just mention your code in the quote form. That is all it takes.</p>
+    <p class="ba-hint" data-i18n="ba_hint">Drag to compare</p>
+    <div class="work-grid">
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><img src="assets/work-1-before.jpg" alt="Driveway before pressure washing"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-1-after.jpg" alt="Driveway after pressure washing"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption_1">Pressure Washing</figcaption>
+      </figure>
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><img src="assets/work-2-before.jpg" alt="Overgrown lawn before service"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-2-after.jpg" alt="Manicured lawn after service"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption_2">Lawn Care</figcaption>
+      </figure>
+      <figure class="work-card reveal">
+        <div class="work-ph-wrap">
+          <div class="work-ph work-before"><img src="assets/work-3-before.jpg" alt="Cluttered yard before junk removal"><span data-i18n="before">Before</span></div>
+          <div class="work-ph work-after"><img src="assets/work-3-after.jpg" alt="Clean yard after junk removal"><span data-i18n="after">After</span></div>
+        </div>
+        <figcaption data-i18n="work_caption_3">Debris &amp; Junk Removal</figcaption>
+      </figure>
     </div>
-    <div class="vendors-cta reveal" style="margin-top:2rem">
+    <div class="vendors-cta reveal" style="margin-top:2.5rem">
       <a class="btn btn-gold btn-lg" href="index.html#contact" data-i18n="ref_cta">Get a free quote</a>
     </div>
   </div>

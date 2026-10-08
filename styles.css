@@ -319,6 +319,63 @@ a { color: var(--gold-bright); }
   box-shadow: 0 24px 60px rgba(96, 74, 24, 0.3), 0 0 70px rgba(212, 168, 67, 0.3);
 }
 
+/* ---------- Shared light-section treatment ---------- */
+.light-section {
+  background:
+    radial-gradient(ellipse 55% 40% at 90% 8%, rgba(212, 168, 67, 0.22), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 5% 95%, rgba(201, 162, 75, 0.14), transparent 70%),
+    linear-gradient(165deg, #fffdf7 0%, #faf3e2 42%, #f0e2c4 78%, #e9d8b2 100%);
+  border-top: 1px solid rgba(212, 168, 67, 0.4);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.4);
+  overflow: hidden;
+}
+.light-section .section-kicker {
+  background: none; border: none; padding: 0; border-radius: 0;
+  color: #8a6d2a; letter-spacing: 0.28em;
+}
+.light-section .grad-text {
+  background: linear-gradient(100deg, #33280f 0%, #8a6d2a 45%, #33280f 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.light-section .section-lead { color: #6e675a; }
+
+/* ---------- Light trust strip ---------- */
+.strip-light {
+  background:
+    radial-gradient(ellipse 50% 90% at 50% 0%, rgba(212, 168, 67, 0.18), transparent 70%),
+    linear-gradient(180deg, #fffdf7 0%, #f5ecd6 100%);
+  border-top: 1px solid rgba(212, 168, 67, 0.35);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.35);
+}
+.strip-light .strip-item strong { color: #6b5320; }
+.strip-light .strip-item span { color: #6e675a; }
+
+/* ---------- Explore link rows ---------- */
+.explore-rows { border-top: 1px solid rgba(138, 109, 42, 0.3); margin-top: 8px; }
+.explore-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 24px 8px; text-decoration: none;
+  border-bottom: 1px solid rgba(138, 109, 42, 0.3);
+  transition: background 0.2s ease, padding 0.2s ease;
+}
+.explore-row:hover { background: rgba(212, 168, 67, 0.1); }
+.explore-text { display: flex; flex-direction: column; gap: 4px; }
+.explore-text strong {
+  font-family: var(--display); font-size: 1.35rem; font-weight: 700;
+  letter-spacing: -0.01em; color: #2b2619; transition: color 0.2s ease;
+}
+.explore-text span span, .explore-text > span { color: #6e675a; font-size: 0.95rem; }
+.explore-row:hover .explore-text strong { color: #8a6d2a; }
+.explore-arrow {
+  flex: none; font-size: 1.6rem; font-weight: 700; color: #a8823a;
+  transition: transform 0.2s ease;
+}
+.explore-row:hover .explore-arrow { transform: translateX(8px); }
+@media (max-width: 640px) {
+  .explore-text strong { font-size: 1.15rem; }
+  .explore-row { padding: 20px 4px; }
+}
+
 /* ---------- Government ---------- */
 .gov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; margin-bottom: 44px; }
 .gov-card {
