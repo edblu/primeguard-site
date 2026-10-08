@@ -1740,3 +1740,22 @@ body {
   .hero-glow::before { display: none; }
   .guarantee-inner { padding: 44px 28px; border-radius: 22px 8px 22px 8px; }
 }
+
+/* ---- Seamless contact-to-footer flow (2026-10-07, Edwin) ----
+   The last section melts into the footer: same end color,
+   no border seam — one continuous piece. */
+#contact {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(212,168,67,0.13), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 88% 78%, rgba(212,168,67,0.07), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 8% 75%, rgba(212,168,67,0.05), transparent 70%),
+    linear-gradient(180deg, #101014 0%, #0a0a0c 55%, #060607 100%);
+  border-bottom: none;
+  padding-bottom: 96px;
+}
+.site-footer {
+  border-top: none;
+  background:
+    radial-gradient(ellipse 65% 90% at 50% 0%, rgba(201,162,75,0.055), transparent 70%),
+    #060607;
+}
