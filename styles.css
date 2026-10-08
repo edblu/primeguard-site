@@ -1586,3 +1586,157 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   .bb-item { grid-template-columns: auto 1fr auto; }
   .bb-item select { grid-column: 2 / 4; }
 }
+
+/* ============================================================
+   LUMINOUS GOLD THEME — 2026-10-07 (Edwin's direction)
+   Less flat black: ambient gold atmosphere, shaped dividers,
+   3D info tiles with golden aura.
+   ============================================================ */
+
+/* ---- 1. Ambient gold atmosphere behind the whole page ---- */
+body {
+  background:
+    radial-gradient(ellipse 640px 440px at 10% 6%, rgba(201,162,75,0.10), transparent 70%),
+    radial-gradient(ellipse 760px 520px at 90% 18%, rgba(201,162,75,0.07), transparent 70%),
+    radial-gradient(ellipse 900px 620px at 50% 52%, rgba(138,109,42,0.08), transparent 70%),
+    radial-gradient(ellipse 700px 480px at 88% 82%, rgba(201,162,75,0.09), transparent 70%),
+    radial-gradient(ellipse 560px 420px at 6% 94%, rgba(201,162,75,0.06), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* ---- 2. Richer section backgrounds + glowing gold beams ---- */
+.section-alt {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(201,162,75,0.08), transparent 70%),
+    linear-gradient(180deg, #15120b, #0c0b08 55%, #08080a);
+}
+.section::before {
+  box-shadow: 0 0 22px rgba(212,168,67,0.45);
+  height: 2px;
+}
+
+/* ---- 3. Hero: gold ring + orbiting orbs (shape play) ---- */
+.hero-glow::after {
+  content: ""; position: absolute; width: 540px; height: 540px;
+  right: -150px; top: -150px; border-radius: 50%;
+  border: 1px solid rgba(201,162,75,0.32);
+  box-shadow: 0 0 90px rgba(201,162,75,0.14), inset 0 0 70px rgba(201,162,75,0.07);
+  pointer-events: none;
+}
+.hero-glow::before {
+  content: ""; position: absolute; width: 300px; height: 300px;
+  left: -110px; bottom: -90px; border-radius: 50%;
+  border: 1px dashed rgba(201,162,75,0.22);
+  box-shadow: 0 0 60px rgba(201,162,75,0.10);
+  pointer-events: none;
+}
+
+/* ---- 4. 3D tiles with golden aura ---- */
+.services-grid, .plans-grid { perspective: 1400px; }
+
+.service-card, .plan-card {
+  background:
+    linear-gradient(165deg, rgba(240,208,137,0.10), rgba(240,208,137,0) 42%),
+    linear-gradient(180deg, #1a1610, #0e0c09 75%);
+  border: 1px solid rgba(201,162,75,0.34);
+  border-radius: 22px 22px 22px 6px;
+  box-shadow:
+    0 22px 55px rgba(0,0,0,0.55),
+    0 0 48px rgba(201,162,75,0.13),
+    inset 0 1px 0 rgba(240,208,137,0.22);
+  transform-style: preserve-3d;
+}
+.service-card::before, .plan-card::before {
+  background: linear-gradient(90deg, transparent, rgba(240,208,137,0.75), transparent);
+  box-shadow: 0 0 14px rgba(240,208,137,0.5);
+}
+.service-card:hover, .plan-card:hover {
+  transform: translateY(-10px) rotateX(4deg);
+  border-color: rgba(240,208,137,0.65);
+  box-shadow:
+    0 34px 80px rgba(0,0,0,0.60),
+    0 0 95px rgba(201,162,75,0.32),
+    inset 0 1px 0 rgba(240,208,137,0.32);
+}
+.services-grid .service-card:nth-child(odd):hover { transform: translateY(-10px) rotateX(4deg) rotateY(2.5deg); }
+.services-grid .service-card:nth-child(even):hover { transform: translateY(-10px) rotateX(4deg) rotateY(-2.5deg); }
+.service-card .card-img {
+  transform: translateZ(34px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.5);
+  border-radius: 22px 22px 0 0;
+}
+
+/* ---- 5. Explore rows become horizontal 3D aura tiles ---- */
+.explore-rows { border-top: none; display: grid; gap: 16px; margin-top: 10px; perspective: 1200px; }
+.explore-row {
+  border: 1px solid rgba(201,162,75,0.32);
+  border-bottom: 1px solid rgba(201,162,75,0.32);
+  border-radius: 18px 18px 18px 6px;
+  padding: 22px 26px;
+  background:
+    linear-gradient(120deg, rgba(240,208,137,0.09), rgba(240,208,137,0) 48%),
+    linear-gradient(180deg, #181410, #0f0d0a);
+  box-shadow:
+    0 16px 42px rgba(0,0,0,0.45),
+    0 0 38px rgba(201,162,75,0.11),
+    inset 0 1px 0 rgba(240,208,137,0.20);
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s, border-color 0.25s;
+}
+.explore-row:hover {
+  background:
+    linear-gradient(120deg, rgba(240,208,137,0.09), rgba(240,208,137,0) 48%),
+    linear-gradient(180deg, #181410, #0f0d0a);
+  transform: translateY(-5px) rotateX(2.5deg);
+  border-color: rgba(240,208,137,0.62);
+  box-shadow:
+    0 26px 60px rgba(0,0,0,0.5),
+    0 0 72px rgba(201,162,75,0.26),
+    inset 0 1px 0 rgba(240,208,137,0.28);
+}
+.explore-row .explore-text strong { color: var(--gold-bright); }
+.explore-row .explore-text > span { color: #b9b2a2; }
+.explore-row:hover .explore-text strong { color: #f5d67b; }
+.explore-row .explore-arrow { color: var(--gold-bright); }
+
+/* ---- 6. Estimator: stronger aura tile ---- */
+.estimator {
+  border: 1px solid rgba(201,162,75,0.5);
+  border-radius: 26px 26px 26px 8px;
+  box-shadow:
+    0 26px 64px rgba(0,0,0,0.5),
+    0 0 74px rgba(201,162,75,0.17),
+    inset 0 1px 0 rgba(240,208,137,0.22);
+}
+
+/* ---- 7. Guarantee: big chamfered-corner aura tile ---- */
+.guarantee-band { background: transparent; border: none; }
+.guarantee-inner {
+  background:
+    radial-gradient(ellipse 85% 75% at 50% 18%, rgba(212,168,67,0.22), transparent 70%),
+    linear-gradient(165deg, #1d1811, #0e0c09 72%);
+  border: 1px solid rgba(201,162,75,0.48);
+  border-radius: 30px 8px 30px 8px;
+  padding: 64px 60px;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.55),
+    0 0 95px rgba(201,162,75,0.20),
+    inset 0 1px 0 rgba(240,208,137,0.26);
+}
+
+/* ---- 8. Promo band: angled edges (shape play) ---- */
+.promo-band {
+  clip-path: polygon(0 0, 100% 14px, 100% 100%, 0 calc(100% - 14px));
+  padding: 60px 0;
+}
+
+/* ---- 9. Mobile: keep it light on perf ---- */
+@media (max-width: 640px) {
+  body { background-attachment: scroll; }
+  .service-card .card-img { transform: none; }
+  .services-grid .service-card:nth-child(odd):hover,
+  .services-grid .service-card:nth-child(even):hover { transform: translateY(-8px); }
+  .hero-glow::after { width: 320px; height: 320px; right: -110px; top: -110px; }
+  .hero-glow::before { display: none; }
+  .guarantee-inner { padding: 44px 28px; border-radius: 22px 8px 22px 8px; }
+}
