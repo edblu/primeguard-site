@@ -340,15 +340,15 @@ a { color: var(--gold-bright); }
 .light-section .section-lead { color: #6e675a; }
 
 /* ---------- Light trust strip ---------- */
-.strip-light {
+.strip.strip-light {
   background:
     radial-gradient(ellipse 50% 90% at 50% 0%, rgba(212, 168, 67, 0.18), transparent 70%),
     linear-gradient(180deg, #fffdf7 0%, #f5ecd6 100%);
   border-top: 1px solid rgba(212, 168, 67, 0.35);
   border-bottom: 1px solid rgba(212, 168, 67, 0.35);
 }
-.strip-light .strip-item strong { color: #6b5320; }
-.strip-light .strip-item span { color: #6e675a; }
+.strip.strip-light .strip-item strong { color: #6b5320; text-shadow: none; }
+.strip.strip-light .strip-item span { color: #6e675a; }
 
 /* ---------- Explore link rows ---------- */
 .explore-rows { border-top: 1px solid rgba(138, 109, 42, 0.3); margin-top: 8px; }
