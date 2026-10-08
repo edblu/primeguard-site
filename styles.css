@@ -291,6 +291,34 @@ a { color: var(--gold-bright); }
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 60px rgba(201, 162, 75, 0.14);
 }
 
+/* ---------- About: light ivory-gold treatment ---------- */
+#about {
+  background:
+    radial-gradient(ellipse 60% 45% at 88% 12%, rgba(212, 168, 67, 0.28), transparent 70%),
+    radial-gradient(ellipse 50% 38% at 6% 92%, rgba(201, 162, 75, 0.18), transparent 70%),
+    linear-gradient(165deg, #fffdf7 0%, #faf3e2 38%, #f1e4c8 72%, #e9d8b2 100%);
+  border-top: 1px solid rgba(212, 168, 67, 0.4);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.4);
+  overflow: hidden;
+}
+#about .section-kicker {
+  background: none; border: none; padding: 0; border-radius: 0;
+  color: #8a6d2a; letter-spacing: 0.28em;
+}
+#about .grad-text {
+  background: linear-gradient(100deg, #33280f 0%, #8a6d2a 45%, #33280f 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#about .about-copy p { color: #57503e; }
+#about .about-list li { color: #2b2619; }
+#about .about-list li::before { border-left-color: #a8823a; border-bottom-color: #a8823a; }
+#about .about-badge::before {
+  background: radial-gradient(circle, rgba(212, 168, 67, 0.35), transparent 65%);
+}
+#about .about-badge img {
+  box-shadow: 0 24px 60px rgba(96, 74, 24, 0.3), 0 0 70px rgba(212, 168, 67, 0.3);
+}
+
 /* ---------- Government ---------- */
 .gov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; margin-bottom: 44px; }
 .gov-card {
