@@ -15,6 +15,50 @@
 
   var me = null, isAdmin = false, isStaff = false;
   var pendingPhotos = []; // dataURLs selected in the WO form
+  var editingId = null; // work order id being edited, or null for create mode
+
+  function setSelect(sel, val) {
+    // ensure the value exists as an option (older orders may have custom text)
+    var has = Array.prototype.some.call(sel.options, function (o) { return o.value === val; });
+    if (!has && val) {
+      var o = document.createElement("option");
+      o.value = val; o.textContent = val;
+      sel.appendChild(o);
+    }
+    sel.value = val || sel.options[0].value;
+  }
+
+  function resetWoForm() {
+    editingId = null;
+    $("ad-woform").reset();
+    $("wo-preview").innerHTML = ""; pendingPhotos = [];
+    $("wo-form-title").textContent = "Create work order";
+    $("wo-submit").textContent = "Create work order";
+    $("wo-ok").textContent = "Work order created. It is live on vendor dashboards now.";
+    hide($("wo-cancel")); hide($("wo-error")); hide($("wo-ok"));
+  }
+
+  function enterEditMode(id) {
+    db.collection("work_orders").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var w = snap.data();
+      editingId = id;
+      $("wo-title").value = w.title || "";
+      $("wo-kind").value = w.kind || "job";
+      setSelect($("wo-category"), w.category || "");
+      setSelect($("wo-area"), w.area || "");
+      $("wo-pay").value = w.pay || "";
+      $("wo-details").value = w.details || "";
+      $("wo-assign").value = w.broadcast ? "broadcast" : (w.vendorId || "broadcast");
+      $("wo-form-title").textContent = "Edit work order";
+      $("wo-submit").textContent = "Save changes";
+      $("wo-ok").textContent = "Work order updated.";
+      show($("wo-cancel")); hide($("wo-error")); hide($("wo-ok"));
+      $("wo-form-title").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  $("wo-cancel").addEventListener("click", resetWoForm);
 
   $("ad-loginform").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -107,7 +151,8 @@
         row.innerHTML = '<div class="grow"><strong>' + esc(w.title) + "</strong><small>" + esc(w.area || "") + " · " + esc(w.kind || "job") + " · " + esc(w.vendorBusiness || "broadcast") + "</small></div>" +
           pill(w.status) +
           (w.status !== "done" ? ' <button class="mini" data-wodone="' + d.id + '">Done</button>' : "") +
-          ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>';
+          ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>' +
+          ' <button class="mini" data-woedit="' + d.id + '">Edit</button>';
         box.appendChild(row);
       });
     });
@@ -211,23 +256,21 @@
     e.preventDefault();
     var errEl = $("wo-error"), okEl = $("wo-ok");
     errEl.classList.add("hidden"); okEl.classList.add("hidden");
-    var btn = $("wo-submit"); btn.disabled = true; btn.textContent = "Creating...";
+    var btn = $("wo-submit"); btn.disabled = true;
+    var isEdit = !!editingId;
+    btn.textContent = isEdit ? "Saving..." : "Creating...";
 
     var assignVal = $("wo-assign").value;
     var wo = {
       title: $("wo-title").value.trim(),
       kind: $("wo-kind").value,
-      category: $("wo-category").value.trim(),
-      area: $("wo-area").value.trim(),
+      category: $("wo-category").value,
+      area: $("wo-area").value,
       details: $("wo-details").value.trim(),
       pay: $("wo-pay").value.trim(),
       broadcast: assignVal === "broadcast",
       vendorId: assignVal === "broadcast" ? null : assignVal,
-      vendorBusiness: null,
-      status: "open",
-      photos: [],
-      createdBy: me.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      vendorBusiness: null
     };
     if (wo.vendorId) {
       var opt = $("wo-assign").selectedOptions[0];
@@ -235,7 +278,16 @@
     }
 
     function save(urls) {
+      if (isEdit) {
+        // keep existing photos unless new ones were added in this edit
+        var upd = Object.assign({}, wo);
+        if (urls && urls.length) upd.photos = urls;
+        return db.collection("work_orders").doc(editingId).update(upd);
+      }
+      wo.status = "open";
       wo.photos = urls || [];
+      wo.createdBy = me.email;
+      wo.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       return db.collection("work_orders").add(wo);
     }
 
@@ -248,11 +300,11 @@
 
     uploadP.then(save).then(function () {
       okEl.classList.remove("hidden");
-      $("ad-woform").reset(); $("wo-preview").innerHTML = ""; pendingPhotos = [];
+      resetWoForm();
       loadAll();
     }).catch(function (err) {
       errEl.textContent = err.message; errEl.classList.remove("hidden");
-    }).finally(function () { btn.disabled = false; btn.textContent = "Create work order"; });
+    }).finally(function () { btn.disabled = false; btn.textContent = editingId ? "Save changes" : "Create work order"; });
   });
 
   // ---------- Invite form ----------
@@ -273,6 +325,7 @@
     var t = e.target, d = t.dataset;
     if (d.wodone) db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll);
     if (d.wodel && confirm("Delete this work order?")) db.collection("work_orders").doc(d.wodel).delete().then(loadAll);
+    if (d.woedit) enterEditMode(d.woedit);
     if (d.qok) {
       var parts = d.qok.split("|"), qid = parts[0], woid = parts[1];
       db.collection("quotes").doc(qid).get().then(function (qsnap) {

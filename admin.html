@@ -76,7 +76,7 @@
   </section>
 
   <section class="asec">
-    <h2>Create work order</h2>
+    <h2 id="wo-form-title">Create work order</h2>
     <div class="acard">
       <form id="ad-woform" class="aform">
         <label>Title<input type="text" id="wo-title" required placeholder="Yard cleanup + plant removal"></label>
@@ -87,10 +87,33 @@
               <option value="quote_request">Quote request — evaluate first, then quote</option>
             </select>
           </label>
-          <label>Category<input type="text" id="wo-category" placeholder="Tree trimming"></label>
+          <label>Category
+            <select id="wo-category">
+              <option value="Lawn care">Lawn care</option>
+              <option value="Tree trimming">Tree trimming</option>
+              <option value="Tree removal">Tree removal</option>
+              <option value="Stump grinding">Stump grinding</option>
+              <option value="Cleanups">Cleanups</option>
+              <option value="Planting">Planting</option>
+              <option value="Pressure washing">Pressure washing</option>
+              <option value="Handyman">Handyman</option>
+            </select>
+          </label>
         </div>
         <div class="row2">
-          <label>Area<input type="text" id="wo-area" required placeholder="Kendall Lakes"></label>
+          <label>Area
+            <select id="wo-area" required>
+              <option value="Kendall">Kendall</option>
+              <option value="Miami">Miami</option>
+              <option value="Homestead">Homestead</option>
+              <option value="Hialeah">Hialeah</option>
+              <option value="Cutler Bay">Cutler Bay</option>
+              <option value="Miramar">Miramar</option>
+              <option value="Miami Gardens">Miami Gardens</option>
+              <option value="Miami Lakes">Miami Lakes</option>
+              <option value="North Miami">North Miami</option>
+            </select>
+          </label>
           <label>Pay<input type="text" id="wo-pay" placeholder="$280 or per job"></label>
         </div>
         <label>Details<textarea id="wo-details" rows="3" placeholder="What needs to be done..."></textarea></label>
@@ -104,6 +127,7 @@
         <p class="aerr hidden" id="wo-error"></p>
         <p class="aok hidden" id="wo-ok">Work order created. It is live on vendor dashboards now.</p>
         <button class="btn btn-gold" type="submit" id="wo-submit">Create work order</button>
+        <button class="btn btn-ghost hidden" type="button" id="wo-cancel" style="margin-left:8px">Cancel edit</button>
       </form>
     </div>
   </section>
