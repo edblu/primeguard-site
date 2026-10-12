@@ -39,6 +39,7 @@
   .qopt.active { background: linear-gradient(135deg, #d4a843, #f5d67b); color: #241b07; border-color: transparent; box-shadow: 0 0 18px rgba(212,168,67,.45); }
   .qselect { width: 100%; max-width: 420px; padding: 13px 16px; border-radius: 12px; border: 1px solid rgba(212,168,67,.35); background: #141416; color: var(--text); font-size: 1rem; font-family: inherit; }
   .qnav { display: flex; gap: 12px; margin-top: 30px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
   .quote-est { position: sticky; top: 100px; border-radius: 22px; padding: 28px 26px; background: linear-gradient(165deg, #1d1c19, #0d0d0f); border: 1px solid rgba(212,168,67,.45); box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 50px rgba(212,168,67,.1); overflow: hidden; }
   .quote-est::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #d4a843, #f5d67b, #d4a843); }
   .quote-est .kicker { font-size: .72rem; text-transform: uppercase; letter-spacing: .18em; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
@@ -109,6 +110,9 @@
         <div class="quote-main">
           <div class="qstep" id="qstep1">
             <div class="qsvc-grid" id="qsvcGrid"></div>
+            <div class="qnav">
+              <button type="button" class="btn btn-gold" id="qstep1Next" disabled>Continue</button>
+            </div>
           </div>
 
           <div class="qstep" id="qstep2" hidden>

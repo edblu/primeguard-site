@@ -109,7 +109,7 @@
     bd.appendChild(el("strong", null, c.name));
     bd.appendChild(el("em", null, "from $" + c.from));
     b.appendChild(img); b.appendChild(bd);
-    b.addEventListener("click", function () { selectService(key, true); });
+    b.addEventListener("click", function () { selectService(key, false); });
     grid.appendChild(b);
   });
 
@@ -120,8 +120,14 @@
     });
     renderQuestions();
     renderEstimate();
+    var nx = document.getElementById("qstep1Next");
+    if (nx) nx.disabled = false;
     if (advance) goStep(2);
   }
+
+  document.getElementById("qstep1Next").addEventListener("click", function () {
+    if (svcKey) goStep(2);
+  });
 
   /* ---------- Step 2: questions ---------- */
   function pillRow(opts, activeIdx, onPick, isPair) {
