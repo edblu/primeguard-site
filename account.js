@@ -43,6 +43,22 @@
     });
   })();
 
+  // Promo banner slot (Midnight Gold dashboard) — driven by SITE_CONFIG.promoBanner.
+  // Empty/missing title = banner stays hidden.
+  (function () {
+    try {
+      var p = (window.SITE_CONFIG && window.SITE_CONFIG.promoBanner) || {};
+      if (!p.title) return;
+      var b = document.getElementById("promoBanner");
+      if (!b) return;
+      document.getElementById("promoTitle").textContent = p.title;
+      document.getElementById("promoSub").textContent = p.sub || "";
+      document.getElementById("promoCta").textContent = p.cta || "Learn more";
+      b.href = p.link || "#";
+      b.classList.remove("hidden");
+    } catch (e) {}
+  })();
+
   // Settings slide-over panel
   var settingsPanel = $("settingsPanel"), settingsOverlay = $("settingsOverlay");
   function openSettings() {
