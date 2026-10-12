@@ -696,6 +696,17 @@
       uid: currentUser ? currentUser.uid : null
     };
 
+    // Mirror to the customer's account so it shows in their dashboard.
+    if (currentUser && firebaseUsable() && fbDb) {
+      fbDb.collection("service_requests").add({
+        uid: currentUser.uid,
+        name: lead.name, phone: lead.phone, email: lead.email,
+        service: lead.service, message: lead.message,
+        status: "new", source: "primeguard-site",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function () { /* the lead sheet is the primary record */ });
+    }
+
     if (!leadEndpoint) { mailtoFallback(lead); return; }
 
     var btn = form.querySelector('button[type="submit"]');
@@ -1499,6 +1510,18 @@
         source: "bundle-builder", page: location.pathname,
         uid: currentUser ? currentUser.uid : null
       };
+      // Mirror to the customer's account so it shows in their dashboard.
+      if (currentUser && firebaseUsable() && fbDb) {
+        fbDb.collection("service_requests").add({
+          uid: currentUser.uid,
+          name: name, phone: phone, email: ticket.email,
+          service: "Bundle order " + ref,
+          message: current.sel.map(function (i) { return i.name + " $" + i.price; }).join("; ") +
+            " | Total $" + current.total + (ticket.notes ? " | Notes: " + ticket.notes : ""),
+          status: "new", source: "bundle-builder", ref: ref,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function () { /* the lead sheet is the primary record */ });
+      }
       var done = function () {
         refCode.textContent = ref;
         form.hidden = true; success.hidden = false;
