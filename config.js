@@ -16,7 +16,7 @@ window.SITE_CONFIG = {
   serviceArea: "Miami-Dade County, FL",
 
   // --- Phase 2 integrations (fill these in; site degrades gracefully if empty) ---
-  leadEndpoint: "https://script.google.com/macros/s/AKfycbyZvYyTY7GXMdPd6bQcgRyjXgozuOb8jmSkTmCSQT9R0N5w4fKz80ybms5AkjGIvQQA/exec",      // POST target for quote-form leads (JSON). Empty = mailto fallback.
+  leadEndpoint: "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec",      // POST target for quote-form leads (JSON). Empty = mailto fallback.
   bookingUrl: "https://cal.com/primeguard/free-estimate",       // online booking page embedded in the "Book now" modal. "#" = "coming soon".
   reviewGoogle: "#",     // Google review page URL — button hidden while empty/"#"
   reviewFacebook: "#",   // Facebook review page URL — button hidden while empty/"#"
@@ -33,7 +33,7 @@ window.SITE_CONFIG = {
   },
 
   // --- Photo uploads (Apps Script + Google Drive). Empty = upload disabled.
-  photoEndpoint: "https://script.google.com/macros/s/AKfycbyZvYyTY7GXMdPd6bQcgRyjXgozuOb8jmSkTmCSQT9R0N5w4fKz80ybms5AkjGIvQQA/exec",
+  photoEndpoint: "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec",
 
   // --- Subscription plans (STARTING prices — Edwin adjusts these freely).
   // price: shown on the plan card (injected by site.js). service: must match
