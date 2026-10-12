@@ -199,6 +199,7 @@
         if (d.createdAt && d.createdAt.toDate) since = d.createdAt.toDate().getFullYear();
         else if (user.metadata && user.metadata.creationTime) since = new Date(user.metadata.creationTime).getFullYear();
         $("stat-since").textContent = since;
+        badgeCtx.memberYear = parseInt(since, 10) || 0; renderBadges();
       }).catch(function () {
         $("dashboard-greeting").textContent = daypart();
         $("dashboard-name").textContent = (user.displayName || "there").split(" ")[0];
@@ -294,6 +295,7 @@
           renderGallery(gallery);
         }
         $("stat-jobs").textContent = done;
+        badgeCtx.jobsDone = done; renderBadges();
       }).catch(function () {
         emptyState($("jobs-list"), "Couldn't load jobs right now.", null, null);
       });
@@ -379,6 +381,7 @@
       db.collection("service_requests").where("referralCode", "==", code).get().then(function (qs) {
         $("refUses").textContent = qs.size;
         $("refCredit").textContent = "$" + (qs.size * 20);
+        badgeCtx.refUses = qs.size; renderBadges();
         show($("refStats"));
       }).catch(function () { hide($("refStats")); });
     }).catch(function () { body.innerHTML = "<p>Couldn’t load your referral info.</p>"; });
@@ -389,6 +392,7 @@
     db.collection("customers").doc(u.uid).get().then(function (snap) {
       var d = snap.exists ? snap.data() : {};
       var p = d.plan || null;
+      badgeCtx.hasPlan = !!(p && p.name); renderBadges();
       if (p && p.name) {
         body.innerHTML = '<div class="plan-name"></div><div class="plan-meta"></div>' +
           '<a class="btn btn-ghost btn-sm" href="plans.html" style="color:#ffd873;border-color:rgba(255,200,90,.4)">Manage plan</a>';
@@ -445,6 +449,7 @@
   }
   function renderProps(u, props) {
     var box = $("props-list"); if (!box) return;
+    badgeCtx.propCount = props.length; renderBadges();
     box.innerHTML = "";
     if (!props.length)
       box.innerHTML = '<p class="pfaint">Only one home? Nothing to do here — add rentals or family homes you manage.</p>';
@@ -469,7 +474,7 @@
   }
 
   function loadExtras(u) {
-    loadReferral(u); loadPlan(u); loadProps(u); renderSeason();
+    loadReferral(u); loadPlan(u); loadProps(u); renderSeason(); renderBadges();
     var rc = $("refCopy");
     if (rc) rc.addEventListener("click", function () {
       var c = $("refCodeVal").textContent;
@@ -490,6 +495,37 @@
     if (lb) {
       lb.addEventListener("click", function () { hide(lb); document.body.style.overflow = ""; });
     }
+  }
+
+  /* ---------- Achievements / badges ---------- */
+  var badgeCtx = { jobsDone: 0, refUses: 0, hasPlan: false, propCount: 0, memberYear: 0 };
+  var BADGES = [
+    { id: "founder", icon: "🎖️", name: "Founding Member", hint: "Joined in 2026", earned: function (c) { return c.memberYear === 2026; } },
+    { id: "first", icon: "🌟", name: "First Service", hint: "Complete 1 service", earned: function (c) { return c.jobsDone >= 1; } },
+    { id: "loyal", icon: "🏠", name: "Loyal Customer", hint: "Complete 5 services", earned: function (c) { return c.jobsDone >= 5; } },
+    { id: "royal", icon: "👑", name: "Royalty", hint: "Complete 10 services", earned: function (c) { return c.jobsDone >= 10; } },
+    { id: "ref1", icon: "🎁", name: "Referral Star", hint: "1 friend joined", earned: function (c) { return c.refUses >= 1; } },
+    { id: "ref5", icon: "🚀", name: "Super Connector", hint: "5 friends joined", earned: function (c) { return c.refUses >= 5; } },
+    { id: "plan", icon: "💎", name: "Plan Member", hint: "Join a plan", earned: function (c) { return c.hasPlan; } },
+    { id: "mogul", icon: "🏘️", name: "Property Mogul", hint: "Add 2 properties", earned: function (c) { return c.propCount >= 2; } }
+  ];
+  function renderBadges() {
+    var grid = $("badgeGrid"); if (!grid) return;
+    var n = 0;
+    grid.innerHTML = "";
+    BADGES.forEach(function (b) {
+      var e = false;
+      try { e = b.earned(badgeCtx); } catch (err) {}
+      if (e) n++;
+      var d = document.createElement("div");
+      d.className = "badge" + (e ? "" : " locked");
+      d.innerHTML = '<div class="medal">' + b.icon + '</div><div class="bname"></div><div class="bhint"></div>';
+      d.querySelector(".bname").textContent = b.name;
+      d.querySelector(".bhint").textContent = e ? "Earned!" : b.hint;
+      grid.appendChild(d);
+    });
+    var c = $("badgeCount");
+    if (c) c.textContent = n + " / " + BADGES.length;
   }
 
   /* ---------- Rich request window ---------- */

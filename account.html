@@ -131,6 +131,16 @@
     .q-side { text-align: left; }
     .q-btns { justify-content: flex-start; }
   }
+  .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 12px; }
+  .badge { text-align: center; }
+  .badge .medal { width: 56px; height: 56px; margin: 0 auto 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+    background: radial-gradient(circle at 35% 30%, #ffe9b8, #c98f1b 60%, #7a5210);
+    border: 2px solid rgba(255,216,115,.7); box-shadow: 0 0 18px rgba(255,190,80,.45); }
+  .badge.locked .medal { filter: grayscale(1) brightness(.55); box-shadow: none; }
+  .badge .bname { font-size: .7rem; font-weight: 700; color: #f5f1e6; }
+  .badge.locked .bname { color: #8a7a6a; }
+  .badge .bhint { font-size: .64rem; color: #8a7a6a; margin-top: 2px; }
+  .badge:not(.locked) .bhint { color: #ffd873; font-weight: 700; }
   /* Rich request window (v2) */
   .rw-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(10,8,4,.68); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 14px; overflow-y: auto; }
   .rw-window { position: relative; width: min(620px, 100%); max-height: 92vh; display: flex; flex-direction: column; background: #fffdf8; border-radius: 24px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 0 70px rgba(201,143,27,.22); border: 1px solid rgba(201,143,27,.45); margin: auto; color: #3d3225; }
@@ -363,6 +373,10 @@
               <p id="seasonTip" class="season-tip"></p>
               <button class="btn btn-ghost btn-sm" data-again="Lawn Care" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4);margin-top:10px">Get seasonal service</button>
             </div>
+            <div class="acct-card">
+              <div class="acct-card-head"><h3>🏅 Achievements</h3><span class="pill pill-new" id="badgeCount"></span></div>
+              <div class="badge-grid" id="badgeGrid"></div>
+            </div>
           </div>
           <div class="acct-card hidden" id="galleryCard" style="margin-bottom:70px">
             <div class="acct-card-head"><h3>📸 My home gallery</h3></div>
@@ -504,6 +518,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=6"></script>
+<script src="account.js?v=7"></script>
 </body>
 </html>
