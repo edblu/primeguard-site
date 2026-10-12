@@ -1354,6 +1354,61 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   border-top: 1px solid rgba(212,168,67,0.22);
 }
 
+/* ============ Midnight Gold service refresh ============ */
+.service-page .includes-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.service-page .includes-grid li {
+  align-items: flex-start; padding: 22px; border-radius: 18px;
+  font-size: 1.02rem; line-height: 1.5;
+  background: linear-gradient(165deg, rgba(32,30,26,.92), rgba(12,12,14,.94));
+  border: 1px solid rgba(212,168,67,.4);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45), 0 0 26px rgba(212,168,67,.08), inset 0 1px 0 rgba(245,214,123,.14);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.service-page .includes-grid li:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 52px rgba(0,0,0,.5), 0 0 38px rgba(212,168,67,.16);
+}
+.service-page .includes-grid .check {
+  width: 38px; height: 38px; font-size: 1.05rem; margin-top: 1px;
+  box-shadow: 0 0 16px rgba(212,168,67,.55);
+}
+.service-page .step-card {
+  background: linear-gradient(165deg, #1b1a17, #0e0e10);
+  border: 1px solid rgba(212,168,67,.4);
+  border-radius: 22px; padding: 34px 30px;
+  box-shadow: 0 18px 46px rgba(0,0,0,.5), 0 0 30px rgba(212,168,67,.08);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.service-page .step-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 26px 60px rgba(0,0,0,.55), 0 0 44px rgba(212,168,67,.16);
+}
+.service-page .step-num {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 800; line-height: 1;
+  background: radial-gradient(circle at 35% 30%, #ffe9b8, #c98f1b 60%, #7a5210);
+  -webkit-background-clip: border-box; background-clip: border-box;
+  color: #241b07; -webkit-text-fill-color: #241b07;
+  border: 2px solid rgba(255,216,115,.7);
+  box-shadow: 0 0 26px rgba(212,168,67,.5);
+  margin-bottom: 18px;
+}
+.service-page .plan-card { transition: transform .25s ease, box-shadow .25s ease; }
+.service-page .plan-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 50px rgba(212,168,67,.14);
+}
+.service-page .plan-card .price strong {
+  font-size: 2.6rem; color: #f5d67b; text-shadow: 0 0 26px rgba(212,168,67,.4);
+}
+@media (max-width: 900px) {
+  .service-page .includes-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 580px) {
+  .service-page .includes-grid { grid-template-columns: 1fr; }
+}
+
 /* ============ Exit-intent popup ============ */
 .exit-modal {
   position: fixed; inset: 0; z-index: 3000; display: none;
@@ -1449,6 +1504,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   background: linear-gradient(90deg, #d4a843, #f5d67b, #d4a843);
 }
 .bundle-card h3 { font-size: 1.35rem; margin-bottom: 6px; }
+.bene-ico { font-size: 2.2rem; margin-bottom: 14px; filter: drop-shadow(0 0 12px rgba(212,168,67,.45)); }
 .bundle-svcs { color: var(--gold-bright); font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; }
 .bundle-card p:not(.bundle-svcs) { color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
 

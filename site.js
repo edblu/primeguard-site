@@ -167,14 +167,11 @@
       gua_sub: "If anything isn't perfect, tell us within 48 hours and we'll come back and fix it — free.",
       gua_cta: "Book risk-free",
       bun_kicker: "Bundle & save", bun_title: "Services that go together",
-      bun_lead: "Book them together and save. Bundle pricing is confirmed in your free quote — you always approve before we start.",
+      bun_lead: "Combine services and save. One bundled price, one visit, and you approve everything before we start.",
       bun_cta: "Get bundle quote",
-      bun1_t: "Curb Appeal Combo", bun1_s: "Lawn Care + Pressure Washing",
-      bun1_d: "The one-two punch for instant curb appeal. Fresh stripes, spotless driveway.",
-      bun2_t: "Turnover Package", bun2_s: "Junk Removal + Make-Ready Cleaning",
-      bun2_d: "From cluttered to guest-ready in days. We clear it out, then make it shine.",
-      bun3_t: "Whole Property Refresh", bun3_s: "Lawn Care + Pressure Washing + Handyman",
-      bun3_d: "Every corner handled in one visit. Yard, exterior, and the fix-it list — done.",
+      ben1_t: "One bundled price", ben1_d: "Combine services into a single quote and save compared to booking each one separately.",
+      ben2_t: "One visit, everything done", ben2_d: "Our crew tackles the yard, the exterior, and the fix-it list in the same trip. Less disruption, faster results.",
+      ben3_t: "You approve first", ben3_d: "Every bundle price is confirmed with you before we schedule anything. No surprises, ever.",
       plan_modal_kicker: "You're one step away",
       plan_trust_1: "Secure Stripe checkout", plan_trust_2: "Cancel anytime", plan_trust_3: "Vetted pros",
       bb_title: "Or build your own bundle",
@@ -406,7 +403,10 @@
       gua_sub: "Si algo no queda perfecto, avísenos en 48 horas y regresaremos a corregirlo — gratis.",
       gua_cta: "Reserve sin riesgo",
       bun_kicker: "Combine y ahorre", bun_title: "Servicios que van juntos",
-      bun_lead: "Resérvelos juntos y ahorre. El precio del paquete se confirma en su estimado gratis — usted siempre aprueba antes de empezar.",
+      bun_lead: "Combine servicios y ahorre. Un solo precio, una sola visita, y usted aprueba todo antes de empezar.",
+      ben1_t: "Un solo precio", ben1_d: "Combine servicios en un estimado único y ahorre en comparación con reservarlos por separado.",
+      ben2_t: "Una visita, todo listo", ben2_d: "Nuestro equipo se encarga del jardín, el exterior y las reparaciones en el mismo viaje. Menos interrupciones, resultados más rápidos.",
+      ben3_t: "Usted aprueba primero", ben3_d: "Cada precio se confirma con usted antes de programar nada. Sin sorpresas, nunca.",
       bun_cta: "Pedir precio del paquete",
       bun1_t: "Combo de Atractivo Exterior", bun1_s: "Corte de césped + Lavado a presión",
       bun1_d: "El golpe doble para un atractivo instantáneo. Líneas frescas, entrada impecable.",
@@ -1446,20 +1446,6 @@
       });
     });
     render();
-
-    // Preset bundle cards: load the bundle into the builder and scroll to it.
-    document.querySelectorAll("[data-bundle]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var keys = (btn.getAttribute("data-bundle") || "").split(",");
-        items.forEach(function (label) {
-          var box = label.querySelector('input[type="checkbox"]');
-          if (box) box.checked = keys.indexOf(box.getAttribute("data-bb-svc")) > -1;
-        });
-        render();
-        var target = document.querySelector(".bundle-builder");
-        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
 
     // Order modal
     var modal = document.getElementById("orderModal");
