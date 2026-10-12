@@ -160,7 +160,7 @@
         var r = d.data();
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(r.service || "Service request") +
-          (r.frequency ? " — " + esc(r.frequency) : "") + "</strong><small>" +
+          (r.frequency ? " - " + esc(r.frequency) : "") + "</strong><small>" +
           esc(r.name || "") + (r.phone ? " · " + esc(r.phone) : "") +
           (r.message ? " · " + esc(r.message) : "") + "</small></div>" +
           pill(r.status) +
@@ -204,20 +204,20 @@
     var photos = Array.isArray(r.photos) ? r.photos : [];
     var comments = Array.isArray(r.comments) ? r.comments : [];
     var h = '<h3 id="srTitle">' + esc(r.service || "Service request") +
-      (r.frequency ? " — " + esc(r.frequency) : "") + '</h3>' +
+      (r.frequency ? " - " + esc(r.frequency) : "") + '</h3>' +
       '<p class="sr-meta">' + pill(r.status) + ' <span>' + esc(srDate(r)) + '</span>' +
       (r.source ? ' <span>· via ' + esc(r.source) + '</span>' : '') + '</p>' +
       '<div class="sr-grid">' +
       '<div class="sr-card"><h4>Customer</h4>' +
-      '<p><strong>' + esc(r.name || "—") + '</strong></p>' +
+      '<p><strong>' + esc(r.name || "-") + '</strong></p>' +
       (r.phone ? '<p>📞 <a href="tel:' + esc(r.phone.replace(/\D/g, "")) + '">' + esc(r.phone) + '</a></p>' : '') +
       (r.email ? '<p>✉️ <a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a></p>' : '') +
       (r.address ? '<p>📍 ' + esc(r.address) + '</p>' : '') +
       (r.uid ? '' : '<p class="sr-guest">Guest request (no account)</p>') +
       '</div>' +
       '<div class="sr-card"><h4>Request details</h4>' +
-      '<p><strong>Service:</strong> ' + esc(r.service || "—") + '</p>' +
-      '<p><strong>Frequency:</strong> ' + esc(r.frequency || "—") + '</p>' +
+      '<p><strong>Service:</strong> ' + esc(r.service || "-") + '</p>' +
+      '<p><strong>Frequency:</strong> ' + esc(r.frequency || "-") + '</p>' +
       (r.message ? '<p><strong>Details:</strong><br>' + esc(r.message).replace(/\n/g, "<br>") + '</p>' : '<p class="sr-faint">No details provided.</p>') +
       '</div></div>';
     if (photos.length) {
@@ -245,7 +245,7 @@
       '<div class="sr-row"><input type="text" id="srComment" placeholder="Add a comment…" style="flex:1">' +
       '<button class="btn btn-gold btn-sm" id="srAddComment" type="button">Add</button></div></div>';
     h += '<div class="sr-card"><h4>Quote for customer</h4>' +
-      '<p class="sr-faint">Set a price, then set Status to "Quoted" and save — the customer sees it on their dashboard with Approve / Decline buttons.</p>' +
+      '<p class="sr-faint">Set a price, then set Status to "Quoted" and save - the customer sees it on their dashboard with Approve / Decline buttons.</p>' +
       '<div class="sr-row"><label>Quote price<br><input id="srQuotePrice" placeholder="$0" value="' + esc(r.quotePrice || "") + '"></label></div>' +
       '<label>Quote notes (shown to customer)<br><textarea id="srQuoteNotes" rows="2" placeholder="What the price covers…">' + esc(r.quoteNotes || "") + '</textarea></label></div>';
     h += '<div class="sr-actions">' +
@@ -292,7 +292,7 @@
   function requestToWorkOrder() {
     var r = srData;
     var catMap = { "Lawn Care": "Lawn care", "Pressure Washing": "Pressure washing", "Debris & Junk Removal": "Cleanups", "Junk Removal": "Cleanups", "Make-Ready Cleaning": "Cleanups", "Handyman Services": "Handyman" };
-    $("wo-title").value = (r.service || "Service") + " — " + (r.name || "customer");
+    $("wo-title").value = (r.service || "Service") + " - " + (r.name || "customer");
     var cat = catMap[r.service] || "Cleanups";
     var catSel = $("wo-category");
     for (var i = 0; i < catSel.options.length; i++) if (catSel.options[i].value === cat) catSel.selectedIndex = i;
@@ -346,7 +346,7 @@
       qs.forEach(function (d) {
         var q = d.data();
         var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " — " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + "</small></div>" +
+        row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " - " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + "</small></div>" +
           pill(q.status) +
           (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "");
         box.appendChild(row);
@@ -405,7 +405,7 @@
       qs.forEach(function (d) {
         var v = d.data();
         var o = document.createElement("option");
-        o.value = d.id; o.textContent = (v.business || v.name) + " — " + (v.areas || []).join(", ");
+        o.value = d.id; o.textContent = (v.business || v.name) + " - " + (v.areas || []).join(", ");
         sel.appendChild(o);
       });
     });
@@ -455,7 +455,7 @@
     };
     if (wo.vendorId) {
       var opt = $("wo-assign").selectedOptions[0];
-      wo.vendorBusiness = opt.textContent.split(" — ")[0];
+      wo.vendorBusiness = opt.textContent.split(" - ")[0];
     }
 
     function save(urls) {
@@ -513,7 +513,7 @@
       "To accept:\n1. Go to https://primeguardmia.com/admin.html\n" +
       "2. Click \"Continue with Google\" and sign in with this email address (" + email + ")\n" +
       "3. Your staff access activates automatically.\n\n" +
-      "Questions? Call Edwin at (786) 422-9674.\n\n— PrimeGuard Preservation LLC";
+      "Questions? Call Edwin at (786) 422-9674.\n\n- PrimeGuard Preservation LLC";
   }
   $("ad-inviteform").addEventListener("submit", function (e) {
     e.preventDefault();

@@ -70,7 +70,7 @@
     var lines = $("quoteLines");
     lines.innerHTML = "";
     if (!svcKey) {
-      animatePrice(0); $("quotePrice").textContent = "$–";
+      animatePrice(0); $("quotePrice").textContent = "$-";
       $("quoteUnit").textContent = "Pick a service to start";
       return;
     }

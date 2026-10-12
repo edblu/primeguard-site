@@ -1,4 +1,4 @@
-/* PrimeGuard human live chat (tawk.to) — shared by all non-homepage pages.
+/* PrimeGuard human live chat (tawk.to) - shared by all non-homepage pages.
    The chat bubble shows by default; any element with [data-chat-open]
    or an href="#human-chat" link opens it directly. */
 (function () {

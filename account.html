@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Account | PrimeGuard Preservation</title>
 <meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=20">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   /* ---- Midnight Gold customer portal ---- */
@@ -18,7 +18,7 @@
   .acct-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin: 14px 0 6px; color: #fff; letter-spacing: -0.02em; text-shadow: 0 2px 26px rgba(0,0,0,.65); }
   .acct-hero h1 .gold-text { color: #ffd873; }
   .acct-sub { color: rgba(255,255,255,.82); max-width: 560px; margin: 0; }
-  /* Floating 3D stat tiles — varied shapes, golden aura */
+  /* Floating 3D stat tiles. Varied shapes, golden aura */
   .acct-stats { display: flex; gap: 20px; margin: 30px 0 -64px; flex-wrap: wrap; position: relative; z-index: 2; }
   .tile-wrap { filter: drop-shadow(0 14px 26px rgba(0,0,0,.55)) drop-shadow(0 0 26px rgba(255,190,80,.28)); transition: transform .3s ease, filter .3s ease; }
   .tile-wrap:hover { transform: translateY(-6px); filter: drop-shadow(0 20px 32px rgba(0,0,0,.6)) drop-shadow(0 0 38px rgba(255,190,80,.42)); }
@@ -301,7 +301,7 @@
             <div class="acct-stats">
               <div class="tile-wrap tile-hex"><div class="acct-stat"><div class="t-ico">⬣</div><div class="v" id="stat-requests">0</div><div class="l">Active requests</div></div></div>
               <div class="tile-wrap tile-round"><div class="acct-stat"><div class="t-ico">✓</div><div class="v" id="stat-jobs">0</div><div class="l">Jobs completed</div></div></div>
-              <div class="tile-wrap tile-pill"><div class="acct-stat"><div class="t-ico">★</div><div class="v" id="stat-since">—</div><div class="l">Member since</div></div></div>
+              <div class="tile-wrap tile-pill"><div class="acct-stat"><div class="t-ico">★</div><div class="v" id="stat-since">-</div><div class="l">Member since</div></div></div>
             </div>
           </div>
         </section>
@@ -347,7 +347,7 @@
             <div class="acct-card">
               <div class="acct-card-head"><h3>🎁 Referrals</h3></div>
               <div id="referral-body">
-                <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px">Give $20, get $20 — share your code with friends.</p>
+                <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px">Give $20, get $20. Share your code with friends.</p>
                 <div class="ref-code-row"><code id="refCodeVal">…</code><button class="btn btn-gold btn-sm" id="refCopy" type="button">Copy</button></div>
                 <div class="ref-stats hidden" id="refStats">
                   <div><strong id="refUses">0</strong><span>friends joined</span></div>
@@ -407,7 +407,7 @@
       <!-- STEP 1: pick a service -->
       <section id="rwStep1">
         <h2>What does your home need?</h2>
-        <p class="rw-sub">Choose a service to see exactly what's included — then request it right here.</p>
+        <p class="rw-sub">Choose a service to see exactly what's included. Then request it right here.</p>
         <div id="rwSvcList"></div>
         <p class="rw-fine">Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
       </section>
@@ -431,7 +431,7 @@
           </div>
           <label class="rw-f" for="rwDetails">Tell us about the job</label>
           <textarea id="rwDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left…"></textarea>
-          <label class="rw-f">Photos <span class="opt">(optional — helps us quote accurately)</span></label>
+          <label class="rw-f">Photos <span class="opt">(optional. Helps us quote accurately)</span></label>
           <button class="rw-photo-btn" id="rwPhotoBtn" type="button">📷 &nbsp;Add photos</button>
           <input type="file" id="rwPhotos" accept="image/*" multiple class="hidden">
           <div class="rw-thumbs" id="rwPreview"></div>
@@ -457,7 +457,7 @@
           <div class="rw-bigcheck">✓</div>
           <h2 id="rwDoneTitle">Request received!</h2>
           <p id="rwDoneSummary"></p>
-          <p><strong>What happens next:</strong><br>1. We confirm your details and price (usually same day).<br>2. You approve it — nothing scheduled without your OK.<br>3. Our crew gets it done. You get before &amp; after photos.</p>
+          <p><strong>What happens next:</strong><br>1. We confirm your details and price (usually same day).<br>2. You approve it. Nothing scheduled without your OK.<br>3. Our crew gets it done. You get before &amp; after photos.</p>
           <div class="rw-btnrow"><button class="btn-ghost-w" id="rwDoneBtn" type="button">Done</button></div>
         </div>
       </section>
@@ -496,7 +496,7 @@
     <div class="footer-contact">
       <a href="tel:+17864229674">(786) 422-9674</a>
       <a href="mailto:primeguardllc.office@pgpbiz.com">primeguardllc.office@pgpbiz.com</a>
-      <span>Mon–Sat, 8:00 AM – 6:00 PM</span>
+      <span>Mon-Sat, 8:00 AM - 6:00 PM</span>
     </div>
     <nav class="footer-links" aria-label="Footer">
       <a href="index.html#services">Services</a>

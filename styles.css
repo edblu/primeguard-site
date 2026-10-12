@@ -231,6 +231,10 @@ a { color: var(--gold-bright); }
 }
 .card-link::after { content: "→"; transition: transform 0.2s; }
 .card-link:hover::after { transform: translateX(4px); }
+.card-cta { display: flex; gap: 10px; margin-top: 16px; }
+.card-cta .btn { flex: 1; padding: 13px 10px; font-size: 0.88rem; text-align: center; justify-content: center; border-radius: 14px; }
+.card-cta .btn-gold { box-shadow: 0 8px 24px rgba(201, 162, 75, 0.28); }
+.card-cta .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(201, 162, 75, 0.42); }
 .service-card.hidden { display: none; }
 
 /* ---------- Subscription plans ---------- */

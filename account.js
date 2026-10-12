@@ -43,7 +43,7 @@
     });
   })();
 
-  // Promo banner slot (Midnight Gold dashboard) — driven by SITE_CONFIG.promoBanner.
+  // Promo banner slot (Midnight Gold dashboard). Driven by SITE_CONFIG.promoBanner.
   // Empty/missing title = banner stays hidden.
   (function () {
     try {
@@ -73,7 +73,7 @@
   $("settingsClose").addEventListener("click", closeSettings);
   settingsOverlay.addEventListener("click", closeSettings);
 
-  // (tabs removed — the page now scrolls hero → requests → jobs → settings)
+  // (tabs removed. The page now scrolls hero → requests → jobs → settings)
 
   var yr = $("acct-year");
   if (yr) yr.textContent = new Date().getFullYear();
@@ -195,7 +195,7 @@
         custInfo.name = d.name || user.displayName || "";
         custInfo.phone = d.phone || "";
         custInfo.email = d.email || user.email || "";
-        var since = "—";
+        var since = "-";
         if (d.createdAt && d.createdAt.toDate) since = d.createdAt.toDate().getFullYear();
         else if (user.metadata && user.metadata.creationTime) since = new Date(user.metadata.creationTime).getFullYear();
         $("stat-since").textContent = since;
@@ -221,7 +221,7 @@
   }
 
   function loadRequests(uid) {
-    // (no orderBy: composite index not guaranteed — sort client-side)
+    // (no orderBy: composite index not guaranteed. Sort client-side)
     db.collection("service_requests").where("uid", "==", uid).limit(25).get()
       .then(function (qs) {
         var box = $("requests-list");
@@ -258,7 +258,7 @@
   }
 
   function loadJobs(uid) {
-    // (no orderBy: composite index not guaranteed — sort client-side)
+    // (no orderBy: composite index not guaranteed. Sort client-side)
     db.collection("jobs").where("uid", "==", uid).limit(25).get()
       .then(function (qs) {
         var box = $("jobs-list");
@@ -333,7 +333,7 @@
       el.querySelector("strong").textContent = d.service || "Service";
       el.querySelector(".q-det").textContent = d.message || "";
       el.querySelector(".q-notes").textContent = d.quoteNotes || "";
-      el.querySelector(".q-price").textContent = d.quotePrice || "—";
+      el.querySelector(".q-price").textContent = d.quotePrice || "-";
       el.querySelector("[data-qok]").addEventListener("click", function () { decideQuote(doc.id, "approved"); });
       el.querySelector("[data-qno]").addEventListener("click", function () { decideQuote(doc.id, "declined"); });
       box.appendChild(el);
@@ -345,7 +345,7 @@
     db.collection("service_requests").doc(id)
       .update({ status: status, decidedAt: firebase.firestore.FieldValue.serverTimestamp() })
       .then(function () { loadRequests(u.uid); })
-      .catch(function () { alert("Couldn't update that quote — please call us at (786) 422-9674."); });
+      .catch(function () { alert("Couldn't update that quote. Please call us at (786) 422-9674."); });
   }
 
   // One-tap reorder: opens the request window with a service preselected.
@@ -396,10 +396,10 @@
       if (p && p.name) {
         body.innerHTML = '<div class="plan-name"></div><div class="plan-meta"></div>' +
           '<a class="btn btn-ghost btn-sm" href="plans.html" style="color:#ffd873;border-color:rgba(255,200,90,.4)">Manage plan</a>';
-        body.querySelector(".plan-name").textContent = p.name + (p.price ? " — " + p.price : "");
+        body.querySelector(".plan-name").textContent = p.name + (p.price ? ". " + p.price : "");
         body.querySelector(".plan-meta").textContent = p.nextBilling ? "Next billing: " + p.nextBilling : "";
       } else {
-        body.innerHTML = "<p>Lock in a lower rate with a subscription — lawn, pressure washing, or handyman.</p>" +
+        body.innerHTML = "<p>Lock in a lower rate with a subscription. Lawn, pressure washing, or handyman.</p>" +
           '<a class="btn btn-gold btn-sm" href="plans.html">Browse plans</a>';
       }
     }).catch(function () { body.innerHTML = "<p>Couldn’t load your plan.</p>"; });
@@ -422,18 +422,18 @@
   }
 
   var SEASON_TIPS = [
-    { m: "January", tip: "Dry season is here — perfect time for exterior painting and pressure washing. Check irrigation for dry spots." },
+    { m: "January", tip: "Dry season is here. Perfect time for exterior painting and pressure washing. Check irrigation for dry spots." },
     { m: "February", tip: "Peak dry season: check the lawn for pests and trim trees before spring growth kicks in." },
-    { m: "March", tip: "Clean gutters before the rainy season arrives — clogged gutters overflow into flower beds and foundations." },
+    { m: "March", tip: "Clean gutters before the rainy season arrives. Clogged gutters overflow into flower beds and foundations." },
     { m: "April", tip: "Service your AC before the summer heat hits. A tune-up now beats a breakdown in August." },
-    { m: "May", tip: "Rainy season is starting — check drainage around the house and seal windows and doors." },
+    { m: "May", tip: "Rainy season is starting. Check drainage around the house and seal windows and doors." },
     { m: "June", tip: "Hurricane season begins: trim tree limbs away from the roof and secure loose outdoor items." },
-    { m: "July", tip: "Watch for lawn fungus in the heat and rain — mow high and water early in the morning." },
+    { m: "July", tip: "Watch for lawn fungus in the heat and rain. Mow high and water early in the morning." },
     { m: "August", tip: "Peak storm season: review your hurricane prep checklist and make sure drains run clear." },
-    { m: "September", tip: "Peak hurricane month — keep gutters, drains, and the roof clear of debris." },
+    { m: "September", tip: "Peak hurricane month. Keep gutters, drains, and the roof clear of debris." },
     { m: "October", tip: "Storm season winds down: schedule a post-season roof check and yard cleanup." },
-    { m: "November", tip: "Dry season returns — ideal for pressure washing driveways and patios before the holidays." },
-    { m: "December", tip: "Cool snaps can hurt tropical plants — cover sensitive landscaping on cold nights." }
+    { m: "November", tip: "Dry season returns. Ideal for pressure washing driveways and patios before the holidays." },
+    { m: "December", tip: "Cool snaps can hurt tropical plants. Cover sensitive landscaping on cold nights." }
   ];
   function renderSeason() {
     var t = SEASON_TIPS[new Date().getMonth()];
@@ -452,7 +452,7 @@
     badgeCtx.propCount = props.length; renderBadges();
     box.innerHTML = "";
     if (!props.length)
-      box.innerHTML = '<p class="pfaint">Only one home? Nothing to do here — add rentals or family homes you manage.</p>';
+      box.innerHTML = '<p class="pfaint">Only one home? Nothing to do here. Add rentals or family homes you manage.</p>';
     props.forEach(function (p) {
       var row = document.createElement("div"); row.className = "prop-row";
       row.innerHTML = '<div class="p-main"><strong></strong><span></span></div>' +
@@ -461,7 +461,7 @@
       row.querySelector("strong").textContent = p.label || "Property";
       row.querySelector("span").textContent = p.address || "";
       row.querySelector("[data-preq]").addEventListener("click", function () {
-        openReqService(null, "Property: " + (p.label || "") + " — " + (p.address || "") + "\n\n");
+        openReqService(null, "Property: " + (p.label || "") + ". " + (p.address || "") + "\n\n");
       });
       row.querySelector("[data-pdel]").addEventListener("click", function () {
         if (!confirm("Remove this property?")) return;
@@ -489,7 +489,7 @@
         properties: firebase.firestore.FieldValue.arrayUnion({ label: label || "Property", address: addr })
       }, { merge: true }).then(function () {
         $("propLabel").value = ""; $("propAddr").value = ""; loadProps(u);
-      }).catch(function () { alert("Couldn’t save — please try again."); });
+      }).catch(function () { alert("Couldn’t save. Please try again."); });
     });
     var lb = $("lightbox");
     if (lb) {
@@ -537,20 +537,20 @@
 
   var SERVICES = [
     { name: "Lawn Care", price: "$45", img: "assets/service-lawn-care.webp",
-      desc: "Mowing, edging, and cleanup on a schedule you can count on — through South Florida's year-round growing season.",
-      benefits: ["Precision mow at the right height for your grass", "Crisp edging along driveways, walkways & beds", "Full blow-off — no clippings left behind", "One-time cleanups or a set schedule, your call", "A yard that looks sharp every single visit"] },
+      desc: "Mowing, edging, and cleanup on a schedule you can count on. Through South Florida's year-round growing season.",
+      benefits: ["Precision mow at the right height for your grass", "Crisp edging along driveways, walkways & beds", "Full blow-off. No clippings left behind", "One-time cleanups or a set schedule, your call", "A yard that looks sharp every single visit"] },
     { name: "Pressure Washing", price: "$149", img: "assets/service-pressure-washing.webp",
       desc: "Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.",
       benefits: ["Driveways, walkways, patios, siding & fences", "Mold, mildew & years of grime gone in an afternoon", "Curb appeal that transforms your home's look", "Safe wash methods for concrete, pavers & stucco", "We walk the results with you before we leave"] },
     { name: "Debris & Junk Removal", price: "$89", img: "assets/service-junk-removal.webp",
       desc: "Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.",
-      benefits: ["Furniture, yard debris, appliances & clutter", "You point, we lift — zero heavy lifting for you", "Fast pickup scheduling that fits your week", "Hauled away and disposed of responsibly", "Upfront price before anything leaves your property"] },
+      benefits: ["Furniture, yard debris, appliances & clutter", "You point, we lift. Zero heavy lifting for you", "Fast pickup scheduling that fits your week", "Hauled away and disposed of responsibly", "Upfront price before anything leaves your property"] },
     { name: "Make-Ready Cleaning", price: "$179", img: "assets/service-make-ready.webp",
-      desc: "Turnover cleans that get rentals and listings guest-ready — kitchens, baths, floors, and details.",
-      benefits: ["Deep move-in / move-out cleans", "Kitchens, baths, floors & all the details", "Rentals and listings guest-ready, fast", "Checklist clean — nothing gets missed", "Perfect for landlords, realtors & Airbnb hosts"] },
+      desc: "Turnover cleans that get rentals and listings guest-ready. Kitchens, baths, floors, and details.",
+      benefits: ["Deep move-in / move-out cleans", "Kitchens, baths, floors & all the details", "Rentals and listings guest-ready, fast", "Checklist clean. Nothing gets missed", "Perfect for landlords, realtors & Airbnb hosts"] },
     { name: "Handyman Services", price: "$65", img: "assets/service-handyman.webp",
       desc: "Small repairs and punch-list items done right the first time. One call handles the whole list.",
-      benefits: ["Small repairs, installs & punch-list items", "One visit handles your whole list", "Done right the first time — guaranteed", "Upfront pricing before work starts", "Respectful of your home: tidy work, every time"] }
+      benefits: ["Small repairs, installs & punch-list items", "One visit handles your whole list", "Done right the first time. Guaranteed", "Upfront pricing before work starts", "Respectful of your home: tidy work, every time"] }
   ];
 
   // Build the service cards once.
@@ -678,7 +678,7 @@
 
   $("rwToReview").addEventListener("click", function () {
     if (!rwSvc) return;
-    var det = $("rwDetails").value.trim() || "—";
+    var det = $("rwDetails").value.trim() || "-";
     $("rwRevName").textContent = custInfo.name || "you";
     $("rwRevContact").textContent = custInfo.phone || custInfo.email || "";
     $("rwRevBox").innerHTML =

@@ -12,13 +12,13 @@
   var cfg = window.SITE_CONFIG || {};
 
   /* ============================================================
-     i18n dictionary — every user-facing string lives here.
+     i18n dictionary. Every user-facing string lives here.
      Formal "usted" Spanish throughout.
      ============================================================ */
   var I18N = {
     en: {
-      page_title: "PrimeGuard Preservation LLC — Property Services in Miami-Dade",
-      meta_desc: "Pressure washing, lawn care, junk removal, make-ready cleaning, and handyman services across Miami-Dade County — plus SAM.gov-registered federal contracting. Upfront pricing, photo proof on every visit.",
+      page_title: "PrimeGuard Preservation LLC. Property Services in Miami-Dade",
+      meta_desc: "Pressure washing, lawn care, junk removal, make-ready cleaning, and handyman services across Miami-Dade County. Plus SAM.gov-registered federal contracting. Upfront pricing, photo proof on every visit.",
       nav_services: "Services", nav_work: "Work", nav_reviews: "Reviews",
       nav_government: "Government", nav_about: "About", nav_contact: "Contact",
       nav_careers: "Careers",
@@ -32,11 +32,11 @@
       ex_plans_t: "Plans & Bundles", ex_plans_d: "Subscriptions and bundle pricing.",
       ex_ref_t: "Refer & Earn", ex_ref_d: "Give $20, get $20.",
       ex_gov_t: "Government", ex_gov_d: "Contracting and capability.",
-      faq_lead: "Still curious after this? Call us — we reply during business hours.",
+      faq_lead: "Still curious after this? Call us. We reply during business hours.",
       book_now: "Book now", lang_label: "Language",
       hero_kicker: "Miami-Dade County · Property Services",
       hero_title_a: "Property care,", hero_title_b: "perfected.",
-      hero_sub: "Five essential services, one smart call. Vetted pros, upfront pricing, and photo proof on every visit — across Miami-Dade County.",
+      hero_sub: "Five essential services, one smart call. Vetted pros, upfront pricing, and photo proof on every visit. Across Miami-Dade County.",
       search_ph: "What service do you need? Try “lawn”…",
       search_aria: "Search services", search_clear_aria: "Clear search",
       chip_pressure: "Pressure Washing", chip_lawn: "Lawn Care", chip_junk: "Junk Removal",
@@ -49,22 +49,22 @@
       strip3_t: "Upfront pricing", strip3_s: "You approve the price first",
       strip4_t: "Miami roots", strip4_s: "Born and raised in Miami-Dade",
       svc_kicker: "What we do", svc_title: "Services & pricing",
-      svc_lead: "Straightforward work at straightforward prices. Final quote confirmed before we start — no surprises.",
+      svc_lead: "Straightforward work at straightforward prices. Final quote confirmed before we start. No surprises.",
       svc1_t: "Pressure Washing",
       svc1_d: "Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.",
       svc2_t: "Lawn Care",
-      svc2_d: "Mowing, edging, and cleanup on a schedule you can count on — through South Florida's year-round growing season.",
+      svc2_d: "Mowing, edging, and cleanup on a schedule you can count on. Through South Florida's year-round growing season.",
       svc3_t: "Debris & Junk Removal",
       svc3_d: "Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.",
       svc4_t: "Make-Ready Cleaning",
-      svc4_d: "Turnover cleans that get rentals and listings guest-ready — kitchens, baths, floors, and details.",
+      svc4_d: "Turnover cleans that get rentals and listings guest-ready. Kitchens, baths, floors, and details.",
       svc5_t: "Handyman Services",
       svc5_d: "Small repairs and punch-list items done right the first time. One call handles the whole list.",
       from: "from", quote_link: "Get a quote",
       plans_kicker: "Subscriptions", plans_title: "Set it and forget it",
       plans_page_title: "Plans & bundles",
-      plans_page_lead: "Recurring care at a locked-in rate, or bundle services together and save. No contracts — cancel anytime.",
-      plans_lead: "Recurring care at a locked-in rate. No contracts — cancel anytime.",
+      plans_page_lead: "Recurring care at a locked-in rate, or bundle services together and save. No contracts. Cancel anytime.",
+      plans_lead: "Recurring care at a locked-in rate. No contracts. Cancel anytime.",
       plan_choose: "Choose plan",
       plan_included_title: "What's included:",
       plan_signup_title: "Join the plan", plan_continue_pay: "Continue to secure payment",
@@ -73,7 +73,7 @@
       plan_prefer_call: "Prefer to talk it through?", plan_call_us: "Call us",
       plan_success_msg: "You're on the list! We'll call you shortly to complete your plan signup and schedule your first visit.",
       lead_address_label: "Service address", lead_payment_label: "Payment",
-      lead_payment_stripe: "Redirected to Stripe checkout", lead_payment_pending: "Online payment pending — call to complete",
+      lead_payment_stripe: "Redirected to Stripe checkout", lead_payment_pending: "Online payment pending. Call to complete",
       ph_address: "Street address, Miami, FL", form_required: "Please fill in every field.",
       form_address: "Service address",
       plan_selected: "You selected", plan_onetime: "One-time",
@@ -97,7 +97,7 @@
       plan_inc_3d: "Cancel anytime",
       referred_label: "Who referred you?", referred_ph: "Name (optional)",
       lead_plan_label: "Plan", lead_referred_label: "Referred by",
-      no_match: "No match for", no_match_sub: "Tell us what you need — we probably do it.",
+      no_match: "No match for", no_match_sub: "Tell us what you need. We probably do it.",
       call: "Call",
       work_kicker: "Our work", work_title: "Before & after",
       work_lead: "Real project photos are on the way.",
@@ -118,15 +118,15 @@
       review_google: "Review on Google", review_facebook: "Review on Facebook",
       review_thumbtack: "Review on Thumbtack",
       about_kicker: "Our Miami roots", about_title: "Miami-Dade is home. We treat it like family.",
-      about_p1: "PrimeGuard Preservation was born right here in Miami-Dade — palm trees, golden hour, and all. We're your neighbors, and we built this company on a simple idea: the work should be excellent, the price should be clear, and you should never have to wonder what happened while you were away.",
+      about_p1: "PrimeGuard Preservation was born right here in Miami-Dade. Palm trees, golden hour, and all. We're your neighbors, and we built this company on a simple idea: the work should be excellent, the price should be clear, and you should never have to wonder what happened while you were away.",
       about_caption: "Miami-Dade is home.",
       about_p2: "Every visit is handled by a vetted professional and documented with before-and-after photos, so you see exactly what your money bought. Homeowners, landlords, and property managers across the county trust us with the details that keep a property looking sharp.",
       about_li1: "Background-checked, vetted pros on every job",
       about_li2: "Before-and-after photo documentation, every visit",
-      about_li3: "Upfront pricing — approved by you before work begins",
+      about_li3: "Upfront pricing. Approved by you before work begins",
       about_li4: "One call for five services, across Miami-Dade County",
       gov_kicker: "Public sector", gov_title: "Government & institutional contracting",
-      gov_lead: "PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline — vetted crews, photo documentation, upfront pricing — to government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.",
+      gov_lead: "PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline. Vetted crews, photo documentation, upfront pricing. To government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.",
       gov_card1_t: "Registered & ready",
       gov_note: "Active SAM.gov registration. Capability statement available on request.",
       gov_card2_t: "Capability areas",
@@ -135,7 +135,7 @@
       gov_cta_p: "Contracting officers and facility managers: tell us about your requirement.",
       email_word: "Email",
       contact_kicker: "Get in touch", contact_title: "Request service",
-      contact_lead: "Call, email, or send the form — we reply during business hours.",
+      contact_lead: "Call, email, or send the form. We reply during business hours.",
       exit_kicker: "Before you go", exit_title: "Wait, don't leave yet!",
       exit_sub: "Get a free estimate in under 60 seconds, and we will prioritize your booking.",
       exit_name_ph: "Your name", exit_phone_ph: "Phone number",
@@ -147,7 +147,7 @@
       est_service: "Service", est_size: "Size",
       est_s: "Small", est_m: "Medium", est_l: "Large",
       est_result: "Your ballpark estimate",
-      est_note: "Ballpark only — your final quote is confirmed before we start. No surprises.",
+      est_note: "Ballpark only. Your final quote is confirmed before we start. No surprises.",
       est_cta: "Get my exact quote",
       ba_hint: "Drag to compare",
       faq_kicker: "Questions", faq_title: "Before you ask",
@@ -158,13 +158,13 @@
       faq3_q: "What happens if it rains?",
       faq3_a: "We watch the forecast and reschedule outdoor work at no charge. You always know before we roll a truck.",
       faq4_q: "How do I pay?",
-      faq4_a: "After the job is done and you are happy. We accept cards and cash — no deposits for most services.",
+      faq4_a: "After the job is done and you are happy. We accept cards and cash. No deposits for most services.",
       faq5_q: "Are your pros vetted?",
       faq5_a: "Yes. Every tech is background-checked and trained on our checklist before touching your property.",
       faq6_q: "What if I am not happy with the work?",
-      faq6_a: "Tell us within 48 hours and we will come back and make it right — free. That is our promise.",
+      faq6_a: "Tell us within 48 hours and we will come back and make it right. Free. That is our promise.",
       gua_kicker: "Our promise", gua_title: "Love it, or we make it right.",
-      gua_sub: "If anything isn't perfect, tell us within 48 hours and we'll come back and fix it — free.",
+      gua_sub: "If anything isn't perfect, tell us within 48 hours and we'll come back and fix it. Free.",
       gua_cta: "Book risk-free",
       bun_kicker: "Bundle & save", bun_title: "Services that go together",
       bun_lead: "Combine services and save. One bundled price, one visit, and you approve everything before we start.",
@@ -213,15 +213,15 @@
       form_title: "Get a fast quote", form_name: "Full name", form_phone: "Phone",
       form_email: "Email", form_service: "Service needed", choose_service: "Choose a service",
       opt_else: "Something else", form_details: "Details",
-      ph_name: "Your name", ph_details: "Tell us about the job — size, location, timing.",
+      ph_name: "Your name", ph_details: "Tell us about the job. Size, location, timing.",
       send_request: "Send request",
       form_note_mailto: "This opens your email app with the request ready to send. No account needed.",
-      form_note_api: "We reply during business hours — usually the same day.",
+      form_note_api: "We reply during business hours. Usually the same day.",
       form_success: "Thanks! We'll call you shortly.",
       form_error: "Something went wrong sending your request. Please call us instead.",
       footer_rights: "All rights reserved.",
       booking_title: "Book your service",
-      booking_soon: "Online booking coming soon — call us at",
+      booking_soon: "Online booking coming soon. Call us at",
       close: "Close",
       login: "Log in", login_aria: "Log in to your account", my_account: "My account",
       auth_title_login: "Welcome back", auth_title_signup: "Create your account",
@@ -240,10 +240,10 @@
       auth_error_inuse: "That email already has an account. Log in instead.",
       auth_error_weak: "Password needs at least 6 characters.",
       auth_error_email: "That email address doesn't look right.",
-      auth_error_many: "Too many attempts — try again in a few minutes.",
+      auth_error_many: "Too many attempts. Try again in a few minutes.",
       auth_error_popup: "The sign-in window was blocked. Allow popups and try again.",
       auth_soon_title: "Accounts are coming soon",
-      auth_soon_body: "We're putting the finishing touches on customer accounts. You can still request service as a guest — no account needed.",
+      auth_soon_body: "We're putting the finishing touches on customer accounts. You can still request service as a guest. No account needed.",
       profile_title: "My profile",
       profile_name: "Full name", profile_phone: "Phone",
       profile_address: "Service address", ph_address: "Street, city, ZIP",
@@ -253,8 +253,8 @@
       profile_logout: "Log out"
     },
     es: {
-      page_title: "PrimeGuard Preservation LLC — Servicios de propiedad en Miami-Dade",
-      meta_desc: "Lavado a presión, cuidado del césped, retiro de escombros, limpieza pre-entrega y reparaciones en todo el condado de Miami-Dade — además de contratación federal registrada en SAM.gov. Precios claros y evidencia fotográfica en cada visita.",
+      page_title: "PrimeGuard Preservation LLC. Servicios de propiedad en Miami-Dade",
+      meta_desc: "Lavado a presión, cuidado del césped, retiro de escombros, limpieza pre-entrega y reparaciones en todo el condado de Miami-Dade. Además de contratación federal registrada en SAM.gov. Precios claros y evidencia fotográfica en cada visita.",
       nav_services: "Servicios", nav_work: "Trabajos", nav_reviews: "Reseñas",
       nav_government: "Gobierno", nav_about: "Nosotros", nav_contact: "Contacto",
       nav_careers: "Empleos",
@@ -268,11 +268,11 @@
       ex_plans_t: "Planes y paquetes", ex_plans_d: "Suscripciones y precios de paquetes.",
       ex_ref_t: "Refiere y gana", ex_ref_d: "Da $20, recibe $20.",
       ex_gov_t: "Gobierno", ex_gov_d: "Contratación y capacidades.",
-      faq_lead: "¿Aún tienes curiosidad? Llámanos — respondemos en horario laboral.",
+      faq_lead: "¿Aún tienes curiosidad? Llámanos. Respondemos en horario laboral.",
       book_now: "Reservar ahora", lang_label: "Idioma",
       hero_kicker: "Condado de Miami-Dade · Servicios de propiedad",
       hero_title_a: "Cuidado de propiedades,", hero_title_b: "perfeccionado.",
-      hero_sub: "Cinco servicios esenciales, una sola llamada inteligente. Profesionales verificados, precios claros y evidencia fotográfica en cada visita — en todo el condado de Miami-Dade.",
+      hero_sub: "Cinco servicios esenciales, una sola llamada inteligente. Profesionales verificados, precios claros y evidencia fotográfica en cada visita. En todo el condado de Miami-Dade.",
       search_ph: "¿Qué servicio necesita? Pruebe «césped»…",
       search_aria: "Buscar servicios", search_clear_aria: "Borrar búsqueda",
       chip_pressure: "Lavado a presión", chip_lawn: "Cuidado del césped", chip_junk: "Retiro de escombros",
@@ -285,15 +285,15 @@
       strip3_t: "Precios por adelantado", strip3_s: "Usted aprueba el precio primero",
       strip4_t: "Raíces en Miami", strip4_s: "Nacidos y criados en Miami-Dade",
       svc_kicker: "Lo que hacemos", svc_title: "Servicios y precios",
-      svc_lead: "Trabajo honesto a precios honestos. Confirmamos el presupuesto final antes de empezar — sin sorpresas.",
+      svc_lead: "Trabajo honesto a precios honestos. Confirmamos el presupuesto final antes de empezar. Sin sorpresas.",
       svc1_t: "Lavado a presión",
       svc1_d: "Entradas, aceras, patios y exteriores como nuevos. Años de suciedad, eliminados en una tarde.",
       svc2_t: "Cuidado del césped",
-      svc2_d: "Corte, bordeado y limpieza con un horario confiable — durante todo el año en el sur de la Florida.",
+      svc2_d: "Corte, bordeado y limpieza con un horario confiable. Durante todo el año en el sur de la Florida.",
       svc3_t: "Retiro de escombros",
       svc3_d: "Retiramos escombros de jardín, muebles viejos y trastos. Usted señala, nosotros cargamos, y desaparece.",
       svc4_t: "Limpieza pre-entrega",
-      svc4_d: "Limpiezas de entrega que dejan alquileres y propiedades listos para huéspedes — cocinas, baños, pisos y detalles.",
+      svc4_d: "Limpiezas de entrega que dejan alquileres y propiedades listos para huéspedes. Cocinas, baños, pisos y detalles.",
       svc5_t: "Servicios de reparaciones",
       svc5_d: "Reparaciones menores y listas de pendientes, bien hechas desde la primera vez. Una llamada resuelve toda la lista.",
       from: "desde", quote_link: "Pida un presupuesto",
@@ -309,7 +309,7 @@
       plan_prefer_call: "¿Prefieres hablarlo?", plan_call_us: "Llámanos",
       plan_success_msg: "¡Estás en la lista! Te llamaremos pronto para completar tu registro y programar tu primera visita.",
       lead_address_label: "Dirección del servicio", lead_payment_label: "Pago",
-      lead_payment_stripe: "Redirigido al pago de Stripe", lead_payment_pending: "Pago en línea pendiente — llamar para completar",
+      lead_payment_stripe: "Redirigido al pago de Stripe", lead_payment_pending: "Pago en línea pendiente. Llamar para completar",
       ph_address: "Dirección, Miami, FL", form_required: "Completa todos los campos.",
       form_address: "Dirección del servicio",
       plan_selected: "Usted seleccionó", plan_onetime: "Único",
@@ -333,7 +333,7 @@
       plan_inc_3d: "Cancele cuando quiera",
       referred_label: "¿Quién lo refirió?", referred_ph: "Nombre (opcional)",
       lead_plan_label: "Plan", lead_referred_label: "Referido por",
-      no_match: "Sin resultados para", no_match_sub: "Díganos lo que necesita — probablemente lo hacemos.",
+      no_match: "Sin resultados para", no_match_sub: "Díganos lo que necesita. Probablemente lo hacemos.",
       call: "Llamar",
       work_kicker: "Nuestro trabajo", work_title: "Antes y después",
       work_lead: "Las fotos reales de nuestros proyectos están en camino.",
@@ -354,15 +354,15 @@
       review_google: "Reseña en Google", review_facebook: "Reseña en Facebook",
       review_thumbtack: "Reseña en Thumbtack",
       about_kicker: "Nuestras raíces en Miami", about_title: "Miami-Dade es nuestro hogar. Lo tratamos como familia.",
-      about_p1: "PrimeGuard Preservation nació aquí mismo en Miami-Dade — palmeras, hora dorada y todo. Somos sus vecinos, y construimos esta empresa sobre una idea simple: el trabajo debe ser excelente, el precio debe ser claro, y usted nunca debería preguntarse qué pasó mientras estaba fuera.",
+      about_p1: "PrimeGuard Preservation nació aquí mismo en Miami-Dade. Palmeras, hora dorada y todo. Somos sus vecinos, y construimos esta empresa sobre una idea simple: el trabajo debe ser excelente, el precio debe ser claro, y usted nunca debería preguntarse qué pasó mientras estaba fuera.",
       about_caption: "Miami-Dade es nuestro hogar.",
       about_p2: "Cada visita la realiza un profesional verificado y se documenta con fotos de antes y después, para que vea exactamente en qué se invirtió su dinero. Propietarios, arrendadores y administradores de propiedades en todo el condado nos confían los detalles que mantienen una propiedad impecable.",
       about_li1: "Profesionales verificados con antecedentes comprobados en cada trabajo",
       about_li2: "Documentación fotográfica de antes y después, en cada visita",
-      about_li3: "Precios por adelantado — aprobados por usted antes de empezar",
+      about_li3: "Precios por adelantado. Aprobados por usted antes de empezar",
       about_li4: "Una llamada para cinco servicios, en todo el condado de Miami-Dade",
       gov_kicker: "Sector público", gov_title: "Contratación gubernamental e institucional",
-      gov_lead: "PrimeGuard Preservation LLC es un contratista federal registrado en SAM.gov. Aplicamos nuestra disciplina comercial en servicios de propiedad — equipos verificados, documentación fotográfica, precios por adelantado — al trabajo en instalaciones gubernamentales, y estamos listos para licitar como contratista principal o apoyar a contratistas principales como subcontratistas.",
+      gov_lead: "PrimeGuard Preservation LLC es un contratista federal registrado en SAM.gov. Aplicamos nuestra disciplina comercial en servicios de propiedad. Equipos verificados, documentación fotográfica, precios por adelantado. Al trabajo en instalaciones gubernamentales, y estamos listos para licitar como contratista principal o apoyar a contratistas principales como subcontratistas.",
       gov_card1_t: "Registrados y listos",
       gov_note: "Registro activo en SAM.gov. Declaración de capacidades disponible a solicitud.",
       gov_card2_t: "Áreas de capacidad",
@@ -371,7 +371,7 @@
       gov_cta_p: "Oficiales de contratación y gerentes de instalaciones: cuéntenos sobre su requerimiento.",
       email_word: "Correo electrónico",
       contact_kicker: "Contáctenos", contact_title: "Solicite un servicio",
-      contact_lead: "Llámenos, escríbanos o envíe el formulario — respondemos en horario de oficina.",
+      contact_lead: "Llámenos, escríbanos o envíe el formulario. Respondemos en horario de oficina.",
       exit_kicker: "Antes de irse", exit_title: "¡Espere, no se vaya todavía!",
       exit_sub: "Reciba un estimado gratis en menos de 60 segundos, y priorizaremos su reserva.",
       exit_name_ph: "Su nombre", exit_phone_ph: "Número de teléfono",
@@ -383,7 +383,7 @@
       est_service: "Servicio", est_size: "Tamaño",
       est_s: "Pequeño", est_m: "Mediano", est_l: "Grande",
       est_result: "Su estimado aproximado",
-      est_note: "Solo aproximado — su precio final se confirma antes de empezar. Sin sorpresas.",
+      est_note: "Solo aproximado. Su precio final se confirma antes de empezar. Sin sorpresas.",
       est_cta: "Quiero mi precio exacto",
       ba_hint: "Arrastre para comparar",
       faq_kicker: "Preguntas", faq_title: "Antes de preguntar",
@@ -394,13 +394,13 @@
       faq3_q: "¿Qué pasa si llueve?",
       faq3_a: "Vigilamos el pronóstico y reprogramamos el trabajo exterior sin costo. Usted siempre lo sabrá antes de que salgamos.",
       faq4_q: "¿Cómo pago?",
-      faq4_a: "Después del trabajo, cuando usted esté satisfecho. Aceptamos tarjetas y efectivo — sin depósitos en la mayoría de los servicios.",
+      faq4_a: "Después del trabajo, cuando usted esté satisfecho. Aceptamos tarjetas y efectivo. Sin depósitos en la mayoría de los servicios.",
       faq5_q: "¿Su personal está verificado?",
       faq5_a: "Sí. Cada técnico pasa verificación de antecedentes y capacitación antes de tocar su propiedad.",
       faq6_q: "¿Qué pasa si no quedo satisfecho?",
-      faq6_a: "Avísenos en 48 horas y regresaremos a corregirlo — gratis. Esa es nuestra promesa.",
+      faq6_a: "Avísenos en 48 horas y regresaremos a corregirlo. Gratis. Esa es nuestra promesa.",
       gua_kicker: "Nuestra promesa", gua_title: "Le encantará, o lo corregimos.",
-      gua_sub: "Si algo no queda perfecto, avísenos en 48 horas y regresaremos a corregirlo — gratis.",
+      gua_sub: "Si algo no queda perfecto, avísenos en 48 horas y regresaremos a corregirlo. Gratis.",
       gua_cta: "Reserve sin riesgo",
       bun_kicker: "Combine y ahorre", bun_title: "Servicios que van juntos",
       bun_lead: "Combine servicios y ahorre. Un solo precio, una sola visita, y usted aprueba todo antes de empezar.",
@@ -413,7 +413,7 @@
       bun2_t: "Paquete de Entrega", bun2_s: "Retiro de escombros + Limpieza",
       bun2_d: "De desordenado a listo para huéspedes en días. Lo despejamos y lo dejamos brillar.",
       bun3_t: "Renovación Total", bun3_s: "Césped + Lavado a presión + Reparaciones",
-      bun3_d: "Todo resuelto en una visita. Patio, exterior y la lista de reparaciones — listo.",
+      bun3_d: "Todo resuelto en una visita. Patio, exterior y la lista de reparaciones. Listo.",
       plan_modal_kicker: "Estás a un paso",
       plan_trust_1: "Pago seguro con Stripe", plan_trust_2: "Cancele cuando quiera", plan_trust_3: "Personal verificado",
       bb_title: "O arme su propio paquete",
@@ -455,7 +455,7 @@
       form_title: "Obtenga un presupuesto rápido", form_name: "Nombre completo", form_phone: "Teléfono",
       form_email: "Correo electrónico", form_service: "Servicio necesario", choose_service: "Elija un servicio",
       opt_else: "Otro", form_details: "Detalles",
-      ph_name: "Su nombre", ph_details: "Cuéntenos sobre el trabajo — tamaño, ubicación, tiempo.",
+      ph_name: "Su nombre", ph_details: "Cuéntenos sobre el trabajo. Tamaño, ubicación, tiempo.",
       send_request: "Enviar solicitud",
       form_note_mailto: "Esto abre su aplicación de correo con la solicitud lista para enviar. No necesita cuenta.",
       form_note_api: "Respondemos en horario de oficina, normalmente el mismo día.",
@@ -463,7 +463,7 @@
       form_error: "Hubo un problema al enviar su solicitud. Por favor llámenos.",
       footer_rights: "Todos los derechos reservados.",
       booking_title: "Reserve su servicio",
-      booking_soon: "La reserva en línea llegará pronto — llámenos al",
+      booking_soon: "La reserva en línea llegará pronto. Llámenos al",
       close: "Cerrar",
       login: "Iniciar sesión", login_aria: "Inicie sesión en su cuenta", my_account: "Mi cuenta",
       auth_title_login: "Bienvenido de nuevo", auth_title_signup: "Cree su cuenta",
@@ -500,7 +500,7 @@
   try {
     var savedLang = localStorage.getItem("pg-lang");
     if (savedLang === "es" || savedLang === "en") currentLang = savedLang;
-  } catch (e) { /* storage unavailable — default EN */ }
+  } catch (e) { /* storage unavailable. Default EN */ }
 
   function t(key) {
     var d = I18N[currentLang] || I18N.en;
@@ -720,7 +720,7 @@
   }
 
   function mailtoFallback(lead) {
-    var subject = "Service request: " + lead.service + " — " + lead.name;
+    var subject = "Service request: " + lead.service + ". " + lead.name;
     var body = [
       "Name: " + lead.name,
       "Phone: " + lead.phone,
@@ -742,7 +742,7 @@
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
     var els = form.elements;
-    // Honeypot: bots fill it, humans never see it — silently "succeed".
+    // Honeypot: bots fill it, humans never see it. Silently "succeed".
     if (els.company && els.company.value) {
       setFormStatus("success", t("form_success"));
       form.reset();
@@ -1080,7 +1080,7 @@
 
   /* ============================================================
      Customer accounts (Firebase Auth + Firestore).
-     SDK loaded via CDN (firebase-compat) — see index.html.
+     SDK loaded via CDN (firebase-compat). See index.html.
      Config: SITE_CONFIG.firebase (object), or null = "coming soon" mode.
      Never throws when the config is missing or the CDN is blocked.
 
