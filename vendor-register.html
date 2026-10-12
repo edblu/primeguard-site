@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vendor Registration | PrimeGuard Preservation</title>
 <meta name="description" content="Register your crew with PrimeGuard Preservation. We bring the customers and handle scheduling. You do the work, paid per job completed. No fees.">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=17">
 <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
@@ -87,6 +87,30 @@
           </select>
         </label>
         <label>Equipment (optional)<input type="text" id="vr-equipment" placeholder="e.g. 50-ft lift, stump grinder"></label>
+        <label>Business address<input type="text" id="vr-address" required placeholder="Street, city, ZIP" autocomplete="street-address"></label>
+
+        <div style="margin:18px 0;padding:16px;border:1px solid rgba(201,162,75,.35);border-radius:12px;background:rgba(201,162,75,.05)">
+          <p style="font-weight:700;margin-bottom:6px">Tax &amp; insurance documents</p>
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">We need these on file before you can receive paid jobs. Your documents stay private — only PrimeGuard sees them.</p>
+          <label>W-9 form <span style="color:var(--gold-bright)">(required)</span>
+            <input type="file" id="vr-w9" accept=".pdf,.jpg,.jpeg,.png" required style="margin-top:6px">
+          </label>
+          <p style="font-size:.8rem;color:var(--muted);margin:6px 0 12px">Upload a filled, signed IRS Form W-9 (PDF or photo).</p>
+          <label style="display:block;margin-bottom:8px">General liability insurance
+            <select id="vr-insured" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">
+              <option value="no">Not currently insured</option>
+              <option value="yes">Yes, I carry general liability</option>
+            </select>
+          </label>
+          <label id="vr-coi-wrap" class="hidden">Certificate of insurance (COI)
+            <input type="file" id="vr-coi" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px">
+          </label>
+        </div>
+
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.88rem;margin:16px 0">
+          <input type="checkbox" id="vr-agree" required style="margin-top:4px">
+          <span>I agree to PrimeGuard's vendor terms: I'm paid per job completed after the work is verified with before/after photos, and I operate as an independent contractor responsible for my own taxes and insurance.</span>
+        </label>
 
         <p class="form-error hidden" id="vr-error"></p>
         <button class="btn btn-gold" type="submit" id="vr-submit">Create vendor account</button>
