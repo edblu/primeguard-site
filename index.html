@@ -392,7 +392,15 @@
 <div class="modal-overlay" id="authModal" hidden>
   <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <button class="modal-close" id="authClose" aria-label="Close" data-i18n-aria="close">×</button>
-    <div id="authMain">
+    <div id="authChoose" hidden>
+      <h3 data-i18n="auth_choose_title">Who's logging in?</h3>
+      <div class="modal-body">
+        <button type="button" class="btn btn-gold btn-lg" id="authChooseCustomer" style="width:100%"><span data-i18n="auth_choose_customer">I'm a customer</span></button>
+        <button type="button" class="btn btn-ghost btn-lg" id="authChooseVendor" style="width:100%;margin-top:10px"><span data-i18n="auth_choose_vendor">I'm a vendor</span></button>
+        <p class="auth-soon-body" style="margin-top:12px"><span data-i18n="auth_choose_sub">Customers track requests and jobs. Vendors manage work orders, quotes, and pay from their dashboard.</span></p>
+      </div>
+    </div>
+    <div id="authMain" hidden>
       <h3 id="authTitle" data-i18n="auth_title_login">Welcome back</h3>
       <div class="modal-body">
         <div class="auth-tabs" role="tablist">
@@ -473,7 +481,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=17"></script>
-<script src="site.js?v=19"></script>
+<script src="site.js?v=20"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">

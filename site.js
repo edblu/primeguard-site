@@ -204,11 +204,11 @@
       ref_cta: "Get a free quote",
       ref_need_name: "Enter your name first.",
       vendors_kicker: "Partner with us", vendors_title: "Steady work for your crew",
-      vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and we pay the same day.",
+      vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and you get paid per job completed.",
       vendors_step1_t: "Register", vendors_step1_d: "Fill out the form below. It takes two minutes and puts you in our system.",
       vendors_step2_t: "Get work orders", vendors_step2_d: "We send jobs your way with a written work order spelling out the scope and your pay before you start.",
       vendors_step3_t: "Do the work", vendors_step3_d: "Show up, do great work, and send before-and-after photos when you are done.",
-      vendors_step4_t: "Get paid same day", vendors_step4_d: "No chasing invoices, no waiting 30 days. Verified work gets paid the same day.",
+      vendors_step4_t: "Get paid per job completed", vendors_step4_d: "No chasing invoices, no waiting 30 days. Send before-and-after photos, we verify the work and confirm with the customer, and you get paid.",
       vendors_note: "No fees to join. No cost to you. We make our money on the customer side.",
       vendors_signup: "Sign up as a vendor",
       info_phone: "Phone", info_email: "Email", info_hours: "Hours", info_area: "Service area",
@@ -228,6 +228,9 @@
       close: "Close",
       login: "Log in", login_aria: "Log in to your account", my_account: "My account",
       auth_title_login: "Welcome back", auth_title_signup: "Create your account",
+      auth_choose_title: "Who's logging in?",
+      auth_choose_customer: "I'm a customer", auth_choose_vendor: "I'm a vendor",
+      auth_choose_sub: "Customers track requests and jobs. Vendors manage work orders, quotes, and pay from their dashboard.",
       auth_tab_login: "Log in", auth_tab_signup: "Sign up",
       auth_email: "Email", auth_password: "Password",
       auth_submit_login: "Log in", auth_submit_signup: "Create account",
@@ -437,11 +440,11 @@
       ref_cta: "Obtenga un estimado gratis",
       ref_need_name: "Ingrese su nombre primero.",
       vendors_kicker: "Asóciese con nosotros", vendors_title: "Trabajo constante para su equipo",
-      vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y pagamos el mismo día.",
+      vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y le pagamos por trabajo completado.",
       vendors_step1_t: "Regístrese", vendors_step1_d: "Complete el formulario a continuación. Toma dos minutos y lo pone en nuestro sistema.",
       vendors_step2_t: "Reciba órdenes de trabajo", vendors_step2_d: "Le enviamos trabajos con una orden escrita que detalla el alcance y su pago antes de empezar.",
       vendors_step3_t: "Haga el trabajo", vendors_step3_d: "Preséntese, haga un excelente trabajo y envíe fotos del antes y después al terminar.",
-      vendors_step4_t: "Cobro el mismo día", vendors_step4_d: "Sin perseguir facturas, sin esperar 30 días. El trabajo verificado se paga el mismo día.",
+      vendors_step4_t: "Cobro por trabajo completado", vendors_step4_d: "Sin perseguir facturas, sin esperar 30 días. Envíe fotos del antes y después, verificamos el trabajo y confirmamos con el cliente, y le pagamos.",
       vendors_note: "Sin cargos para unirse. Sin costo para usted. Nosotros ganamos por el lado del cliente.",
       vendors_signup: "Regístrese como proveedor",
       info_phone: "Teléfono", info_email: "Correo electrónico", info_hours: "Horario", info_area: "Área de servicio",
@@ -461,6 +464,9 @@
       close: "Cerrar",
       login: "Iniciar sesión", login_aria: "Inicie sesión en su cuenta", my_account: "Mi cuenta",
       auth_title_login: "Bienvenido de nuevo", auth_title_signup: "Cree su cuenta",
+      auth_choose_title: "¿Quién inicia sesión?",
+      auth_choose_customer: "Soy cliente", auth_choose_vendor: "Soy proveedor",
+      auth_choose_sub: "Los clientes siguen sus solicitudes y trabajos. Los proveedores gestionan órdenes de trabajo, cotizaciones y pagos desde su panel.",
       auth_tab_login: "Iniciar sesión", auth_tab_signup: "Registrarse",
       auth_email: "Correo electrónico", auth_password: "Contraseña",
       auth_submit_login: "Iniciar sesión", auth_submit_signup: "Crear cuenta",
@@ -1024,6 +1030,7 @@
   var authModal = document.getElementById("authModal");
   var authMain = document.getElementById("authMain");
   var authSoon = document.getElementById("authSoon");
+  var authChoose = document.getElementById("authChoose");
   var authForm = document.getElementById("authForm");
   var authEmail = document.getElementById("authEmail");
   var authPassword = document.getElementById("authPassword");
@@ -1040,11 +1047,13 @@
     closeMenu();
     authError.hidden = true;
     if (!fbAuth) {
+      authChoose.hidden = true;
       authMain.hidden = true;
       authSoon.hidden = false;
     } else {
       authSoon.hidden = true;
-      authMain.hidden = false;
+      authMain.hidden = true;
+      authChoose.hidden = false;
       setAuthMode("login");
     }
     authModal.hidden = false;
@@ -1236,12 +1245,23 @@
   document.querySelectorAll("[data-auth-open]").forEach(function (el) {
     el.addEventListener("click", function (e) {
       e.preventDefault();
+      if (!authModal) { window.location.href = "index.html#login"; return; }
       if (currentUser && fbAuth) openProfile();
       else openAuth();
     });
   });
 
+  if (authModal) {
   document.getElementById("authClose").addEventListener("click", closeAuth);
+  document.getElementById("authChooseCustomer").addEventListener("click", function () {
+    authChoose.hidden = true;
+    authSoon.hidden = true;
+    authMain.hidden = false;
+    setAuthMode("login");
+  });
+  document.getElementById("authChooseVendor").addEventListener("click", function () {
+    window.location.href = "vendor-dashboard.html";
+  });
   authModal.addEventListener("click", function (e) {
     if (e.target === authModal) closeAuth();
   });
@@ -1254,6 +1274,8 @@
     if (!authModal.hidden) closeAuth();
     if (!profileModal.hidden) closeProfile();
   });
+  if (window.location.hash === "#login") openAuth();
+  }
 
   if (initFirebase() && fbAuth) {
     fbAuth.onAuthStateChanged(function (user) {
