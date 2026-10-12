@@ -603,7 +603,7 @@
     var cfg = window.SITE_CONFIG || {};
     var H = cfg.hours || "", A = cfg.serviceArea || "";
     if (/\b(how much|howmuch|price|cost|costing|pricing|cheap|expensive|rate|rates|quote)\b/.test(q))
-      return { t: "What does it cost?", d: "Most visits run $45\u2013$339 depending on the service and size. Get a ballpark in seconds:", link: "#estimator", cta: "Try the instant estimator" };
+      return { t: "What does it cost?", d: "Most visits run $45\u2013$339 depending on the service and size. Get your ballpark in seconds:", link: "quote.html", cta: "Get my instant quote" };
     if (/\b(where|area|areas|serve|serving|location|located|near|nearby|city|cities)\b/.test(q))
       return { t: "Where we work", d: "We serve " + A + " \u2014 Kendall, Miami, Homestead, Hialeah, Cutler Bay and nearby neighborhoods." };
     if (/\b(when|hours|open|close|closing|schedule|availability|available|appointment|book|booking)\b/.test(q))
