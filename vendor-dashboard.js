@@ -319,22 +319,47 @@
     errEl.classList.add("hidden"); okEl.classList.add("hidden");
     var woId = $("q-workorder").value;
     if (!woId) { errEl.textContent = "Pick the quote request first."; errEl.classList.remove("hidden"); return; }
-    db.collection("quotes").add({
-      workOrderId: woId,
-      vendorId: me.uid,
-      vendorBusiness: vendor.business,
-      vendorPhone: vendor.phone,
-      price: $("q-price").value.trim(),
-      duration: $("q-duration").value.trim(),
-      notes: $("q-notes").value.trim(),
-      status: "pending",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () {
+    var pdfFile = $("q-pdf").files[0] || null;
+    var btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true; btn.textContent = pdfFile ? "Uploading quote..." : "Submitting...";
+    function saveQuote(pdfUrl) {
+      return db.collection("quotes").add({
+        workOrderId: woId,
+        vendorId: me.uid,
+        vendorBusiness: vendor.business,
+        vendorPhone: vendor.phone,
+        price: $("q-price").value.trim(),
+        duration: $("q-duration").value.trim(),
+        notes: $("q-notes").value.trim(),
+        quotePdfUrl: pdfUrl || null,
+        status: "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    function uploadPdf() {
+      if (!pdfFile) return Promise.resolve(null);
+      var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
+      if (!endpoint) return Promise.resolve(null);
+      return new Promise(function (res) {
+        var fr = new FileReader();
+        fr.onload = function () {
+          fetch(endpoint, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ type: "doc-upload", folder: "vendor-quotes", name: pdfFile.name, mime: pdfFile.type, data: fr.result })
+          }).then(function () { res("uploaded"); }).catch(function () { res(null); });
+        };
+        fr.onerror = function () { res(null); };
+        fr.readAsDataURL(pdfFile);
+      });
+    }
+    uploadPdf().then(saveQuote).then(function () {
       return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true });
     }).then(function () {
       okEl.classList.remove("hidden");
-      $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = "";
+      $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-pdf").value = "";
+      btn.disabled = false; btn.textContent = "Submit quote";
       loadAll();
-    }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); });
+    }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = "Submit quote"; });
   });
 })();

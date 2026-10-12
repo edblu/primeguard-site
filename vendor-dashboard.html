@@ -178,6 +178,10 @@
           <label>How long will it take<input type="text" id="q-duration" placeholder="1 day"></label>
         </div>
         <label>Quote details<textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..."></textarea></label>
+        <label>Attach your formal quote <span style="color:var(--muted);font-weight:400">(optional)</span>
+          <input type="file" id="q-pdf" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px">
+        </label>
+        <p style="font-size:.82rem;color:var(--muted);margin:-6px 0 12px">Got a branded quote with your logo? Attach it here. It makes your bid look professional and helps you win the job.</p>
         <p class="verr hidden" id="q-error"></p>
         <p class="vok hidden" id="q-ok">Quote submitted. PrimeGuard will review it.</p>
         <button class="btn btn-gold" type="submit">Submit quote</button>
