@@ -80,6 +80,7 @@
       myEvals = [];
       qs.forEach(function (d) {
         var w = d.data(); w.id = d.id;
+        if (w.status === "open") return; // not accepted yet — shows in the open lists above
         if (w.status === "done") {
           done.push(w);
           earned += parseFloat(w.payAgreed || w.pay || 0) || 0;
