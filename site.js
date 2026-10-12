@@ -1577,10 +1577,10 @@
         source: "bundle-builder", page: location.pathname,
         uid: currentUser ? currentUser.uid : null
       };
-      // Mirror to the customer's account so it shows in their dashboard.
-      if (currentUser && firebaseUsable() && fbDb) {
+      // Mirror EVERY order to the admin's request feed (guest or not) so nothing is missed.
+      if (firebaseUsable() && fbDb) {
         fbDb.collection("service_requests").add({
-          uid: currentUser.uid,
+          uid: currentUser ? currentUser.uid : null,
           name: name, phone: phone, email: ticket.email,
           service: "Bundle order " + ref,
           message: current.sel.map(function (i) { return i.name + " $" + i.price; }).join("; ") +
