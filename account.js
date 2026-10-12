@@ -29,17 +29,10 @@
     show($("form-signup")); hide($("form-login"));
   });
 
-  // Dashboard tabs (Overview / Settings)
-  document.querySelectorAll("[data-acct-tab]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      document.querySelectorAll("[data-acct-tab]").forEach(function (b) { b.classList.remove("active"); });
-      btn.classList.add("active");
-      var which = btn.getAttribute("data-acct-tab");
-      $("acct-tab-overview").hidden = which !== "overview";
-      $("acct-tab-settings").hidden = which !== "settings";
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  });
+  // (tabs removed — the page now scrolls hero → requests → jobs → settings)
+
+  var yr = $("acct-year");
+  if (yr) yr.textContent = new Date().getFullYear();
 
   function authError(err, elId) {
     var el = $(elId); el.textContent = err.message || "Something went wrong. Please try again.";
