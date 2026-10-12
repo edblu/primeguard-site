@@ -29,6 +29,20 @@
     show($("form-signup")); hide($("form-login"));
   });
 
+  // Mobile hamburger menu
+  (function () {
+    var toggle = document.getElementById("navToggle"), nav = document.getElementById("mainNav");
+    if (!toggle || !nav) return;
+    toggle.addEventListener("click", function () {
+      var isOpen = nav.classList.toggle("open");
+      toggle.classList.toggle("open", isOpen);
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+    nav.querySelectorAll("a").forEach(function (l) {
+      l.addEventListener("click", function () { nav.classList.remove("open"); toggle.classList.remove("open"); });
+    });
+  })();
+
   // (tabs removed — the page now scrolls hero → requests → jobs → settings)
 
   var yr = $("acct-year");

@@ -1,5 +1,20 @@
 // PrimeGuard vendor registration (Firebase Auth + Firestore).
 (function () {
+  // Mobile hamburger menu (runs even if Firebase config is missing)
+  (function () {
+    var toggle = document.getElementById("navToggle"), nav = document.getElementById("mainNav");
+    if (toggle && nav) {
+      toggle.addEventListener("click", function () {
+        var isOpen = nav.classList.toggle("open");
+        toggle.classList.toggle("open", isOpen);
+        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+      nav.querySelectorAll("a").forEach(function (l) {
+        l.addEventListener("click", function () { nav.classList.remove("open"); toggle.classList.remove("open"); });
+      });
+    }
+  })();
+
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
   var form = document.getElementById("vendor-register-form");
   if (!form || !cfg || !cfg.apiKey) return;
