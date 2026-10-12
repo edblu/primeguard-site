@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — PrimeGuard Preservation</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=17">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   .awrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
@@ -137,6 +137,14 @@
     <div class="acard"><div id="ad-sr-list"></div></div>
   </section>
 
+  <!-- Request detail modal -->
+  <div class="modal-overlay hidden" id="srModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="srTitle">
+      <button class="modal-close" id="srClose" aria-label="Close">×</button>
+      <div id="srBody"></div>
+    </div>
+  </div>
+
   <section class="asec">
     <h2>Work orders</h2>
     <div class="acard"><div id="ad-wo-list"></div></div>
@@ -155,13 +163,29 @@
   <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
     <h2>Acquisition managers</h2>
     <div class="acard">
-      <p class="sub">Invite a team member by email. They sign up on the site, then get staff access here automatically.</p>
-      <form id="ad-inviteform" class="aform" style="display:flex;gap:10px;align-items:flex-end">
-        <label style="flex:1;margin:0">Email<input type="email" id="inv-email" required placeholder="teammate@email.com"></label>
-        <button class="btn btn-gold" type="submit">Send invite</button>
+      <p class="sub">Invite a team member by email. Pick their role, then send them the signup email. They log in at this page and get access automatically.</p>
+      <form id="ad-inviteform" class="aform">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <label style="flex:2;min-width:200px;margin:0">Email<input type="email" id="inv-email" required placeholder="teammate@email.com"></label>
+          <label style="flex:1;min-width:150px;margin:0">Role
+            <select id="inv-role">
+              <option value="acquisition">Acquisition specialist</option>
+              <option value="admin">Admin</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </label>
+          <label style="flex:1;min-width:150px;margin:0" id="inv-custom-wrap" class="hidden">Custom role<input type="text" id="inv-custom" placeholder="e.g. Dispatcher"></label>
+          <button class="btn btn-gold" type="submit">Create invite</button>
+        </div>
       </form>
       <p class="aerr hidden" id="inv-error"></p>
-      <p class="aok hidden" id="inv-ok">Invite created.</p>
+      <div class="aok hidden" id="inv-ok" style="margin-top:10px">
+        <p>Invite created for <strong id="inv-ok-email"></strong> as <strong id="inv-ok-role"></strong>.</p>
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-gold btn-sm" type="button" id="inv-send-email">Email the invite</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="inv-copy">Copy invite text</button>
+        </div>
+      </div>
       <div id="ad-team-list" style="margin-top:16px"></div>
     </div>
   </section>

@@ -13,7 +13,7 @@
   function hide(el) { el.classList.add("hidden"); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
-  var me = null, isAdmin = false, isStaff = false;
+  var me = null, isAdmin = false, isStaff = false, myRole = "acquisition";
   var pendingPhotos = []; // dataURLs selected in the WO form
   var editingId = null; // work order id being edited, or null for create mode
 
@@ -98,27 +98,28 @@
     if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); return; }
     isAdmin = (user.email === ADMIN_EMAIL);
     var check = isAdmin
-      ? Promise.resolve(true)
-      : db.collection("staff").doc(user.uid).get().then(function (s) { return s.exists; })
-          .then(function (ok) {
-            if (ok) return true;
-            // Auto-claim an invite sent to this email
-            return db.collection("staff_invites").doc(user.email).get().then(function (inv) {
-              if (!inv.exists) return false;
-              return db.collection("staff").doc(user.uid).set({
-                email: user.email, role: "acquisition",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              }).then(function () {
-                return db.collection("staff_invites").doc(user.email).delete();
-              }).then(function () { return true; });
-            });
+      ? Promise.resolve({ ok: true, role: "owner" })
+      : db.collection("staff").doc(user.uid).get().then(function (s) {
+          if (s.exists) return { ok: true, role: (s.data() && s.data().role) || "acquisition" };
+          // Auto-claim an invite sent to this email
+          return db.collection("staff_invites").doc(user.email).get().then(function (inv) {
+            if (!inv.exists) return { ok: false };
+            var invRole = (inv.data() && inv.data().role) || "acquisition";
+            return db.collection("staff").doc(user.uid).set({
+              email: user.email, role: invRole,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(function () {
+              return db.collection("staff_invites").doc(user.email).delete();
+            }).then(function () { return { ok: true, role: invRole }; });
           });
-    check.then(function (ok) {
-      isStaff = ok;
-      if (!ok) { show($("ad-loginwrap")); hide($("ad-dash")); $("ad-login-err").textContent = "This account is not staff."; show($("ad-login-err")); auth.signOut(); return; }
+        });
+    check.then(function (res) {
+      isStaff = res.ok;
+      myRole = res.role || "acquisition";
+      if (!res.ok) { show($("ad-loginwrap")); hide($("ad-dash")); $("ad-login-err").textContent = "This account is not staff."; show($("ad-login-err")); auth.signOut(); return; }
       hide($("ad-loginwrap")); show($("ad-dash"));
-      $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (acquisition)");
-      if (!isAdmin) hide($("ad-teamsec"));
+      $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
+      if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
       loadAll();
     });
   });
@@ -138,12 +139,136 @@
           esc(r.name || "") + (r.phone ? " · " + esc(r.phone) : "") +
           (r.message ? " · " + esc(r.message) : "") + "</small></div>" +
           pill(r.status) +
+          ' <button class="mini" data-sropen="' + d.id + '">Open</button>' +
           ' <button class="mini danger" data-srdel="' + d.id + '">Delete</button>';
         box.appendChild(row);
       });
     }).catch(function () {
       $("ad-sr-list").innerHTML = '<p style="color:var(--faint)">Couldn\'t load requests.</p>';
     });
+  }
+
+  /* ---------- Request detail modal ---------- */
+  var srId = null, srData = null;
+  var SR_STATUSES = ["new", "reviewing", "quoted", "scheduled", "done", "cancelled"];
+
+  function srDate(r) {
+    try {
+      var t = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : (r.createdAt ? new Date(r.createdAt) : null);
+      return t ? t.toLocaleString() : "";
+    } catch (e) { return ""; }
+  }
+
+  function openRequest(id) {
+    db.collection("service_requests").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      srId = id; srData = snap.data();
+      renderRequestModal();
+      $("srModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    });
+  }
+  function closeRequest() {
+    $("srModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    srId = null; srData = null;
+  }
+
+  function renderRequestModal() {
+    var r = srData, box = $("srBody");
+    var photos = Array.isArray(r.photos) ? r.photos : [];
+    var comments = Array.isArray(r.comments) ? r.comments : [];
+    var h = '<h3 id="srTitle">' + esc(r.service || "Service request") +
+      (r.frequency ? " — " + esc(r.frequency) : "") + '</h3>' +
+      '<p class="sr-meta">' + pill(r.status) + ' <span>' + esc(srDate(r)) + '</span>' +
+      (r.source ? ' <span>· via ' + esc(r.source) + '</span>' : '') + '</p>' +
+      '<div class="sr-grid">' +
+      '<div class="sr-card"><h4>Customer</h4>' +
+      '<p><strong>' + esc(r.name || "—") + '</strong></p>' +
+      (r.phone ? '<p>📞 <a href="tel:' + esc(r.phone.replace(/\D/g, "")) + '">' + esc(r.phone) + '</a></p>' : '') +
+      (r.email ? '<p>✉️ <a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a></p>' : '') +
+      (r.address ? '<p>📍 ' + esc(r.address) + '</p>' : '') +
+      (r.uid ? '' : '<p class="sr-guest">Guest request (no account)</p>') +
+      '</div>' +
+      '<div class="sr-card"><h4>Request details</h4>' +
+      '<p><strong>Service:</strong> ' + esc(r.service || "—") + '</p>' +
+      '<p><strong>Frequency:</strong> ' + esc(r.frequency || "—") + '</p>' +
+      (r.message ? '<p><strong>Details:</strong><br>' + esc(r.message).replace(/\n/g, "<br>") + '</p>' : '<p class="sr-faint">No details provided.</p>') +
+      '</div></div>';
+    if (photos.length) {
+      h += '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
+        photos.map(function (u) {
+          return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="request photo" loading="lazy"></a>';
+        }).join("") + '</div></div>';
+    }
+    h += '<div class="sr-card"><h4>Evaluation</h4>' +
+      '<div class="sr-row"><label>Status<br><select id="srStatus">' +
+      SR_STATUSES.map(function (s) {
+        return '<option value="' + s + '"' + ((r.status || "new") === s ? " selected" : "") + '>' + s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
+      }).join("") + '</select></label>' +
+      '<button class="btn btn-gold btn-sm" id="srSaveStatus" type="button">Save status</button></div>' +
+      '<label>Internal notes<br><textarea id="srNotes" rows="3" placeholder="Notes only the team sees…">' + esc(r.adminNotes || "") + '</textarea></label>' +
+      '<button class="btn btn-ghost btn-sm" id="srSaveNotes" type="button" style="margin-top:8px">Save notes</button>' +
+      '<p class="aok hidden" id="srSaved">Saved.</p></div>';
+    h += '<div class="sr-card"><h4>Comments</h4><div class="sr-comments">' +
+      (comments.length ? comments.map(function (c) {
+        var when = "";
+        try { when = c.at && c.at.toDate ? c.at.toDate().toLocaleString() : ""; } catch (e) {}
+        return '<div class="sr-comment"><strong>' + esc(c.by || "") + '</strong><span>' + esc(when) + '</span><p>' + esc(c.text || "").replace(/\n/g, "<br>") + '</p></div>';
+      }).join("") : '<p class="sr-faint">No comments yet.</p>') + '</div>' +
+      '<div class="sr-row"><input type="text" id="srComment" placeholder="Add a comment…" style="flex:1">' +
+      '<button class="btn btn-gold btn-sm" id="srAddComment" type="button">Add</button></div></div>';
+    h += '<div class="sr-actions">' +
+      '<button class="btn btn-gold btn-sm" id="srMakeWO" type="button">Create work order</button>' +
+      '<button class="btn btn-ghost btn-sm" id="srDelete" type="button">Delete request</button></div>';
+    box.innerHTML = h;
+
+    $("srClose").addEventListener("click", closeRequest);
+    $("srModal").addEventListener("click", function (e) { if (e.target === $("srModal")) closeRequest(); });
+    $("srSaveStatus").addEventListener("click", function () {
+      db.collection("service_requests").doc(srId).update({ status: $("srStatus").value }).then(function () {
+        srData.status = $("srStatus").value; saved(); loadServiceRequests();
+      });
+    });
+    $("srSaveNotes").addEventListener("click", function () {
+      db.collection("service_requests").doc(srId).update({ adminNotes: $("srNotes").value.trim() }).then(function () {
+        srData.adminNotes = $("srNotes").value.trim(); saved();
+      });
+    });
+    $("srAddComment").addEventListener("click", function () {
+      var t = $("srComment").value.trim();
+      if (!t) return;
+      db.collection("service_requests").doc(srId).update({
+        comments: firebase.firestore.FieldValue.arrayUnion({ by: me ? me.email : "team", text: t, at: new Date() })
+      }).then(function () { return db.collection("service_requests").doc(srId).get(); }).then(function (s) {
+        srData = s.data(); renderRequestModal();
+      });
+    });
+    $("srDelete").addEventListener("click", function () {
+      if (!confirm("Delete this customer request?")) return;
+      db.collection("service_requests").doc(srId).delete().then(function () { closeRequest(); loadServiceRequests(); });
+    });
+    $("srMakeWO").addEventListener("click", function () { requestToWorkOrder(); });
+    function saved() {
+      var el = $("srSaved");
+      if (el) { el.classList.remove("hidden"); setTimeout(function () { el.classList.add("hidden"); }, 1800); }
+    }
+  }
+
+  function requestToWorkOrder() {
+    var r = srData;
+    var catMap = { "Lawn Care": "Lawn care", "Pressure Washing": "Pressure washing", "Debris & Junk Removal": "Cleanups", "Junk Removal": "Cleanups", "Make-Ready Cleaning": "Cleanups", "Handyman Services": "Handyman" };
+    $("wo-title").value = (r.service || "Service") + " — " + (r.name || "customer");
+    var cat = catMap[r.service] || "Cleanups";
+    var catSel = $("wo-category");
+    for (var i = 0; i < catSel.options.length; i++) if (catSel.options[i].value === cat) catSel.selectedIndex = i;
+    $("wo-details").value = "Frequency: " + (r.frequency || "One-time") + "\n" +
+      (r.message ? r.message + "\n" : "") +
+      "\nCustomer: " + (r.name || "") + " " + (r.phone || "") + " " + (r.email || "") +
+      (r.address ? "\nAddress: " + r.address : "") +
+      "\n(From customer request " + srId + ")";
+    closeRequest();
+    document.getElementById("ad-woform").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function loadStats() {
@@ -157,8 +282,8 @@
   }
 
   function pill(s) {
-    var cls = { open: "p-open", accepted: "p-acc", evaluation_accepted: "p-acc", in_progress: "p-acc", review: "p-rev", done: "p-done", pending: "p-pend", approved: "p-done", declined: "p-rev" }[s] || "p-open";
-    return '<span class="pill ' + cls + '">' + esc(String(s).replace(/_/g, " ")) + "</span>";
+    var cls = { open: "p-open", new: "p-open", accepted: "p-acc", evaluation_accepted: "p-acc", in_progress: "p-acc", review: "p-rev", reviewing: "p-pend", quoted: "p-acc", scheduled: "p-acc", done: "p-done", pending: "p-pend", approved: "p-done", declined: "p-rev", cancelled: "p-rev" }[s] || "p-open";
+    return '<span class="pill ' + cls + '">' + esc(String(s || "new").replace(/_/g, " ")) + "</span>";
   }
 
   function loadWorkOrders() {
@@ -220,7 +345,7 @@
       qs.forEach(function (d) {
         var s = d.data();
         var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(s.email) + "</strong><small>" + esc(s.role || "acquisition") + "</small></div>" +
+        row.innerHTML = '<div class="grow"><strong>' + esc(s.email) + "</strong><small>" + esc(roleLabel(s.role)) + "</small></div>" +
           ' <button class="mini danger" data-staffdel="' + d.id + '">Remove</button>';
         box.appendChild(row);
       });
@@ -230,8 +355,9 @@
       var box = $("ad-team-list");
       box.innerHTML += "<h4 style='margin:12px 0 8px'>Pending invites</h4>";
       qs.forEach(function (d) {
+        var inv = d.data() || {};
         var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(d.id) + "</strong></div>" +
+        row.innerHTML = '<div class="grow"><strong>' + esc(d.id) + "</strong><small>" + esc(roleLabel(inv.role)) + " · pending</small></div>" +
           ' <button class="mini danger" data-invdel="' + d.id + '">Cancel</button>';
         box.appendChild(row);
       });
@@ -329,16 +455,64 @@
   });
 
   // ---------- Invite form ----------
+  var lastInvite = null;
+  $("inv-role").addEventListener("change", function () {
+    $("inv-custom-wrap").classList.toggle("hidden", $("inv-role").value !== "custom");
+  });
+  function inviteRole() {
+    var r = $("inv-role").value;
+    if (r === "custom") {
+      var c = $("inv-custom").value.trim();
+      return c ? "custom:" + c : "";
+    }
+    return r;
+  }
+  function roleLabel(role) {
+    if (!role) return "Acquisition specialist";
+    if (role === "acquisition") return "Acquisition specialist";
+    if (role === "admin") return "Admin";
+    if (role.indexOf("custom:") === 0) return role.slice(7);
+    return role;
+  }
+  function inviteMessage(email, role) {
+    return "Hi,\n\nEdwin Lora is inviting you to join the PrimeGuard team as " + roleLabel(role) + ".\n\n" +
+      "To accept:\n1. Go to https://primeguardmia.com/admin.html\n" +
+      "2. Click \"Continue with Google\" and sign in with this email address (" + email + ")\n" +
+      "3. Your staff access activates automatically.\n\n" +
+      "Questions? Call Edwin at (786) 422-9674.\n\n— PrimeGuard Preservation LLC";
+  }
   $("ad-inviteform").addEventListener("submit", function (e) {
     e.preventDefault();
     var errEl = $("inv-error"), okEl = $("inv-ok");
     errEl.classList.add("hidden"); okEl.classList.add("hidden");
     var email = $("inv-email").value.trim().toLowerCase();
+    var role = inviteRole();
+    if (!role) { errEl.textContent = "Type a custom role name."; errEl.classList.remove("hidden"); return; }
     db.collection("staff_invites").doc(email).set({
-      email: email, role: "acquisition", invitedBy: me.email,
+      email: email, role: role, invitedBy: me.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () { okEl.classList.remove("hidden"); $("inv-email").value = ""; loadTeam(); })
-      .catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); });
+    }).then(function () {
+      lastInvite = { email: email, role: role };
+      $("inv-ok-email").textContent = email;
+      $("inv-ok-role").textContent = roleLabel(role);
+      okEl.classList.remove("hidden");
+      $("inv-email").value = ""; $("inv-custom").value = "";
+      loadTeam();
+    }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); });
+  });
+  $("inv-send-email").addEventListener("click", function () {
+    if (!lastInvite) return;
+    var subject = "You're invited to join the PrimeGuard team";
+    window.location.href = "mailto:" + encodeURIComponent(lastInvite.email) +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(inviteMessage(lastInvite.email, lastInvite.role));
+  });
+  $("inv-copy").addEventListener("click", function () {
+    if (!lastInvite) return;
+    var txt = inviteMessage(lastInvite.email, lastInvite.role);
+    function done() { $("inv-copy").textContent = "Copied!"; setTimeout(function () { $("inv-copy").textContent = "Copy invite text"; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(done);
+    else done();
   });
 
   // ---------- Row actions ----------
@@ -348,6 +522,7 @@
     if (d.wodel && confirm("Delete this work order?")) db.collection("work_orders").doc(d.wodel).delete().then(loadAll);
     if (d.woedit) enterEditMode(d.woedit);
     if (d.srdel && confirm("Delete this customer request?")) db.collection("service_requests").doc(d.srdel).delete().then(loadAll);
+    if (d.sropen) openRequest(d.sropen);
     if (d.qok) {
       var parts = d.qok.split("|"), qid = parts[0], woid = parts[1];
       db.collection("quotes").doc(qid).get().then(function (qsnap) {

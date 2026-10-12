@@ -584,6 +584,30 @@ div.work-ph::after {
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .modal-overlay[hidden] { display: none; }
+/* Request detail modal (admin) */
+.sr-modal { width: min(720px, 100%); }
+.sr-modal #srBody { padding: 26px 30px 30px; overflow-y: auto; }
+.sr-modal h3 { padding: 0; margin-bottom: 8px; }
+.sr-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; margin-bottom: 18px; flex-wrap: wrap; }
+.sr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.sr-card { background: rgba(255,255,255,.03); border: 1px solid var(--line-soft); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; }
+.sr-card h4 { color: var(--gold-bright); font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.sr-card p { margin: 6px 0; font-size: .93rem; line-height: 1.5; }
+.sr-card a { color: var(--gold-bright); }
+.sr-faint { color: var(--faint); font-size: .88rem; }
+.sr-guest { color: var(--gold-bright); font-size: .82rem; font-weight: 700; }
+.sr-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+.sr-photos img { width: 100%; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line-soft); }
+.sr-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+.sr-row label { flex: 1; }
+.sr-card select, .sr-card textarea, .sr-card input[type=text] { width: 100%; margin-top: 6px; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: var(--text); font-size: .95rem; font-family: inherit; }
+.sr-comments { display: grid; gap: 10px; margin-bottom: 12px; }
+.sr-comment { background: rgba(255,255,255,.03); border-left: 3px solid var(--gold); border-radius: 0 10px 10px 0; padding: 10px 14px; }
+.sr-comment strong { font-size: .85rem; }
+.sr-comment span { color: var(--faint); font-size: .75rem; margin-left: 8px; }
+.sr-comment p { margin: 6px 0 0; font-size: .9rem; }
+.sr-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+@media (max-width: 640px) { .sr-grid { grid-template-columns: 1fr; } .sr-modal #srBody { padding: 20px 18px 24px; } }
 .modal {
   position: relative; width: min(880px, 100%); max-height: 88vh;
   display: flex; flex-direction: column;
