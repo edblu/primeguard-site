@@ -239,10 +239,10 @@
             if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
             var editable = st.replace(/[\s-]+/g, "_") === "new";
             var div = document.createElement("div"); div.className = "req-row";
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span></div>' + pillFor(d.status) +
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span></div>' + pillFor(d.status) +
               (editable ? '<button type="button" class="req-edit" data-edit-req="' + doc.id + '">Edit</button>' : "");
             div.querySelector("strong").textContent = d.service || "Service request";
-            div.querySelector("span").textContent = fmtDate(d.createdAt);
+            div.querySelector(".req-date").textContent = fmtDate(d.createdAt);
             box.appendChild(div);
           });
         }
@@ -277,9 +277,9 @@
                 return '<img src="' + esc(u) + '" alt="Job photo" loading="lazy">';
               }).join("") + "</div>";
             }
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span>' + thumbs + "</div>" + pillFor(d.status);
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + thumbs + "</div>" + pillFor(d.status);
             div.querySelector("strong").textContent = d.service || "Job";
-            div.querySelector("span").textContent = fmtDate(d.scheduledAt);
+            div.querySelector(".req-date").textContent = fmtDate(d.scheduledAt);
             box.appendChild(div);
           });
         }
