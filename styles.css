@@ -1793,3 +1793,6 @@ body {
 @media (max-width: 640px) {
   .about-badge-mini { width: 92px; height: 92px; right: -8px; bottom: 52px; }
 }
+
+/* Global utility: .hidden hides any element (used by account.js show/hide). */
+.hidden { display: none !important; }
