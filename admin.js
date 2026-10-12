@@ -124,7 +124,32 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); }
+
+  function loadReferrals() {
+    var box = $("ad-ref-list");
+    db.collection("referral_codes").orderBy("createdAt", "desc").limit(50).get().then(function (qs) {
+      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No referral codes yet.</p>'; return; }
+      box.innerHTML = "";
+      var done = 0, rows = [];
+      qs.forEach(function (d) { rows.push({ id: d.id, r: d.data() }); });
+      rows.forEach(function (item) {
+        var r = item.r;
+        db.collection("service_requests").where("referralCode", "==", r.code || "").get().then(function (uses) {
+          var row = document.createElement("div"); row.className = "arow";
+          var when = "";
+          try { when = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleDateString() : ""; } catch (e) {}
+          row.innerHTML = '<div class="grow"><strong>' + esc(r.code || "") + "</strong><small>" +
+            esc(r.name || "") + (r.email ? " · " + esc(r.email) : "") + (when ? " · " + esc(when) : "") + "</small></div>" +
+            '<span class="pill ' + (uses.size ? "p-acc" : "p-open") + '">' + uses.size + (uses.size === 1 ? " use" : " uses") + "</span>";
+          box.appendChild(row);
+        }).catch(function () {});
+        done++;
+      });
+    }).catch(function () {
+      box.innerHTML = '<p style="color:var(--faint)">Couldn\'t load referral codes.</p>';
+    });
+  }
 
   function loadServiceRequests() {
     db.collection("service_requests").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {

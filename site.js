@@ -202,7 +202,7 @@
       ref_step3_t: "You both get $20",
       ref_step3_d: "They mention your code in the quote form and get $20 off their first service. After their job is done, you get a $20 credit.",
       ref_cta: "Get a free quote",
-      ref_need_name: "Enter your name first.",
+      ref_need_name: "Enter your name first.", ref_gen_again: "Get a new code",
       vendors_kicker: "Partner with us", vendors_title: "Steady work for your crew",
       vendors_lead: "We bring in the customers and handle scheduling and billing. Your crew does the work you are already good at. Every job comes with a written work order, and you get paid per job completed.",
       vendors_step1_t: "Register", vendors_step1_d: "Fill out the form below. It takes two minutes and puts you in our system.",
@@ -441,7 +441,7 @@
       ref_step3_t: "Ambos reciben $20",
       ref_step3_d: "Ellos mencionan su código en el formulario y reciben $20 de descuento en su primer servicio. Después de su trabajo, usted recibe un crédito de $20.",
       ref_cta: "Obtenga un estimado gratis",
-      ref_need_name: "Ingrese su nombre primero.",
+      ref_need_name: "Ingrese su nombre primero.", ref_gen_again: "Obtener un código nuevo",
       vendors_kicker: "Asóciese con nosotros", vendors_title: "Trabajo constante para su equipo",
       vendors_lead: "Nosotros conseguimos los clientes y manejamos la programación y la facturación. Su equipo hace el trabajo que ya sabe hacer. Cada trabajo incluye una orden escrita, y le pagamos por trabajo completado.",
       vendors_step1_t: "Regístrese", vendors_step1_d: "Complete el formulario a continuación. Toma dos minutos y lo pone en nuestro sistema.",
@@ -700,6 +700,7 @@
       email: els.email.value.trim(),
       service: els.service.value,
       message: planMessagePrefix(els) + els.message.value.trim(),
+      referralCode: (els.referrer && els.referrer.value.trim()) || "",
       language: currentLang,
       timestamp: new Date().toISOString(),
       source: "primeguard-site",
@@ -712,6 +713,7 @@
         uid: currentUser.uid,
         name: lead.name, phone: lead.phone, email: lead.email,
         service: lead.service, message: lead.message,
+        referralCode: lead.referralCode,
         status: "new", source: "primeguard-site",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).catch(function () { /* the lead sheet is the primary record */ });
@@ -1537,6 +1539,25 @@
       var num = Math.floor(100 + Math.random() * 900);
       return base + "-" + num;
     }
+    function showCode(code) {
+      codeEl.textContent = code;
+      row.hidden = false;
+      if (copyBtn) copyBtn.textContent = t("ref_copy");
+    }
+    // Register the code so the owner is tracked (admin sees who owns which code).
+    function registerCode(code, name) {
+      try {
+        if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) return;
+        var db = firebase.firestore();
+        var u = (typeof currentUser !== "undefined") ? currentUser : null;
+        db.collection("referral_codes").add({
+          code: code, name: name,
+          uid: u ? u.uid : null, email: u && u.email ? u.email : null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function () { /* registry is best-effort */ });
+        if (u) db.collection("customers").doc(u.uid).set({ referralCode: code }, { merge: true }).catch(function () {});
+      } catch (e) { /* never break the generator */ }
+    }
     genBtn.addEventListener("click", function () {
       var name = nameInput.value.trim();
       if (!name) {
@@ -1544,9 +1565,9 @@
         nameInput.placeholder = t("ref_need_name");
         return;
       }
-      codeEl.textContent = makeCode(name);
-      row.hidden = false;
-      if (copyBtn) copyBtn.textContent = t("ref_copy");
+      var code = makeCode(name);
+      showCode(code);
+      registerCode(code, name);
     });
     if (copyBtn) copyBtn.addEventListener("click", function () {
       var code = codeEl.textContent;
@@ -1555,6 +1576,21 @@
         navigator.clipboard.writeText(code).then(ok).catch(ok);
       } else { ok(); }
     });
+    // Returning members see their existing code instead of making a new one.
+    try {
+      if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length && firebase.auth) {
+        firebase.auth().onAuthStateChanged(function (u) {
+          if (!u) return;
+          firebase.firestore().collection("customers").doc(u.uid).get().then(function (d) {
+            var c = d.exists && d.data().referralCode;
+            if (c) {
+              showCode(c);
+              genBtn.textContent = t("ref_gen_again") || "Get a new code";
+            }
+          }).catch(function () {});
+        });
+      }
+    } catch (e) {}
   })();
 
   /* ---------- Init ---------- */
