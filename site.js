@@ -1166,7 +1166,7 @@
 
   function loadProfileIntoForm() {
     var p = userProfile || {};
-    profName.value = p.name || "";
+    profName.value = p.name || (currentUser && currentUser.displayName) || "";
     profPhone.value = p.phone || "";
     profAddress.value = p.address || "";
     profService.value = p.service || "";
@@ -1185,7 +1185,7 @@
       email: currentUser.email || "",
       updatedAt: new Date().toISOString()
     };
-    fbDb.collection("users").doc(currentUser.uid).set(data, { merge: true }).then(function () {
+    fbDb.collection("customers").doc(currentUser.uid).set(data, { merge: true }).then(function () {
       userProfile = Object.assign({}, userProfile, data);
       profStatus.className = "form-status success";
       profStatus.textContent = t("profile_saved");
@@ -1282,7 +1282,7 @@
       currentUser = user;
       userProfile = {};
       if (user && fbDb) {
-        fbDb.collection("users").doc(user.uid).get().then(function (doc) {
+        fbDb.collection("customers").doc(user.uid).get().then(function (doc) {
           if (doc && doc.exists) userProfile = doc.data() || {};
           updateAuthButtons();
           prefillQuoteForm();
