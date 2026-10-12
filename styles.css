@@ -722,7 +722,7 @@ body.modal-open { overflow: hidden; }
 .choose-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(0,0,0,.55), 0 0 0 1px rgba(201,162,75,.5); }
 .choose-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.02) 25%, rgba(0,0,0,.8)); }
 .choose-customer { background-image: url("assets/account-hero-family.jpg"); }
-.choose-vendor { background-image: url("assets/careers-crew.jpg"); }
+.choose-vendor { background-image: url("assets/choose-vendor-bg.jpg"); }
 .choose-label { position: relative; font-weight: 800; font-size: 1.05rem; }
 .choose-desc { position: relative; font-size: .8rem; opacity: .88; margin-top: 2px; }
 @media (max-width: 480px) { .choose-grid { grid-template-columns: 1fr; } .choose-card { min-height: 150px; } }
@@ -818,7 +818,7 @@ body.modal-open { overflow: hidden; }
 .promo-band {
   background:
     linear-gradient(100deg, rgba(8,8,10,.9) 0%, rgba(8,8,10,.62) 48%, rgba(8,8,10,.28) 100%),
-    url("assets/bg-promo-wash.jpg") center/cover no-repeat;
+    url("assets/promo-band.jpg") center/cover no-repeat;
   color: #f5f1e6;
   border-top: 1px solid rgba(201,162,75,.3);
   border-bottom: 1px solid rgba(201,162,75,.3);
@@ -1182,8 +1182,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   text-align: center;
   color: #fff;
   background:
-    linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.55) 45%, rgba(120,85,15,0.55) 100%),
-    url("assets/careers-crew.jpg") center 35% / cover no-repeat;
+    linear-gradient(135deg, rgba(10,10,10,0.94) 0%, rgba(10,10,10,0.82) 45%, rgba(120,85,15,0.35) 100%);
 }
 .careers-hero::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px;
@@ -1998,7 +1997,7 @@ body {
   body { font-family:'Segoe UI',system-ui,sans-serif; background:#0a0a0c; color:#f2ede2; }
   .cx-tag { display:inline-block; font-size:.7rem; letter-spacing:.28em; text-transform:uppercase; color:#e8c56a; font-weight:700; margin-bottom:14px; }
   /* HERO */
-  .cx-hero { position:relative; min-height:88vh; display:flex; align-items:flex-end; background:url('../assets/service-lawn-care.webp') center/cover; }
+  .cx-hero { position:relative; min-height:88vh; display:flex; align-items:flex-end; background:linear-gradient(180deg,#0b0b0e,#08080a); }
   .cx-hero::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,5,8,.25) 0%, rgba(5,5,8,.55) 55%, #0a0a0c 100%); }
   .cx-hero-in { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 28px 70px; width:100%; }
   .cx-hero h1 { font-size:clamp(2.6rem,7vw,5rem); font-weight:800; line-height:1.02; letter-spacing:-.02em; max-width:640px; }
@@ -2018,6 +2017,22 @@ body {
   .cx-fade { background:linear-gradient(180deg,#08080a 0%,#0b0b0e 100%); border-top:1px solid rgba(212,168,67,.14); }
   .cx-dark { background:#08080a; border-top:1px solid rgba(255,255,255,.05); }
   .cx-glow { background:radial-gradient(ellipse 90% 55% at 50% 0%,rgba(212,168,67,.12),transparent 70%),linear-gradient(180deg,#0b0b0e,#08080a); border-top:1px solid rgba(212,168,67,.22); }
+  /* ivory details section - matches the homepage About style */
+  .cx-ivory { background:radial-gradient(ellipse 60% 45% at 88% 12%,rgba(212,168,67,.28),transparent 70%),radial-gradient(ellipse 50% 38% at 6% 92%,rgba(201,162,75,.18),transparent 70%),linear-gradient(165deg,#fffdf7 0%,#faf3e2 38%,#f1e4c8 72%,#e9d8b2 100%); border-top:1px solid rgba(212,168,67,.4); border-bottom:1px solid rgba(212,168,67,.4); color:#2b2619; }
+  .cx-ivory .cx-tag { color:#a8823a; }
+  .cx-ivory h2 { color:#1c1710; }
+  .cx-ivory-lead { color:#5a5344; font-size:1.02rem; line-height:1.65; max-width:560px; margin-bottom:6px; }
+  .cx-checks { list-style:none; margin:26px 0 0; padding:0; display:grid; gap:16px; }
+  .cx-checks li { position:relative; padding-left:34px; color:#2b2619; font-size:.96rem; line-height:1.55; }
+  .cx-checks li::before { content:""; position:absolute; left:2px; top:7px; width:13px; height:7px; border-left:2px solid #a8823a; border-bottom:2px solid #a8823a; transform:rotate(-45deg); }
+  .cx-checks li strong { color:#1c1710; }
+  .cx-ivory-visual { position:relative; margin:0 auto; max-width:440px; }
+  .cx-ivory-visual img { display:block; width:100%; aspect-ratio:4/4.4; object-fit:cover; border-radius:26px 26px 26px 8px; border:1px solid rgba(201,162,75,.5); box-shadow:0 30px 70px rgba(60,40,10,.35); }
+  .cx-ivory-badge { position:absolute; right:-18px; bottom:52px; background:linear-gradient(135deg,#f5d67b,#c9982f); color:#241a0c; border-radius:16px; padding:14px 18px; text-align:center; box-shadow:0 18px 44px rgba(96,74,24,.4); }
+  .cx-ivory-badge .big { font-size:1.5rem; font-weight:800; line-height:1; }
+  .cx-ivory-badge p { font-size:.72rem; font-weight:700; margin:4px 0 0; text-transform:uppercase; letter-spacing:.08em; }
+  .cx-ivory-caption { text-align:center; color:#a8823a; font-weight:700; margin-top:14px; font-size:.95rem; }
+  @media (max-width:900px) { .cx-ivory-badge { right:8px; } }
   .cx-band-cta { position:relative; background-size:cover; background-position:center; }
   .cx-band-cta::before { content:""; position:absolute; inset:0; pointer-events:none;
     background:linear-gradient(180deg,#08080a 0%,rgba(8,8,10,.55) 30%,rgba(8,8,10,.55) 70%,#08080a 100%); }

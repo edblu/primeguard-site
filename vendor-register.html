@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=21">
 <link rel="icon" type="image/png" href="assets/primeguard-logo-gold-badge.png">
 <style>
-  .vr-hero { position:relative; background:url('assets/careers-crew.jpg') center/cover; padding:110px 0 80px; overflow:hidden; }
+  .vr-hero { position:relative; background:url('assets/vr-hero.jpg') center/cover; padding:110px 0 80px; overflow:hidden; }
   .vr-hero::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,8,10,.55), rgba(8,8,10,.82)); }
   .vr-hero .wrap { position:relative; z-index:1; }
   .vr-hero h1 { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:800; letter-spacing:-.02em; margin-bottom:14px; }
@@ -34,7 +34,13 @@
   .msel-panel input[type=checkbox] { width:17px; height:17px; accent-color:#d4a843; }
   .msel-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   .msel-chips span { font-size:.8rem; font-weight:600; background:rgba(212,168,67,.14); border:1px solid rgba(212,168,67,.45); color:#f5d67b; border-radius:999px; padding:5px 12px; }
-  .vr-form-card { background:linear-gradient(170deg,rgba(20,20,26,.88),rgba(12,12,16,.93)), url('assets/bg-guarantee-crew.jpg') center/cover; border:1px solid rgba(212,168,67,.3); border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.5); }
+  .vr-form-card { background:linear-gradient(170deg,rgba(20,20,26,.88),rgba(12,12,16,.93)), url('assets/vr-form-bg.jpg') center/cover; border:1px solid rgba(212,168,67,.3); border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.5); }
+  .vr-next { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:26px; }
+  .vr-next-step { display:flex; gap:12px; align-items:flex-start; padding:16px; border-radius:16px; background:rgba(212,168,67,.06); border:1px solid rgba(212,168,67,.25); }
+  .vr-next-num { font-size:1.5rem; font-weight:800; color:#e8bd4e; line-height:1; flex:none; }
+  .vr-next-step strong { display:block; font-size:.92rem; margin-bottom:3px; }
+  .vr-next-step span { font-size:.82rem; color:#cfc8b8; }
+  @media (max-width:640px) { .vr-next { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -71,15 +77,20 @@
         <div class="vr-perk"><div><strong>Zero fees to join</strong><span>No cuts, no subscriptions. You keep what you earn.</span></div></div>
         <div class="vr-perk"><div><strong>Your crew, your schedule</strong><span>Accept the jobs you want, skip the rest.</span></div></div>
       </div>
+      <div class="vr-next">
+        <div class="vr-next-step"><span class="vr-next-num">1</span><div><strong>Register in 2 minutes</strong><span>Just the basics below. Nothing scary.</span></div></div>
+        <div class="vr-next-step"><span class="vr-next-num">2</span><div><strong>We review your application</strong><span>Usually within one business day.</span></div></div>
+        <div class="vr-next-step"><span class="vr-next-num">3</span><div><strong>Start getting jobs</strong><span>Accept work orders from your dashboard.</span></div></div>
+      </div>
     </div>
   </section>
 
   <section class="section" style="padding-top:20px">
     <div class="wrap" style="max-width:880px">
       <div class="vr-why">
-        <div class="vr-why-card"><img src="assets/bg-guarantee-crew.jpg" alt="Crew at work"><div><h3>Steady work, zero marketing</h3><p>No flyers, no bidding wars, no chasing payments. Just show up and do great work.</p></div></div>
-        <div class="vr-why-card"><img src="assets/service-pressure-washing.webp" alt="Pressure washing job"><div><h3>Clear work orders</h3><p>Every job comes with the scope, address, and pay in writing before you start.</p></div></div>
-        <div class="vr-why-card"><img src="assets/careers-crew.jpg" alt="PrimeGuard crew"><div><h3>Grow with us</strong></h3><p style="font-size:.9rem;color:#a89a7d;line-height:1.6">Reliable crews get first pick of new jobs and bigger contracts as we grow.</p></div></div>
+        <div class="vr-why-card"><img src="assets/vr-why-1.jpg" alt="Crew at work"><div><h3>Steady work, zero marketing</h3><p>No flyers, no bidding wars, no chasing payments. Just show up and do great work.</p></div></div>
+        <div class="vr-why-card"><img src="assets/vr-why-2.jpg" alt="Pressure washing job"><div><h3>Clear work orders</h3><p>Every job comes with the scope, address, and pay in writing before you start.</p></div></div>
+        <div class="vr-why-card"><img src="assets/vr-why-3.jpg" alt="PrimeGuard crew"><div><h3>Grow with us</strong></h3><p style="font-size:.9rem;color:#a89a7d;line-height:1.6">Reliable crews get first pick of new jobs and bigger contracts as we grow.</p></div></div>
       </div>
 
       <form id="vendor-register-form" class="card auth-card vr-form-card" style="margin-top:30px">
@@ -140,7 +151,7 @@
 
         <div style="margin:18px 0;padding:16px;border:1px solid rgba(201,162,75,.35);border-radius:12px;background:rgba(201,162,75,.05)">
           <p style="font-weight:700;margin-bottom:6px">Tax &amp; insurance documents</p>
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">We need these on file before you can receive paid jobs. Your documents stay private - only PrimeGuard sees them.</p>
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">These keep everyone protected. Nothing to worry about: you can register now and send these within 7 days. Only PrimeGuard sees them, nobody else.</p>
           <p style="font-weight:700;margin-bottom:6px">W-9 form</p>
           <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin-bottom:8px">
             <input type="radio" name="vr-w9-choice" value="now" checked style="margin-top:4px">
@@ -163,11 +174,12 @@
 
         <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.88rem;margin:16px 0">
           <input type="checkbox" id="vr-agree" required style="margin-top:4px">
-          <span>I agree to PrimeGuard's vendor terms: I'm paid per job completed after the work is verified with before/after photos, and I operate as an independent contractor responsible for my own taxes and insurance.</span>
+          <span>I agree to the vendor terms: I get paid per completed job after the work is verified, and I work as an independent contractor.</span>
         </label>
 
         <p class="form-error hidden" id="vr-error"></p>
         <button class="btn btn-gold" type="submit" id="vr-submit">Create vendor account</button>
+        <p style="margin-top:12px;color:var(--muted);font-size:.85rem;text-align:center">Free to join. No commitment. Leave anytime.</p>
         <p style="margin-top:14px;color:var(--muted);font-size:.9rem">Already registered? <a href="vendor-dashboard.html">Log in to your dashboard</a></p>
       </form>
     </div>

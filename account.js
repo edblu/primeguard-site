@@ -536,19 +536,19 @@
   var rwSvc = null, rwFreq = "One-time";
 
   var SERVICES = [
-    { name: "Lawn Care", price: "$45", img: "assets/service-lawn-care.webp",
+    { name: "Lawn Care", price: "$45", img: "assets/acard-lawn-care.jpg",
       desc: "Mowing, edging, and cleanup on a schedule you can count on. Through South Florida's year-round growing season.",
       benefits: ["Precision mow at the right height for your grass", "Crisp edging along driveways, walkways & beds", "Full blow-off. No clippings left behind", "One-time cleanups or a set schedule, your call", "A yard that looks sharp every single visit"] },
-    { name: "Pressure Washing", price: "$149", img: "assets/service-pressure-washing.webp",
+    { name: "Pressure Washing", price: "$149", img: "assets/acard-pressure-washing.jpg",
       desc: "Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.",
       benefits: ["Driveways, walkways, patios, siding & fences", "Mold, mildew & years of grime gone in an afternoon", "Curb appeal that transforms your home's look", "Safe wash methods for concrete, pavers & stucco", "We walk the results with you before we leave"] },
-    { name: "Debris & Junk Removal", price: "$89", img: "assets/service-junk-removal.webp",
+    { name: "Debris & Junk Removal", price: "$89", img: "assets/acard-junk-removal.jpg",
       desc: "Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.",
       benefits: ["Furniture, yard debris, appliances & clutter", "You point, we lift. Zero heavy lifting for you", "Fast pickup scheduling that fits your week", "Hauled away and disposed of responsibly", "Upfront price before anything leaves your property"] },
-    { name: "Make-Ready Cleaning", price: "$179", img: "assets/service-make-ready.webp",
+    { name: "Make-Ready Cleaning", price: "$179", img: "assets/acard-make-ready.jpg",
       desc: "Turnover cleans that get rentals and listings guest-ready. Kitchens, baths, floors, and details.",
       benefits: ["Deep move-in / move-out cleans", "Kitchens, baths, floors & all the details", "Rentals and listings guest-ready, fast", "Checklist clean. Nothing gets missed", "Perfect for landlords, realtors & Airbnb hosts"] },
-    { name: "Handyman Services", price: "$65", img: "assets/service-handyman.webp",
+    { name: "Handyman Services", price: "$65", img: "assets/acard-handyman.jpg",
       desc: "Small repairs and punch-list items done right the first time. One call handles the whole list.",
       benefits: ["Small repairs, installs & punch-list items", "One visit handles your whole list", "Done right the first time. Guaranteed", "Upfront pricing before work starts", "Respectful of your home: tidy work, every time"] }
   ];
