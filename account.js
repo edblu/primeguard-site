@@ -390,6 +390,25 @@
     uploadP.then(save).then(function () {
       $("reqStep2").hidden = true; $("reqDone").hidden = false;
       $("reqDone").querySelector("h3").textContent = isEdit ? "Changes saved!" : "Request received!";
+      // Email Edwin instantly via the website lead endpoint (same alerts as the quote form).
+      if (!isEdit) {
+        try {
+          var lep = (window.SITE_CONFIG && window.SITE_CONFIG.leadEndpoint) || "";
+          if (lep) {
+            fetch(lep, {
+              method: "POST", mode: "no-cors",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({
+                name: custInfo.name, phone: custInfo.phone, email: custInfo.email,
+                service: "Dashboard request: " + reqSvc + " (" + reqFreq + ")",
+                message: $("reqDetails").value.trim(),
+                source: "account-dashboard", uid: user.uid,
+                timestamp: new Date().toISOString()
+              })
+            }).catch(function () {});
+          }
+        } catch (e) {}
+      }
       loadRequests(user.uid);
     }).catch(function (err) {
       var el = $("reqError");

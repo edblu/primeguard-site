@@ -123,7 +123,28 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); }
+
+  function loadServiceRequests() {
+    db.collection("service_requests").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
+      var box = $("ad-sr-list");
+      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No customer requests yet.</p>'; return; }
+      box.innerHTML = "";
+      qs.forEach(function (d) {
+        var r = d.data();
+        var row = document.createElement("div"); row.className = "arow";
+        row.innerHTML = '<div class="grow"><strong>' + esc(r.service || "Service request") +
+          (r.frequency ? " — " + esc(r.frequency) : "") + "</strong><small>" +
+          esc(r.name || "") + (r.phone ? " · " + esc(r.phone) : "") +
+          (r.message ? " · " + esc(r.message) : "") + "</small></div>" +
+          pill(r.status) +
+          ' <button class="mini danger" data-srdel="' + d.id + '">Delete</button>';
+        box.appendChild(row);
+      });
+    }).catch(function () {
+      $("ad-sr-list").innerHTML = '<p style="color:var(--faint)">Couldn\'t load requests.</p>';
+    });
+  }
 
   function loadStats() {
     db.collection("work_orders").get().then(function (qs) {
@@ -326,6 +347,7 @@
     if (d.wodone) db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll);
     if (d.wodel && confirm("Delete this work order?")) db.collection("work_orders").doc(d.wodel).delete().then(loadAll);
     if (d.woedit) enterEditMode(d.woedit);
+    if (d.srdel && confirm("Delete this customer request?")) db.collection("service_requests").doc(d.srdel).delete().then(loadAll);
     if (d.qok) {
       var parts = d.qok.split("|"), qid = parts[0], woid = parts[1];
       db.collection("quotes").doc(qid).get().then(function (qsnap) {
