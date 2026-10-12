@@ -26,8 +26,15 @@
 
   $("ad-google").addEventListener("click", function () {
     var errEl = $("ad-login-err"); hide(errEl);
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (err) {
-      errEl.textContent = err.message; show(errEl);
+    var provider = new firebase.auth.GoogleAuthProvider();
+    // Mobile browsers often block popups: fall back to full-page redirect.
+    auth.signInWithPopup(provider).catch(function (err) {
+      if (err && (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user" ||
+          err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-window-closed")) {
+        auth.signInWithRedirect(provider);
+      } else {
+        errEl.textContent = err.message; show(errEl);
+      }
     });
   });
 
