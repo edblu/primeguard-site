@@ -441,15 +441,26 @@ a { color: var(--gold-bright); }
 
 /* ---------- Footer ---------- */
 .site-footer { border-top: 1px solid var(--line-soft); background: #060607; padding: 56px 0 64px; }
-.footer-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
-.footer-brand { display: flex; gap: 16px; align-items: center; }
+.footer-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 26px; }
+.footer-brand { display: flex; gap: 16px; align-items: center; justify-content: center; }
 .footer-brand img { width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--gold); }
 .footer-brand p { color: var(--text); font-weight: 600; line-height: 1.5; }
 .footer-brand p span { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
-.footer-contact { display: grid; gap: 8px; justify-items: end; text-align: right; }
+.footer-contact { display: grid; gap: 8px; justify-items: center; text-align: center; }
 .footer-contact a { color: var(--gold-bright); text-decoration: none; font-weight: 600; }
 .footer-contact span { color: var(--muted); font-size: 0.9rem; }
-.footer-copy { grid-column: 1 / -1; color: var(--faint); font-size: 0.82rem; margin-top: 12px; }
+.footer-copy { color: var(--faint); font-size: 0.82rem; margin-top: 6px; text-align: center; }
+
+/* Service-page footer (footer-grid) - centered */
+.footer-grid { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px; padding: 52px 20px 18px; max-width: 1200px; margin: 0 auto; }
+.footer-grid .footer-brand { flex-direction: column; gap: 12px; }
+.footer-grid .footer-brand img { width: 66px; height: 66px; }
+.footer-grid .footer-brand p { margin: 0; }
+.footer-grid .footer-links { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; margin: 0; }
+.footer-grid .footer-links a { color: var(--muted); font-weight: 600; text-decoration: none; }
+.footer-grid .footer-links a:hover { color: var(--gold-bright); }
+.footer-bottom { text-align: center; padding: 0 20px 40px; color: var(--faint); font-size: 0.82rem; }
+.footer-bottom p { margin: 0; }
 
 /* ---------- Mobile call bar ---------- */
 .mobile-callbar { display: none; }
@@ -490,8 +501,8 @@ a { color: var(--gold-bright); }
   .hero-kicker { letter-spacing: 0.18em; font-size: 0.68rem; }
 
   .search-bar input { font-size: 0.98rem; }
-  .footer-inner { grid-template-columns: 1fr; }
-  .footer-contact { justify-items: start; text-align: left; }
+  .footer-inner { gap: 22px; }
+  .footer-contact { justify-items: center; text-align: center; }
   body:has(.mobile-callbar) .site-footer { padding-bottom: 160px; }
   .mobile-callbar {
     display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
@@ -1998,6 +2009,15 @@ body {
   .cx-price-chip { display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(212,168,67,.5); border-radius:999px; padding:12px 22px; color:#f5d67b; font-weight:700; background:rgba(10,10,12,.55); backdrop-filter:blur(6px); }
   /* BENEFITS */
   .cx-sec { max-width:1100px; margin:0 auto; padding:84px 28px 20px; }
+  /* full-bleed photo band with gradient fade top + bottom */
+  .cx-band { position:relative; background-size:cover; background-position:center; background-attachment:scroll; }
+  .cx-band::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg,#08080a 0%,rgba(8,8,10,.78) 16%,rgba(8,8,10,.60) 50%,rgba(8,8,10,.78) 84%,#08080a 100%); }
+  .cx-band > .cx-sec { position:relative; z-index:1; }
+  .cx-band-cta { position:relative; background-size:cover; background-position:center; }
+  .cx-band-cta::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg,#08080a 0%,rgba(8,8,10,.55) 30%,rgba(8,8,10,.55) 70%,#08080a 100%); }
+  .cx-band-cta > .cx-cta { position:relative; z-index:1; }
   .cx-sec h2 { font-size:clamp(1.8rem,4vw,2.6rem); font-weight:800; margin-bottom:8px; }
   .cx-sec .cx-lede { color:#a89a7d; margin-bottom:34px; }
   .cx-bens { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }

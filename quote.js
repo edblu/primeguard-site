@@ -9,8 +9,8 @@
       q1: { label: "How big is the yard?", opts: ["Small yard", "Medium yard", "Large yard"] }, base: [45, 65, 90],
       q2: { label: "How often?", opts: [["One-time", 1], ["Monthly", 0.95], ["Biweekly", 0.9], ["Weekly", 0.85]] },
       q3: { label: "Property type?", opts: ["Single-family home", "Townhouse", "Commercial property"] } },
-    "pressure-washing": { name: "Pressure Washing", img: "assets/service-pressure-washing.webp", from: 149, unit: "per visit",
-      q1: { label: "How big is the area?", opts: ["Small area", "Medium area", "Large area"] }, base: [149, 199, 269],
+    "pressure-washing": { name: "Pressure Washing", img: "assets/service-pressure-washing.webp", from: 169, unit: "per visit",
+      q1: { label: "How big is the area?", opts: ["Small area", "Medium area", "Large area"] }, base: [169, 219, 289],
       q2: { label: "What are we washing?", opts: [["Driveway only", 1], ["House exterior", 1.25], ["Driveway + house", 1.6], ["Whole property", 2]] },
       q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] } },
     "junk-removal": { name: "Debris & Junk Removal", img: "assets/service-junk-removal.webp", from: 89, unit: "per load",
@@ -52,7 +52,7 @@
   function price() {
     if (!svcKey) return 0;
     var c = QUOTE_SVCS[svcKey];
-    return Math.max(25, Math.round(c.base[q1i] * c.q2[q2i][1] / 5) * 5);
+    return Math.max(25, Math.round(c.base[q1i] * c.q2.opts[q2i][1] / 5) * 5);
   }
 
   function animatePrice(to) {
