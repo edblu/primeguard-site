@@ -55,6 +55,17 @@
   .qfile { width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(212,168,67,.5); background: rgba(212,168,67,.05); color: var(--text); font-size: .9rem; font-family: inherit; box-sizing: border-box; cursor: pointer; }
   .qthumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .qthumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(212,168,67,.4); }
+  .qhiw { padding: 70px 0; border-top: 1px solid rgba(212,168,67,.18); }
+  .qhiw h2 { font-size: 1.8rem; margin: 8px 0 30px; }
+  .qhiw-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; }
+  .qhiw-step { display: flex; gap: 12px; align-items: flex-start; }
+  .qhiw-num { font-size: 1.6rem; font-weight: 800; color: #e8bd4e; line-height: 1; flex: none; }
+  .qhiw-step strong { display: block; font-size: .92rem; margin-bottom: 4px; }
+  .qhiw-step p { font-size: .83rem; color: #a89a7d; margin: 0; line-height: 1.5; }
+  .qhiw-more { margin-top: 26px; }
+  .qhiw-more a { color: #e8bd4e; font-weight: 700; }
+  @media (max-width: 900px) { .qhiw-steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .qhiw-steps { grid-template-columns: 1fr; } }
   .qform .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .qerr { color: #ff9d9d; font-size: .9rem; margin: 10px 0; }
   .qdone { text-align: center; padding: 30px 10px; }
@@ -178,6 +189,21 @@
           </div>
         </aside>
       </div>
+    </div>
+  </section>
+
+  <section class="qhiw">
+    <div class="wrap">
+      <p class="section-kicker">How it works</p>
+      <h2>From request to done.</h2>
+      <div class="qhiw-steps">
+        <div class="qhiw-step"><span class="qhiw-num">1</span><div><strong>You tell us what you need</strong><p>Pick a service, answer a few questions, add photos.</p></div></div>
+        <div class="qhiw-step"><span class="qhiw-num">2</span><div><strong>We review it</strong><p>We price it on the spot when we can.</p></div></div>
+        <div class="qhiw-step"><span class="qhiw-num">3</span><div><strong>Pro evaluates, if needed</strong><p>Free visit when photos aren't enough.</p></div></div>
+        <div class="qhiw-step"><span class="qhiw-num">4</span><div><strong>You get the final quote</strong><p>Confirmed before anything starts. No surprises.</p></div></div>
+        <div class="qhiw-step"><span class="qhiw-num">5</span><div><strong>You approve. We do the job.</strong><p>Photo-verified work. You pay when happy.</p></div></div>
+      </div>
+      <p class="qhiw-more"><a href="how-it-works.html">Read the full process →</a></p>
     </div>
   </section>
 </main>
