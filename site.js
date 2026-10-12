@@ -585,6 +585,7 @@
   var searchEmptyTerm = document.getElementById("searchEmptyTerm");
   var cards = Array.prototype.slice.call(document.querySelectorAll(".service-card"));
   var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
+  var hasSearch = !!(searchInput && cards.length);
 
   function normalize(s) {
     return (s || "").toLowerCase().trim();
@@ -608,43 +609,47 @@
     return visible;
   }
 
-  searchInput.addEventListener("input", function () {
-    applyFilter(searchInput.value);
-  });
-
-  searchClear.addEventListener("click", function () {
-    searchInput.value = "";
-    applyFilter("");
-    searchInput.focus();
-  });
-
-  chips.forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      var term = chip.getAttribute("data-chip");
-      searchInput.value = term;
-      var visible = applyFilter(term);
-      var target = null;
-      if (visible === 1) {
-        target = cards.filter(function (c) { return !c.classList.contains("hidden"); })[0];
-      }
-      (target || document.getElementById("services")).scrollIntoView({ behavior: "smooth", block: "start" });
+  if (hasSearch) {
+    searchInput.addEventListener("input", function () {
+      applyFilter(searchInput.value);
     });
-  });
 
-  searchInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      document.getElementById("services").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
+    if (searchClear) searchClear.addEventListener("click", function () {
+      searchInput.value = "";
+      applyFilter("");
+      searchInput.focus();
+    });
+
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var term = chip.getAttribute("data-chip");
+        searchInput.value = term;
+        var visible = applyFilter(term);
+        var target = null;
+        if (visible === 1) {
+          target = cards.filter(function (c) { return !c.classList.contains("hidden"); })[0];
+        }
+        (target || document.getElementById("services")).scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    searchInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("services").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
 
   /* ---------- Quote form -> lead POST (or mailto fallback) ---------- */
   var form = document.getElementById("quoteForm");
   var formStatus = document.getElementById("formStatus");
   var formNote = document.getElementById("formNote");
   var leadEndpoint = (cfg.leadEndpoint || "").trim();
+  var hasQuoteForm = !!(form && formStatus && formNote);
 
   function renderFormNote() {
+    if (!formNote) return;
     formNote.textContent = leadEndpoint ? t("form_note_api") : t("form_note_mailto");
   }
 
@@ -675,7 +680,7 @@
       "&body=" + encodeURIComponent(body);
   }
 
-  form.addEventListener("submit", function (e) {
+  if (hasQuoteForm) form.addEventListener("submit", function (e) {
     e.preventDefault();
     clearFormStatus();
     if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -736,6 +741,8 @@
       btn.disabled = false;
     });
   });
+
+  if (hasQuoteForm) renderFormNote();
 
   /* ---------- Subscription plans ---------- */
   // cfg.plans: [{ price, service }]. Display strings come from i18n
@@ -798,6 +805,7 @@
   var modalClose = document.getElementById("bookingClose");
   var bookingTitle = document.getElementById("bookingTitle");
   var bookingBody = document.getElementById("bookingBody");
+  var hasBooking = !!(modal && modalClose && bookingTitle && bookingBody);
 
   function bookingUrlValid() {
     var u = (cfg.bookingUrl || "").trim();
@@ -805,6 +813,7 @@
   }
 
   function renderBooking() {
+    if (!hasBooking) return;
     bookingTitle.textContent = t("booking_title");
     bookingBody.innerHTML = "";
     if (bookingUrlValid()) {
@@ -827,11 +836,13 @@
   }
 
   function openBooking() {
+    if (!hasBooking) return;
     renderBooking();
     modal.hidden = false;
     document.body.classList.add("modal-open");
   }
   function closeBooking() {
+    if (!hasBooking) return;
     modal.hidden = true;
     document.body.classList.remove("modal-open");
   }
@@ -842,13 +853,15 @@
       openBooking();
     });
   });
-  modalClose.addEventListener("click", closeBooking);
-  modal.addEventListener("click", function (e) {
-    if (e.target === modal) closeBooking();
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !modal.hidden) closeBooking();
-  });
+  if (hasBooking) {
+    modalClose.addEventListener("click", closeBooking);
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) closeBooking();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !modal.hidden) closeBooking();
+    });
+  }
 
   /* ---------- Plan signup modal ---------- */
   var planModal = document.getElementById("planModal");
@@ -993,7 +1006,7 @@
     });
     renderFormNote();
     renderPlanNote();
-    if (!modal.hidden) renderBooking();
+    if (modal && !modal.hidden) renderBooking();
     updateAuthButtons();
   }
 

@@ -1587,6 +1587,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 }
 .referral-box input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,75,0.14); }
 #refGen { width: 100%; }
+.ref-code-row[hidden] { display: none; }
 .ref-code-row {
   display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
   margin: 22px 0 6px; padding: 18px; border-radius: 14px;
