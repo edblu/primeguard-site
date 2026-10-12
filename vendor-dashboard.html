@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Dashboard | PrimeGuard Preservation</title>
+<meta name="description" content="PrimeGuard vendor dashboard: your jobs, quote requests, earnings, and profile.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<style>
+  .vwrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+  .vtop { display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+  .vbrand { font-weight:800; font-size:1.05rem; }
+  .vbrand span { color: var(--gold); }
+  .vtag { font-size:.7rem; text-transform:uppercase; letter-spacing:.2em; color:var(--gold); border:1px solid var(--line); border-radius:999px; padding:5px 14px; }
+  .vright { margin-left:auto; display:flex; align-items:center; gap:14px; }
+  .vavatar { width:38px; height:38px; border-radius:50%; background:radial-gradient(circle at 30% 25%, var(--gold-bright), var(--gold-deep)); display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1405; }
+  .vhero { padding:36px 0 6px; }
+  .vkicker { text-transform:uppercase; letter-spacing:.24em; font-size:.72rem; color:var(--gold); font-weight:600; margin-bottom:8px; }
+  .vhero h1 { font-size:clamp(1.7rem,4vw,2.4rem); font-weight:800; }
+  .vsub { color:var(--muted); margin-top:6px; max-width:640px; }
+  .vstats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin:26px 0 6px; }
+  .vstat { border-radius:18px; padding:22px; background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,0) 55%),linear-gradient(180deg,#141417,#0c0c0e); border:1px solid rgba(255,255,255,.07); box-shadow:0 18px 44px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); position:relative; overflow:hidden; }
+  .vstat::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; background:linear-gradient(90deg,transparent,rgba(201,162,75,.6),transparent); }
+  .vstat .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.16em; color:var(--muted); margin-bottom:6px; }
+  .vstat .v { font-size:1.9rem; font-weight:800; }
+  .vstat .n { font-size:.8rem; color:var(--faint); margin-top:4px; }
+  .vsec { padding:30px 0 4px; }
+  .vsec h2 { font-size:1.3rem; margin-bottom:4px; }
+  .vsec .cnt { font-size:.78rem; color:var(--gold); letter-spacing:.1em; margin-bottom:16px; display:block; }
+  .vjobs { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+  .vjob { border-radius:18px; padding:24px; position:relative; overflow:hidden; background:linear-gradient(170deg,rgba(201,162,75,.07),rgba(201,162,75,0) 45%),linear-gradient(180deg,#131316,#0b0b0d); border:1px solid var(--line); box-shadow:0 16px 40px rgba(0,0,0,.5); }
+  .vjob::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep)); }
+  .vjob .t { font-size:.7rem; text-transform:uppercase; letter-spacing:.18em; color:var(--gold); margin-bottom:8px; }
+  .vjob h3 { font-size:1.1rem; margin-bottom:6px; }
+  .vjob p { color:var(--muted); font-size:.9rem; margin-bottom:12px; }
+  .vjob .meta { font-size:.82rem; color:var(--faint); margin-bottom:16px; }
+  .vjob .meta strong { color:var(--text); }
+  .vthumbs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .vthumbs img { width:90px; height:64px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.1); }
+  .vempty { color:var(--faint); font-size:.92rem; padding:18px; border:1px dashed rgba(255,255,255,.14); border-radius:14px; }
+  .vsteps { list-style:none; margin:14px 0; display:flex; flex-direction:column; gap:10px; }
+  .vsteps li { display:flex; align-items:center; gap:12px; font-size:.93rem; }
+  .vdot { width:28px; height:28px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; }
+  .sdone .vdot { background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep)); color:#1a1405; }
+  .stodo .vdot { border:1px dashed rgba(201,162,75,.5); color:var(--gold); }
+  .stodo { color:var(--muted); }
+  .vform label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:12px; }
+  .vform input, .vform textarea, .vform select { margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:1rem; font-family:inherit; }
+  .vform .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .vhist { display:flex; flex-direction:column; gap:12px; }
+  .vhrow { display:flex; align-items:center; gap:16px; border-radius:14px; padding:14px 18px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); }
+  .vhrow .info { flex:1; } .vhrow .info strong { display:block; font-size:.93rem; } .vhrow .info span { font-size:.8rem; color:var(--faint); }
+  .vpaid { color:var(--gold-bright); font-weight:700; font-size:.88rem; white-space:nowrap; }
+  .vpaid small { display:block; color:var(--faint); font-weight:400; font-size:.72rem; }
+  .vgrid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+  .vfield { border-radius:12px; padding:14px 16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); }
+  .vfield span { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; color:var(--faint); margin-bottom:4px; }
+  .vfield strong { font-size:.95rem; font-weight:600; }
+  .verr { color:#ff9d9d; font-size:.9rem; margin:10px 0; }
+  .vok { color:var(--gold-bright); font-size:.9rem; margin:10px 0; }
+</style>
+</head>
+<body>
+<div class="vwrap">
+  <div class="vtop">
+    <div class="vbrand">PrimeGuard <span>Preservation</span></div>
+    <div class="vtag">Vendor Portal</div>
+    <div class="vright">
+      <div class="vavatar" id="vd-avatar">V</div>
+      <div><strong id="vd-biz" style="font-size:.9rem">Vendor</strong><br><span id="vd-area" style="font-size:.75rem;color:var(--faint)"></span></div>
+      <a href="#" id="vd-logout" style="color:var(--muted);font-size:.85rem">Log out</a>
+    </div>
+  </div>
+</div>
+
+<!-- Login gate -->
+<div class="vwrap" id="vd-loginwrap">
+  <section class="vhero">
+    <p class="vkicker">Vendor portal</p>
+    <h1>Log in</h1>
+    <p class="vsub">Log in with your vendor account to see your jobs and submit quotes. New here? <a href="vendor-register.html" style="color:var(--gold-bright)">Register your crew</a>.</p>
+  </section>
+  <section style="max-width:440px;padding:10px 0 60px">
+    <form id="vd-loginform" class="card auth-card vform">
+      <label>Email<input type="email" id="vd-login-email" required></label>
+      <label>Password<input type="password" id="vd-login-password" required></label>
+      <p class="verr hidden" id="vd-login-error"></p>
+      <button class="btn btn-gold" type="submit">Log in</button>
+    </form>
+  </section>
+</div>
+
+<!-- Dashboard -->
+<div class="vwrap hidden" id="vd-dash">
+  <section class="vhero">
+    <p class="vkicker">Vendor dashboard</p>
+    <h1>Hello, <span class="gold-text" id="vd-hello">there</span></h1>
+    <p class="vsub">Your work, your earnings, and your profile. Accept a job, follow the work order, upload before and after photos, and get paid per job completed.</p>
+  </section>
+
+  <section class="vstats">
+    <div class="vstat"><div class="l">Jobs completed</div><div class="v" id="st-done">0</div><div class="n" id="st-done-n"></div></div>
+    <div class="vstat"><div class="l">Earned</div><div class="v gold-text" id="st-earned">$0</div><div class="n">Paid per job completed</div></div>
+    <div class="vstat"><div class="l">Pending payment</div><div class="v" id="st-pending">$0</div><div class="n" id="st-pending-n"></div></div>
+    <div class="vstat"><div class="l">Open opportunities</div><div class="v" id="st-open">0</div><div class="n">Jobs + quote requests</div></div>
+  </section>
+
+  <section class="vsec">
+    <h2>Quote requests</h2><span class="cnt" id="cnt-qr"></span>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">PrimeGuard posts the job details and photos. Review them, accept the evaluation visit, then submit your quote.</p>
+    <div class="vjobs" id="list-qr"></div>
+  </section>
+
+  <section class="vsec">
+    <h2>Available jobs</h2><span class="cnt" id="cnt-jobs"></span>
+    <div class="vjobs" id="list-jobs"></div>
+  </section>
+
+  <section class="vsec">
+    <h2>My active work</h2><span class="cnt" id="cnt-active"></span>
+    <div class="vjobs" id="list-active"></div>
+  </section>
+
+  <section class="vsec">
+    <h2>Submit your quote</h2><span class="cnt">AFTER YOUR EVALUATION VISIT</span>
+    <div class="vjob" style="max-width:720px">
+      <form id="vd-quoteform" class="vform">
+        <label>Which quote request is this for?
+          <select id="q-workorder"><option value="">Select a quote request...</option></select>
+        </label>
+        <div class="row2">
+          <label>Your price ($)<input type="text" id="q-price" placeholder="450" required></label>
+          <label>How long will it take<input type="text" id="q-duration" placeholder="1 day"></label>
+        </div>
+        <label>Quote details<textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..."></textarea></label>
+        <p class="verr hidden" id="q-error"></p>
+        <p class="vok hidden" id="q-ok">Quote submitted. PrimeGuard will review it.</p>
+        <button class="btn btn-gold" type="submit">Submit quote</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="vsec">
+    <h2>Completed work</h2><span class="cnt" id="cnt-done"></span>
+    <div class="vhist" id="list-done"></div>
+  </section>
+
+  <section class="vsec" style="padding-bottom:60px">
+    <h2>My profile</h2><span class="cnt" id="cnt-verified"></span>
+    <div class="vgrid2" id="vd-profile"></div>
+  </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="config.js"></script>
+<script src="vendor-dashboard.js"></script>
+</body>
+</html>

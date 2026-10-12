@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — PrimeGuard Preservation</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<style>
+  .awrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+  .atop { display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+  .abrand { font-weight:800; font-size:1.05rem; } .abrand span { color:var(--gold); }
+  .atag { font-size:.7rem; text-transform:uppercase; letter-spacing:.2em; color:var(--gold); border:1px solid var(--line); border-radius:999px; padding:5px 14px; }
+  .aright { margin-left:auto; display:flex; align-items:center; gap:14px; }
+  .aform label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:12px; }
+  .aform input, .aform textarea, .aform select { margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:1rem; font-family:inherit; }
+  .aform .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .acard { border-radius:18px; padding:26px; background:linear-gradient(180deg,#141417,#0b0b0d); border:1px solid rgba(255,255,255,.07); box-shadow:0 18px 46px rgba(0,0,0,.55); position:relative; overflow:hidden; margin-bottom:18px; }
+  .acard::after { content:""; position:absolute; top:0; left:24px; right:24px; height:1px; background:linear-gradient(90deg,transparent,rgba(201,162,75,.5),transparent); }
+  .acard h3 { margin-bottom:4px; } .acard .sub { color:var(--muted); font-size:.88rem; margin-bottom:16px; }
+  .astats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin:24px 0 6px; }
+  .astat { border-radius:14px; padding:18px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); }
+  .astat .l { font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); }
+  .astat .v { font-size:1.7rem; font-weight:800; }
+  .arow { display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.06); font-size:.92rem; }
+  .arow .grow { flex:1; } .arow small { color:var(--faint); display:block; font-size:.78rem; }
+  .pill { font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; border-radius:999px; padding:4px 12px; font-weight:700; }
+  .p-open { background:rgba(201,162,75,.16); color:var(--gold-bright); }
+  .p-acc { background:rgba(120,180,255,.14); color:#a9c8ff; }
+  .p-rev { background:rgba(255,180,120,.14); color:#ffc89a; }
+  .p-done { background:rgba(140,220,150,.14); color:#a9e6b2; }
+  .p-pend { background:rgba(201,162,75,.16); color:var(--gold-bright); }
+  .mini { font-size:.8rem; padding:8px 16px; border-radius:999px; cursor:pointer; border:1px solid var(--line); background:transparent; color:var(--gold-bright); font-family:inherit; }
+  .mini:hover { border-color:var(--gold); }
+  .mini.danger { border-color:rgba(255,120,120,.4); color:#ff9d9d; }
+  .aerr { color:#ff9d9d; font-size:.9rem; margin:10px 0; }
+  .aok { color:var(--gold-bright); font-size:.9rem; margin:10px 0; }
+  .athumbs { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+  .athumbs img { width:80px; height:58px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.1); }
+  .asec { padding:26px 0 4px; } .asec h2 { font-size:1.25rem; margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div class="awrap">
+  <div class="atop">
+    <div class="abrand">PrimeGuard <span>Preservation</span></div>
+    <div class="atag">Admin</div>
+    <div class="aright">
+      <span id="ad-who" style="font-size:.85rem;color:var(--muted)"></span>
+      <a href="#" id="ad-logout" style="color:var(--muted);font-size:.85rem">Log out</a>
+    </div>
+  </div>
+</div>
+
+<div class="awrap hidden" id="ad-loginwrap" style="padding:60px 22px">
+  <h1 style="margin-bottom:8px">Admin login</h1>
+  <p style="color:var(--muted);margin-bottom:20px;max-width:520px">This area is for PrimeGuard staff only. Log in with your staff account.</p>
+  <form id="ad-loginform" class="card auth-card aform" style="max-width:440px">
+    <label>Email<input type="email" id="ad-email" required></label>
+    <label>Password<input type="password" id="ad-pass" required></label>
+    <p class="aerr hidden" id="ad-login-err"></p>
+    <button class="btn btn-gold" type="submit">Log in</button>
+  </form>
+</div>
+
+<div class="awrap hidden" id="ad-dash">
+  <section class="astats">
+    <div class="astat"><div class="l">Open work orders</div><div class="v" id="as-open">0</div></div>
+    <div class="astat"><div class="l">Active jobs</div><div class="v" id="as-active">0</div></div>
+    <div class="astat"><div class="l">Quotes to review</div><div class="v" id="as-quotes">0</div></div>
+    <div class="astat"><div class="l">Vendors</div><div class="v" id="as-vendors">0</div></div>
+  </section>
+
+  <section class="asec">
+    <h2>Create work order</h2>
+    <div class="acard">
+      <form id="ad-woform" class="aform">
+        <label>Title<input type="text" id="wo-title" required placeholder="Yard cleanup + plant removal"></label>
+        <div class="row2">
+          <label>Type
+            <select id="wo-kind">
+              <option value="job">Job — accept and do the work</option>
+              <option value="quote_request">Quote request — evaluate first, then quote</option>
+            </select>
+          </label>
+          <label>Category<input type="text" id="wo-category" placeholder="Tree trimming"></label>
+        </div>
+        <div class="row2">
+          <label>Area<input type="text" id="wo-area" required placeholder="Kendall Lakes"></label>
+          <label>Pay<input type="text" id="wo-pay" placeholder="$280 or per job"></label>
+        </div>
+        <label>Details<textarea id="wo-details" rows="3" placeholder="What needs to be done..."></textarea></label>
+        <label>Photos<input type="file" id="wo-photos" accept="image/*" multiple></label>
+        <div class="athumbs" id="wo-preview"></div>
+        <label>Send to
+          <select id="wo-assign">
+            <option value="broadcast">All vendors (broadcast)</option>
+          </select>
+        </label>
+        <p class="aerr hidden" id="wo-error"></p>
+        <p class="aok hidden" id="wo-ok">Work order created. It is live on vendor dashboards now.</p>
+        <button class="btn btn-gold" type="submit" id="wo-submit">Create work order</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="asec">
+    <h2>Work orders</h2>
+    <div class="acard"><div id="ad-wo-list"></div></div>
+  </section>
+
+  <section class="asec">
+    <h2>Quotes to review</h2>
+    <div class="acard"><div id="ad-quote-list"></div></div>
+  </section>
+
+  <section class="asec">
+    <h2>Vendors</h2>
+    <div class="acard"><div id="ad-vendor-list"></div></div>
+  </section>
+
+  <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
+    <h2>Acquisition managers</h2>
+    <div class="acard">
+      <p class="sub">Invite a team member by email. They sign up on the site, then get staff access here automatically.</p>
+      <form id="ad-inviteform" class="aform" style="display:flex;gap:10px;align-items:flex-end">
+        <label style="flex:1;margin:0">Email<input type="email" id="inv-email" required placeholder="teammate@email.com"></label>
+        <button class="btn btn-gold" type="submit">Send invite</button>
+      </form>
+      <p class="aerr hidden" id="inv-error"></p>
+      <p class="aok hidden" id="inv-ok">Invite created.</p>
+      <div id="ad-team-list" style="margin-top:16px"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

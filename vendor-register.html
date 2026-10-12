@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Registration | PrimeGuard Preservation</title>
+<meta name="description" content="Register your crew with PrimeGuard Preservation. We bring the customers and handle scheduling. You do the work, paid per job completed. No fees.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html"><img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation logo" class="brand-logo"><span class="brand-text">PrimeGuard <span>Preservation LLC</span></span></a>
+    <nav class="main-nav">
+      <a href="index.html#services">Services</a>
+      <a href="plans.html">Plans</a>
+      <a href="work.html">Work</a>
+      <a href="reviews.html">Reviews</a>
+      <a href="government.html">Government</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn btn-gold" href="index.html#contact">Book now</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="account-hero">
+    <div class="wrap">
+      <p class="section-kicker">Vendor registration</p>
+      <h1 class="grad-text">Join the crew network</h1>
+      <p class="section-lead">We bring the customers and handle scheduling. Your crew does the work. Written work orders, paid per job completed, no fees to join.</p>
+    </div>
+  </section>
+
+  <section class="section account-section">
+    <div class="wrap" style="max-width:720px">
+      <form id="vendor-register-form" class="card auth-card">
+        <h2>Create your vendor account</h2>
+
+        <label>Business name<input type="text" id="vr-business" required autocomplete="organization"></label>
+        <label>Your name<input type="text" id="vr-name" required autocomplete="name"></label>
+        <label>Email<input type="email" id="vr-email" required autocomplete="email"></label>
+        <label>Phone<input type="tel" id="vr-phone" required autocomplete="tel"></label>
+        <label>Password<input type="password" id="vr-password" required minlength="6" autocomplete="new-password"></label>
+
+        <div style="margin:18px 0">
+          <p style="font-weight:600;margin-bottom:10px">Services your crew does</p>
+          <div id="vr-services" style="display:flex;flex-wrap:wrap;gap:10px">
+            <label style="font-weight:400"><input type="checkbox" value="Lawn care"> Lawn care</label>
+            <label style="font-weight:400"><input type="checkbox" value="Tree trimming"> Tree trimming</label>
+            <label style="font-weight:400"><input type="checkbox" value="Tree removal"> Tree removal</label>
+            <label style="font-weight:400"><input type="checkbox" value="Stump grinding"> Stump grinding</label>
+            <label style="font-weight:400"><input type="checkbox" value="Cleanups"> Cleanups</label>
+            <label style="font-weight:400"><input type="checkbox" value="Planting"> Planting</label>
+            <label style="font-weight:400"><input type="checkbox" value="Pressure washing"> Pressure washing</label>
+            <label style="font-weight:400"><input type="checkbox" value="Handyman"> Handyman</label>
+          </div>
+        </div>
+
+        <div style="margin:18px 0">
+          <p style="font-weight:600;margin-bottom:10px">Areas you cover</p>
+          <div id="vr-areas" style="display:flex;flex-wrap:wrap;gap:10px">
+            <label style="font-weight:400"><input type="checkbox" value="Homestead"> Homestead</label>
+            <label style="font-weight:400"><input type="checkbox" value="Kendall"> Kendall</label>
+            <label style="font-weight:400"><input type="checkbox" value="Miami"> Miami</label>
+            <label style="font-weight:400"><input type="checkbox" value="Hialeah"> Hialeah</label>
+            <label style="font-weight:400"><input type="checkbox" value="Cutler Bay"> Cutler Bay</label>
+            <label style="font-weight:400"><input type="checkbox" value="Miramar"> Miramar</label>
+            <label style="font-weight:400"><input type="checkbox" value="Miami Gardens"> Miami Gardens</label>
+            <label style="font-weight:400"><input type="checkbox" value="North Miami"> North Miami</label>
+          </div>
+        </div>
+
+        <label>Crew size
+          <select id="vr-crewsize" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">
+            <option value="Just me">Just me</option>
+            <option value="2-3 people">2-3 people</option>
+            <option value="4-6 people">4-6 people</option>
+            <option value="7+ people">7+ people</option>
+          </select>
+        </label>
+        <label>Equipment (optional)<input type="text" id="vr-equipment" placeholder="e.g. 50-ft lift, stump grinder"></label>
+
+        <p class="form-error hidden" id="vr-error"></p>
+        <button class="btn btn-gold" type="submit" id="vr-submit">Create vendor account</button>
+        <p style="margin-top:14px;color:var(--muted);font-size:.9rem">Already registered? <a href="vendor-dashboard.html">Log in to your dashboard</a></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="vendor.js"></script>
+</body>
+</html>

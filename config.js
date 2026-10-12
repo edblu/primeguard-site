@@ -32,6 +32,9 @@ window.SITE_CONFIG = {
     appId: "1:1031375547061:web:947b8ed95695a0df2b2cfc"
   },
 
+  // --- Photo uploads (Apps Script + Google Drive). Empty = upload disabled.
+  photoEndpoint: "",
+
   // --- Subscription plans (STARTING prices — Edwin adjusts these freely).
   // price: shown on the plan card (injected by site.js). service: must match
   // a value in the quote-form service dropdown so "Choose plan" preselects it.
