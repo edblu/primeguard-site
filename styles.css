@@ -1997,7 +1997,7 @@ body {
   body { font-family:'Segoe UI',system-ui,sans-serif; background:#0a0a0c; color:#f2ede2; }
   .cx-tag { display:inline-block; font-size:.7rem; letter-spacing:.28em; text-transform:uppercase; color:#e8c56a; font-weight:700; margin-bottom:14px; }
   /* HERO */
-  .cx-hero { position:relative; min-height:88vh; display:flex; align-items:flex-end; background:linear-gradient(180deg,#0b0b0e,#08080a); }
+  .cx-hero { position:relative; min-height:88vh; display:flex; align-items:flex-end; background:linear-gradient(180deg,#0b0b0e,#08080a); background-size:cover; background-position:center; background-repeat:no-repeat; }
   .cx-hero::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,5,8,.25) 0%, rgba(5,5,8,.55) 55%, #0a0a0c 100%); }
   .cx-hero-in { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 28px 70px; width:100%; }
   .cx-hero h1 { font-size:clamp(2.6rem,7vw,5rem); font-weight:800; line-height:1.02; letter-spacing:-.02em; max-width:640px; }
