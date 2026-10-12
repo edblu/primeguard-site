@@ -1447,6 +1447,20 @@
     });
     render();
 
+    // Preset bundle cards: load the bundle into the builder and scroll to it.
+    document.querySelectorAll("[data-bundle]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var keys = (btn.getAttribute("data-bundle") || "").split(",");
+        items.forEach(function (label) {
+          var box = label.querySelector('input[type="checkbox"]');
+          if (box) box.checked = keys.indexOf(box.getAttribute("data-bb-svc")) > -1;
+        });
+        render();
+        var target = document.querySelector(".bundle-builder");
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
     // Order modal
     var modal = document.getElementById("orderModal");
     var orderLines = document.getElementById("orderLines");
