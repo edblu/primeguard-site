@@ -33,7 +33,7 @@ window.SITE_CONFIG = {
   },
 
   // --- Photo uploads (Apps Script + Google Drive). Empty = upload disabled.
-  photoEndpoint: "",
+  photoEndpoint: "https://script.google.com/macros/s/AKfycbyZvYyTY7GXMdPd6bQcgRyjXgozuOb8jmSkTmCSQT9R0N5w4fKz80ybms5AkjGIvQQA/exec",
 
   // --- Subscription plans (STARTING prices — Edwin adjusts these freely).
   // price: shown on the plan card (injected by site.js). service: must match
