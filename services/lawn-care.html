@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="../styles.css?v=9">
 <link rel="icon" type="image/png" href="../assets/primeguard-logo-gold-badge.png">
 </head>
-<body>
+<body data-svc="lawn-care">
 <div class="announce-bar"><a href="../index.html#contact"><span>Limited slots this week. Get your free estimate today.</span></a></div>
 
 <header class="site-header">
@@ -37,7 +37,7 @@
       <p class="service-tagline">A lawn that makes the neighbors slow down.</p>
       <p class="section-lead">Never think about your yard again. Our crews keep it sharp week after week through South Florida's year-round growing season — you just come home to a lawn that makes the neighbors slow down.</p>
       <div class="service-hero-cta">
-        <a class="btn btn-gold" href="../index.html#contact">Get my quote</a>
+        <button type="button" class="btn btn-gold" data-quote-open>Get my quote</button>
         <span class="service-price-badge">from $45/visit</span>
       </div>
     </div>
@@ -80,7 +80,7 @@
           <h3>One-time cut</h3>
           <p class="price"><strong>$45</strong></p>
           <p class="plan-desc">Single visit, mow + edge + cleanup</p>
-          <a class="btn btn-gold" href="../index.html#contact">Choose</a>
+          <button type="button" class="btn btn-gold" data-quote-open>Choose</button>
         </article>
         <article class="plan-card">
           <h3>Lawn Care Plan</h3>
@@ -134,7 +134,7 @@
     <div class="container">
       <h2 class="grad-text">Ready when you are.</h2>
       <p>Get a fast, free quote. Most requests answered within the hour.</p>
-      <a class="btn btn-gold btn-lg" href="../index.html#contact">Get my free quote</a>
+      <button type="button" class="btn btn-gold btn-lg" data-quote-open>Get my free quote</button>
     </div>
   </section>
 </main>
@@ -177,6 +177,7 @@
 </div>
 
 <script src="../config.js"></script>
+<script src="quote-calc.js"></script>
 <script>
 (function () {
   var modal = document.getElementById("exitModal");
