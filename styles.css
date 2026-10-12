@@ -793,8 +793,54 @@ body.modal-open { overflow: hidden; }
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(8, 8, 10, 0.8), rgba(8, 8, 10, 0.62) 50%, rgba(8, 8, 10, 0.82));
 }
-/* Contact section: heavier scrim + text shadow so white text stays readable over the bright photo */
-#contact::before { background: none; }
+/* ============================================================
+   Photo backgrounds — homepage bands (Edwin: "background pictures,
+   make it look nice"). Full-bleed photography with cinematic
+   scrims so text stays readable. Pure CSS.
+   ============================================================ */
+
+/* Free-quotes promo band → pressure-washing action photo */
+.promo-band {
+  background:
+    linear-gradient(100deg, rgba(8,8,10,.9) 0%, rgba(8,8,10,.62) 48%, rgba(8,8,10,.28) 100%),
+    url("assets/bg-promo-wash.jpg") center/cover no-repeat;
+  color: #f5f1e6;
+  border-top: 1px solid rgba(201,162,75,.3);
+  border-bottom: 1px solid rgba(201,162,75,.3);
+}
+.promo-band::before { background: none; }
+.promo-band .promo-kicker { color: #ffd873; opacity: 1; }
+.promo-band .promo-text h2 { color: #fff; }
+.promo-band .promo-text p { color: #d8d2c2; opacity: 1; }
+
+/* Guarantee band → crew walkthrough photo */
+.guarantee-band {
+  background:
+    linear-gradient(180deg, rgba(8,8,10,.84), rgba(8,8,10,.66) 55%, rgba(8,8,10,.84)),
+    url("assets/bg-guarantee-crew.jpg") center/cover no-repeat;
+  border-top: 1px solid rgba(201,162,75,.3);
+  border-bottom: 1px solid rgba(201,162,75,.3);
+}
+.guarantee-band .guarantee-sub { color: #d8d2c2; }
+.guarantee-band .section-kicker { color: #ffd873; }
+
+/* Estimator section → striped-lawn photo, card floats over it */
+#estimator {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(8,8,10,.86), rgba(8,8,10,.72) 55%, rgba(8,8,10,.86)),
+    url("assets/bg-estimator-lawn.jpg") center/cover no-repeat;
+  border-top: 1px solid rgba(201,162,75,.3);
+  border-bottom: 1px solid rgba(201,162,75,.3);
+}
+
+/* Contact section → pressure-washing tech photo (was imageless) */
+#contact {
+  background-image: url("assets/bg-contact.jpg");
+}
+#contact::before {
+  background: linear-gradient(180deg, rgba(8,8,10,.84), rgba(8,8,10,.66) 50%, rgba(8,8,10,.86));
+}
 #contact .section-lead, #contact .info-value, #contact .info-label, #contact .section-kicker {
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.95);
 }

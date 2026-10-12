@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Account | PrimeGuard Preservation</title>
 <meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   /* ---- Warm customer portal (light, welcoming) ---- */
@@ -61,33 +61,81 @@
   .acct-settings input:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
   .acct-logout-row { margin-top: 22px; padding-top: 18px; border-top: 1px solid #f0e6cf; }
   .form-ok { color: #1e7a34; font-weight: 600; }
-  /* Request service modal (light) */
-  .req-modal { background: #fffdf8; color: #3d3225; border: 1px solid #ecdfc2; }
-  .req-modal h3 { color: #3d3225; margin: 0 0 4px; }
-  .req-modal .modal-close { color: #3d3225; }
-  .req-sub { color: #8a7a5f; font-size: .92rem; margin: 0 0 6px; }
-  .req-services { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 6px; }
-  .req-svc { background: #faf5ea; border: 1px solid #e4d5b4; border-radius: 14px; padding: 14px; text-align: left; cursor: pointer; font-family: inherit; }
-  .req-svc:hover { border-color: #c98f1b; box-shadow: 0 6px 16px rgba(201,143,27,.18); }
-  .req-svc strong { display: block; color: #3d3225; font-size: .95rem; }
-  .req-svc span { font-size: .8rem; color: #8a7a5f; }
-  .req-freq { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 16px; }
-  .req-chip { border: 1px solid #e4d5b4; background: #fff; border-radius: 999px; padding: 9px 18px; font-weight: 700; color: #6b5b40; cursor: pointer; font-size: .9rem; font-family: inherit; }
-  .req-chip.active { background: linear-gradient(135deg, #e9b949, #c98f1b); color: #fff; border-color: transparent; }
-  .req-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; color: #3d3225; margin-bottom: 14px; }
-  .req-label textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #e0d2b0; font-size: 1rem; font-family: inherit; color: #3d3225; background: #fff; box-sizing: border-box; }
-  .req-label textarea:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
-  .req-opt { font-weight: 400; font-size: .82rem; color: #8a7a5f; }
-  .req-label input[type="file"] { font-size: .9rem; color: #6b5b40; }
-  .req-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin: -6px 0 14px; }
-  .req-thumbs img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #e0d2b0; }
   .req-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #f3ead6; }
   .req-row:last-child { border-bottom: none; }
   .req-row .req-main { flex: 1; }
   .req-edit { background: none; border: 1px solid #e0d2b0; color: #8a5d14; font-weight: 700; font-size: .8rem; border-radius: 999px; padding: 6px 14px; cursor: pointer; font-family: inherit; }
-  .req-back { background: none; border: none; color: #8a5d14; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-size: .92rem; padding: 0; }
-  .req-call { text-align: center; font-size: .88rem; color: #8a7a5f; margin: 14px 0 0; }
-  .req-call a { color: #8a5d14; font-weight: 700; }
+  /* Rich request window (v2) */
+  .rw-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(10,8,4,.68); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 14px; overflow-y: auto; }
+  .rw-window { position: relative; width: min(620px, 100%); max-height: 92vh; display: flex; flex-direction: column; background: #fffdf8; border-radius: 24px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 0 70px rgba(201,143,27,.22); border: 1px solid rgba(201,143,27,.45); margin: auto; color: #3d3225; }
+  .rw-head { background: #141416; color: #f5f1e6; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
+  .rw-head .t { font-weight: 800; font-size: 1.02rem; }
+  .rw-head .t span { color: #ffd873; }
+  .rw-x { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: transparent; color: #f5f1e6; font-size: 1.25rem; cursor: pointer; line-height: 1; }
+  .rw-steps { display: flex; gap: 6px; padding: 14px 20px 0; background: #fffdf8; flex: 0 0 auto; }
+  .rw-st { flex: 1; text-align: center; font-size: .68rem; color: #a08e6e; font-weight: 700; }
+  .rw-st .dot { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-size: .75rem; background: #efe6d0; color: #8a7a5f; font-weight: 800; }
+  .rw-st.active .dot { background: #3d3225; color: #ffd873; }
+  .rw-st.active { color: #3d3225; }
+  .rw-st.done .dot { background: #1e7a34; color: #fff; }
+  .rw-body { padding: 16px 20px 24px; overflow-y: auto; background: #fffdf8; }
+  .rw-body h2 { font-size: 1.4rem; letter-spacing: -.01em; margin: 0 0 6px; color: #3d3225; }
+  .rw-sub { color: #8a7a5f; margin: 0 0 16px; font-size: .92rem; line-height: 1.5; }
+  .rw-svc { background: #fff; border: 1.5px solid #ecdfc2; border-radius: 18px; overflow: hidden; margin-bottom: 12px; cursor: pointer; width: 100%; font: inherit; color: inherit; text-align: left; display: flex; gap: 0; padding: 0; }
+  .rw-svc img { width: 112px; min-height: 104px; object-fit: cover; flex: 0 0 112px; }
+  .rw-svc .b { padding: 13px 15px; }
+  .rw-svc h3 { font-size: 1.02rem; margin: 0; color: #3d3225; }
+  .rw-svc .pr { font-size: .78rem; color: #8a7a5f; }
+  .rw-svc .pr strong { color: #3d3225; font-size: .95rem; }
+  .rw-svc p { color: #8a7a5f; font-size: .82rem; margin: 5px 0 0; line-height: 1.45; }
+  .rw-svc:hover { border-color: #c98f1b; box-shadow: 0 8px 26px rgba(201,143,27,.18); }
+  .rw-dhero { border-radius: 16px; overflow: hidden; margin-bottom: 14px; }
+  .rw-dhero img { width: 100%; height: 150px; object-fit: cover; display: block; }
+  .rw-dhero .cap { background: #141416; color: #f5f1e6; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+  .rw-dhero .cap h3 { font-size: 1.12rem; margin: 0; color: #f5f1e6; }
+  .rw-dhero .cap .pr { color: #b9b2a1; font-size: .78rem; }
+  .rw-dhero .cap .pr strong { color: #ffd873; font-size: 1.08rem; }
+  .rw-bene { background: #fff; border: 1px solid #ecdfc2; border-radius: 16px; padding: 15px; margin-bottom: 12px; }
+  .rw-bene h4 { font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; color: #8a5d14; margin: 0 0 10px; }
+  .rw-bene ul { margin: 0; padding: 0; }
+  .rw-bene li { list-style: none; display: flex; gap: 9px; margin-bottom: 9px; font-size: .87rem; line-height: 1.45; }
+  .rw-bene li:last-child { margin-bottom: 0; }
+  .rw-ck { flex: 0 0 20px; height: 20px; border-radius: 50%; background: #ddf3e2; color: #1e7a34; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: .72rem; }
+  .rw-panel { background: #fff; border: 1px solid #ecdfc2; border-radius: 16px; padding: 15px; margin-bottom: 12px; }
+  .rw-panel h4 { font-size: .95rem; margin: 0 0 3px; color: #3d3225; }
+  .rw-hint { font-size: .79rem; color: #8a7a5f; margin: 0 0 10px; }
+  .rw-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rw-chip { border: 1.5px solid #e4d5b4; background: #fff; border-radius: 999px; padding: 9px 16px; font-weight: 700; font-size: .84rem; cursor: pointer; font-family: inherit; color: #6b5b40; }
+  .rw-chip.active { background: #3d3225; color: #ffd873; border-color: #3d3225; }
+  label.rw-f { display: block; font-weight: 700; font-size: .84rem; margin: 14px 0 6px; color: #3d3225; }
+  label.rw-f .opt { font-weight: 400; color: #8a7a5f; }
+  .rw-body textarea { width: 100%; border: 1.5px solid #e0d2b0; border-radius: 12px; padding: 12px 13px; font-size: .9rem; font-family: inherit; background: #fff; color: #3d3225; box-sizing: border-box; }
+  .rw-body textarea:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
+  .rw-photo-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px dashed #e0d2b0; border-radius: 12px; padding: 14px; color: #8a7a5f; font-weight: 700; font-size: .86rem; width: 100%; background: #fff; cursor: pointer; font-family: inherit; }
+  .rw-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .rw-thumbs img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #e0d2b0; }
+  .rw-how { background: linear-gradient(150deg, #2a2118, #4a3a22); color: #f2e8d2; border-radius: 16px; padding: 13px 15px; font-size: .82rem; line-height: 1.55; margin-bottom: 12px; }
+  .rw-how strong { color: #ffd873; }
+  .rw-rev { background: #fff; border: 1px solid #ecdfc2; border-radius: 16px; padding: 15px; margin-bottom: 12px; }
+  .rw-rrow { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3ead6; font-size: .88rem; }
+  .rw-rrow:last-child { border: none; }
+  .rw-rrow .k { color: #8a7a5f; }
+  .rw-rrow .v { font-weight: 700; text-align: right; color: #3d3225; }
+  .rw-fine { font-size: .78rem; color: #8a7a5f; text-align: center; margin-top: 12px; line-height: 1.5; }
+  .rw-fine a { color: #8a5d14; font-weight: 700; }
+  .rw-btnrow { display: flex; gap: 10px; margin-top: 16px; }
+  .rw-btnrow .btn { flex: 1; }
+  .btn-ghost-w { background: transparent; border: 1.5px solid #e0d2b0; color: #3d3225; border-radius: 14px; padding: 14px 20px; font-weight: 800; font-size: .95rem; cursor: pointer; font-family: inherit; }
+  .rw-backlink { background: none; border: none; color: #8a5d14; font-weight: 700; font-size: .84rem; cursor: pointer; margin-bottom: 12px; font-family: inherit; padding: 0; }
+  .rw-done { text-align: center; padding: 14px 6px; }
+  .rw-bigcheck { width: 70px; height: 70px; border-radius: 50%; background: #ddf3e2; color: #1e7a34; font-size: 2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .rw-done p { color: #8a7a5f; font-size: .9rem; line-height: 1.6; margin: 0 0 8px; }
+  .rw-done h2 { margin-bottom: 8px; }
+  @media (max-width: 480px) {
+    .rw-svc img { width: 88px; flex-basis: 88px; min-height: 92px; }
+    .rw-body { padding: 14px 14px 20px; }
+    .rw-steps { padding: 12px 14px 0; }
+  }
   @media (max-width: 640px) {
     .acct-hero-inner { padding: 60px 0 28px; }
     .acct-stat { flex: 1; min-width: 100px; padding: 12px 14px; }
@@ -202,47 +250,76 @@
   </section>
 </main>
 
-<!-- Request service modal -->
-<div class="modal-overlay hidden" id="reqModal">
-  <div class="modal modal-narrow req-modal" role="dialog" aria-modal="true" aria-labelledby="reqTitle">
-    <button class="modal-close" id="reqClose" aria-label="Close">×</button>
-    <div id="reqStep1">
-      <h3 id="reqTitle">What does your home need?</h3>
-      <p class="req-sub">Pick a service to start your request.</p>
-      <div class="req-services">
-        <button type="button" class="req-svc" data-svc="Lawn Care"><strong>Lawn Care</strong><span>Mowing, edging &amp; cleanup</span></button>
-        <button type="button" class="req-svc" data-svc="Pressure Washing"><strong>Pressure Washing</strong><span>Driveways, patios &amp; siding</span></button>
-        <button type="button" class="req-svc" data-svc="Debris & Junk Removal"><strong>Junk Removal</strong><span>Furniture &amp; yard waste gone</span></button>
-        <button type="button" class="req-svc" data-svc="Make-Ready Cleaning"><strong>Make-Ready Cleaning</strong><span>Move-in / move-out deep cleans</span></button>
-        <button type="button" class="req-svc" data-svc="Handyman Services"><strong>Handyman</strong><span>Small repairs &amp; installs</span></button>
-      </div>
-      <p class="req-call">Prefer to talk? <a href="tel:+17864229674">Call (786) 422-9674</a></p>
+<!-- Rich request window -->
+<div class="rw-overlay hidden" id="reqModal">
+  <div class="rw-window" role="dialog" aria-modal="true" aria-labelledby="rwTitle">
+    <div class="rw-head">
+      <div class="t">✨ <span id="rwTitle">New request</span></div>
+      <button class="rw-x" id="reqClose" aria-label="Close">×</button>
     </div>
-    <div id="reqStep2" hidden>
-      <button type="button" class="req-back" id="reqBack">← Back</button>
-      <h3 id="reqSvcTitle">Lawn Care</h3>
-      <p class="req-sub">How often do you need it?</p>
-      <div class="req-freq">
-        <button type="button" class="req-chip active" data-freq="One-time">One-time</button>
-        <button type="button" class="req-chip" data-freq="Weekly">Weekly</button>
-        <button type="button" class="req-chip" data-freq="Biweekly">Biweekly</button>
-        <button type="button" class="req-chip" data-freq="Monthly">Monthly</button>
-      </div>
-      <label class="req-label">Tell us about the job
-        <textarea id="reqDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left"></textarea>
-      </label>
-      <label class="req-label">Photos <span class="req-opt">(optional — helps us quote accurately)</span>
-        <input type="file" id="reqPhotos" accept="image/*" multiple>
-      </label>
-      <div class="req-thumbs" id="reqPreview"></div>
-      <p class="form-error hidden" id="reqError"></p>
-      <button class="btn btn-gold btn-lg" id="reqSubmit" type="button" style="width:100%">Send request</button>
-      <p class="req-call">Prefer to talk? <a href="tel:+17864229674">Call (786) 422-9674</a></p>
+    <div class="rw-steps" id="rwSteps">
+      <div class="rw-st active" data-s="1"><div class="dot">1</div>Service</div>
+      <div class="rw-st" data-s="2"><div class="dot">2</div>Details</div>
+      <div class="rw-st" data-s="3"><div class="dot">3</div>Review</div>
     </div>
-    <div id="reqDone" hidden>
-      <h3>Request received!</h3>
-      <p class="req-sub">We'll confirm the details with you shortly.</p>
-      <button class="btn btn-gold btn-lg" id="reqDoneBtn" type="button" style="width:100%">Done</button>
+    <div class="rw-body">
+      <!-- STEP 1: pick a service -->
+      <section id="rwStep1">
+        <h2>What does your home need?</h2>
+        <p class="rw-sub">Choose a service to see exactly what's included — then request it right here.</p>
+        <div id="rwSvcList"></div>
+        <p class="rw-fine">Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
+      </section>
+      <!-- STEP 2: details -->
+      <section id="rwStep2" class="hidden">
+        <button class="rw-backlink" id="rwBack2" type="button">← All services</button>
+        <div class="rw-dhero">
+          <img id="rwImg" src="" alt="">
+          <div class="cap"><h3 id="rwName"></h3><span class="pr">from <strong id="rwPrice"></strong></span></div>
+        </div>
+        <div class="rw-bene"><h4>What's included</h4><ul id="rwBenefits"></ul></div>
+        <div class="rw-how">📌 <strong>How it works:</strong> send your request here → we confirm details &amp; price with you → nothing is scheduled until you approve it.</div>
+        <div class="rw-panel">
+          <h4>How often?</h4>
+          <p class="rw-hint">One-time is perfect for trying us out.</p>
+          <div class="rw-chips" id="rwFreq">
+            <button class="rw-chip active" data-freq="One-time" type="button">One-time</button>
+            <button class="rw-chip" data-freq="Weekly" type="button">Weekly</button>
+            <button class="rw-chip" data-freq="Biweekly" type="button">Biweekly</button>
+            <button class="rw-chip" data-freq="Monthly" type="button">Monthly</button>
+          </div>
+          <label class="rw-f" for="rwDetails">Tell us about the job</label>
+          <textarea id="rwDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left…"></textarea>
+          <label class="rw-f">Photos <span class="opt">(optional — helps us quote accurately)</span></label>
+          <button class="rw-photo-btn" id="rwPhotoBtn" type="button">📷 &nbsp;Add photos</button>
+          <input type="file" id="rwPhotos" accept="image/*" multiple class="hidden">
+          <div class="rw-thumbs" id="rwPreview"></div>
+        </div>
+        <p class="form-error hidden" id="reqError"></p>
+        <div class="rw-btnrow">
+          <button class="btn-ghost-w" id="rwBack2b" type="button">Back</button>
+          <button class="btn btn-gold" id="rwToReview" type="button">Review →</button>
+        </div>
+      </section>
+      <!-- STEP 3: review -->
+      <section id="rwStep3" class="hidden">
+        <button class="rw-backlink" id="rwBack3" type="button">← Back</button>
+        <h2>Review your request</h2>
+        <p class="rw-sub">Requesting as <strong id="rwRevName"></strong> · <span id="rwRevContact"></span></p>
+        <div class="rw-rev" id="rwRevBox"></div>
+        <button class="btn btn-gold btn-lg" id="rwSend" type="button" style="width:100%">Send my request</button>
+        <p class="rw-fine">You pay nothing today. We confirm the details and price with you before anything is scheduled.<br>Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
+      </section>
+      <!-- DONE -->
+      <section id="rwDone" class="hidden">
+        <div class="rw-done">
+          <div class="rw-bigcheck">✓</div>
+          <h2 id="rwDoneTitle">Request received!</h2>
+          <p id="rwDoneSummary"></p>
+          <p><strong>What happens next:</strong><br>1. We confirm your details and price (usually same day).<br>2. You approve it — nothing scheduled without your OK.<br>3. Our crew gets it done. You get before &amp; after photos.</p>
+          <div class="rw-btnrow"><button class="btn-ghost-w" id="rwDoneBtn" type="button">Done</button></div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -300,6 +377,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=2"></script>
+<script src="account.js?v=3"></script>
 </body>
 </html>

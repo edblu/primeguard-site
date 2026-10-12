@@ -272,36 +272,106 @@
         emptyState($("jobs-list"), "Couldn't load jobs right now.", null, null);
       });
   }
-  /* ---------- Request service modal ---------- */
-  var reqModal = $("reqModal"), reqSvc = null, reqFreq = "One-time";
+  /* ---------- Rich request window ---------- */
+  var reqModal = $("reqModal");
   var custInfo = { name: "", phone: "", email: "" };
-  var reqPhotos = [];      // dataURLs picked in the modal
+  var reqPhotos = [];      // dataURLs picked in the window
   var editingReqId = null; // service_requests doc id being edited, or null
+  var rwSvc = null, rwFreq = "One-time";
+
+  var SERVICES = [
+    { name: "Lawn Care", price: "$45", img: "assets/service-lawn-care.webp",
+      desc: "Mowing, edging, and cleanup on a schedule you can count on — through South Florida's year-round growing season.",
+      benefits: ["Precision mow at the right height for your grass", "Crisp edging along driveways, walkways & beds", "Full blow-off — no clippings left behind", "One-time cleanups or a set schedule, your call", "A yard that looks sharp every single visit"] },
+    { name: "Pressure Washing", price: "$149", img: "assets/service-pressure-washing.webp",
+      desc: "Driveways, walkways, patios, and exteriors brought back to clean. Years of grime, gone in an afternoon.",
+      benefits: ["Driveways, walkways, patios, siding & fences", "Mold, mildew & years of grime gone in an afternoon", "Curb appeal that transforms your home's look", "Safe wash methods for concrete, pavers & stucco", "We walk the results with you before we leave"] },
+    { name: "Debris & Junk Removal", price: "$89", img: "assets/service-junk-removal.webp",
+      desc: "Yard debris, old furniture, and clutter hauled away. You point, we lift, it's gone.",
+      benefits: ["Furniture, yard debris, appliances & clutter", "You point, we lift — zero heavy lifting for you", "Fast pickup scheduling that fits your week", "Hauled away and disposed of responsibly", "Upfront price before anything leaves your property"] },
+    { name: "Make-Ready Cleaning", price: "$179", img: "assets/service-make-ready.webp",
+      desc: "Turnover cleans that get rentals and listings guest-ready — kitchens, baths, floors, and details.",
+      benefits: ["Deep move-in / move-out cleans", "Kitchens, baths, floors & all the details", "Rentals and listings guest-ready, fast", "Checklist clean — nothing gets missed", "Perfect for landlords, realtors & Airbnb hosts"] },
+    { name: "Handyman Services", price: "$65", img: "assets/service-handyman.webp",
+      desc: "Small repairs and punch-list items done right the first time. One call handles the whole list.",
+      benefits: ["Small repairs, installs & punch-list items", "One visit handles your whole list", "Done right the first time — guaranteed", "Upfront pricing before work starts", "Respectful of your home: tidy work, every time"] }
+  ];
+
+  // Build the service cards once.
+  (function buildSvcCards() {
+    var list = $("rwSvcList");
+    if (!list) return;
+    list.innerHTML = "";
+    SERVICES.forEach(function (s) {
+      var b = document.createElement("button");
+      b.className = "rw-svc"; b.type = "button";
+      b.innerHTML = '<img src="' + s.img + '" alt="' + esc(s.name) + '" loading="lazy">' +
+        '<div class="b"><h3>' + esc(s.name) + '</h3>' +
+        '<div class="pr">from <strong>' + esc(s.price) + '</strong></div>' +
+        '<p>' + esc(s.desc) + '</p></div>';
+      b.addEventListener("click", function () { rwSelect(s.name); });
+      list.appendChild(b);
+    });
+  })();
+
+  function rwStep(n) {
+    [1, 2, 3].forEach(function (i) {
+      var sec = $("rwStep" + i);
+      if (sec) sec.classList.toggle("hidden", i !== n);
+    });
+    $("rwDone").classList.add("hidden");
+    document.querySelectorAll("#rwSteps .rw-st").forEach(function (d) {
+      var s = parseInt(d.getAttribute("data-s"), 10);
+      d.classList.toggle("active", s === n);
+      d.classList.toggle("done", s < n);
+      d.querySelector(".dot").textContent = s < n ? "✓" : s;
+    });
+    var body = reqModal.querySelector(".rw-body");
+    if (body) body.scrollTop = 0;
+  }
+
+  function rwSelect(name) {
+    var s = null;
+    SERVICES.forEach(function (x) { if (x.name === name) s = x; });
+    if (!s) s = SERVICES[0];
+    rwSvc = s;
+    $("rwImg").src = s.img; $("rwImg").alt = s.name;
+    $("rwName").textContent = s.name;
+    $("rwPrice").textContent = s.price;
+    $("rwBenefits").innerHTML = s.benefits.map(function (b) {
+      return '<li><span class="rw-ck">✓</span><span>' + esc(b) + '</span></li>';
+    }).join("");
+    rwStep(2);
+  }
 
   function openReq() {
-    reqSvc = null; reqFreq = "One-time"; editingReqId = null; reqPhotos = [];
-    $("reqStep1").hidden = false; $("reqStep2").hidden = true; $("reqDone").hidden = true;
-    $("reqDetails").value = ""; $("reqPhotos").value = ""; $("reqPreview").innerHTML = "";
+    rwSvc = null; rwFreq = "One-time"; editingReqId = null; reqPhotos = [];
+    $("rwTitle").textContent = "New request";
+    $("rwDetails").value = ""; $("rwPhotos").value = ""; $("rwPreview").innerHTML = "";
     hide($("reqError"));
-    $("reqSubmit").textContent = "Send request";
-    document.querySelectorAll(".req-chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+    $("rwSend").textContent = "Send my request";
+    document.querySelectorAll("#rwFreq .rw-chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+    rwStep(1);
     reqModal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
+
   function openReqEdit(id, d) {
     editingReqId = id; reqPhotos = [];
-    reqSvc = d.service || null; reqFreq = d.frequency || "One-time";
-    $("reqStep1").hidden = true; $("reqStep2").hidden = false; $("reqDone").hidden = true;
-    $("reqSvcTitle").textContent = reqSvc || "Service request";
-    $("reqDetails").value = d.message || ""; $("reqPhotos").value = ""; $("reqPreview").innerHTML = "";
+    rwFreq = d.frequency || "One-time";
+    $("rwTitle").textContent = "Edit request";
+    $("rwDetails").value = d.message || "";
+    $("rwPhotos").value = ""; $("rwPreview").innerHTML = "";
     hide($("reqError"));
-    $("reqSubmit").textContent = "Save changes";
-    document.querySelectorAll(".req-chip").forEach(function (c) {
-      c.classList.toggle("active", c.getAttribute("data-freq") === reqFreq);
+    $("rwSend").textContent = "Save changes";
+    document.querySelectorAll("#rwFreq .rw-chip").forEach(function (c) {
+      c.classList.toggle("active", c.getAttribute("data-freq") === rwFreq);
     });
+    rwSelect(d.service || "Lawn Care"); // lands on step 2 with details prefilled
     reqModal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
+
   function closeReq() {
     reqModal.classList.add("hidden");
     document.body.style.overflow = "";
@@ -321,8 +391,22 @@
     }
   });
 
-  // photo picker in the request modal
-  $("reqPhotos").addEventListener("change", function (e) {
+  $("rwBack2").addEventListener("click", function () { rwStep(1); });
+  $("rwBack2b").addEventListener("click", function () { rwStep(1); });
+  $("rwBack3").addEventListener("click", function () { rwStep(2); });
+  $("rwDoneBtn").addEventListener("click", closeReq);
+
+  $("rwFreq").addEventListener("click", function (e) {
+    var c = e.target.closest ? e.target.closest(".rw-chip") : null;
+    if (!c) return;
+    document.querySelectorAll("#rwFreq .rw-chip").forEach(function (x) { x.classList.remove("active"); });
+    c.classList.add("active");
+    rwFreq = c.getAttribute("data-freq");
+  });
+
+  // photo picker in the window
+  $("rwPhotoBtn").addEventListener("click", function () { $("rwPhotos").click(); });
+  $("rwPhotos").addEventListener("change", function (e) {
     Array.prototype.forEach.call(e.target.files, function (f) {
       if (reqPhotos.length >= 6) return;
       var r = new FileReader();
@@ -330,43 +414,37 @@
         reqPhotos.push(r.result);
         var img = document.createElement("img");
         img.src = r.result; img.alt = "request photo";
-        $("reqPreview").appendChild(img);
+        $("rwPreview").appendChild(img);
       };
       r.readAsDataURL(f);
     });
   });
 
-  document.querySelectorAll(".req-svc").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      reqSvc = btn.getAttribute("data-svc");
-      $("reqSvcTitle").textContent = reqSvc;
-      $("reqStep1").hidden = true; $("reqStep2").hidden = false;
-    });
+  $("rwToReview").addEventListener("click", function () {
+    if (!rwSvc) return;
+    var det = $("rwDetails").value.trim() || "—";
+    $("rwRevName").textContent = custInfo.name || "you";
+    $("rwRevContact").textContent = custInfo.phone || custInfo.email || "";
+    $("rwRevBox").innerHTML =
+      '<div class="rw-rrow"><span class="k">Service</span><span class="v">' + esc(rwSvc.name) + ' (from ' + esc(rwSvc.price) + ')</span></div>' +
+      '<div class="rw-rrow"><span class="k">Frequency</span><span class="v">' + esc(rwFreq) + '</span></div>' +
+      '<div class="rw-rrow"><span class="k">Details</span><span class="v">' + esc(det) + '</span></div>' +
+      (reqPhotos.length ? '<div class="rw-rrow"><span class="k">Photos</span><span class="v">' + reqPhotos.length + ' attached</span></div>' : '');
+    rwStep(3);
   });
-  document.querySelectorAll(".req-chip").forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      document.querySelectorAll(".req-chip").forEach(function (c) { c.classList.remove("active"); });
-      chip.classList.add("active");
-      reqFreq = chip.getAttribute("data-freq");
-    });
-  });
-  $("reqBack").addEventListener("click", function () {
-    $("reqStep2").hidden = true; $("reqStep1").hidden = false;
-  });
-  $("reqDoneBtn").addEventListener("click", closeReq);
 
-  $("reqSubmit").addEventListener("click", function () {
+  $("rwSend").addEventListener("click", function () {
     hide($("reqError"));
     var user = auth.currentUser;
-    if (!user || !reqSvc) return;
-    var btn = $("reqSubmit");
+    if (!user || !rwSvc) return;
+    var btn = $("rwSend");
     var isEdit = !!editingReqId;
     btn.disabled = true; btn.textContent = isEdit ? "Saving..." : "Sending...";
 
     function save(urls) {
       var payload = {
-        service: reqSvc, frequency: reqFreq,
-        message: $("reqDetails").value.trim()
+        service: rwSvc.name, frequency: rwFreq,
+        message: $("rwDetails").value.trim()
       };
       if (urls && urls.length) payload.photos = urls;
       if (isEdit) {
@@ -388,8 +466,16 @@
       : Promise.resolve([]);
 
     uploadP.then(save).then(function () {
-      $("reqStep2").hidden = true; $("reqDone").hidden = false;
-      $("reqDone").querySelector("h3").textContent = isEdit ? "Changes saved!" : "Request received!";
+      $("rwStep3").classList.add("hidden");
+      $("rwDone").classList.remove("hidden");
+      $("rwDoneTitle").textContent = isEdit ? "Changes saved!" : "Request received!";
+      $("rwDoneSummary").textContent = isEdit
+        ? "Your " + rwSvc.name.toLowerCase() + " request has been updated."
+        : "Your " + rwSvc.name.toLowerCase() + " request (" + rwFreq.toLowerCase() + ") is in. We'll be in touch shortly to confirm the details.";
+      document.querySelectorAll("#rwSteps .rw-st").forEach(function (d) {
+        d.classList.remove("active"); d.classList.add("done");
+        d.querySelector(".dot").textContent = "✓";
+      });
       // Email Edwin instantly via the website lead endpoint (same alerts as the quote form).
       if (!isEdit) {
         try {
@@ -400,8 +486,8 @@
               headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify({
                 name: custInfo.name, phone: custInfo.phone, email: custInfo.email,
-                service: "Dashboard request: " + reqSvc + " (" + reqFreq + ")",
-                message: $("reqDetails").value.trim(),
+                service: "Dashboard request: " + rwSvc.name + " (" + rwFreq + ")",
+                message: $("rwDetails").value.trim(),
                 source: "account-dashboard", uid: user.uid,
                 timestamp: new Date().toISOString()
               })
@@ -415,7 +501,7 @@
       el.textContent = (err && err.message) || "Couldn't send. Please try again.";
       show(el);
     }).then(function () {
-      btn.disabled = false; btn.textContent = isEdit ? "Save changes" : "Send request";
+      btn.disabled = false; btn.textContent = isEdit ? "Save changes" : "Send my request";
     });
   });
 
