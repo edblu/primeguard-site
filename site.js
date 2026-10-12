@@ -229,7 +229,7 @@
       login: "Log in", login_aria: "Log in to your account", my_account: "My account",
       auth_title_login: "Welcome back", auth_title_signup: "Create your account",
       profile_hello: "Hi",
-      profile_my_account: "My account dashboard",
+      profile_my_account: "My account dashboard", profile_admin: "Admin dashboard",
       auth_choose_title: "Who's logging in?",
       auth_choose_customer: "I'm a customer", auth_choose_vendor: "I'm a vendor",
       auth_choose_sub: "Customers track requests and jobs. Vendors manage work orders, quotes, and pay from their dashboard.",
@@ -467,7 +467,7 @@
       login: "Iniciar sesión", login_aria: "Inicie sesión en su cuenta", my_account: "Mi cuenta",
       auth_title_login: "Bienvenido de nuevo", auth_title_signup: "Cree su cuenta",
       profile_hello: "Hola",
-      profile_my_account: "Panel de mi cuenta",
+      profile_my_account: "Panel de mi cuenta", profile_admin: "Panel de administración",
       auth_choose_title: "¿Quién inicia sesión?",
       auth_choose_customer: "Soy cliente", auth_choose_vendor: "Soy proveedor",
       auth_choose_sub: "Los clientes siguen sus solicitudes y trabajos. Los proveedores gestionan órdenes de trabajo, cotizaciones y pagos desde su panel.",
@@ -1158,11 +1158,26 @@
   /* ----- Account menu ----- */
   var profileModal = document.getElementById("profileModal");
   var profLogout = document.getElementById("profLogout");
+  var profileAdminLink = document.getElementById("profileAdminLink");
+  var ADMIN_EMAIL = "edblucorp@gmail.com";
 
   function openProfile() {
     closeMenu();
     var nm = document.getElementById("profileMenuName");
     if (nm) nm.textContent = firstName();
+    // Show the admin shortcut only to the owner and acquisition managers.
+    if (profileAdminLink) {
+      profileAdminLink.hidden = true;
+      if (currentUser && fbDb) {
+        if (currentUser.email === ADMIN_EMAIL) {
+          profileAdminLink.hidden = false;
+        } else {
+          fbDb.collection("staff").doc(currentUser.uid).get().then(function (s) {
+            if (s.exists && !profileModal.hidden) profileAdminLink.hidden = false;
+          }).catch(function () {});
+        }
+      }
+    }
     profileModal.hidden = false;
     document.body.classList.add("modal-open");
   }
