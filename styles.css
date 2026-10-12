@@ -2014,6 +2014,10 @@ body {
   .cx-band::before { content:""; position:absolute; inset:0; pointer-events:none;
     background:linear-gradient(180deg,#08080a 0%,rgba(8,8,10,.78) 16%,rgba(8,8,10,.60) 50%,rgba(8,8,10,.78) 84%,#08080a 100%); }
   .cx-band > .cx-sec { position:relative; z-index:1; }
+  /* selective backgrounds: dark sections with gradient transitions */
+  .cx-fade { background:linear-gradient(180deg,#08080a 0%,#0b0b0e 100%); border-top:1px solid rgba(212,168,67,.14); }
+  .cx-dark { background:#08080a; border-top:1px solid rgba(255,255,255,.05); }
+  .cx-glow { background:radial-gradient(ellipse 90% 55% at 50% 0%,rgba(212,168,67,.12),transparent 70%),linear-gradient(180deg,#0b0b0e,#08080a); border-top:1px solid rgba(212,168,67,.22); }
   .cx-band-cta { position:relative; background-size:cover; background-position:center; }
   .cx-band-cta::before { content:""; position:absolute; inset:0; pointer-events:none;
     background:linear-gradient(180deg,#08080a 0%,rgba(8,8,10,.55) 30%,rgba(8,8,10,.55) 70%,#08080a 100%); }
