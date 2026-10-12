@@ -62,6 +62,7 @@
       vendor = snap.data();
       renderHeader();
       renderProfile();
+      renderDocs();
       loadAll();
     });
   });
@@ -80,10 +81,63 @@
       ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
       ["Email", v.email], ["Services", (v.services || []).join(", ")],
       ["Areas", (v.areas || []).join(", ")], ["Crew size", v.crewSize],
-      ["Equipment", v.equipment || "—"]
+      ["Equipment", v.equipment || "-"]
     ].map(function (f) {
-      return '<div class="vfield"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1] || "—") + '</strong></div>';
+      return '<div class="vfield"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1] || "-") + '</strong></div>';
     }).join("");
+  }
+
+  // ---------- Documents reminder (W-9 / insurance) ----------
+  function renderDocs() {
+    var v = vendor, sec = $("vd-docs-sec"), list = $("vd-docs-list");
+    var needW9 = v.w9Status !== "received";
+    var needCoi = v.insured === "yes" && v.coiStatus !== "received";
+    if (!needW9 && !needCoi) { sec.classList.add("hidden"); return; }
+    sec.classList.remove("hidden");
+    var html = "";
+    if (needW9) {
+      var due = v.w9Due ? new Date(v.w9Due) : null;
+      var days = due ? Math.ceil((due - Date.now()) / 86400000) : null;
+      var dueTxt = days === null ? "as soon as possible" : days > 0 ? days + " day" + (days === 1 ? "" : "s") + " left" : "overdue - upload now";
+      html += '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">' +
+        '<div style="flex:1;min-width:200px"><strong>W-9 form</strong><div style="font-size:.85rem;color:var(--muted)">' + dueTxt + '</div></div>' +
+        '<input type="file" id="vd-w9-file" accept=".pdf,.jpg,.jpeg,.png" style="font-size:.85rem">' +
+        '<button class="btn btn-gold" id="vd-w9-btn" style="padding:10px 18px;font-size:.9rem">Upload</button></div>';
+    }
+    if (needCoi) {
+      html += '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">' +
+        '<div style="flex:1;min-width:200px"><strong>Certificate of insurance</strong><div style="font-size:.85rem;color:var(--muted)">Required since you carry general liability</div></div>' +
+        '<input type="file" id="vd-coi-file" accept=".pdf,.jpg,.jpeg,.png" style="font-size:.85rem">' +
+        '<button class="btn btn-gold" id="vd-coi-btn" style="padding:10px 18px;font-size:.9rem">Upload</button></div>';
+    }
+    list.innerHTML = html;
+    var w9b = $("vd-w9-btn");
+    if (w9b) w9b.addEventListener("click", function () { uploadVendorDoc("vd-w9-file", "vendor-w9", { w9Status: "received", w9Url: "uploaded", w9Due: null }); });
+    var coib = $("vd-coi-btn");
+    if (coib) coib.addEventListener("click", function () { uploadVendorDoc("vd-coi-file", "vendor-coi", { coiStatus: "received", coiUrl: "uploaded" }); });
+  }
+
+  function uploadVendorDoc(inputId, folder, update) {
+    var f = $(inputId).files[0];
+    if (!f) { alert("Choose the file first."); return; }
+    var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
+    if (!endpoint) { alert("Uploads are being set up. Please text the document to us for now."); return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      fetch(endpoint, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: "doc-upload", folder: folder, name: f.name, mime: f.type, data: fr.result })
+      }).then(function () {
+        return db.collection("vendors").doc(me.uid).update(update);
+      }).then(function () {
+        return db.collection("vendors").doc(me.uid).get();
+      }).then(function (snap) {
+        vendor = snap.data(); renderDocs();
+        alert("Document received. Thank you.");
+      }).catch(function () { alert("Upload failed. Please try again."); });
+    };
+    fr.readAsDataURL(f);
   }
 
   // ---------- Work orders ----------
@@ -105,7 +159,7 @@
       myEvals = [];
       qs.forEach(function (d) {
         var w = d.data(); w.id = d.id;
-        if (w.status === "open") return; // not accepted yet — shows in the open lists above
+        if (w.status === "open") return; // not accepted yet - shows in the open lists above
         if (w.status === "done") {
           done.push(w);
           earned += parseFloat(w.payAgreed || w.pay || 0) || 0;
@@ -125,7 +179,7 @@
       $("cnt-done").textContent = done.length + " JOBS";
       var sel = $("q-workorder");
       sel.innerHTML = '<option value="">Select a quote request...</option>' + myEvals.map(function (w) {
-        return '<option value="' + w.id + '">' + esc(w.title) + " — " + esc(w.area) + "</option>";
+        return '<option value="' + w.id + '">' + esc(w.title) + " - " + esc(w.area) + "</option>";
       }).join("");
     });
   }
@@ -164,7 +218,7 @@
         steps = step(true, "Work order received") +
                 step((w.beforePhotos || []).length > 0, "Before photos uploaded") +
                 step(false, "Work completed") +
-                step(w.status === "review" || w.status === "done", "After photos uploaded — then payment is released");
+                step(w.status === "review" || w.status === "done", "After photos uploaded - then payment is released");
       }
       return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) +

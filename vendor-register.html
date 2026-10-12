@@ -3,10 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vendor Registration | PrimeGuard Preservation</title>
+<title>Join the Crew Network | PrimeGuard Preservation</title>
 <meta name="description" content="Register your crew with PrimeGuard Preservation. We bring the customers and handle scheduling. You do the work, paid per job completed. No fees.">
-<link rel="stylesheet" href="styles.css?v=20">
-<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="stylesheet" href="styles.css?v=21">
+<link rel="icon" type="image/png" href="assets/primeguard-logo-gold-badge.png">
+<style>
+  .vr-hero { position:relative; background:url('assets/careers-crew.jpg') center/cover; padding:110px 0 80px; overflow:hidden; }
+  .vr-hero::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,8,10,.55), rgba(8,8,10,.82)); }
+  .vr-hero .wrap { position:relative; z-index:1; }
+  .vr-hero h1 { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:800; letter-spacing:-.02em; margin-bottom:14px; }
+  .vr-hero h1 em { font-style:normal; background:linear-gradient(120deg,#f5d67b,#c9982f); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .vr-perks { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:34px; }
+  .vr-perk { display:flex; gap:12px; align-items:flex-start; background:rgba(255,255,255,.05); border:1px solid rgba(212,168,67,.3); border-radius:16px; padding:16px; backdrop-filter:blur(4px); }
+  .vr-perk .ico { flex:none; width:38px; height:38px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#ffe9b8,#c98f1b 60%,#7a5210); display:flex; align-items:center; justify-content:center; font-size:1.1rem; box-shadow:0 0 18px rgba(212,168,67,.5); }
+  .vr-perk strong { display:block; font-size:.95rem; margin-bottom:3px; }
+  .vr-perk span { font-size:.83rem; color:#cfc8b8; }
+  .vr-why { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin:44px 0 8px; }
+  .vr-why-card { border-radius:20px; overflow:hidden; border:1px solid rgba(255,255,255,.09); background:#141416; }
+  .vr-why-card img { width:100%; height:150px; object-fit:cover; display:block; }
+  .vr-why-card div { padding:20px 22px 24px; }
+  .vr-why-card h3 { font-size:1.08rem; margin-bottom:8px; }
+  .vr-why-card p { font-size:.9rem; color:#a89a7d; line-height:1.6; }
+  /* multi-select dropdown */
+  .msel { position:relative; margin-top:6px; }
+  .msel-btn { width:100%; text-align:left; padding:13px 40px 13px 15px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#141417; color:var(--text); font-size:1rem; font-family:inherit; cursor:pointer; position:relative; }
+  .msel-btn::after { content:"▾"; position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--gold-bright); font-size:1.1rem; }
+  .msel-btn.has-sel { border-color:rgba(212,168,67,.55); }
+  .msel-panel { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:30; background:#1b1b1e; border:1px solid rgba(212,168,67,.4); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.6), 0 0 30px rgba(212,168,67,.12); padding:10px; max-height:264px; overflow-y:auto; }
+  .msel-panel label { display:flex; flex-direction:row; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; font-weight:400; font-size:.94rem; cursor:pointer; margin:0; text-align:left; }
+  .msel-panel label:hover { background:rgba(212,168,67,.1); }
+  .msel-panel input[type=checkbox] { width:17px; height:17px; accent-color:#d4a843; }
+  .msel-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .msel-chips span { font-size:.8rem; font-weight:600; background:rgba(212,168,67,.14); border:1px solid rgba(212,168,67,.45); color:#f5d67b; border-radius:999px; padding:5px 12px; }
+  .vr-form-card { background:linear-gradient(170deg,rgba(20,20,26,.88),rgba(12,12,16,.93)), url('assets/bg-guarantee-crew.jpg') center/cover; border:1px solid rgba(212,168,67,.3); border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.5); }
+</style>
 </head>
 <body>
 <header class="site-header">
@@ -31,17 +61,29 @@
 </header>
 
 <main>
-  <section class="account-hero">
+  <section class="vr-hero">
     <div class="wrap">
-      <p class="section-kicker">Vendor registration</p>
-      <h1 class="grad-text">Join the crew network</h1>
-      <p class="section-lead">We bring the customers and handle scheduling. Your crew does the work. Written work orders, paid per job completed, no fees to join.</p>
+      <p class="section-kicker">For crews</p>
+      <h1>Get work <em>without</em> chasing it.</h1>
+      <p class="section-lead" style="max-width:560px">Join the PrimeGuard crew network. We bring the customers and handle scheduling. Your crew does the work and gets paid per job completed. No fees to join, ever.</p>
+      <div class="vr-perks">
+        <div class="vr-perk"><div class="ico">🤝</div><div><strong>We bring the customers</strong><span>Stop hunting for jobs. Work orders come to your dashboard.</span></div></div>
+        <div class="vr-perk"><div class="ico">💵</div><div><strong>Paid per job completed</strong><span>Finish the job, send photos, get paid. Simple.</span></div></div>
+        <div class="vr-perk"><div class="ico">🆓</div><div><strong>Zero fees to join</strong><span>No cuts, no subscriptions. You keep what you earn.</span></div></div>
+        <div class="vr-perk"><div class="ico">🕐</div><div><strong>Your crew, your schedule</strong><span>Accept the jobs you want, skip the rest.</span></div></div>
+      </div>
     </div>
   </section>
 
-  <section class="section account-section">
-    <div class="wrap" style="max-width:720px">
-      <form id="vendor-register-form" class="card auth-card">
+  <section class="section" style="padding-top:20px">
+    <div class="wrap" style="max-width:880px">
+      <div class="vr-why">
+        <div class="vr-why-card"><img src="assets/bg-guarantee-crew.jpg" alt="Crew at work"><div><h3>Steady work, zero marketing</h3><p>No flyers, no bidding wars, no chasing payments. Just show up and do great work.</p></div></div>
+        <div class="vr-why-card"><img src="assets/service-pressure-washing.webp" alt="Pressure washing job"><div><h3>Clear work orders</h3><p>Every job comes with the scope, address, and pay in writing before you start.</p></div></div>
+        <div class="vr-why-card"><img src="assets/careers-crew.jpg" alt="PrimeGuard crew"><div><h3>Grow with us</strong></h3><p style="font-size:.9rem;color:#a89a7d;line-height:1.6">Reliable crews get first pick of new jobs and bigger contracts as we grow.</p></div></div>
+      </div>
+
+      <form id="vendor-register-form" class="card auth-card vr-form-card" style="margin-top:30px">
         <h2>Create your vendor account</h2>
 
         <label>Business name<input type="text" id="vr-business" required autocomplete="organization"></label>
@@ -51,31 +93,39 @@
         <label>Password<input type="password" id="vr-password" required minlength="6" autocomplete="new-password"></label>
 
         <div style="margin:18px 0">
-          <p style="font-weight:600;margin-bottom:10px">Services your crew does</p>
-          <div id="vr-services" style="display:flex;flex-wrap:wrap;gap:10px">
-            <label style="font-weight:400"><input type="checkbox" value="Lawn care"> Lawn care</label>
-            <label style="font-weight:400"><input type="checkbox" value="Tree trimming"> Tree trimming</label>
-            <label style="font-weight:400"><input type="checkbox" value="Tree removal"> Tree removal</label>
-            <label style="font-weight:400"><input type="checkbox" value="Stump grinding"> Stump grinding</label>
-            <label style="font-weight:400"><input type="checkbox" value="Cleanups"> Cleanups</label>
-            <label style="font-weight:400"><input type="checkbox" value="Planting"> Planting</label>
-            <label style="font-weight:400"><input type="checkbox" value="Pressure washing"> Pressure washing</label>
-            <label style="font-weight:400"><input type="checkbox" value="Handyman"> Handyman</label>
+          <p style="font-weight:600;margin-bottom:6px">Services your crew does</p>
+          <div class="msel">
+            <button type="button" class="msel-btn" id="vr-services-btn">Select services...</button>
+            <div class="msel-panel hidden" id="vr-services">
+              <label><input type="checkbox" value="Lawn care"> Lawn care</label>
+              <label><input type="checkbox" value="Tree trimming"> Tree trimming</label>
+              <label><input type="checkbox" value="Tree removal"> Tree removal</label>
+              <label><input type="checkbox" value="Stump grinding"> Stump grinding</label>
+              <label><input type="checkbox" value="Cleanups"> Cleanups</label>
+              <label><input type="checkbox" value="Planting"> Planting</label>
+              <label><input type="checkbox" value="Pressure washing"> Pressure washing</label>
+              <label><input type="checkbox" value="Handyman"> Handyman</label>
+            </div>
           </div>
+          <div class="msel-chips" id="vr-services-chips"></div>
         </div>
 
         <div style="margin:18px 0">
-          <p style="font-weight:600;margin-bottom:10px">Areas you cover</p>
-          <div id="vr-areas" style="display:flex;flex-wrap:wrap;gap:10px">
-            <label style="font-weight:400"><input type="checkbox" value="Homestead"> Homestead</label>
-            <label style="font-weight:400"><input type="checkbox" value="Kendall"> Kendall</label>
-            <label style="font-weight:400"><input type="checkbox" value="Miami"> Miami</label>
-            <label style="font-weight:400"><input type="checkbox" value="Hialeah"> Hialeah</label>
-            <label style="font-weight:400"><input type="checkbox" value="Cutler Bay"> Cutler Bay</label>
-            <label style="font-weight:400"><input type="checkbox" value="Miramar"> Miramar</label>
-            <label style="font-weight:400"><input type="checkbox" value="Miami Gardens"> Miami Gardens</label>
-            <label style="font-weight:400"><input type="checkbox" value="North Miami"> North Miami</label>
+          <p style="font-weight:600;margin-bottom:6px">Areas you cover</p>
+          <div class="msel">
+            <button type="button" class="msel-btn" id="vr-areas-btn">Select areas...</button>
+            <div class="msel-panel hidden" id="vr-areas">
+              <label><input type="checkbox" value="Homestead"> Homestead</label>
+              <label><input type="checkbox" value="Kendall"> Kendall</label>
+              <label><input type="checkbox" value="Miami"> Miami</label>
+              <label><input type="checkbox" value="Hialeah"> Hialeah</label>
+              <label><input type="checkbox" value="Cutler Bay"> Cutler Bay</label>
+              <label><input type="checkbox" value="Miramar"> Miramar</label>
+              <label><input type="checkbox" value="Miami Gardens"> Miami Gardens</label>
+              <label><input type="checkbox" value="North Miami"> North Miami</label>
+            </div>
           </div>
+          <div class="msel-chips" id="vr-areas-chips"></div>
         </div>
 
         <label>Crew size
@@ -92,10 +142,15 @@
         <div style="margin:18px 0;padding:16px;border:1px solid rgba(201,162,75,.35);border-radius:12px;background:rgba(201,162,75,.05)">
           <p style="font-weight:700;margin-bottom:6px">Tax &amp; insurance documents</p>
           <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">We need these on file before you can receive paid jobs. Your documents stay private - only PrimeGuard sees them.</p>
-          <label>W-9 form <span style="color:var(--gold-bright)">(required)</span>
-            <input type="file" id="vr-w9" accept=".pdf,.jpg,.jpeg,.png" required style="margin-top:6px">
+          <p style="font-weight:700;margin-bottom:6px">W-9 form</p>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin-bottom:8px">
+            <input type="radio" name="vr-w9-choice" value="now" checked style="margin-top:4px">
+            <span>Upload now<input type="file" id="vr-w9" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px;display:block"></span>
           </label>
-          <p style="font-size:.8rem;color:var(--muted);margin:6px 0 12px">Upload a filled, signed IRS Form W-9 (PDF or photo).</p>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin-bottom:8px">
+            <input type="radio" name="vr-w9-choice" value="later" style="margin-top:4px">
+            <span>I'll submit it later <strong style="color:#f5d67b">- you have 7 days after registering.</strong> We'll remind you on your dashboard.</span>
+          </label>
           <label style="display:block;margin-bottom:8px">General liability insurance
             <select id="vr-insured" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">
               <option value="no">Not currently insured</option>
@@ -125,5 +180,40 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="vendor.js"></script>
+<script>
+(function () {
+  function wireMultiSelect(panelId, btnId, chipsId, placeholder, noun) {
+    var panel = document.getElementById(panelId),
+        btn = document.getElementById(btnId),
+        chips = document.getElementById(chipsId);
+    function refresh() {
+      var sel = Array.prototype.slice.call(panel.querySelectorAll("input[type=checkbox]:checked"))
+        .map(function (el) { return el.value; });
+      if (sel.length === 0) {
+        btn.textContent = placeholder; btn.classList.remove("has-sel"); chips.innerHTML = "";
+      } else {
+        btn.textContent = sel.length === 1 ? sel[0] : sel.length + " " + noun + " selected";
+        btn.classList.add("has-sel");
+        chips.innerHTML = "";
+        sel.forEach(function (v) {
+          var s = document.createElement("span"); s.textContent = v; chips.appendChild(s);
+        });
+      }
+    }
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = !panel.classList.contains("hidden");
+      document.querySelectorAll(".msel-panel").forEach(function (p) { p.classList.add("hidden"); });
+      if (!open) panel.classList.remove("hidden");
+    });
+    panel.addEventListener("click", function (e) { e.stopPropagation(); });
+    panel.addEventListener("change", refresh);
+    document.addEventListener("click", function () { panel.classList.add("hidden"); });
+    refresh();
+  }
+  wireMultiSelect("vr-services", "vr-services-btn", "vr-services-chips", "Select services...", "services");
+  wireMultiSelect("vr-areas", "vr-areas-btn", "vr-areas-chips", "Select areas...", "areas");
+})();
+</script>
 </body>
 </html>

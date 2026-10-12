@@ -103,14 +103,11 @@
     var equipment = document.getElementById("vr-equipment").value.trim();
     var address = document.getElementById("vr-address").value.trim();
     var insured = document.getElementById("vr-insured").value;
-    var w9File = document.getElementById("vr-w9").files[0] || null;
+    var w9Choice = document.querySelector('input[name="vr-w9-choice"]:checked');
+    var w9Later = w9Choice && w9Choice.value === "later";
+    var w9File = (!w9Later && document.getElementById("vr-w9").files[0]) || null;
     var coiFile = document.getElementById("vr-coi").files[0] || null;
-    if (!w9File) {
-      errEl.textContent = "Please upload your signed W-9 so we can get you set up for paid jobs.";
-      errEl.classList.remove("hidden");
-      btn.disabled = false; btn.textContent = "Create vendor account";
-      return;
-    }
+    var nowMs = Date.now();
 
     btn.textContent = "Uploading documents...";
     var w9Url = null, coiUrl = null;
@@ -132,7 +129,8 @@
         equipment: equipment,
         insured: insured,
         w9Url: w9Url, w9Status: w9Url ? "received" : "pending",
-        coiUrl: coiUrl,
+        w9Due: w9Url ? null : new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        coiUrl: coiUrl, coiStatus: coiUrl ? "received" : "pending",
         agreedToTerms: true,
         verified: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
