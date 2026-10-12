@@ -43,6 +43,20 @@
     });
   })();
 
+  // Settings slide-over panel
+  var settingsPanel = $("settingsPanel"), settingsOverlay = $("settingsOverlay");
+  function openSettings() {
+    settingsPanel.classList.add("open"); settingsOverlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeSettings() {
+    settingsPanel.classList.remove("open"); settingsOverlay.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+  $("settingsOpenBtn").addEventListener("click", openSettings);
+  $("settingsClose").addEventListener("click", closeSettings);
+  settingsOverlay.addEventListener("click", closeSettings);
+
   // (tabs removed — the page now scrolls hero → requests → jobs → settings)
 
   var yr = $("acct-year");
@@ -140,6 +154,14 @@
     try { return ts && ts.toDate ? ts.toDate().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""; }
     catch (e) { return ""; }
   }
+  function tsMillis(ts) {
+    try {
+      if (!ts) return 0;
+      if (ts.toMillis) return ts.toMillis();
+      var t = new Date(ts).getTime();
+      return isNaN(t) ? 0 : t;
+    } catch (e) { return 0; }
+  }
 
   // Auth state
   auth.onAuthStateChanged(function (user) {
@@ -182,15 +204,20 @@
   }
 
   function loadRequests(uid) {
-    db.collection("service_requests").where("uid", "==", uid).orderBy("createdAt", "desc").limit(10).get()
+    // (no orderBy: composite index not guaranteed — sort client-side)
+    db.collection("service_requests").where("uid", "==", uid).limit(25).get()
       .then(function (qs) {
         var box = $("requests-list");
         var active = 0;
-        if (qs.empty) {
+        var docs = [];
+        qs.forEach(function (doc) { docs.push(doc); });
+        docs.sort(function (a, b) { return tsMillis(b.data().createdAt) - tsMillis(a.data().createdAt); });
+        docs = docs.slice(0, 10);
+        if (!docs.length) {
           emptyState(box, "No requests yet. Tell us what your home needs.", "modal", "Request service");
         } else {
           box.innerHTML = "";
-          qs.forEach(function (doc) {
+          docs.forEach(function (doc) {
             var d = doc.data();
             var st = String(d.status || "new").toLowerCase();
             if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
@@ -210,15 +237,20 @@
   }
 
   function loadJobs(uid) {
-    db.collection("jobs").where("uid", "==", uid).orderBy("scheduledAt", "desc").limit(10).get()
+    // (no orderBy: composite index not guaranteed — sort client-side)
+    db.collection("jobs").where("uid", "==", uid).limit(25).get()
       .then(function (qs) {
         var box = $("jobs-list");
         var done = 0;
-        if (qs.empty) {
+        var docs = [];
+        qs.forEach(function (doc) { docs.push(doc); });
+        docs.sort(function (a, b) { return tsMillis(b.data().scheduledAt) - tsMillis(a.data().scheduledAt); });
+        docs = docs.slice(0, 10);
+        if (!docs.length) {
           emptyState(box, "No jobs yet. Your completed and upcoming jobs will live here.", "index.html#services", "Browse services");
         } else {
           box.innerHTML = "";
-          qs.forEach(function (doc) {
+          docs.forEach(function (doc) {
             var d = doc.data();
             var st = String(d.status || "scheduled").toLowerCase();
             if (st === "done" || st === "completed") done++;

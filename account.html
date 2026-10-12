@@ -23,6 +23,18 @@
   .acct-stat .l { font-size: .78rem; color: #8a7a5f; font-weight: 600; }
   .acct-settings-section { margin: 26px 0 8px; }
   .acct-settings-section .acct-settings { max-width: 640px; }
+  .acct-settings-cta { display: flex; justify-content: center; margin: 10px 0 26px; }
+  /* Settings slide-over panel */
+  .settings-overlay { position: fixed; inset: 0; background: rgba(35,26,12,.45); z-index: 300; opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s; }
+  .settings-overlay.open { opacity: 1; visibility: visible; }
+  .settings-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 94vw); background: #fffdf8; z-index: 301; box-shadow: -24px 0 70px rgba(0,0,0,.28); transform: translateX(106%); visibility: hidden; transition: transform .3s cubic-bezier(.22,1,.36,1), visibility .3s; padding: 24px; overflow-y: auto; box-sizing: border-box; }
+  .settings-panel.open { transform: none; visibility: visible; }
+  .settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .settings-head h3 { margin: 0; color: #3d3225; }
+  .settings-close { background: none; border: none; font-size: 1.8rem; line-height: 1; color: #8a7a5f; cursor: pointer; padding: 4px 8px; }
+  .settings-panel .acct-settings label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; color: #3d3225; margin-bottom: 14px; }
+  .settings-panel .acct-settings input { padding: 12px 14px; border-radius: 12px; border: 1px solid #e0d2b0; font-size: 1rem; font-family: inherit; color: #3d3225; background: #fff; }
+  .settings-panel .acct-settings input:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
   .acct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; padding-bottom: 70px; }
   .acct-card { background: #fffdf8; border: 1px solid #ecdfc2; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(120,84,20,.10); color: #3d3225; }
   .acct-card h3 { margin: 0 0 4px; color: #3d3225; }
@@ -181,21 +193,8 @@
             </div>
           </div>
 
-          <section class="acct-settings-section">
-            <div class="acct-card acct-settings">
-              <h3>Settings</h3>
-              <form id="profile-form">
-                <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
-                <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
-                <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
-                <p class="form-error hidden" id="profile-error"></p>
-                <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
-                <button class="btn btn-gold" type="submit">Save profile</button>
-              </form>
-              <div class="acct-logout-row">
-                <button class="btn btn-ghost" type="button" id="logout-btn" style="color:#8a5d14;border-color:#e0d2b0">Log out</button>
-              </div>
-            </div>
+          <section class="acct-settings-cta">
+            <button class="btn btn-ghost btn-sm" id="settingsOpenBtn" type="button" style="color:#8a5d14;border-color:#e0d2b0">⚙ Settings</button>
           </section>
         </div>
       </div>
@@ -247,6 +246,28 @@
     </div>
   </div>
 </div>
+
+<!-- Settings slide-over -->
+<div class="settings-overlay" id="settingsOverlay"></div>
+<aside class="settings-panel" id="settingsPanel" aria-label="Settings">
+  <div class="settings-head">
+    <h3>Settings</h3>
+    <button class="settings-close" id="settingsClose" aria-label="Close settings">×</button>
+  </div>
+  <div class="acct-settings">
+    <form id="profile-form">
+      <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
+      <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
+      <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
+      <p class="form-error hidden" id="profile-error"></p>
+      <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
+      <button class="btn btn-gold" type="submit">Save profile</button>
+    </form>
+    <div class="acct-logout-row">
+      <button class="btn btn-ghost" type="button" id="logout-btn" style="color:#8a5d14;border-color:#e0d2b0">Log out</button>
+    </div>
+  </div>
+</aside>
 
 <footer class="site-footer">
   <div class="wrap footer-inner">
