@@ -1,4 +1,4 @@
-/* PrimeGuard instant quote calculator — shared by all service pages.
+/* PrimeGuard instant quote calculator - shared by all service pages.
    Configure with <body data-svc="handyman"> and trigger with [data-quote-open].
    Ballpark only: final quote is always confirmed before work starts. */
 (function () {
@@ -17,7 +17,7 @@
       name: "Pressure Washing", select: "Pressure Washing", unit: "per visit",
       q1label: "How big is the area?",
       sizes: ["Small area", "Medium area", "Large area"],
-      base: [149, 199, 269],
+      base: [169, 219, 289],
       q2label: "What are we washing?",
       q2: [["Driveway only", 1], ["House exterior", 1.25], ["Driveway + house", 1.6], ["Whole property", 2]]
     },
