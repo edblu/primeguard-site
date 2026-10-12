@@ -521,7 +521,8 @@
   setHref("[data-email-href]", "mailto:" + (cfg.email || ""));
   setText("[data-hours]", cfg.hours || "");
   setText("[data-area]", cfg.serviceArea || "");
-  document.getElementById("year").textContent = new Date().getFullYear();
+  var yearEl = document.getElementById("year");
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 
   /* ---------- Header scroll state ---------- */
   var header = document.getElementById("siteHeader");
@@ -1133,10 +1134,10 @@
     authError.hidden = false;
   }
 
-  authTabLogin.addEventListener("click", function () { setAuthMode("login"); });
-  authTabSignup.addEventListener("click", function () { setAuthMode("signup"); });
+  if (authTabLogin) authTabLogin.addEventListener("click", function () { setAuthMode("login"); });
+  if (authTabSignup) authTabSignup.addEventListener("click", function () { setAuthMode("signup"); });
 
-  authForm.addEventListener("submit", function (e) {
+  if (authForm) authForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (!fbAuth) return;
     if (!authForm.checkValidity()) { authForm.reportValidity(); return; }
@@ -1156,7 +1157,7 @@
     });
   });
 
-  authGoogle.addEventListener("click", function () {
+  if (authGoogle) authGoogle.addEventListener("click", function () {
     if (!fbAuth || typeof firebase === "undefined") return;
     authError.hidden = true;
     authGoogle.disabled = true;
@@ -1201,7 +1202,7 @@
     document.body.classList.remove("modal-open");
   }
 
-  profLogout.addEventListener("click", function () {
+  if (profLogout) profLogout.addEventListener("click", function () {
     if (fbAuth) fbAuth.signOut();
     closeProfile();
   });
