@@ -659,9 +659,9 @@ body.modal-open { overflow: hidden; }
 
 /* ---------- Phase 2: responsive additions ---------- */
 @media (max-width: 760px) {
-  .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
+  .main-nav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
   .lang-toggle button { padding: 8px 10px; }
-  .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
+  .main-nav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
   .header-actions .btn-auth { display: none; }
 }
 
