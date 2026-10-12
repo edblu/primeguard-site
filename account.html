@@ -7,8 +7,56 @@
 <meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
+<style>
+  /* ---- Warm customer portal (light, welcoming) ---- */
+  .acct-page main { background: linear-gradient(180deg, #fdfaf2 0%, #f7efdd 100%); color: #3d3225; }
+  .acct-hero { position: relative; background: url('assets/account-hero-family.jpg') center/cover no-repeat; }
+  .acct-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(74,52,16,.18) 0%, rgba(74,52,16,.62) 100%); }
+  .acct-hero-inner { position: relative; z-index: 1; padding: 84px 0 36px; color: #fff; }
+  .acct-kicker { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ffe9b8; background: rgba(0,0,0,.28); padding: 6px 14px; border-radius: 999px; }
+  .acct-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin: 14px 0 6px; color: #fff; letter-spacing: -0.02em; }
+  .acct-hero h1 .gold-text { color: #ffd873; }
+  .acct-sub { color: rgba(255,255,255,.88); max-width: 560px; margin: 0; }
+  .acct-stats { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
+  .acct-stat { background: rgba(255,253,248,.94); border: 1px solid #ecdfc2; border-radius: 16px; padding: 14px 22px; min-width: 130px; box-shadow: 0 8px 24px rgba(120,84,20,.14); }
+  .acct-stat .v { font-size: 1.7rem; font-weight: 800; color: #8a5d14; }
+  .acct-stat .l { font-size: .78rem; color: #8a7a5f; font-weight: 600; }
+  .acct-tabs { display: flex; gap: 8px; margin: 26px 0 20px; }
+  .acct-tab { border: 1px solid #e4d5b4; background: #fffdf8; color: #6b5b40; font-weight: 700; padding: 10px 26px; border-radius: 999px; cursor: pointer; font-size: .95rem; }
+  .acct-tab.active { background: linear-gradient(135deg, #e9b949, #c98f1b); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(201,143,27,.35); }
+  .acct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; padding-bottom: 70px; }
+  .acct-card { background: #fffdf8; border: 1px solid #ecdfc2; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(120,84,20,.10); color: #3d3225; }
+  .acct-card h3 { margin: 0 0 4px; color: #3d3225; }
+  .acct-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .btn-sm { padding: 8px 18px; font-size: .85rem; }
+  .req-row { display: flex; align-items: center; gap: 12px; padding: 13px 4px; border-top: 1px solid #f0e6cf; }
+  .req-row:first-child { border-top: none; }
+  .req-dot { width: 10px; height: 10px; border-radius: 50%; background: #e9b949; flex: none; }
+  .req-main { flex: 1; min-width: 0; }
+  .req-main strong { display: block; color: #3d3225; font-size: .98rem; }
+  .req-main span { font-size: .82rem; color: #8a7a5f; }
+  .pill { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+  .pill-new { background: #fdf0d3; color: #8a5d14; }
+  .pill-progress { background: #e2eefa; color: #1d5fb8; }
+  .pill-done { background: #ddf3e2; color: #1e7a34; }
+  .pill-cancel { background: #fbe3e3; color: #b33737; }
+  .job-thumbs { display: flex; gap: 6px; margin-top: 8px; }
+  .job-thumbs img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; border: 1px solid #ecdfc2; }
+  .acct-empty { text-align: center; padding: 30px 10px; color: #8a7a5f; }
+  .acct-empty p { margin: 0 0 14px; }
+  .acct-settings { max-width: 600px; }
+  .acct-settings label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; margin-bottom: 14px; color: #3d3225; }
+  .acct-settings input { padding: 12px 14px; border-radius: 12px; border: 1px solid #e0d2b0; background: #fff; color: #3d3225; font-size: 1rem; }
+  .acct-settings input:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
+  .acct-logout-row { margin-top: 22px; padding-top: 18px; border-top: 1px solid #f0e6cf; }
+  .form-ok { color: #1e7a34; font-weight: 600; }
+  @media (max-width: 640px) {
+    .acct-hero-inner { padding: 60px 0 28px; }
+    .acct-stat { flex: 1; min-width: 100px; padding: 12px 14px; }
+  }
+</style>
 </head>
-<body>
+<body class="acct-page">
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="index.html"><img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation logo" class="brand-logo"><span class="brand-text">PrimeGuard <span>Preservation LLC</span></span></a>
@@ -17,7 +65,6 @@
       <a href="plans.html">Plans</a>
       <a href="work.html">Work</a>
       <a href="reviews.html">Reviews</a>
-      <a href="government.html">Government</a>
       <a href="index.html#about">About</a>
       <a href="index.html#contact">Contact</a>
     </nav>
@@ -28,7 +75,8 @@
 </header>
 
 <main>
-  <section class="account-hero">
+  <!-- Static hero (shown when logged out) -->
+  <section class="account-hero" id="account-hero-static">
     <div class="container">
       <p class="section-kicker">Customer portal</p>
       <h1 class="grad-text">My account</h1>
@@ -36,7 +84,7 @@
     </div>
   </section>
 
-  <section class="section account-section">
+  <section class="section account-section" id="account-section">
     <div class="container">
       <!-- Shown when Firebase is not configured yet -->
       <div id="account-coming-soon" class="card hidden">
@@ -74,32 +122,58 @@
 
       <!-- Dashboard (logged in) -->
       <div id="account-dashboard" class="hidden">
-        <div class="dashboard-head">
-          <h2 id="dashboard-greeting">Hello</h2>
-          <button class="btn btn-ghost" type="button" id="logout-btn">Log out</button>
-        </div>
+        <section class="acct-hero">
+          <div class="container acct-hero-inner">
+            <span class="acct-kicker">Customer portal</span>
+            <h1><span id="dashboard-greeting">Hello</span>, <span class="gold-text" id="dashboard-name">there</span></h1>
+            <p class="acct-sub">Your home, cared for. Track requests, revisit past jobs, and manage everything in one sunny place.</p>
+            <div class="acct-stats">
+              <div class="acct-stat"><div class="v" id="stat-requests">0</div><div class="l">Active requests</div></div>
+              <div class="acct-stat"><div class="v" id="stat-jobs">0</div><div class="l">Jobs completed</div></div>
+              <div class="acct-stat"><div class="v" id="stat-since">—</div><div class="l">Member since</div></div>
+            </div>
+          </div>
+        </section>
 
-        <div class="dashboard-grid">
-          <div class="card">
-            <h3>My profile</h3>
-            <form id="profile-form">
-              <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
-              <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
-              <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
-              <p class="form-error hidden" id="profile-error"></p>
-              <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
-              <button class="btn btn-gold" type="submit">Save profile</button>
-            </form>
+        <div class="container">
+          <div class="acct-tabs">
+            <button class="acct-tab active" data-acct-tab="overview" type="button">Overview</button>
+            <button class="acct-tab" data-acct-tab="settings" type="button">Settings</button>
           </div>
 
-          <div class="card">
-            <h3>My service requests</h3>
-            <div id="requests-list"><p class="muted">No requests yet. <a href="index.html#contact">Request service</a> to get started.</p></div>
+          <div id="acct-tab-overview">
+            <div class="acct-grid">
+              <div class="acct-card">
+                <div class="acct-card-head">
+                  <h3>Service requests</h3>
+                  <a class="btn btn-gold btn-sm" href="index.html#contact">New request</a>
+                </div>
+                <div id="requests-list"></div>
+              </div>
+              <div class="acct-card">
+                <div class="acct-card-head">
+                  <h3>Job history</h3>
+                </div>
+                <div id="jobs-list"></div>
+              </div>
+            </div>
           </div>
 
-          <div class="card">
-            <h3>My jobs</h3>
-            <div id="jobs-list"><p class="muted">No jobs yet. Your completed and scheduled jobs will appear here with photos.</p></div>
+          <div id="acct-tab-settings" hidden>
+            <div class="acct-card acct-settings">
+              <h3>Profile settings</h3>
+              <form id="profile-form">
+                <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
+                <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
+                <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
+                <p class="form-error hidden" id="profile-error"></p>
+                <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
+                <button class="btn btn-gold" type="submit">Save profile</button>
+              </form>
+              <div class="acct-logout-row">
+                <button class="btn btn-ghost" type="button" id="logout-btn" style="color:#8a5d14;border-color:#e0d2b0">Log out</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -118,7 +192,6 @@
       <a href="work.html">Work</a>
       <a href="reviews.html">Reviews</a>
       <a href="faq.html">FAQ</a>
-      <a href="government.html">Government</a>
       <a href="index.html#about">About</a>
       <a href="index.html#contact">Contact</a>
       <a href="careers.html">Careers</a>

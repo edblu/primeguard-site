@@ -6,19 +6,20 @@
   var $ = function (id) { return document.getElementById(id); };
   function show(el) { el.classList.remove("hidden"); }
   function hide(el) { el.classList.add("hidden"); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
   if (!configured) {
     show($("account-coming-soon"));
     return;
   }
 
-  firebase.initializeApp(cfg);
+  if (!firebase.apps.length) firebase.initializeApp(cfg);
   var auth = firebase.auth();
   var db = firebase.firestore();
 
   var authForms = $("auth-forms"), dashboard = $("account-dashboard");
 
-  // Tabs
+  // Auth tabs
   $("tab-login").addEventListener("click", function () {
     $("tab-login").classList.add("active"); $("tab-signup").classList.remove("active");
     show($("form-login")); hide($("form-signup"));
@@ -26,6 +27,18 @@
   $("tab-signup").addEventListener("click", function () {
     $("tab-signup").classList.add("active"); $("tab-login").classList.remove("active");
     show($("form-signup")); hide($("form-login"));
+  });
+
+  // Dashboard tabs (Overview / Settings)
+  document.querySelectorAll("[data-acct-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-acct-tab]").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var which = btn.getAttribute("data-acct-tab");
+      $("acct-tab-overview").hidden = which !== "overview";
+      $("acct-tab-settings").hidden = which !== "settings";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   });
 
   function authError(err, elId) {
@@ -36,7 +49,7 @@
   // Email/password login
   $("form-login").addEventListener("submit", function (e) {
     e.preventDefault(); hide($("login-error"));
-    auth.signInWithEmailAndPassword($("login-email").value.trim(), $("login-password").value)
+    auth.signInWithEmailAndPassword($("login-email").value.trim(), $("login-password").value.trim())
       .catch(function (err) { authError(err, "login-error"); });
   });
 
@@ -55,7 +68,7 @@
     }).catch(function (err) { authError(err, "signup-error"); });
   });
 
-  // Google sign-in (shared)
+  // Google sign-in (shared, mobile-safe)
   function googleSignIn() {
     var provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).then(function (cred) {
@@ -69,7 +82,14 @@
           });
         }
       });
-    }).catch(function (err) { authError(err, "login-error"); show($("form-login")); hide($("form-signup")); });
+    }).catch(function (err) {
+      if (err && (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user" ||
+          err.code === "auth/cancelled-popup-request")) {
+        auth.signInWithRedirect(provider);
+      } else {
+        authError(err, "login-error"); show($("form-login")); hide($("form-signup"));
+      }
+    });
   }
   $("google-login").addEventListener("click", googleSignIn);
   $("google-signup").addEventListener("click", googleSignIn);
@@ -77,70 +97,130 @@
   // Logout
   $("logout-btn").addEventListener("click", function () { auth.signOut(); });
 
-  // Profile save
+  // Profile save (settings tab)
   $("profile-form").addEventListener("submit", function (e) {
     e.preventDefault(); hide($("profile-error")); hide($("profile-ok"));
     var user = auth.currentUser; if (!user) return;
-    db.collection("customers").doc(user.uid).update({
+    db.collection("customers").doc(user.uid).set({
       name: $("profile-name").value.trim(),
       phone: $("profile-phone").value.trim(),
-      address: $("profile-address").value.trim()
-    }).then(function () { show($("profile-ok")); })
-      .catch(function (err) { authError(err, "profile-error"); });
+      address: $("profile-address").value.trim(),
+      email: user.email || ""
+    }, { merge: true }).then(function () {
+      show($("profile-ok"));
+      var n = $("profile-name").value.trim().split(" ")[0];
+      if (n) $("dashboard-name").textContent = n;
+    }).catch(function (err) { authError(err, "profile-error"); });
   });
+
+  function daypart() {
+    var h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  }
+
+  function pillFor(status) {
+    var s = String(status || "new").toLowerCase().replace(/[\s-]+/g, "_");
+    var cls = "pill-new", label = status || "New";
+    if (s === "done" || s === "completed") { cls = "pill-done"; }
+    else if (s === "in_progress" || s === "scheduled" || s === "accepted" || s === "confirmed" || s === "review") { cls = "pill-progress"; }
+    else if (s === "cancelled" || s === "canceled" || s === "declined") { cls = "pill-cancel"; }
+    return '<span class="pill ' + cls + '">' + esc(label) + "</span>";
+  }
+
+  function fmtDate(ts) {
+    try { return ts && ts.toDate ? ts.toDate().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""; }
+    catch (e) { return ""; }
+  }
 
   // Auth state
   auth.onAuthStateChanged(function (user) {
     if (user) {
-      hide(authForms); show(dashboard);
+      hide(authForms); hide($("account-hero-static")); show(dashboard);
       var ref = db.collection("customers").doc(user.uid);
       ref.get().then(function (snap) {
         var d = snap.exists ? snap.data() : {};
-        var name = d.name || user.displayName || "there";
-        $("dashboard-greeting").textContent = "Hello, " + name.split(" ")[0];
+        var first = (d.name || user.displayName || "there").split(" ")[0];
+        $("dashboard-greeting").textContent = daypart();
+        $("dashboard-name").textContent = first;
         $("profile-name").value = d.name || user.displayName || "";
         $("profile-phone").value = d.phone || "";
         $("profile-address").value = d.address || "";
+        var since = "—";
+        if (d.createdAt && d.createdAt.toDate) since = d.createdAt.toDate().getFullYear();
+        else if (user.metadata && user.metadata.creationTime) since = new Date(user.metadata.creationTime).getFullYear();
+        $("stat-since").textContent = since;
+      }).catch(function () {
+        $("dashboard-greeting").textContent = daypart();
+        $("dashboard-name").textContent = (user.displayName || "there").split(" ")[0];
       });
       loadRequests(user.uid); loadJobs(user.uid);
     } else {
-      show(authForms); hide(dashboard);
+      show(authForms); show($("account-hero-static")); hide(dashboard);
     }
   });
+
+  function emptyState(box, text, ctaHref, ctaText) {
+    box.innerHTML = '<div class="acct-empty"><p>' + esc(text) + '</p>' +
+      (ctaHref ? '<a class="btn btn-gold btn-sm" href="' + ctaHref + '">' + esc(ctaText) + "</a>" : "") + "</div>";
+  }
 
   function loadRequests(uid) {
     db.collection("service_requests").where("uid", "==", uid).orderBy("createdAt", "desc").limit(10).get()
       .then(function (qs) {
         var box = $("requests-list");
-        if (qs.empty) return;
-        box.innerHTML = "";
-        qs.forEach(function (doc) {
-          var d = doc.data();
-          var div = document.createElement("div"); div.className = "request-row";
-          div.innerHTML = "<strong></strong><span class='muted'></span><span class='status-pill'></span>";
-          div.children[0].textContent = d.service || "Service request";
-          div.children[1].textContent = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().toLocaleDateString() : "";
-          div.children[2].textContent = d.status || "received";
-          box.appendChild(div);
-        });
-      }).catch(function () { /* collection may not exist yet */ });
+        var active = 0;
+        if (qs.empty) {
+          emptyState(box, "No requests yet. Tell us what your home needs.", "index.html#contact", "Request service");
+        } else {
+          box.innerHTML = "";
+          qs.forEach(function (doc) {
+            var d = doc.data();
+            var st = String(d.status || "new").toLowerCase();
+            if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
+            var div = document.createElement("div"); div.className = "req-row";
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span></div>' + pillFor(d.status);
+            div.querySelector("strong").textContent = d.service || "Service request";
+            div.querySelector("span").textContent = fmtDate(d.createdAt);
+            box.appendChild(div);
+          });
+        }
+        $("stat-requests").textContent = active;
+      }).catch(function () {
+        emptyState($("requests-list"), "Couldn't load requests right now.", null, null);
+      });
   }
 
   function loadJobs(uid) {
     db.collection("jobs").where("uid", "==", uid).orderBy("scheduledAt", "desc").limit(10).get()
       .then(function (qs) {
         var box = $("jobs-list");
-        if (qs.empty) return;
-        box.innerHTML = "";
-        qs.forEach(function (doc) {
-          var d = doc.data();
-          var div = document.createElement("div"); div.className = "request-row";
-          div.innerHTML = "<strong></strong><span class='muted'></span><span class='status-pill'></span>";
-          div.children[0].textContent = d.service || "Job";
-          div.children[1].textContent = d.scheduledAt && d.scheduledAt.toDate ? d.scheduledAt.toDate().toLocaleDateString() : "";
-          div.children[2].textContent = d.status || "scheduled";
-          box.appendChild(div);
-        });
-      }).catch(function () { /* collection may not exist yet */ });
+        var done = 0;
+        if (qs.empty) {
+          emptyState(box, "No jobs yet. Your completed and upcoming jobs will live here.", "index.html#services", "Browse services");
+        } else {
+          box.innerHTML = "";
+          qs.forEach(function (doc) {
+            var d = doc.data();
+            var st = String(d.status || "scheduled").toLowerCase();
+            if (st === "done" || st === "completed") done++;
+            var div = document.createElement("div"); div.className = "req-row";
+            var thumbs = "";
+            if (Array.isArray(d.photos) && d.photos.length) {
+              thumbs = '<div class="job-thumbs">' + d.photos.slice(0, 4).map(function (u) {
+                return '<img src="' + esc(u) + '" alt="Job photo" loading="lazy">';
+              }).join("") + "</div>";
+            }
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span>' + thumbs + "</div>" + pillFor(d.status);
+            div.querySelector("strong").textContent = d.service || "Job";
+            div.querySelector("span").textContent = fmtDate(d.scheduledAt);
+            box.appendChild(div);
+          });
+        }
+        $("stat-jobs").textContent = done;
+      }).catch(function () {
+        emptyState($("jobs-list"), "Couldn't load jobs right now.", null, null);
+      });
   }
 })();

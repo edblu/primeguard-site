@@ -228,6 +228,7 @@
       close: "Close",
       login: "Log in", login_aria: "Log in to your account", my_account: "My account",
       auth_title_login: "Welcome back", auth_title_signup: "Create your account",
+      profile_hello: "Hi",
       profile_my_account: "My account dashboard",
       auth_choose_title: "Who's logging in?",
       auth_choose_customer: "I'm a customer", auth_choose_vendor: "I'm a vendor",
@@ -465,6 +466,7 @@
       close: "Cerrar",
       login: "Iniciar sesión", login_aria: "Inicie sesión en su cuenta", my_account: "Mi cuenta",
       auth_title_login: "Bienvenido de nuevo", auth_title_signup: "Cree su cuenta",
+      profile_hello: "Hola",
       profile_my_account: "Panel de mi cuenta",
       auth_choose_title: "¿Quién inicia sesión?",
       auth_choose_customer: "Soy cliente", auth_choose_vendor: "Soy proveedor",
@@ -1153,66 +1155,21 @@
     });
   });
 
-  /* ----- Profile modal ----- */
+  /* ----- Account menu ----- */
   var profileModal = document.getElementById("profileModal");
-  var profileForm = document.getElementById("profileForm");
-  var profName = document.getElementById("profName");
-  var profPhone = document.getElementById("profPhone");
-  var profAddress = document.getElementById("profAddress");
-  var profService = document.getElementById("profService");
-  var profSave = document.getElementById("profSave");
-  var profStatus = document.getElementById("profStatus");
   var profLogout = document.getElementById("profLogout");
 
   function openProfile() {
     closeMenu();
-    loadProfileIntoForm();
-    profStatus.hidden = true;
+    var nm = document.getElementById("profileMenuName");
+    if (nm) nm.textContent = firstName();
     profileModal.hidden = false;
     document.body.classList.add("modal-open");
   }
   function closeProfile() {
     profileModal.hidden = true;
     document.body.classList.remove("modal-open");
-    profStatus.hidden = true;
   }
-
-  function loadProfileIntoForm() {
-    var p = userProfile || {};
-    profName.value = p.name || (currentUser && currentUser.displayName) || "";
-    profPhone.value = p.phone || "";
-    profAddress.value = p.address || "";
-    profService.value = p.service || "";
-  }
-
-  profileForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (!currentUser || !fbDb) return;
-    profStatus.hidden = true;
-    profSave.disabled = true;
-    var data = {
-      name: profName.value.trim(),
-      phone: profPhone.value.trim(),
-      address: profAddress.value.trim(),
-      service: profService.value,
-      email: currentUser.email || "",
-      updatedAt: new Date().toISOString()
-    };
-    fbDb.collection("customers").doc(currentUser.uid).set(data, { merge: true }).then(function () {
-      userProfile = Object.assign({}, userProfile, data);
-      profStatus.className = "form-status success";
-      profStatus.textContent = t("profile_saved");
-      profStatus.hidden = false;
-      updateAuthButtons();
-      prefillQuoteForm();
-    }).catch(function () {
-      profStatus.className = "form-status error";
-      profStatus.textContent = t("profile_save_error");
-      profStatus.hidden = false;
-    }).then(function () {
-      profSave.disabled = false;
-    });
-  });
 
   profLogout.addEventListener("click", function () {
     if (fbAuth) fbAuth.signOut();
