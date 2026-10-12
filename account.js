@@ -180,8 +180,10 @@
             var d = doc.data();
             var st = String(d.status || "new").toLowerCase();
             if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
+            var editable = st.replace(/[\s-]+/g, "_") === "new";
             var div = document.createElement("div"); div.className = "req-row";
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span></div>' + pillFor(d.status);
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span></span></div>' + pillFor(d.status) +
+              (editable ? '<button type="button" class="req-edit" data-edit-req="' + doc.id + '">Edit</button>' : "");
             div.querySelector("strong").textContent = d.service || "Service request";
             div.querySelector("span").textContent = fmtDate(d.createdAt);
             box.appendChild(div);
@@ -227,12 +229,30 @@
   /* ---------- Request service modal ---------- */
   var reqModal = $("reqModal"), reqSvc = null, reqFreq = "One-time";
   var custInfo = { name: "", phone: "", email: "" };
+  var reqPhotos = [];      // dataURLs picked in the modal
+  var editingReqId = null; // service_requests doc id being edited, or null
 
   function openReq() {
-    reqSvc = null; reqFreq = "One-time";
+    reqSvc = null; reqFreq = "One-time"; editingReqId = null; reqPhotos = [];
     $("reqStep1").hidden = false; $("reqStep2").hidden = true; $("reqDone").hidden = true;
-    $("reqDetails").value = ""; hide($("reqError"));
+    $("reqDetails").value = ""; $("reqPhotos").value = ""; $("reqPreview").innerHTML = "";
+    hide($("reqError"));
+    $("reqSubmit").textContent = "Send request";
     document.querySelectorAll(".req-chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+    reqModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function openReqEdit(id, d) {
+    editingReqId = id; reqPhotos = [];
+    reqSvc = d.service || null; reqFreq = d.frequency || "One-time";
+    $("reqStep1").hidden = true; $("reqStep2").hidden = false; $("reqDone").hidden = true;
+    $("reqSvcTitle").textContent = reqSvc || "Service request";
+    $("reqDetails").value = d.message || ""; $("reqPhotos").value = ""; $("reqPreview").innerHTML = "";
+    hide($("reqError"));
+    $("reqSubmit").textContent = "Save changes";
+    document.querySelectorAll(".req-chip").forEach(function (c) {
+      c.classList.toggle("active", c.getAttribute("data-freq") === reqFreq);
+    });
     reqModal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
@@ -246,6 +266,28 @@
   reqModal.addEventListener("click", function (e) { if (e.target === reqModal) closeReq(); });
   document.addEventListener("click", function (e) {
     if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-open-req")) openReq();
+    var eb = e.target && e.target.closest ? e.target.closest("[data-edit-req]") : null;
+    if (eb) {
+      var rid = eb.getAttribute("data-edit-req");
+      db.collection("service_requests").doc(rid).get().then(function (snap) {
+        if (snap.exists) openReqEdit(rid, snap.data());
+      });
+    }
+  });
+
+  // photo picker in the request modal
+  $("reqPhotos").addEventListener("change", function (e) {
+    Array.prototype.forEach.call(e.target.files, function (f) {
+      if (reqPhotos.length >= 6) return;
+      var r = new FileReader();
+      r.onload = function () {
+        reqPhotos.push(r.result);
+        var img = document.createElement("img");
+        img.src = r.result; img.alt = "request photo";
+        $("reqPreview").appendChild(img);
+      };
+      r.readAsDataURL(f);
+    });
   });
 
   document.querySelectorAll(".req-svc").forEach(function (btn) {
@@ -272,23 +314,43 @@
     var user = auth.currentUser;
     if (!user || !reqSvc) return;
     var btn = $("reqSubmit");
-    btn.disabled = true; btn.textContent = "Sending...";
-    db.collection("service_requests").add({
-      uid: user.uid,
-      name: custInfo.name, phone: custInfo.phone, email: custInfo.email,
-      service: reqSvc, frequency: reqFreq,
-      message: $("reqDetails").value.trim(),
-      status: "new", source: "account-dashboard",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () {
+    var isEdit = !!editingReqId;
+    btn.disabled = true; btn.textContent = isEdit ? "Saving..." : "Sending...";
+
+    function save(urls) {
+      var payload = {
+        service: reqSvc, frequency: reqFreq,
+        message: $("reqDetails").value.trim()
+      };
+      if (urls && urls.length) payload.photos = urls;
+      if (isEdit) {
+        return db.collection("service_requests").doc(editingReqId).update(payload);
+      }
+      payload.uid = user.uid;
+      payload.name = custInfo.name; payload.phone = custInfo.phone; payload.email = custInfo.email;
+      payload.status = "new"; payload.source = "account-dashboard";
+      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      return db.collection("service_requests").add(payload);
+    }
+
+    var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
+    var uploadP = (reqPhotos.length && endpoint)
+      ? fetch(endpoint, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ type: "photo-upload", folder: "service-request-photos", photos: reqPhotos }) })
+        .then(function (r) { return r.json(); }).then(function (out) { return out.urls || []; })
+        .catch(function () { return []; })
+      : Promise.resolve([]);
+
+    uploadP.then(save).then(function () {
       $("reqStep2").hidden = true; $("reqDone").hidden = false;
+      $("reqDone").querySelector("h3").textContent = isEdit ? "Changes saved!" : "Request received!";
       loadRequests(user.uid);
     }).catch(function (err) {
       var el = $("reqError");
       el.textContent = (err && err.message) || "Couldn't send. Please try again.";
       show(el);
     }).then(function () {
-      btn.disabled = false; btn.textContent = "Send request";
+      btn.disabled = false; btn.textContent = isEdit ? "Save changes" : "Send request";
     });
   });
 

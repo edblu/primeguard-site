@@ -394,10 +394,16 @@
     <button class="modal-close" id="authClose" aria-label="Close" data-i18n-aria="close">×</button>
     <div id="authChoose" hidden>
       <h3 data-i18n="auth_choose_title">Who's logging in?</h3>
-      <div class="modal-body">
-        <button type="button" class="btn btn-gold btn-lg" id="authChooseCustomer" style="width:100%"><span data-i18n="auth_choose_customer">I'm a customer</span></button>
-        <button type="button" class="btn btn-ghost btn-lg" id="authChooseVendor" style="width:100%;margin-top:10px"><span data-i18n="auth_choose_vendor">I'm a vendor</span></button>
-        <p class="auth-soon-body" style="margin-top:12px"><span data-i18n="auth_choose_sub">Customers track requests and jobs. Vendors manage work orders, quotes, and pay from their dashboard.</span></p>
+      <p class="choose-sub"><span data-i18n="auth_choose_sub">Pick your portal to continue.</span></p>
+      <div class="choose-grid">
+        <button type="button" class="choose-card choose-customer" id="authChooseCustomer">
+          <span class="choose-label"><span data-i18n="auth_choose_customer">I'm a customer</span></span>
+          <span class="choose-desc"><span data-i18n="auth_choose_customer_desc">Track requests &amp; jobs</span></span>
+        </button>
+        <button type="button" class="choose-card choose-vendor" id="authChooseVendor">
+          <span class="choose-label"><span data-i18n="auth_choose_vendor">I'm a vendor</span></span>
+          <span class="choose-desc"><span data-i18n="auth_choose_vendor_desc">Work orders, quotes &amp; pay</span></span>
+        </button>
       </div>
     </div>
     <div id="authMain" hidden>

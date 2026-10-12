@@ -65,6 +65,14 @@
   .req-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; color: #3d3225; margin-bottom: 14px; }
   .req-label textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #e0d2b0; font-size: 1rem; font-family: inherit; color: #3d3225; background: #fff; box-sizing: border-box; }
   .req-label textarea:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
+  .req-opt { font-weight: 400; font-size: .82rem; color: #8a7a5f; }
+  .req-label input[type="file"] { font-size: .9rem; color: #6b5b40; }
+  .req-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin: -6px 0 14px; }
+  .req-thumbs img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #e0d2b0; }
+  .req-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #f3ead6; }
+  .req-row:last-child { border-bottom: none; }
+  .req-row .req-main { flex: 1; }
+  .req-edit { background: none; border: 1px solid #e0d2b0; color: #8a5d14; font-weight: 700; font-size: .8rem; border-radius: 999px; padding: 6px 14px; cursor: pointer; font-family: inherit; }
   .req-back { background: none; border: none; color: #8a5d14; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-size: .92rem; padding: 0; }
   .req-call { text-align: center; font-size: .88rem; color: #8a7a5f; margin: 14px 0 0; }
   .req-call a { color: #8a5d14; font-weight: 700; }
@@ -221,6 +229,10 @@
       <label class="req-label">Tell us about the job
         <textarea id="reqDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left"></textarea>
       </label>
+      <label class="req-label">Photos <span class="req-opt">(optional — helps us quote accurately)</span>
+        <input type="file" id="reqPhotos" accept="image/*" multiple>
+      </label>
+      <div class="req-thumbs" id="reqPreview"></div>
       <p class="form-error hidden" id="reqError"></p>
       <button class="btn btn-gold btn-lg" id="reqSubmit" type="button" style="width:100%">Send request</button>
       <p class="req-call">Prefer to talk? <a href="tel:+17864229674">Call (786) 422-9674</a></p>

@@ -15,6 +15,9 @@
   var vendor = null;    // vendors/{uid} data
   var myEvals = [];     // quote requests I accepted (for quote form dropdown)
 
+  var _yr = document.getElementById("vd-year");
+  if (_yr) _yr.textContent = new Date().getFullYear();
+
   // ---------- Login ----------
   $("vd-loginform").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -47,7 +50,7 @@
 
   function renderProfile() {
     var v = vendor;
-    $("vd-verified").textContent = v.verified ? "VERIFIED" : "PENDING VERIFICATION";
+    $("cnt-verified").textContent = v.verified ? "VERIFIED" : "PENDING VERIFICATION";
     $("vd-profile").innerHTML = [
       ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
       ["Email", v.email], ["Services", (v.services || []).join(", ")],

@@ -673,6 +673,18 @@ body.modal-open { overflow: hidden; }
 .modal-narrow { width: min(480px, 100%); }
 .modal-narrow .modal-body { padding-top: 18px; }
 
+/* Login chooser: customer / vendor cards */
+.choose-sub { color: var(--muted); font-size: .92rem; margin: 0 0 16px; }
+.choose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.choose-card { position: relative; border: 1px solid rgba(255,255,255,.1); border-radius: 18px; overflow: hidden; min-height: 200px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 18px; text-align: left; color: #fff; font-family: inherit; background-size: cover; background-position: center; box-shadow: 0 14px 34px rgba(0,0,0,.45); transition: transform .15s ease, box-shadow .15s ease; }
+.choose-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(0,0,0,.55), 0 0 0 1px rgba(201,162,75,.5); }
+.choose-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.02) 25%, rgba(0,0,0,.8)); }
+.choose-customer { background-image: url("assets/account-hero-family.jpg"); }
+.choose-vendor { background-image: url("assets/careers-crew.jpg"); }
+.choose-label { position: relative; font-weight: 800; font-size: 1.05rem; }
+.choose-desc { position: relative; font-size: .8rem; opacity: .88; margin-top: 2px; }
+@media (max-width: 480px) { .choose-grid { grid-template-columns: 1fr; } .choose-card { min-height: 150px; } }
+
 .auth-tabs {
   display: flex; background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line-soft); border-radius: 999px; padding: 4px; margin-bottom: 22px;

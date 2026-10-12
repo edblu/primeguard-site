@@ -59,6 +59,41 @@
   .vfield strong { font-size:.95rem; font-weight:600; }
   .verr { color:#ff9d9d; font-size:.9rem; margin:10px 0; }
   .vok { color:var(--gold-bright); font-size:.9rem; margin:10px 0; }
+  /* Hero glow + background picture */
+  .vhero { position:relative; border-radius:22px; overflow:hidden; padding:44px 28px 30px; margin-top:18px;
+    background:linear-gradient(180deg, rgba(8,8,10,.62), rgba(8,8,10,.88)), url("assets/careers-crew.jpg") center/cover;
+    border:1px solid rgba(255,255,255,.08); box-shadow:0 22px 55px rgba(0,0,0,.55); }
+  .vhero::before { content:""; position:absolute; inset:0; background:radial-gradient(640px 220px at 18% 0%, rgba(201,162,75,.16), transparent 70%); pointer-events:none; }
+  .vhero > * { position:relative; }
+  /* Footer */
+  .vfooter { margin-top:44px; border-top:1px solid rgba(255,255,255,.07); padding:40px 0 110px; }
+  .vfooter-inner { display:grid; gap:26px; }
+  .vfooter-brand { display:flex; gap:14px; align-items:center; }
+  .vfooter-brand img { width:54px; height:54px; }
+  .vfooter-brand p { font-weight:700; margin:0; }
+  .vfooter-brand span { color:var(--faint); font-weight:400; font-size:.85rem; }
+  .vfooter-contact { display:flex; flex-direction:column; gap:6px; }
+  .vfooter-contact a { color:var(--gold-bright); font-weight:600; }
+  .vfooter-contact span { color:var(--faint); font-size:.85rem; }
+  .vfooter-links { display:flex; flex-wrap:wrap; gap:8px 22px; align-content:flex-start; }
+  .vfooter-links a { color:var(--muted); font-size:.9rem; }
+  .vfooter-note { color:var(--faint); font-size:.85rem; max-width:600px; margin:0; }
+  .vfooter-copy { color:var(--faint); font-size:.8rem; margin:0; }
+  @media (min-width:760px) {
+    .vfooter-inner { grid-template-columns:1.2fr 1fr 1fr; }
+    .vfooter-note, .vfooter-copy { grid-column:1 / -1; }
+  }
+  /* Responsive */
+  @media (max-width:600px) {
+    .vtop { flex-wrap:wrap; row-gap:10px; }
+    .vright { margin-left:0; width:100%; justify-content:space-between; }
+    .vstats { grid-template-columns:1fr 1fr; gap:12px; }
+    .vstat { padding:16px; }
+    .vstat .v { font-size:1.45rem; }
+    .vform .row2 { grid-template-columns:1fr; }
+    .vjob { padding:20px; }
+    .vjobs { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -146,17 +181,39 @@
     <div class="vhist" id="list-done"></div>
   </section>
 
-  <section class="vsec" style="padding-bottom:60px">
+  <section class="vsec" style="padding-bottom:20px">
     <h2>My profile</h2><span class="cnt" id="cnt-verified"></span>
     <div class="vgrid2" id="vd-profile"></div>
   </section>
 </div>
+
+<footer class="vfooter">
+  <div class="vwrap vfooter-inner">
+    <div class="vfooter-brand">
+      <img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation LLC logo">
+      <p>PrimeGuard Preservation LLC<br><span>Miami-Dade County, FL</span></p>
+    </div>
+    <div class="vfooter-contact">
+      <a href="tel:+17864229674">(786) 422-9674</a>
+      <a href="mailto:primeguardllc.office@pgpbiz.com">primeguardllc.office@pgpbiz.com</a>
+      <span>Mon–Sat, 8:00 AM – 6:00 PM</span>
+    </div>
+    <nav class="vfooter-links" aria-label="Footer">
+      <a href="index.html">Main site</a>
+      <a href="vendor-register.html">Join as a vendor</a>
+      <a href="index.html#services">Services</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <p class="vfooter-note">How pay works: finish the job, send before and after photos, and payment is released per job completed after PrimeGuard confirms the work.</p>
+    <p class="vfooter-copy">© <span id="vd-year"></span> PrimeGuard Preservation LLC. All rights reserved.</p>
+  </div>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js"></script>
+<script src="vendor-dashboard.js?v=2"></script>
 </body>
 </html>
