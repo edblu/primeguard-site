@@ -84,6 +84,53 @@
   .req-row:last-child { border-bottom: none; }
   .req-row .req-main { flex: 1; }
   .req-edit { background: none; border: 1px solid rgba(255,200,90,.4); color: #ffd873; font-weight: 700; font-size: .8rem; border-radius: 999px; padding: 6px 14px; cursor: pointer; font-family: inherit; }
+  /* ---- Dashboard extras (quotes, referrals, plan, properties, seasonal, gallery) ---- */
+  .acct-action { border-color: rgba(255,200,90,.6); box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 50px rgba(255,190,80,.14); margin-bottom: 22px; }
+  .quote-card { display: flex; gap: 16px; align-items: center; padding: 16px 4px; border-top: 1px solid rgba(255,200,90,.13); }
+  .quote-card:first-child { border-top: none; }
+  .q-main { flex: 1; min-width: 0; }
+  .q-main strong { display: block; color: #f5f1e6; font-size: 1.02rem; }
+  .q-det, .q-notes { display: block; font-size: .84rem; color: #a89a7d; margin-top: 3px; }
+  .q-side { text-align: right; flex: none; }
+  .q-price { font-size: 1.7rem; font-weight: 800; color: #ffd873; text-shadow: 0 0 18px rgba(255,190,80,.45); margin-bottom: 8px; }
+  .q-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .req-tl { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+  .req-tl i { width: 22px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.14); }
+  .req-tl i.on { background: linear-gradient(90deg, #e9b949, #ffd873); box-shadow: 0 0 8px rgba(255,190,80,.55); }
+  .req-tl span { font-size: .72rem; color: #bfae8d; font-weight: 700; margin-left: 4px; }
+  .tl-cancel { color: #ff9d9d; font-size: .72rem; font-weight: 700; }
+  .req-again { flex: none; background: rgba(255,200,90,.1); border: 1px solid rgba(255,200,90,.45); color: #ffd873; font-weight: 700; font-size: .78rem; border-radius: 999px; padding: 7px 14px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .req-again:hover { background: rgba(255,200,90,.22); }
+  .ref-code-row { display: flex; gap: 10px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+  .ref-code-row code { font-size: 1.3rem; font-weight: 800; color: #ffd873; letter-spacing: .06em; background: rgba(255,200,90,.08); border: 1px dashed rgba(255,200,90,.5); padding: 8px 16px; border-radius: 12px; }
+  .ref-stats { display: flex; gap: 22px; margin-top: 6px; }
+  .ref-stats strong { display: block; font-size: 1.4rem; color: #ffd873; }
+  .ref-stats span { font-size: .75rem; color: #a89a7d; }
+  .plan-name { font-size: 1.25rem; font-weight: 800; color: #ffd873; margin-bottom: 4px; }
+  .plan-meta { color: #a89a7d; font-size: .86rem; margin-bottom: 12px; }
+  #plan-body p, #referral-body p { color: #a89a7d; font-size: .9rem; line-height: 1.55; }
+  .prop-row { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(255,200,90,.13); }
+  .prop-row:first-child { border-top: none; }
+  .p-main { flex: 1; min-width: 0; }
+  .p-main strong { display: block; color: #f5f1e6; font-size: .95rem; }
+  .p-main span { font-size: .8rem; color: #a89a7d; }
+  .prop-del { background: none; border: none; color: #8a7a6a; font-size: 1.3rem; cursor: pointer; padding: 4px 6px; flex: none; }
+  .prop-del:hover { color: #ff9d9d; }
+  .prop-add { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .prop-add input { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid #4a4232; background: #1d1d20; color: #f5f1e6; font-size: .86rem; font-family: inherit; }
+  .prop-add input:focus { outline: none; border-color: #c98f1b; }
+  .pfaint { color: #8a7a6a; font-size: .84rem; }
+  .season-tip { color: #d8cba8; line-height: 1.6; font-size: .92rem; margin: 0; }
+  .gallery-strip { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 10px; }
+  .gallery-strip img { width: 120px; height: 90px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,200,90,.35); cursor: pointer; flex: none; transition: transform .2s; }
+  .gallery-strip img:hover { transform: scale(1.05); }
+  .lightbox { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 14px; border: 1px solid rgba(255,200,90,.4); box-shadow: 0 30px 80px rgba(0,0,0,.7); }
+  @media (max-width: 560px) {
+    .quote-card { flex-direction: column; align-items: stretch; }
+    .q-side { text-align: left; }
+    .q-btns { justify-content: flex-start; }
+  }
   /* Rich request window (v2) */
   .rw-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(10,8,4,.68); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 14px; overflow-y: auto; }
   .rw-window { position: relative; width: min(620px, 100%); max-height: 92vh; display: flex; flex-direction: column; background: #fffdf8; border-radius: 24px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 0 70px rgba(201,143,27,.22); border: 1px solid rgba(201,143,27,.45); margin: auto; color: #3d3225; }
@@ -257,6 +304,13 @@
         </div>
 
         <div class="container">
+          <section class="acct-card acct-action hidden" id="quoteSection">
+            <div class="acct-card-head"><h3>⚡ Action needed</h3><span class="pill pill-new" id="quoteCount"></span></div>
+            <div id="quotes-list"></div>
+          </section>
+        </div>
+
+        <div class="container">
           <div class="acct-grid">
             <div class="acct-card">
               <div class="acct-card-head">
@@ -274,13 +328,54 @@
           </div>
 
           <section class="acct-settings-cta">
-            <button class="btn btn-ghost btn-sm" id="settingsOpenBtn" type="button" style="color:#8a5d14;border-color:#e0d2b0">⚙ Settings</button>
+            <button class="btn btn-ghost btn-sm" id="settingsOpenBtn" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)">⚙ Settings</button>
           </section>
+        </div>
+
+        <div class="container">
+          <div class="acct-grid">
+            <div class="acct-card">
+              <div class="acct-card-head"><h3>🎁 Referrals</h3></div>
+              <div id="referral-body">
+                <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px">Give $20, get $20 — share your code with friends.</p>
+                <div class="ref-code-row"><code id="refCodeVal">…</code><button class="btn btn-gold btn-sm" id="refCopy" type="button">Copy</button></div>
+                <div class="ref-stats hidden" id="refStats">
+                  <div><strong id="refUses">0</strong><span>friends joined</span></div>
+                  <div><strong id="refCredit">$0</strong><span>credit earned</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="acct-card">
+              <div class="acct-card-head"><h3>💎 My plan</h3></div>
+              <div id="plan-body"><p style="color:#a89a7d">Loading…</p></div>
+            </div>
+            <div class="acct-card">
+              <div class="acct-card-head"><h3>🏠 My properties</h3></div>
+              <div id="props-list"></div>
+              <div class="prop-add">
+                <input id="propLabel" placeholder="Label (e.g. Rental on 8th St)" aria-label="Property label">
+                <input id="propAddr" placeholder="Street, City, ZIP" aria-label="Property address">
+                <button class="btn btn-ghost btn-sm" id="propAdd" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)">Add</button>
+              </div>
+            </div>
+            <div class="acct-card">
+              <div class="acct-card-head"><h3>🌴 <span id="seasonMonth">This month</span> in Miami</h3></div>
+              <p id="seasonTip" class="season-tip"></p>
+              <button class="btn btn-ghost btn-sm" data-again="Lawn Care" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4);margin-top:10px">Get seasonal service</button>
+            </div>
+          </div>
+          <div class="acct-card hidden" id="galleryCard" style="margin-bottom:70px">
+            <div class="acct-card-head"><h3>📸 My home gallery</h3></div>
+            <div class="gallery-strip" id="gallery-strip"></div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 </main>
+
+<!-- Photo lightbox -->
+<div class="lightbox hidden" id="lightbox"><img id="lightboxImg" src="" alt="Job photo"></div>
 
 <!-- Rich request window -->
 <div class="rw-overlay hidden" id="reqModal">
@@ -409,6 +504,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=5"></script>
+<script src="account.js?v=6"></script>
 </body>
 </html>

@@ -203,7 +203,7 @@
         $("dashboard-greeting").textContent = daypart();
         $("dashboard-name").textContent = (user.displayName || "there").split(" ")[0];
       });
-      loadRequests(user.uid); loadJobs(user.uid);
+      loadRequests(user.uid); loadJobs(user.uid); loadExtras(user);
     } else {
       show(authForms); show($("account-hero-static")); hide(dashboard);
     }
@@ -231,20 +231,24 @@
         docs = docs.slice(0, 10);
         if (!docs.length) {
           emptyState(box, "No requests yet. Tell us what your home needs.", "modal", "Request service");
+          renderQuotes([]);
         } else {
           box.innerHTML = "";
+          var quotes = [];
           docs.forEach(function (doc) {
             var d = doc.data();
             var st = String(d.status || "new").toLowerCase();
+            if (st === "quoted") { quotes.push(doc); return; } // shown in Action needed
             if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
             var editable = st.replace(/[\s-]+/g, "_") === "new";
             var div = document.createElement("div"); div.className = "req-row";
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span></div>' + pillFor(d.status) +
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + timelineFor(st) + '</div>' + pillFor(d.status) +
               (editable ? '<button type="button" class="req-edit" data-edit-req="' + doc.id + '">Edit</button>' : "");
             div.querySelector("strong").textContent = d.service || "Service request";
             div.querySelector(".req-date").textContent = fmtDate(d.createdAt);
             box.appendChild(div);
           });
+          renderQuotes(quotes);
         }
         $("stat-requests").textContent = active;
       }).catch(function () {
@@ -264,8 +268,10 @@
         docs = docs.slice(0, 10);
         if (!docs.length) {
           emptyState(box, "No jobs yet. Your completed and upcoming jobs will live here.", "index.html#services", "Browse services");
+          renderGallery([]);
         } else {
           box.innerHTML = "";
+          var gallery = [];
           docs.forEach(function (doc) {
             var d = doc.data();
             var st = String(d.status || "scheduled").toLowerCase();
@@ -273,21 +279,219 @@
             var div = document.createElement("div"); div.className = "req-row";
             var thumbs = "";
             if (Array.isArray(d.photos) && d.photos.length) {
+              d.photos.slice(0, 4).forEach(function (u) { gallery.push({ url: u, service: d.service || "Job" }); });
               thumbs = '<div class="job-thumbs">' + d.photos.slice(0, 4).map(function (u) {
                 return '<img src="' + esc(u) + '" alt="Job photo" loading="lazy">';
               }).join("") + "</div>";
             }
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + thumbs + "</div>" + pillFor(d.status);
+            var again = (st === "done" || st === "completed")
+              ? '<button type="button" class="req-again" data-again="' + esc(d.service || "Lawn Care") + '">Book again</button>' : "";
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + thumbs + "</div>" + pillFor(d.status) + again;
             div.querySelector("strong").textContent = d.service || "Job";
             div.querySelector(".req-date").textContent = fmtDate(d.scheduledAt);
             box.appendChild(div);
           });
+          renderGallery(gallery);
         }
         $("stat-jobs").textContent = done;
       }).catch(function () {
         emptyState($("jobs-list"), "Couldn't load jobs right now.", null, null);
       });
   }
+  /* ---------- Dashboard extras: quotes, reorder, referrals, gallery, plan, properties, seasonal ---------- */
+
+  function timelineFor(st) {
+    var stages = ["Received", "Scheduled", "In progress", "Done"];
+    var idx = 0;
+    if (["scheduled", "confirmed", "approved"].indexOf(st) > -1) idx = 1;
+    else if (st === "in_progress") idx = 2;
+    else if (["done", "completed"].indexOf(st) > -1) idx = 3;
+    else if (["cancelled", "declined"].indexOf(st) > -1)
+      return '<div class="req-tl"><span class="tl-cancel">Cancelled</span></div>';
+    var dots = "";
+    for (var i = 0; i < 4; i++) dots += '<i class="' + (i <= idx ? "on" : "") + '"></i>';
+    return '<div class="req-tl">' + dots + "<span>" + stages[idx] + "</span></div>";
+  }
+
+  function renderQuotes(list) {
+    var sec = $("quoteSection"), box = $("quotes-list");
+    if (!sec || !box) return;
+    if (!list.length) { hide(sec); return; }
+    show(sec);
+    $("quoteCount").textContent = list.length + (list.length === 1 ? " quote" : " quotes");
+    box.innerHTML = "";
+    list.forEach(function (doc) {
+      var d = doc.data();
+      var el = document.createElement("div"); el.className = "quote-card";
+      el.innerHTML =
+        '<div class="q-main"><strong></strong><span class="q-det"></span><span class="q-notes"></span></div>' +
+        '<div class="q-side"><div class="q-price"></div>' +
+        '<div class="q-btns"><button type="button" class="btn btn-gold btn-sm" data-qok>Approve</button>' +
+        '<button type="button" class="btn-ghost-w btn-sm" data-qno>Decline</button></div></div>';
+      el.querySelector("strong").textContent = d.service || "Service";
+      el.querySelector(".q-det").textContent = d.message || "";
+      el.querySelector(".q-notes").textContent = d.quoteNotes || "";
+      el.querySelector(".q-price").textContent = d.quotePrice || "—";
+      el.querySelector("[data-qok]").addEventListener("click", function () { decideQuote(doc.id, "approved"); });
+      el.querySelector("[data-qno]").addEventListener("click", function () { decideQuote(doc.id, "declined"); });
+      box.appendChild(el);
+    });
+  }
+
+  function decideQuote(id, status) {
+    var u = auth.currentUser; if (!u) return;
+    db.collection("service_requests").doc(id)
+      .update({ status: status, decidedAt: firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function () { loadRequests(u.uid); })
+      .catch(function () { alert("Couldn't update that quote — please call us at (786) 422-9674."); });
+  }
+
+  // One-tap reorder: opens the request window with a service preselected.
+  function openReqService(name, addrNote) {
+    openReq();
+    if (addrNote) $("rwDetails").value = addrNote;
+    rwSelect(name || "Lawn Care");
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-again]") : null;
+    if (b) openReqService(b.getAttribute("data-again"));
+  });
+
+  function makeRefCode(name) {
+    var base = String(name || "").trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8) || "FRIEND";
+    return base + "-" + Math.floor(100 + Math.random() * 900);
+  }
+
+  function loadReferral(u) {
+    var body = $("referral-body"); if (!body) return;
+    db.collection("customers").doc(u.uid).get().then(function (snap) {
+      var d = snap.exists ? snap.data() : {};
+      var code = d.referralCode || null;
+      if (!code) {
+        code = makeRefCode(d.name || u.displayName || "Friend");
+        db.collection("customers").doc(u.uid).set({ referralCode: code }, { merge: true }).catch(function () {});
+        db.collection("referral_codes").add({
+          code: code, name: d.name || u.displayName || "", uid: u.uid, email: u.email || "",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function () {});
+      }
+      $("refCodeVal").textContent = code;
+      db.collection("service_requests").where("referralCode", "==", code).get().then(function (qs) {
+        $("refUses").textContent = qs.size;
+        $("refCredit").textContent = "$" + (qs.size * 20);
+        show($("refStats"));
+      }).catch(function () { hide($("refStats")); });
+    }).catch(function () { body.innerHTML = "<p>Couldn’t load your referral info.</p>"; });
+  }
+
+  function loadPlan(u) {
+    var body = $("plan-body"); if (!body) return;
+    db.collection("customers").doc(u.uid).get().then(function (snap) {
+      var d = snap.exists ? snap.data() : {};
+      var p = d.plan || null;
+      if (p && p.name) {
+        body.innerHTML = '<div class="plan-name"></div><div class="plan-meta"></div>' +
+          '<a class="btn btn-ghost btn-sm" href="plans.html" style="color:#ffd873;border-color:rgba(255,200,90,.4)">Manage plan</a>';
+        body.querySelector(".plan-name").textContent = p.name + (p.price ? " — " + p.price : "");
+        body.querySelector(".plan-meta").textContent = p.nextBilling ? "Next billing: " + p.nextBilling : "";
+      } else {
+        body.innerHTML = "<p>Lock in a lower rate with a subscription — lawn, pressure washing, or handyman.</p>" +
+          '<a class="btn btn-gold btn-sm" href="plans.html">Browse plans</a>';
+      }
+    }).catch(function () { body.innerHTML = "<p>Couldn’t load your plan.</p>"; });
+  }
+
+  function renderGallery(items) {
+    var card = $("galleryCard"), strip = $("gallery-strip");
+    if (!card || !strip) return;
+    if (!items.length) { hide(card); return; }
+    show(card);
+    strip.innerHTML = "";
+    items.slice(0, 24).forEach(function (it) {
+      var img = document.createElement("img");
+      img.src = it.url; img.alt = it.service || "Job photo"; img.loading = "lazy";
+      img.addEventListener("click", function () {
+        $("lightboxImg").src = it.url; show($("lightbox")); document.body.style.overflow = "hidden";
+      });
+      strip.appendChild(img);
+    });
+  }
+
+  var SEASON_TIPS = [
+    { m: "January", tip: "Dry season is here — perfect time for exterior painting and pressure washing. Check irrigation for dry spots." },
+    { m: "February", tip: "Peak dry season: check the lawn for pests and trim trees before spring growth kicks in." },
+    { m: "March", tip: "Clean gutters before the rainy season arrives — clogged gutters overflow into flower beds and foundations." },
+    { m: "April", tip: "Service your AC before the summer heat hits. A tune-up now beats a breakdown in August." },
+    { m: "May", tip: "Rainy season is starting — check drainage around the house and seal windows and doors." },
+    { m: "June", tip: "Hurricane season begins: trim tree limbs away from the roof and secure loose outdoor items." },
+    { m: "July", tip: "Watch for lawn fungus in the heat and rain — mow high and water early in the morning." },
+    { m: "August", tip: "Peak storm season: review your hurricane prep checklist and make sure drains run clear." },
+    { m: "September", tip: "Peak hurricane month — keep gutters, drains, and the roof clear of debris." },
+    { m: "October", tip: "Storm season winds down: schedule a post-season roof check and yard cleanup." },
+    { m: "November", tip: "Dry season returns — ideal for pressure washing driveways and patios before the holidays." },
+    { m: "December", tip: "Cool snaps can hurt tropical plants — cover sensitive landscaping on cold nights." }
+  ];
+  function renderSeason() {
+    var t = SEASON_TIPS[new Date().getMonth()];
+    if ($("seasonMonth")) $("seasonMonth").textContent = t.m;
+    if ($("seasonTip")) $("seasonTip").textContent = t.tip;
+  }
+
+  function loadProps(u) {
+    db.collection("customers").doc(u.uid).get().then(function (snap) {
+      var d = snap.exists ? snap.data() : {};
+      renderProps(u, d.properties || []);
+    }).catch(function () {});
+  }
+  function renderProps(u, props) {
+    var box = $("props-list"); if (!box) return;
+    box.innerHTML = "";
+    if (!props.length)
+      box.innerHTML = '<p class="pfaint">Only one home? Nothing to do here — add rentals or family homes you manage.</p>';
+    props.forEach(function (p) {
+      var row = document.createElement("div"); row.className = "prop-row";
+      row.innerHTML = '<div class="p-main"><strong></strong><span></span></div>' +
+        '<button type="button" class="btn btn-gold btn-sm" data-preq>Request service</button>' +
+        '<button type="button" class="prop-del" data-pdel aria-label="Remove property">×</button>';
+      row.querySelector("strong").textContent = p.label || "Property";
+      row.querySelector("span").textContent = p.address || "";
+      row.querySelector("[data-preq]").addEventListener("click", function () {
+        openReqService(null, "Property: " + (p.label || "") + " — " + (p.address || "") + "\n\n");
+      });
+      row.querySelector("[data-pdel]").addEventListener("click", function () {
+        if (!confirm("Remove this property?")) return;
+        db.collection("customers").doc(u.uid).set({
+          properties: firebase.firestore.FieldValue.arrayRemove(p)
+        }, { merge: true }).then(function () { loadProps(u); }).catch(function () {});
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function loadExtras(u) {
+    loadReferral(u); loadPlan(u); loadProps(u); renderSeason();
+    var rc = $("refCopy");
+    if (rc) rc.addEventListener("click", function () {
+      var c = $("refCodeVal").textContent;
+      function ok() { rc.textContent = "Copied!"; setTimeout(function () { rc.textContent = "Copy"; }, 1500); }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c).then(ok).catch(ok); else ok();
+    });
+    var pa = $("propAdd");
+    if (pa) pa.addEventListener("click", function () {
+      var label = $("propLabel").value.trim(), addr = $("propAddr").value.trim();
+      if (!addr) { $("propAddr").focus(); return; }
+      db.collection("customers").doc(u.uid).set({
+        properties: firebase.firestore.FieldValue.arrayUnion({ label: label || "Property", address: addr })
+      }, { merge: true }).then(function () {
+        $("propLabel").value = ""; $("propAddr").value = ""; loadProps(u);
+      }).catch(function () { alert("Couldn’t save — please try again."); });
+    });
+    var lb = $("lightbox");
+    if (lb) {
+      lb.addEventListener("click", function () { hide(lb); document.body.style.overflow = ""; });
+    }
+  }
+
   /* ---------- Rich request window ---------- */
   var reqModal = $("reqModal");
   var custInfo = { name: "", phone: "", email: "" };

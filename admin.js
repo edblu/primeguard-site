@@ -243,6 +243,10 @@
       }).join("") : '<p class="sr-faint">No comments yet.</p>') + '</div>' +
       '<div class="sr-row"><input type="text" id="srComment" placeholder="Add a comment…" style="flex:1">' +
       '<button class="btn btn-gold btn-sm" id="srAddComment" type="button">Add</button></div></div>';
+    h += '<div class="sr-card"><h4>Quote for customer</h4>' +
+      '<p class="sr-faint">Set a price, then set Status to "Quoted" and save — the customer sees it on their dashboard with Approve / Decline buttons.</p>' +
+      '<div class="sr-row"><label>Quote price<br><input id="srQuotePrice" placeholder="$0" value="' + esc(r.quotePrice || "") + '"></label></div>' +
+      '<label>Quote notes (shown to customer)<br><textarea id="srQuoteNotes" rows="2" placeholder="What the price covers…">' + esc(r.quoteNotes || "") + '</textarea></label></div>';
     h += '<div class="sr-actions">' +
       '<button class="btn btn-gold btn-sm" id="srMakeWO" type="button">Create work order</button>' +
       '<button class="btn btn-ghost btn-sm" id="srDelete" type="button">Delete request</button></div>';
@@ -251,8 +255,12 @@
     $("srClose").addEventListener("click", closeRequest);
     $("srModal").addEventListener("click", function (e) { if (e.target === $("srModal")) closeRequest(); });
     $("srSaveStatus").addEventListener("click", function () {
-      db.collection("service_requests").doc(srId).update({ status: $("srStatus").value }).then(function () {
-        srData.status = $("srStatus").value; saved(); loadServiceRequests();
+      var upd = { status: $("srStatus").value };
+      if ($("srQuotePrice")) upd.quotePrice = $("srQuotePrice").value.trim();
+      if ($("srQuoteNotes")) upd.quoteNotes = $("srQuoteNotes").value.trim();
+      db.collection("service_requests").doc(srId).update(upd).then(function () {
+        srData.status = upd.status; srData.quotePrice = upd.quotePrice; srData.quoteNotes = upd.quoteNotes;
+        saved(); loadServiceRequests();
       });
     });
     $("srSaveNotes").addEventListener("click", function () {
