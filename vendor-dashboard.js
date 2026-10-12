@@ -20,7 +20,7 @@
     e.preventDefault();
     var errEl = $("vd-login-error");
     hide(errEl);
-    auth.signInWithEmailAndPassword($("vd-login-email").value.trim(), $("vd-login-password").value)
+    auth.signInWithEmailAndPassword($("vd-login-email").value.trim(), $("vd-login-password").value.trim())
       .catch(function (err) { errEl.textContent = err.message; show(errEl); });
   });
   $("vd-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
