@@ -579,30 +579,85 @@
     revealEls.forEach(function (el) { el.classList.add("visible"); });
   }
 
-  /* ---------- Hero search -> live filter service cards ---------- */
+  /* ---------- Hero search: smart filter + instant answers ---------- */
   var searchInput = document.getElementById("serviceSearch");
   var searchClear = document.getElementById("searchClear");
   var searchEmpty = document.getElementById("searchEmpty");
   var searchEmptyTerm = document.getElementById("searchEmptyTerm");
+  var searchAnswer = document.getElementById("searchAnswer");
   var cards = Array.prototype.slice.call(document.querySelectorAll(".service-card"));
   var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
   var hasSearch = !!(searchInput && cards.length);
+
+  // Extra words each service should be found by (typos, synonyms, related jobs).
+  var SEARCH_SYN = {
+    "svc-pressure-washing": "power wash powerwash driveway concrete patio deck fence mold mildew grime house wash soft wash roof exterior",
+    "svc-lawn-care": "landscaping landscaper landscape grass mow mowing lawncare turf sod edging weed weeds hedge hedges bush bushes trimming tree trees palm palms leaf leaves",
+    "svc-junk-removal": "junk trash garbage haul hauling mattress appliance clutter cleanout dump eviction unwanted",
+    "svc-make-ready": "cleaning clean cleaner maid turnover airbnb deep housekeeping",
+    "svc-handyman": "repair fix install installation mount mounting drywall paint painting caulk plumbing leak faucet fan light fixture door patch"
+  };
+
+  // Common questions -> instant answers (shown when no service card matches).
+  function searchAnswerFor(q) {
+    var cfg = window.SITE_CONFIG || {};
+    var H = cfg.hours || "", A = cfg.serviceArea || "";
+    if (/\b(how much|howmuch|price|cost|costing|pricing|cheap|expensive|rate|rates|quote)\b/.test(q))
+      return { t: "What does it cost?", d: "Most visits run $45\u2013$339 depending on the service and size. Get a ballpark in seconds:", link: "#estimator", cta: "Try the instant estimator" };
+    if (/\b(where|area|areas|serve|serving|location|located|near|nearby|city|cities)\b/.test(q))
+      return { t: "Where we work", d: "We serve " + A + " \u2014 Kendall, Miami, Homestead, Hialeah, Cutler Bay and nearby neighborhoods." };
+    if (/\b(when|hours|open|close|closing|schedule|availability|available|appointment|book|booking)\b/.test(q))
+      return { t: "Hours & booking", d: "We are open " + H + ". Request anytime and we will confirm your free quote fast.", link: "#contact", cta: "Get my free quote" };
+    if (/\b(who|about|company|licensed|insured|trust|review|reviews)\b/.test(q))
+      return { t: "Who is PrimeGuard?", d: "PrimeGuard Preservation LLC \u2014 Miami's black-and-gold standard for lawn care, pressure washing, junk removal, make-ready cleaning, and handyman work.", link: "#about", cta: "More about us" };
+    return null;
+  }
 
   function normalize(s) {
     return (s || "").toLowerCase().trim();
   }
 
+  function cardMatches(hayWords, toks) {
+    return toks.some(function (t) {
+      return hayWords.some(function (w) {
+        return w === t || w === t + "s" || t === w + "s" ||
+          (t.length >= 4 && (w.indexOf(t) === 0 || t.indexOf(w) === 0));
+      });
+    });
+  }
+
   function applyFilter(term) {
     var q = normalize(term);
+    var toks = q.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
     var visible = 0;
     cards.forEach(function (card) {
-      var hay = normalize(card.getAttribute("data-name")) + " " + normalize(card.getAttribute("data-desc"));
-      var match = !q || hay.indexOf(q) !== -1;
+      var hay = (normalize(card.getAttribute("data-name")) + " " +
+        normalize(card.getAttribute("data-desc")) + " " +
+        normalize(SEARCH_SYN[card.id] || "")).split(/\s+/).filter(Boolean);
+      var match = !q || cardMatches(hay, toks);
       card.classList.toggle("hidden", !match);
       if (match) visible++;
     });
-    searchEmpty.hidden = visible !== 0;
-    if (visible === 0) searchEmptyTerm.textContent = term;
+    var empty = visible === 0 && !!q;
+    searchEmpty.hidden = !empty;
+    if (empty) {
+      searchEmptyTerm.textContent = term;
+      var ans = searchAnswerFor(q);
+      if (searchAnswer) {
+        if (ans) {
+          searchAnswer.innerHTML = "";
+          var h = document.createElement("h4"); h.textContent = ans.t;
+          var p = document.createElement("p"); p.textContent = ans.d;
+          searchAnswer.appendChild(h); searchAnswer.appendChild(p);
+          if (ans.link) {
+            var a = document.createElement("a");
+            a.className = "btn btn-gold"; a.href = ans.link; a.textContent = ans.cta;
+            searchAnswer.appendChild(a);
+          }
+          searchAnswer.hidden = false;
+        } else { searchAnswer.hidden = true; }
+      }
+    }
     searchClear.hidden = !q;
     chips.forEach(function (chip) {
       chip.classList.toggle("active", q !== "" && normalize(chip.getAttribute("data-chip")) === q);

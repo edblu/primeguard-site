@@ -1409,6 +1409,11 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   .service-page .includes-grid { grid-template-columns: 1fr; }
 }
 
+.search-answer { background: linear-gradient(160deg, rgba(212,168,67,.14), rgba(212,168,67,.04)); border: 1px solid rgba(212,168,67,.4); border-radius: 16px; padding: 20px 22px; margin: 0 auto 18px; text-align: left; max-width: 560px; box-shadow: 0 12px 32px rgba(0,0,0,.35), 0 0 24px rgba(212,168,67,.08); }
+.search-answer h4 { margin-bottom: 6px; color: var(--gold-bright); font-size: 1.05rem; }
+.search-answer p { color: var(--muted); margin-bottom: 12px; line-height: 1.55; }
+.search-answer .btn { margin-top: 2px; }
+
 /* ============ Instant quote calculator modal ============ */
 .qcalc-overlay { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(5,5,7,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
 .qcalc-overlay.open { opacity: 1; pointer-events: auto; }
