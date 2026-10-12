@@ -31,6 +31,17 @@
     });
   });
 
+  $("ad-forgot").addEventListener("click", function (e) {
+    e.preventDefault();
+    var errEl = $("ad-login-err"); hide(errEl); hide($("ad-reset-ok"));
+    var email = $("ad-email").value.trim();
+    if (!email) { errEl.textContent = "Type your email above first."; show(errEl); return; }
+    auth.sendPasswordResetEmail(email).then(function () {
+      $("ad-reset-ok").textContent = "Reset link sent to " + email + ".";
+      show($("ad-reset-ok"));
+    }).catch(function (err) { errEl.textContent = err.message; show(errEl); });
+  });
+
   auth.onAuthStateChanged(function (user) {
     me = user;
     if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); return; }
