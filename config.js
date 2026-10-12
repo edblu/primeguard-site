@@ -22,9 +22,15 @@ window.SITE_CONFIG = {
   reviewFacebook: "#",   // Facebook review page URL — button hidden while empty/"#"
   reviewThumbtack: "https://www.thumbtack.com/fl/miami/pressure-washing/primeguard-preservation-llc/service/591657911686586383",   // Thumbtack review page URL — button hidden while empty/"#"
 
-  // --- Customer accounts (Firebase). Parent fills the real config object later.
-  // null/empty = "Accounts coming soon" mode; the site never breaks without it.
-  firebase: null,
+  // --- Customer accounts (Firebase). Live config for the PrimeGuard project.
+  firebase: {
+    apiKey: "AIzaSyDDOcUiuTlollOGoNUJd_Eos-tovJ1dqA0",
+    authDomain: "primeguard-83e88.firebaseapp.com",
+    projectId: "primeguard-83e88",
+    storageBucket: "primeguard-83e88.firebasestorage.app",
+    messagingSenderId: "1031375547061",
+    appId: "1:1031375547061:web:947b8ed95695a0df2b2cfc"
+  },
 
   // --- Subscription plans (STARTING prices — Edwin adjusts these freely).
   // price: shown on the plan card (injected by site.js). service: must match
