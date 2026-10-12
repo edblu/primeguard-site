@@ -24,6 +24,13 @@
   });
   $("ad-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
 
+  $("ad-google").addEventListener("click", function () {
+    var errEl = $("ad-login-err"); hide(errEl);
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (err) {
+      errEl.textContent = err.message; show(errEl);
+    });
+  });
+
   auth.onAuthStateChanged(function (user) {
     me = user;
     if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); return; }
