@@ -175,7 +175,7 @@
 
   /* ---------- Request detail modal ---------- */
   var srId = null, srData = null;
-  var SR_STATUSES = ["new", "reviewing", "quoted", "scheduled", "done", "cancelled"];
+  var SR_STATUSES = ["new", "reviewing", "quoted", "scheduled", "in_progress", "done", "cancelled"];
 
   function srDate(r) {
     try {
@@ -229,7 +229,8 @@
     h += '<div class="sr-card"><h4>Evaluation</h4>' +
       '<div class="sr-row"><label>Status<br><select id="srStatus">' +
       SR_STATUSES.map(function (s) {
-        return '<option value="' + s + '"' + ((r.status || "new") === s ? " selected" : "") + '>' + s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
+        var label = s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
+        return '<option value="' + s + '"' + ((r.status || "new") === s ? " selected" : "") + '>' + label + '</option>';
       }).join("") + '</select></label>' +
       '<button class="btn btn-gold btn-sm" id="srSaveStatus" type="button">Save status</button></div>' +
       '<label>Internal notes<br><textarea id="srNotes" rows="3" placeholder="Notes only the team sees…">' + esc(r.adminNotes || "") + '</textarea></label>' +
