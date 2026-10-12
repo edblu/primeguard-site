@@ -1402,6 +1402,18 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 .service-page .plan-card .price strong {
   font-size: 2.6rem; color: #f5d67b; text-shadow: 0 0 26px rgba(212,168,67,.4);
 }
+/* Photo backgrounds for service page sections */
+.service-page .svc-photo { position: relative; overflow: hidden; }
+.service-page .svc-photo::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: var(--svc-bg); background-size: cover; background-position: center;
+  opacity: var(--svc-bg-opacity, .2);
+}
+.service-page .svc-photo::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(11,11,13,.86), rgba(11,11,13,.68));
+}
+.service-page .svc-photo .container { position: relative; z-index: 1; }
 @media (max-width: 900px) {
   .service-page .includes-grid { grid-template-columns: 1fr 1fr; }
 }
