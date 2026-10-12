@@ -133,6 +133,7 @@
         coiUrl: coiUrl, coiStatus: coiUrl ? "received" : "pending",
         agreedToTerms: true,
         verified: false,
+        status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       return db.collection("vendors").doc(cred.user.uid).set(v).then(function () { return v; });

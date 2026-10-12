@@ -199,6 +199,73 @@
     srId = null; srData = null;
   }
 
+  // ---------- Vendor review ----------
+  var vdId = null, vdData = null;
+  function vStatus(v) { return v.status || (v.verified ? "approved" : "pending"); }
+  function openVendor(id) {
+    db.collection("vendors").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      vdId = id; vdData = snap.data();
+      renderVendorModal();
+      $("vdModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    });
+  }
+  function closeVendor() {
+    $("vdModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    vdId = null; vdData = null;
+  }
+  function renderVendorModal() {
+    var v = vdData, box = $("vdBody"), st = vStatus(v);
+    function docLine(label, url, status) {
+      if (url) return '<p><strong>' + label + ':</strong> <a href="' + esc(url) + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">View</a> (' + esc(status || "received") + ')</p>';
+      return '<p><strong>' + label + ':</strong> <span style="color:var(--gold-bright)">not submitted yet</span></p>';
+    }
+    var h = '<h3 id="vdTitle">' + esc(v.business || "Vendor") + '</h3>' +
+      '<p class="sr-meta">' + pill(st) + ' <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
+      '<div class="sr-grid">' +
+      '<div class="sr-card"><h4>Contact</h4>' +
+      '<p><strong>' + esc(v.name || "-") + '</strong></p>' +
+      (v.phone ? '<p>📞 <a href="tel:' + esc(String(v.phone).replace(/\D/g, "")) + '">' + esc(v.phone) + '</a></p>' : '') +
+      (v.email ? '<p>✉️ <a href="mailto:' + esc(v.email) + '">' + esc(v.email) + '</a></p>' : '') +
+      (v.address ? '<p>📍 ' + esc(v.address) + '</p>' : '') + '</div>' +
+      '<div class="sr-card"><h4>Coverage</h4>' +
+      '<p><strong>Services:</strong> ' + esc((v.services || []).join(", ") || "-") + '</p>' +
+      '<p><strong>Areas:</strong> ' + esc((v.areas || []).join(", ") || "-") + '</p>' +
+      '<p><strong>Crew size:</strong> ' + esc(v.crewSize || "-") + '</p>' +
+      (v.equipment ? '<p><strong>Equipment:</strong> ' + esc(v.equipment) + '</p>' : '') + '</div></div>' +
+      '<div class="sr-card"><h4>Documents</h4>' +
+      docLine("W-9", v.w9Url, v.w9Status) +
+      '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
+      (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>' +
+      '<div class="sr-card"><h4>Registration status</h4>' +
+      '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">Set the status when you have everything you need from them. They see this status on their dashboard.</p>' +
+      '<div class="sr-actions">' +
+      '<button class="btn btn-gold btn-sm" data-vstatus="approved" type="button">Approve</button>' +
+      '<button class="btn btn-ghost btn-sm" data-vstatus="pending" type="button">Keep pending</button>' +
+      '<button class="btn btn-ghost btn-sm" data-vstatus="rejected" type="button" style="border-color:#a33;color:#e88">Reject</button>' +
+      '</div><p class="aok hidden" id="vd-ok" style="margin-top:10px">Status saved.</p></div>';
+    box.innerHTML = h;
+    box.querySelectorAll("[data-vstatus]").forEach(function (b) {
+      b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
+    });
+  }
+  function setVendorStatus(st) {
+    if (!vdId) return;
+    db.collection("vendors").doc(vdId).update({
+      status: st,
+      verified: st === "approved"
+    }).then(function () {
+      vdData.status = st; vdData.verified = st === "approved";
+      renderVendorModal();
+      var ok = $("vd-ok"); if (ok) ok.classList.remove("hidden");
+      loadVendors(); loadVendorOptions();
+    }).catch(function (err) {
+      alert("Could not save status: " + (err.message || err) + "\n\nIf this says permission denied, the database rules need the staff update — check the setup notes.");
+    });
+  }
+
   function renderRequestModal() {
     var r = srData, box = $("srBody");
     var photos = Array.isArray(r.photos) ? r.photos : [];
@@ -255,6 +322,8 @@
 
     $("srClose").addEventListener("click", closeRequest);
     $("srModal").addEventListener("click", function (e) { if (e.target === $("srModal")) closeRequest(); });
+    $("vdClose").addEventListener("click", closeVendor);
+    $("vdModal").addEventListener("click", function (e) { if (e.target === $("vdModal")) closeVendor(); });
     $("srSaveStatus").addEventListener("click", function () {
       var upd = { status: $("srStatus").value };
       if ($("srQuotePrice")) upd.quotePrice = $("srQuotePrice").value.trim();
@@ -311,8 +380,8 @@
       qs.forEach(function (d) { var s = d.data().status; if (s === "open") open++; else if (s !== "done") active++; });
       $("as-open").textContent = open; $("as-active").textContent = active;
     });
-    db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; });
-    db.collection("vendors").get().then(function (qs) { $("as-vendors").textContent = qs.size; });
+    db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("mb-quotes"); if (mb) mb.textContent = qs.size; });
+    db.collection("vendors").get().then(function (qs) { $("as-vendors").textContent = qs.size; var mb = $("mb-vendors"); if (mb) mb.textContent = qs.size; });
   }
 
   function pill(s) {
@@ -361,10 +430,11 @@
       box.innerHTML = "";
       qs.forEach(function (d) {
         var v = d.data();
+        var st = v.status || (v.verified ? "approved" : "pending");
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + "</small></div>" +
-          (v.verified ? pill("done") : pill("pending")) +
-          (isAdmin && !v.verified ? ' <button class="mini" data-vverify="' + d.id + '">Verify</button>' : "");
+          pill(st) +
+          (isAdmin ? ' <button class="mini" data-vopen="' + d.id + '">Review</button>' : "");
         box.appendChild(row);
       });
     });
@@ -570,7 +640,7 @@
       }).then(loadAll);
     }
     if (d.qno) db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll);
-    if (d.vverify) db.collection("vendors").doc(d.vverify).update({ verified: true }).then(function () { loadVendors(); loadVendorOptions(); });
+    if (d.vopen) openVendor(d.vopen);
     if (d.staffdel && confirm("Remove this team member?")) db.collection("staff").doc(d.staffdel).delete().then(loadTeam);
     if (d.invdel) db.collection("staff_invites").doc(d.invdel).delete().then(loadTeam);
   });

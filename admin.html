@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin - PrimeGuard Preservation</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   .awrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
@@ -39,6 +39,16 @@
   .athumbs { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
   .athumbs img { width:80px; height:58px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.1); }
   .asec { padding:26px 0 4px; } .asec h2 { font-size:1.25rem; margin-bottom:14px; }
+  .atabs { display:flex; gap:10px; align-items:center; margin:26px 0 6px; flex-wrap:wrap; }
+  .atab { padding:12px 22px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-weight:700; font-size:.92rem; cursor:pointer; font-family:inherit; }
+  .atab.active { background:linear-gradient(135deg,#e8bd4e,#c9982f); color:#241a0c; border-color:transparent; box-shadow:0 8px 24px rgba(201,152,47,.35); }
+  .atab .cnt-b { display:inline-block; min-width:22px; text-align:center; font-size:.75rem; background:rgba(0,0,0,.35); color:#fff; border-radius:999px; padding:2px 6px; margin-left:8px; }
+  .atab.active .cnt-b { background:rgba(0,0,0,.25); }
+  .adrop { position:relative; }
+  .adrop-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:40; min-width:230px; background:#1b1b1e; border:1px solid rgba(212,168,67,.4); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.6); padding:8px; }
+  .adrop-menu button { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:0; background:transparent; color:var(--text); font-size:.92rem; font-weight:600; border-radius:10px; cursor:pointer; font-family:inherit; }
+  .adrop-menu button:hover { background:rgba(212,168,67,.12); }
+  .adrop-menu .cnt-b { font-size:.75rem; background:rgba(212,168,67,.2); color:#f5d67b; border-radius:999px; padding:2px 8px; font-weight:700; }
 </style>
 </head>
 <body>
@@ -76,6 +86,20 @@
     <div class="astat"><div class="l">Vendors</div><div class="v" id="as-vendors">0</div></div>
   </section>
 
+  <nav class="atabs">
+    <button class="atab active" data-atab="work">Work orders</button>
+    <div class="adrop">
+      <button class="atab" id="ad-more-btn" type="button">More ▾</button>
+      <div class="adrop-menu hidden" id="ad-more-menu">
+        <button type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="mb-quotes">0</span></button>
+        <button type="button" data-atab="referrals">Referral codes</button>
+        <button type="button" data-atab="vendors">Vendors <span class="cnt-b" id="mb-vendors">0</span></button>
+        <button type="button" data-atab="team">Acquisition managers</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="atab-work">
   <section class="asec">
     <h2 id="wo-form-title">Create work order</h2>
     <div class="acard">
@@ -139,9 +163,10 @@
   </section>
 
   <section class="asec">
-    <h2>Referral codes</h2>
-    <div class="acard"><div id="ad-ref-list"><p style="color:var(--faint)">Loading…</p></div></div>
+    <h2>Work orders</h2>
+    <div class="acard"><div id="ad-wo-list"></div></div>
   </section>
+  </div><!-- /atab-work -->
 
   <!-- Request detail modal -->
   <div class="modal-overlay hidden" id="srModal">
@@ -151,21 +176,36 @@
     </div>
   </div>
 
-  <section class="asec">
-    <h2>Work orders</h2>
-    <div class="acard"><div id="ad-wo-list"></div></div>
-  </section>
+  <!-- Vendor review modal -->
+  <div class="modal-overlay hidden" id="vdModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="vdTitle">
+      <button class="modal-close" id="vdClose" aria-label="Close">×</button>
+      <div id="vdBody"></div>
+    </div>
+  </div>
 
+  <div id="atab-quotes" class="hidden">
   <section class="asec">
     <h2>Quotes to review</h2>
     <div class="acard"><div id="ad-quote-list"></div></div>
   </section>
+  </div>
 
+  <div id="atab-referrals" class="hidden">
+  <section class="asec">
+    <h2>Referral codes</h2>
+    <div class="acard"><div id="ad-ref-list"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  </div>
+
+  <div id="atab-vendors" class="hidden">
   <section class="asec">
     <h2>Vendors</h2>
     <div class="acard"><div id="ad-vendor-list"></div></div>
   </section>
+  </div>
 
+  <div id="atab-team" class="hidden">
   <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
     <h2>Acquisition managers</h2>
     <div class="acard">
@@ -195,12 +235,36 @@
       <div id="ad-team-list" style="margin-top:16px"></div>
     </div>
   </section>
-</div>
+  </div><!-- /atab-team -->
+</div><!-- /ad-dash -->
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="admin.js?v=3"></script>
+<script>
+(function () {
+  var tabs = ["work", "quotes", "referrals", "vendors", "team"];
+  function showTab(name) {
+    tabs.forEach(function (t) {
+      var el = document.getElementById("atab-" + t);
+      if (el) el.classList.toggle("hidden", t !== name);
+    });
+    document.querySelectorAll("[data-atab]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-atab") === name && b.id !== "ad-more-btn");
+    });
+    var menu = document.getElementById("ad-more-menu");
+    if (menu) menu.classList.add("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  document.querySelectorAll("[data-atab]").forEach(function (b) {
+    b.addEventListener("click", function (e) { e.stopPropagation(); showTab(b.getAttribute("data-atab")); });
+  });
+  var moreBtn = document.getElementById("ad-more-btn"), moreMenu = document.getElementById("ad-more-menu");
+  if (moreBtn) moreBtn.addEventListener("click", function (e) { e.stopPropagation(); moreMenu.classList.toggle("hidden"); });
+  document.addEventListener("click", function () { if (moreMenu) moreMenu.classList.add("hidden"); });
+})();
+</script>
 </body>
 </html>

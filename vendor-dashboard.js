@@ -76,7 +76,28 @@
 
   function renderProfile() {
     var v = vendor;
-    $("cnt-verified").textContent = v.verified ? "VERIFIED" : "PENDING VERIFICATION";
+    var st = v.status || (v.verified ? "approved" : "pending");
+    var stTxt = st === "approved" ? "APPROVED" : st === "rejected" ? "NOT APPROVED" : "PENDING REVIEW";
+    $("cnt-verified").textContent = stTxt;
+    var banner = $("vd-status-banner");
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "vd-status-banner";
+      banner.style.cssText = "margin:0 0 16px;padding:14px 18px;border-radius:14px;font-size:.92rem;font-weight:600;";
+      var sec = document.querySelector("#vd-dash .vsec");
+      if (sec) sec.parentNode.insertBefore(banner, sec);
+    }
+    if (st === "approved") {
+      banner.style.display = "none";
+    } else {
+      banner.style.display = "block";
+      banner.style.border = "1px solid rgba(212,168,67,.45)";
+      banner.style.background = "rgba(212,168,67,.08)";
+      banner.style.color = "#f5d67b";
+      banner.textContent = st === "rejected"
+        ? "Your registration was not approved. Contact PrimeGuard at (786) 422-9674 if you think this is a mistake."
+        : "Your registration is under review. You'll be able to accept jobs once approved.";
+    }
     $("vd-profile").innerHTML = [
       ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
       ["Email", v.email], ["Services", (v.services || []).join(", ")],
