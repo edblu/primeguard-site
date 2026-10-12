@@ -51,6 +51,10 @@
   .quote-note { font-size: .82rem; color: var(--muted); line-height: 1.55; }
   .qform label { display: block; font-size: .9rem; font-weight: 600; margin-bottom: 14px; }
   .qform input, .qform textarea { margin-top: 6px; width: 100%; padding: 13px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: var(--text); font-size: 1rem; font-family: inherit; box-sizing: border-box; }
+  .qtextarea { width: 100%; padding: 13px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: var(--text); font-size: .95rem; font-family: inherit; box-sizing: border-box; resize: vertical; }
+  .qfile { width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(212,168,67,.5); background: rgba(212,168,67,.05); color: var(--text); font-size: .9rem; font-family: inherit; box-sizing: border-box; cursor: pointer; }
+  .qthumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .qthumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(212,168,67,.4); }
   .qform .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .qerr { color: #ff9d9d; font-size: .9rem; margin: 10px 0; }
   .qdone { text-align: center; padding: 30px 10px; }
@@ -117,6 +121,16 @@
 
           <div class="qstep" id="qstep2" hidden>
             <div id="qQuestions"></div>
+            <div class="qq">
+              <p>Describe what you need <span style="color:var(--muted);font-weight:400;font-size:.85rem">(optional)</span></p>
+              <textarea id="qDetailText" rows="3" class="qtextarea" placeholder="Tell us about the job in your own words..."></textarea>
+            </div>
+            <div class="qq">
+              <p>Show us with photos <span style="color:var(--muted);font-weight:400;font-size:.85rem">(optional)</span></p>
+              <input type="file" id="qPhotos" accept="image/*" multiple class="qfile">
+              <div class="qthumbs" id="qPhotoPreview"></div>
+              <p style="font-size:.82rem;color:var(--muted);margin-top:8px">A quick photo helps us quote accurately. No need for perfect shots.</p>
+            </div>
             <div class="qnav">
               <button type="button" class="btn btn-outline" data-back="1">Back</button>
               <button type="button" class="btn btn-gold" data-next="3">Continue</button>

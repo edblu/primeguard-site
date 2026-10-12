@@ -8,23 +8,28 @@
     "lawn-care": { name: "Lawn Care", img: "assets/service-lawn-care.webp", from: 45, unit: "per visit",
       q1: { label: "How big is the yard?", opts: ["Small yard", "Medium yard", "Large yard"] }, base: [45, 65, 90],
       q2: { label: "How often?", opts: [["One-time", 1], ["Monthly", 0.95], ["Biweekly", 0.9], ["Weekly", 0.85]] },
-      q3: { label: "Property type?", opts: ["Single-family home", "Townhouse", "Commercial property"] } },
+      q3: { label: "Property type?", opts: ["Single-family home", "Townhouse", "Commercial property"] },
+      detailPh: "e.g. Front and back yard, two overgrown bushes by the fence, side gate sticks..." },
     "pressure-washing": { name: "Pressure Washing", img: "assets/service-pressure-washing.webp", from: 169, unit: "per visit",
       q1: { label: "How big is the area?", opts: ["Small area", "Medium area", "Large area"] }, base: [169, 219, 289],
       q2: { label: "What are we washing?", opts: [["Driveway only", 1], ["House exterior", 1.25], ["Driveway + house", 1.6], ["Whole property", 2]] },
-      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] } },
+      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] },
+      detailPh: "e.g. Driveway has oil stains, green mold on the north wall..." },
     "junk-removal": { name: "Debris & Junk Removal", img: "assets/service-junk-removal.webp", from: 89, unit: "per load",
       q1: { label: "How much junk?", opts: ["A few items", "Quarter truck", "Half truck or more"] }, base: [89, 149, 239],
       q2: { label: "What kind of junk?", opts: [["Household items", 1], ["Yard debris", 0.9], ["Furniture", 1.15], ["Construction debris", 1.3]] },
-      q3: { label: "Where is the junk?", opts: ["Curbside or driveway", "Inside the home", "Backyard"] } },
+      q3: { label: "Where is the junk?", opts: ["Curbside or driveway", "Inside the home", "Backyard"] },
+      detailPh: "e.g. Old couch, mattress, and boxes stacked in the garage..." },
     "make-ready-cleaning": { name: "Make-Ready Cleaning", img: "assets/service-make-ready.webp", from: 179, unit: "per clean",
       q1: { label: "How big is the home?", opts: ["Studio / 1 bed", "2-3 bed", "4+ bed"] }, base: [179, 249, 339],
       q2: { label: "Cleaning depth?", opts: [["Standard clean", 1], ["Deep clean", 1.3], ["Turnover package", 1.55]] },
-      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] } },
+      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] },
+      detailPh: "e.g. 2-bed apartment, turnover clean, need it done before Friday..." },
     "handyman": { name: "Handyman Services", img: "assets/service-handyman.webp", from: 65, unit: "per visit",
       q1: { label: "How big is the job?", opts: ["Small fix", "A few items", "Full punch list"] }, base: [65, 140, 280],
-      q2: { label: "Roughly how long?", opts: [["Under an hour", 1], ["Half day", 1.8], ["Full day", 3]] },
-      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] } }
+      q2: { label: "What kind of work?", opts: [["Repairs & fixes", 1], ["Installations", 1.15], ["Painting & drywall", 1.25], ["Multiple trades", 1.6]] },
+      q3: { label: "When do you need it?", opts: ["As soon as possible", "This week", "I'm flexible"] },
+      detailPh: "e.g. Kitchen faucet leaks, two holes in the drywall, install a ceiling fan..." }
   };
   var ORDER = ["lawn-care", "pressure-washing", "junk-removal", "make-ready-cleaning", "handyman"];
 
@@ -177,6 +182,57 @@
     sel.addEventListener("change", function () { q3i = sel.selectedIndex; answered = true; renderEstimate(); });
     q3.appendChild(sel);
     wrap.appendChild(q1); wrap.appendChild(q2); wrap.appendChild(q3);
+    var dt = $("qDetailText");
+    if (dt && c.detailPh) dt.placeholder = c.detailPh;
+  }
+
+  /* ---------- Step 2: detail text + photos ---------- */
+  $("qPhotos").addEventListener("change", function () {
+    var prev = $("qPhotoPreview"); prev.innerHTML = "";
+    Array.prototype.forEach.call(this.files, function (f) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = document.createElement("img");
+        img.src = fr.result; img.alt = "quote photo";
+        prev.appendChild(img);
+      };
+      fr.readAsDataURL(f);
+    });
+  });
+
+  function uploadQuotePhotos() {
+    var files = $("qPhotos").files;
+    if (!files || !files.length) return Promise.resolve([]);
+    var endpoint = cfg.photoEndpoint || "";
+    if (!endpoint) return Promise.resolve([]);
+    var readers = Array.prototype.map.call(files, function (f) {
+      return new Promise(function (res) {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1600, r = Math.min(1, max / Math.max(img.width, img.height));
+          var cv = document.createElement("canvas");
+          cv.width = Math.round(img.width * r); cv.height = Math.round(img.height * r);
+          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+          res({ filename: f.name, mimeType: "image/jpeg", data: cv.toDataURL("image/jpeg", 0.82).split(",")[1] });
+        };
+        img.onerror = function () { res(null); };
+        var fr = new FileReader();
+        fr.onload = function () { img.src = fr.result; };
+        fr.onerror = function () { res(null); };
+        fr.readAsDataURL(f);
+      });
+    });
+    return Promise.all(readers).then(function (photos) {
+      photos = photos.filter(Boolean);
+      if (!photos.length) return [];
+      return fetch(endpoint, {
+        method: "POST", mode: "cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: "photo-upload", folder: "quote-requests", photos: photos })
+      }).then(function (r) { return r.json(); }).then(function (out) {
+        return (out && out.ok && out.urls) ? out.urls : [];
+      }).catch(function () { return []; });
+    });
   }
 
   document.querySelectorAll("[data-next]").forEach(function (b) {
@@ -209,39 +265,53 @@
     var ref = "PQ-" + Date.now().toString(36).toUpperCase().slice(-6);
     var detail = c.q1.label + " " + c.q1.opts[q1i] + "; " +
       c.q2.label + " " + c.q2.opts[q2i][0] + "; " + c.q3.label + " " + c.q3.opts[q3i];
-    var payload = {
-      type: "quote-request", status: "new", ref: ref,
-      service: c.name, estimate: p, unit: c.unit, details: detail,
-      name: name, phone: phone, email: f.email.value.trim(),
-      address: address, date: f.date.value, referrer: f.referrer.value.trim(),
-      notes: f.notes.value.trim(),
-      message: "Instant estimate: $" + p + " " + c.unit + " (" + c.name + " - " + detail + ")." +
-        (f.notes.value.trim() ? " Notes: " + f.notes.value.trim() : ""),
-      source: "quote-page", page: location.pathname,
-      uid: currentUser ? currentUser.uid : null
-    };
-    if (fbDb) {
-      fbDb.collection("service_requests").add({
-        uid: currentUser ? currentUser.uid : null,
-        name: name, phone: phone, email: payload.email,
-        service: "Quote request " + ref + " - " + c.name,
-        message: payload.message, status: "new",
-        source: "quote-page", ref: ref, estimate: p,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function () {});
-    }
-    var done = function () {
-      $("qdoneRef").textContent = ref;
-      $("qdonePrice").textContent = "$" + p + " " + c.unit;
-      goStep(1); $("qstep1").hidden = true; $("qstepDone").hidden = false;
-      document.querySelectorAll("#quoteSteps li").forEach(function (li) { li.classList.add("done"); li.classList.remove("active"); });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-    if (leadEndpoint) {
-      fetch(leadEndpoint, { method: "POST", mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload) }).then(done).catch(done);
-    } else { done(); }
+    var jobDesc = ($("qDetailText").value || "").trim();
+    if (jobDesc) detail += "; Customer notes: " + jobDesc;
+    var photos = $("qPhotos").files;
+    if (photos && photos.length) btn.textContent = "Uploading photos...";
+    uploadQuotePhotos().then(function (photoUrls) {
+      if (photoUrls.length) detail += "; Photos: " + photoUrls.join(", ");
+      var payload = {
+        type: "quote-request", status: "new", ref: ref,
+        service: c.name, estimate: p, unit: c.unit, details: detail,
+        name: name, phone: phone, email: f.email.value.trim(),
+        address: address, date: f.date.value, referrer: f.referrer.value.trim(),
+        notes: f.notes.value.trim(),
+        message: "Instant estimate: $" + p + " " + c.unit + " (" + c.name + " - " + detail + ")." +
+          (f.notes.value.trim() ? " Notes: " + f.notes.value.trim() : ""),
+        source: "quote-page", page: location.pathname,
+        uid: currentUser ? currentUser.uid : null
+      };
+      if (fbDb) {
+        fbDb.collection("service_requests").add({
+          uid: currentUser ? currentUser.uid : null,
+          name: name, phone: phone, email: payload.email,
+          service: "Quote request " + ref + " - " + c.name,
+          message: payload.message, status: "new",
+          photos: photoUrls,
+          source: "quote-page", ref: ref, estimate: p,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function () {});
+      }
+      var done = function () {
+        $("qdoneRef").textContent = ref;
+        $("qdonePrice").textContent = "$" + p + " " + c.unit;
+        goStep(1); $("qstep1").hidden = true; $("qstepDone").hidden = false;
+        document.querySelectorAll("#quoteSteps li").forEach(function (li) { li.classList.add("done"); li.classList.remove("active"); });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+      if (leadEndpoint) {
+        fetch(leadEndpoint, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        }).then(done).catch(done);
+      } else { done(); }
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = "Get my quote";
+      err.textContent = "Something went wrong sending your quote. Please try again.";
+      err.hidden = false;
+    });
   });
 
   /* ---------- Preselect from ?service= ---------- */
