@@ -28,10 +28,35 @@
   });
   $("vd-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
 
+  $("vd-google").addEventListener("click", function () {
+    var errEl = $("vd-login-error"); hide(errEl);
+    var provider = new firebase.auth.GoogleAuthProvider();
+    // Mobile browsers often block popups: fall back to full-page redirect.
+    auth.signInWithPopup(provider).catch(function (err) {
+      if (err && (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user" ||
+          err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-window-closed")) {
+        auth.signInWithRedirect(provider);
+      } else {
+        errEl.textContent = err.message; show(errEl);
+      }
+    });
+  });
+
+  $("vd-forgot").addEventListener("click", function (e) {
+    e.preventDefault();
+    var errEl = $("vd-login-error"); hide(errEl); hide($("vd-reset-ok"));
+    var email = $("vd-login-email").value.trim();
+    if (!email) { errEl.textContent = "Type your email above first."; show(errEl); return; }
+    auth.sendPasswordResetEmail(email).then(function () {
+      $("vd-reset-ok").textContent = "Reset link sent to " + email + ".";
+      show($("vd-reset-ok"));
+    }).catch(function (err) { errEl.textContent = err.message; show(errEl); });
+  });
+
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); return; }
-    hide($("vd-loginwrap")); show($("vd-dash"));
+    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); return; }
+    hide($("vd-loginwrap")); show($("vd-dash")); show($("vd-topbar"));
     db.collection("vendors").doc(user.uid).get().then(function (snap) {
       if (!snap.exists) { window.location.href = "vendor-register.html"; return; }
       vendor = snap.data();

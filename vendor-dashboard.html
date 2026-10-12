@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vendor Dashboard | PrimeGuard Preservation</title>
 <meta name="description" content="PrimeGuard vendor dashboard: your jobs, quote requests, earnings, and profile.">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=17">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   .vwrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
@@ -97,7 +97,7 @@
 </style>
 </head>
 <body>
-<div class="vwrap">
+<div class="vwrap hidden" id="vd-topbar">
   <div class="vtop">
     <div class="vbrand">PrimeGuard <span>Preservation</span></div>
     <div class="vtag">Vendor Portal</div>
@@ -122,6 +122,9 @@
       <label>Password<input type="password" id="vd-login-password" required></label>
       <p class="verr hidden" id="vd-login-error"></p>
       <button class="btn btn-gold" type="submit">Log in</button>
+      <button class="btn btn-ghost" type="button" id="vd-google" style="margin-top:10px;width:100%">Continue with Google</button>
+      <p style="margin-top:10px;text-align:center"><a href="#" id="vd-forgot" style="font-size:13px;color:var(--gold-bright)">Forgot password?</a></p>
+      <p class="vok hidden" id="vd-reset-ok" style="font-size:13px;text-align:center"></p>
     </form>
   </section>
 </div>
