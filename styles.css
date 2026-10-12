@@ -1409,6 +1409,28 @@ elevenlabs-convai.pg-hidden { display: none !important; }
   .service-page .includes-grid { grid-template-columns: 1fr; }
 }
 
+/* ============ Instant quote calculator modal ============ */
+.qcalc-overlay { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(5,5,7,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.qcalc-overlay.open { opacity: 1; pointer-events: auto; }
+.qcalc-card { width: min(540px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 24px; position: relative; background: linear-gradient(165deg, #1d1c19, #0d0d0f); border: 1px solid rgba(212,168,67,.45); box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(212,168,67,.12); transform: translateY(16px) scale(.98); transition: transform .25s ease; }
+.qcalc-overlay.open .qcalc-card { transform: none; }
+.qcalc-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #d4a843, #f5d67b, #d4a843); }
+.qcalc-body { padding: 36px 32px 32px; }
+.qcalc-close { position: absolute; top: 14px; right: 18px; background: none; border: none; color: var(--muted); font-size: 1.8rem; cursor: pointer; line-height: 1; }
+.qcalc-close:hover { color: #fff; }
+.qcalc-kicker { font-size: .72rem; text-transform: uppercase; letter-spacing: .18em; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+.qcalc-title { font-size: 1.6rem; margin-bottom: 20px; }
+.qcalc-qlabel { font-weight: 700; margin-bottom: 4px; font-size: .95rem; }
+.qcalc-opts { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 22px; }
+.qcalc-opt { padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(212,168,67,.35); background: rgba(255,255,255,.04); color: var(--text); font-size: .9rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .18s ease; }
+.qcalc-opt:hover { border-color: var(--gold); }
+.qcalc-opt.active { background: linear-gradient(135deg, #d4a843, #f5d67b); color: #241b07; border-color: transparent; box-shadow: 0 0 18px rgba(212,168,67,.45); }
+.qcalc-price { text-align: center; margin: 6px 0 2px; }
+.qcalc-price strong { font-size: 3.4rem; font-weight: 800; background: linear-gradient(135deg, #f5d67b, #c9982f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.qcalc-unit { color: var(--muted); font-size: 1rem; }
+.qcalc-note { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 22px; }
+.qcalc-cta { width: 100%; }
+
 /* ============ Exit-intent popup ============ */
 .exit-modal {
   position: fixed; inset: 0; z-index: 3000; display: none;

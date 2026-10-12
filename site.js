@@ -1387,6 +1387,28 @@
     });
   })();
 
+  /* ---------- Quote prefill from service-page calculator ---------- */
+  (function quotePrefill() {
+    var raw = null;
+    try { raw = sessionStorage.getItem("pg_quote"); } catch (e) {}
+    if (!raw) return;
+    var q; try { q = JSON.parse(raw); } catch (e) { return; }
+    try { sessionStorage.removeItem("pg_quote"); } catch (e) {}
+    var svcSel = document.querySelector('select[name="service"]');
+    var msg = document.querySelector('textarea[name="message"]');
+    if (svcSel && q.service) {
+      var found = Array.prototype.some.call(svcSel.options, function (o) { return o.value === q.service; });
+      if (found) svcSel.value = q.service;
+    }
+    if (msg) {
+      var line = "Instant estimate: $" + q.estimate + " " + (q.unit || "") +
+        " (" + q.service + ", " + q.size + ", " + q.extra + "). Please confirm my exact quote.";
+      if (msg.value.indexOf("Instant estimate:") === -1) {
+        msg.value = line + (msg.value ? "\n\n" + msg.value : "");
+      }
+    }
+  })();
+
   /* ---------- Instant estimator ---------- */
   (function estimator() {
     var svc = document.getElementById("estService");
