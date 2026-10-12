@@ -50,6 +50,25 @@
   .acct-settings input:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
   .acct-logout-row { margin-top: 22px; padding-top: 18px; border-top: 1px solid #f0e6cf; }
   .form-ok { color: #1e7a34; font-weight: 600; }
+  /* Request service modal (light) */
+  .req-modal { background: #fffdf8; color: #3d3225; border: 1px solid #ecdfc2; }
+  .req-modal h3 { color: #3d3225; margin: 0 0 4px; }
+  .req-modal .modal-close { color: #3d3225; }
+  .req-sub { color: #8a7a5f; font-size: .92rem; margin: 0 0 6px; }
+  .req-services { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 6px; }
+  .req-svc { background: #faf5ea; border: 1px solid #e4d5b4; border-radius: 14px; padding: 14px; text-align: left; cursor: pointer; font-family: inherit; }
+  .req-svc:hover { border-color: #c98f1b; box-shadow: 0 6px 16px rgba(201,143,27,.18); }
+  .req-svc strong { display: block; color: #3d3225; font-size: .95rem; }
+  .req-svc span { font-size: .8rem; color: #8a7a5f; }
+  .req-freq { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 16px; }
+  .req-chip { border: 1px solid #e4d5b4; background: #fff; border-radius: 999px; padding: 9px 18px; font-weight: 700; color: #6b5b40; cursor: pointer; font-size: .9rem; font-family: inherit; }
+  .req-chip.active { background: linear-gradient(135deg, #e9b949, #c98f1b); color: #fff; border-color: transparent; }
+  .req-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; color: #3d3225; margin-bottom: 14px; }
+  .req-label textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #e0d2b0; font-size: 1rem; font-family: inherit; color: #3d3225; background: #fff; box-sizing: border-box; }
+  .req-label textarea:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
+  .req-back { background: none; border: none; color: #8a5d14; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-size: .92rem; padding: 0; }
+  .req-call { text-align: center; font-size: .88rem; color: #8a7a5f; margin: 14px 0 0; }
+  .req-call a { color: #8a5d14; font-weight: 700; }
   @media (max-width: 640px) {
     .acct-hero-inner { padding: 60px 0 28px; }
     .acct-stat { flex: 1; min-width: 100px; padding: 12px 14px; }
@@ -146,7 +165,7 @@
               <div class="acct-card">
                 <div class="acct-card-head">
                   <h3>Service requests</h3>
-                  <a class="btn btn-gold btn-sm" href="index.html#contact">New request</a>
+                  <button class="btn btn-gold btn-sm" id="reqNewBtn" type="button">New request</button>
                 </div>
                 <div id="requests-list"></div>
               </div>
@@ -180,6 +199,47 @@
     </div>
   </section>
 </main>
+
+<!-- Request service modal -->
+<div class="modal-overlay hidden" id="reqModal">
+  <div class="modal modal-narrow req-modal" role="dialog" aria-modal="true" aria-labelledby="reqTitle">
+    <button class="modal-close" id="reqClose" aria-label="Close">×</button>
+    <div id="reqStep1">
+      <h3 id="reqTitle">What does your home need?</h3>
+      <p class="req-sub">Pick a service to start your request.</p>
+      <div class="req-services">
+        <button type="button" class="req-svc" data-svc="Lawn Care"><strong>Lawn Care</strong><span>Mowing, edging &amp; cleanup</span></button>
+        <button type="button" class="req-svc" data-svc="Pressure Washing"><strong>Pressure Washing</strong><span>Driveways, patios &amp; siding</span></button>
+        <button type="button" class="req-svc" data-svc="Debris & Junk Removal"><strong>Junk Removal</strong><span>Furniture &amp; yard waste gone</span></button>
+        <button type="button" class="req-svc" data-svc="Make-Ready Cleaning"><strong>Make-Ready Cleaning</strong><span>Move-in / move-out deep cleans</span></button>
+        <button type="button" class="req-svc" data-svc="Handyman Services"><strong>Handyman</strong><span>Small repairs &amp; installs</span></button>
+      </div>
+      <p class="req-call">Prefer to talk? <a href="tel:+17864229674">Call (786) 422-9674</a></p>
+    </div>
+    <div id="reqStep2" hidden>
+      <button type="button" class="req-back" id="reqBack">← Back</button>
+      <h3 id="reqSvcTitle">Lawn Care</h3>
+      <p class="req-sub">How often do you need it?</p>
+      <div class="req-freq">
+        <button type="button" class="req-chip active" data-freq="One-time">One-time</button>
+        <button type="button" class="req-chip" data-freq="Weekly">Weekly</button>
+        <button type="button" class="req-chip" data-freq="Biweekly">Biweekly</button>
+        <button type="button" class="req-chip" data-freq="Monthly">Monthly</button>
+      </div>
+      <label class="req-label">Tell us about the job
+        <textarea id="reqDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left"></textarea>
+      </label>
+      <p class="form-error hidden" id="reqError"></p>
+      <button class="btn btn-gold btn-lg" id="reqSubmit" type="button" style="width:100%">Send request</button>
+      <p class="req-call">Prefer to talk? <a href="tel:+17864229674">Call (786) 422-9674</a></p>
+    </div>
+    <div id="reqDone" hidden>
+      <h3>Request received!</h3>
+      <p class="req-sub">We'll confirm the details with you shortly.</p>
+      <button class="btn btn-gold btn-lg" id="reqDoneBtn" type="button" style="width:100%">Done</button>
+    </div>
+  </div>
+</div>
 
 <footer class="site-footer">
   <div class="container footer-grid">

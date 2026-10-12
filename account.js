@@ -147,6 +147,9 @@
         $("profile-name").value = d.name || user.displayName || "";
         $("profile-phone").value = d.phone || "";
         $("profile-address").value = d.address || "";
+        custInfo.name = d.name || user.displayName || "";
+        custInfo.phone = d.phone || "";
+        custInfo.email = d.email || user.email || "";
         var since = "—";
         if (d.createdAt && d.createdAt.toDate) since = d.createdAt.toDate().getFullYear();
         else if (user.metadata && user.metadata.creationTime) since = new Date(user.metadata.creationTime).getFullYear();
@@ -162,8 +165,13 @@
   });
 
   function emptyState(box, text, ctaHref, ctaText) {
-    box.innerHTML = '<div class="acct-empty"><p>' + esc(text) + '</p>' +
-      (ctaHref ? '<a class="btn btn-gold btn-sm" href="' + ctaHref + '">' + esc(ctaText) + "</a>" : "") + "</div>";
+    var cta = "";
+    if (ctaHref === "modal") {
+      cta = '<button type="button" class="btn btn-gold btn-sm" data-open-req>' + esc(ctaText) + "</button>";
+    } else if (ctaHref) {
+      cta = '<a class="btn btn-gold btn-sm" href="' + ctaHref + '">' + esc(ctaText) + "</a>";
+    }
+    box.innerHTML = '<div class="acct-empty"><p>' + esc(text) + "</p>" + cta + "</div>";
   }
 
   function loadRequests(uid) {
@@ -172,7 +180,7 @@
         var box = $("requests-list");
         var active = 0;
         if (qs.empty) {
-          emptyState(box, "No requests yet. Tell us what your home needs.", "index.html#contact", "Request service");
+          emptyState(box, "No requests yet. Tell us what your home needs.", "modal", "Request service");
         } else {
           box.innerHTML = "";
           qs.forEach(function (doc) {
@@ -223,4 +231,73 @@
         emptyState($("jobs-list"), "Couldn't load jobs right now.", null, null);
       });
   }
+  /* ---------- Request service modal ---------- */
+  var reqModal = $("reqModal"), reqSvc = null, reqFreq = "One-time";
+  var custInfo = { name: "", phone: "", email: "" };
+
+  function openReq() {
+    reqSvc = null; reqFreq = "One-time";
+    $("reqStep1").hidden = false; $("reqStep2").hidden = true; $("reqDone").hidden = true;
+    $("reqDetails").value = ""; hide($("reqError"));
+    document.querySelectorAll(".req-chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+    reqModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function closeReq() {
+    reqModal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  $("reqNewBtn").addEventListener("click", openReq);
+  $("reqClose").addEventListener("click", closeReq);
+  reqModal.addEventListener("click", function (e) { if (e.target === reqModal) closeReq(); });
+  document.addEventListener("click", function (e) {
+    if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-open-req")) openReq();
+  });
+
+  document.querySelectorAll(".req-svc").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      reqSvc = btn.getAttribute("data-svc");
+      $("reqSvcTitle").textContent = reqSvc;
+      $("reqStep1").hidden = true; $("reqStep2").hidden = false;
+    });
+  });
+  document.querySelectorAll(".req-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      document.querySelectorAll(".req-chip").forEach(function (c) { c.classList.remove("active"); });
+      chip.classList.add("active");
+      reqFreq = chip.getAttribute("data-freq");
+    });
+  });
+  $("reqBack").addEventListener("click", function () {
+    $("reqStep2").hidden = true; $("reqStep1").hidden = false;
+  });
+  $("reqDoneBtn").addEventListener("click", closeReq);
+
+  $("reqSubmit").addEventListener("click", function () {
+    hide($("reqError"));
+    var user = auth.currentUser;
+    if (!user || !reqSvc) return;
+    var btn = $("reqSubmit");
+    btn.disabled = true; btn.textContent = "Sending...";
+    db.collection("service_requests").add({
+      uid: user.uid,
+      name: custInfo.name, phone: custInfo.phone, email: custInfo.email,
+      service: reqSvc, frequency: reqFreq,
+      message: $("reqDetails").value.trim(),
+      status: "new", source: "account-dashboard",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      $("reqStep2").hidden = true; $("reqDone").hidden = false;
+      loadRequests(user.uid);
+    }).catch(function (err) {
+      var el = $("reqError");
+      el.textContent = (err && err.message) || "Couldn't send. Please try again.";
+      show(el);
+    }).then(function () {
+      btn.disabled = false; btn.textContent = "Send request";
+    });
+  });
+
+  // keep customer info fresh for request submissions
 })();
