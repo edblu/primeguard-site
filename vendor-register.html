@@ -8,9 +8,12 @@
 <link rel="stylesheet" href="styles.css?v=22">
 <link rel="icon" type="image/png" href="assets/primeguard-logo-gold-badge.png">
 <style>
-  .vr-hero { position:relative; background:url('assets/vr-hero.jpg') center/cover; padding:110px 0 80px; overflow:hidden; }
-  .vr-hero::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,8,10,.55), rgba(8,8,10,.82)); }
-  .vr-hero .wrap { position:relative; z-index:1; }
+  .vr-hero { position:relative; padding:110px 0 80px; overflow:hidden; background:#0a0a0c; }
+  .vr-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+  .vr-hero::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,8,10,.55), rgba(8,8,10,.82)); z-index:1; }
+  .vr-hero .wrap { position:relative; z-index:2; }
+  .vr-sound-btn { position:absolute; right:18px; bottom:18px; z-index:3; background:rgba(10,10,12,.55); color:#f5d67b; border:1px solid rgba(245,214,123,.5); border-radius:999px; padding:9px 16px; font-size:.85rem; font-weight:600; cursor:pointer; backdrop-filter:blur(4px); }
+  .vr-sound-btn:hover { background:rgba(10,10,12,.85); }
   .vr-hero h1 { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:800; letter-spacing:-.02em; margin-bottom:14px; }
   .vr-hero h1 em { font-style:normal; background:linear-gradient(120deg,#f5d67b,#c9982f); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .vr-perks { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:34px; }
@@ -67,6 +70,10 @@
 
 <main>
   <section class="vr-hero">
+    <video class="vr-hero-video" autoplay muted loop playsinline preload="auto" poster="assets/vr-hero.jpg">
+      <source src="assets/vendor-ad.mp4" type="video/mp4">
+    </video>
+    <button class="vr-sound-btn" id="vrSoundBtn" type="button">🔊 Tap for sound</button>
     <div class="wrap">
       <p class="section-kicker">For crews</p>
       <h1>Get work <em>without</em> chasing it.</h1>
@@ -177,6 +184,21 @@
           <span>I agree to the vendor terms: I get paid per completed job after the work is verified, and I work as an independent contractor.</span>
         </label>
 
+        <div style="margin:18px 0;padding:16px;border:1px solid rgba(201,162,75,.35);border-radius:12px;background:rgba(201,162,75,.05)">
+          <p style="font-weight:700;margin-bottom:6px">Agreements</p>
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Two quick documents that protect you and us. Tap each one to read it (each opens our signed copy), then check the box.</p>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.9rem;margin-bottom:10px">
+            <input type="checkbox" id="vr-agree-nda" required style="margin-top:4px">
+            <span>I have read and agree to the <a href="https://drive.google.com/file/d/1MyYjuFmkyWamhDSB0kNNs_DvfgjLP4V3/view" target="_blank" rel="noopener">Non-Circumvention, Non-Solicitation &amp; Confidentiality Agreement</a>.</span>
+          </label>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.9rem;margin-bottom:10px">
+            <input type="checkbox" id="vr-agree-contract" required style="margin-top:4px">
+            <span>I have read and agree to the <a href="https://drive.google.com/file/d/13DcJkKiMswHYjR0JYt-9hB3n0rE1YfjE/view" target="_blank" rel="noopener">Independent Contractor Services Agreement</a>.</span>
+          </label>
+          <label>Sign by typing your full legal name<input type="text" id="vr-signature" required placeholder="Your full legal name"></label>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:6px">Typing your name and submitting counts as your electronic signature, dated today.</p>
+        </div>
+
         <p class="form-error hidden" id="vr-error"></p>
         <button class="btn btn-gold" type="submit" id="vr-submit">Create vendor account</button>
         <p style="margin-top:12px;color:var(--muted);font-size:.85rem;text-align:center">Free to join. No commitment. Leave anytime.</p>
@@ -224,6 +246,17 @@
   }
   wireMultiSelect("vr-services", "vr-services-btn", "vr-services-chips", "Select services...", "services");
   wireMultiSelect("vr-areas", "vr-areas-btn", "vr-areas-chips", "Select areas...", "areas");
+})();
+</script>
+<script>
+(function () {
+  var btn = document.getElementById("vrSoundBtn");
+  var vid = document.querySelector(".vr-hero-video");
+  if (!btn || !vid) return;
+  btn.addEventListener("click", function () {
+    if (vid.muted) { vid.muted = false; vid.currentTime = 0; vid.play(); btn.textContent = "🔇 Mute"; }
+    else { vid.muted = true; btn.textContent = "🔊 Tap for sound"; }
+  });
 })();
 </script>
 </body>
