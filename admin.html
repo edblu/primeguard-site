@@ -44,19 +44,20 @@
 <body>
 <div class="awrap">
   <div class="atop">
-    <div class="abrand">PrimeGuard <span>Preservation</span></div>
+    <a class="abrand" href="index.html" style="text-decoration:none;color:inherit">PrimeGuard <span>Preservation</span></a>
     <div class="atag">Admin</div>
     <div class="aright">
+      <a href="index.html" style="color:var(--muted);font-size:.85rem;text-decoration:none">&#8592; View site</a>
       <span id="ad-who" style="font-size:.85rem;color:var(--muted)"></span>
       <a href="#" id="ad-logout" style="color:var(--muted);font-size:.85rem">Log out</a>
     </div>
   </div>
 </div>
 
-<div class="awrap hidden" id="ad-loginwrap" style="padding:60px 22px">
+<div class="awrap hidden" id="ad-loginwrap" style="padding:60px 22px;text-align:center">
   <h1 style="margin-bottom:8px">Admin login</h1>
-  <p style="color:var(--muted);margin-bottom:20px;max-width:520px">This area is for PrimeGuard staff only. Log in with your staff account.</p>
-  <form id="ad-loginform" class="card auth-card aform" style="max-width:440px">
+  <p style="color:var(--muted);margin:0 auto 24px;max-width:520px">This area is for PrimeGuard staff only. Log in with your staff account.</p>
+  <form id="ad-loginform" class="card auth-card aform" style="max-width:440px;margin:0 auto;text-align:left">
     <label>Email<input type="email" id="ad-email" required></label>
     <label>Password<input type="password" id="ad-pass" required></label>
     <p class="aerr hidden" id="ad-login-err"></p>
