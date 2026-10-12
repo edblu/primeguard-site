@@ -107,6 +107,9 @@
     var w9Later = w9Choice && w9Choice.value === "later";
     var w9File = (!w9Later && document.getElementById("vr-w9").files[0]) || null;
     var coiFile = document.getElementById("vr-coi").files[0] || null;
+    var ndaAgreed = document.getElementById("vr-agree-nda").checked;
+    var contractAgreed = document.getElementById("vr-agree-contract").checked;
+    var signature = document.getElementById("vr-signature").value.trim();
     var nowMs = Date.now();
 
     btn.textContent = "Uploading documents...";
@@ -132,6 +135,12 @@
         w9Due: w9Url ? null : new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString(),
         coiUrl: coiUrl, coiStatus: coiUrl ? "received" : "pending",
         agreedToTerms: true,
+        agreements: {
+          nda: ndaAgreed,
+          contractorAgreement: contractAgreed,
+          signedName: signature,
+          signedAt: new Date().toISOString()
+        },
         verified: false,
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
