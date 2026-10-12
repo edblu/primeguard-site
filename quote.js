@@ -28,7 +28,7 @@
   };
   var ORDER = ["lawn-care", "pressure-washing", "junk-removal", "make-ready-cleaning", "handyman"];
 
-  var svcKey = null, q1i = 1, q2i = 0, q3i = 2, shownPrice = 0;
+  var svcKey = null, q1i = 1, q2i = 0, q3i = 2, shownPrice = 0, answered = false;
 
   var cfg = (window.SITE_CONFIG || {});
   var leadEndpoint = cfg.leadEndpoint || "";
@@ -75,6 +75,17 @@
       return;
     }
     var c = QUOTE_SVCS[svcKey];
+    if (!answered) {
+      animatePrice(c.from);
+      $("quotePrice").textContent = "$" + c.from;
+      shownPrice = c.from;
+      $("quoteUnit").textContent = "starting at · ballpark";
+      [[ "Service", c.name ]].forEach(function (row) {
+        var d = el("div"), a = el("span", null, row[0]), b = el("b", null, row[1]);
+        d.appendChild(a); d.appendChild(b); lines.appendChild(d);
+      });
+      return;
+    }
     animatePrice(price());
     $("quoteUnit").textContent = c.unit + " · ballpark";
     [[ "Service", c.name ],
@@ -114,7 +125,7 @@
   });
 
   function selectService(key, advance) {
-    svcKey = key; q1i = 1; q2i = 0; q3i = 2;
+    svcKey = key; q1i = 1; q2i = 0; q3i = 2; answered = false;
     grid.querySelectorAll(".qsvc").forEach(function (x) {
       x.classList.toggle("sel", x.getAttribute("data-svc") === key);
     });
@@ -151,10 +162,10 @@
     wrap.innerHTML = "";
     var q1 = el("div", "qq");
     q1.appendChild(el("p", null, c.q1.label));
-    q1.appendChild(pillRow(c.q1.opts, q1i, function (i) { q1i = i; renderEstimate(); }, false));
+    q1.appendChild(pillRow(c.q1.opts, q1i, function (i) { q1i = i; answered = true; renderEstimate(); }, false));
     var q2 = el("div", "qq");
     q2.appendChild(el("p", null, c.q2.label));
-    q2.appendChild(pillRow(c.q2.opts, q2i, function (i) { q2i = i; renderEstimate(); }, true));
+    q2.appendChild(pillRow(c.q2.opts, q2i, function (i) { q2i = i; answered = true; renderEstimate(); }, true));
     var q3 = el("div", "qq");
     q3.appendChild(el("p", null, c.q3.label));
     var sel = el("select", "qselect");
@@ -163,7 +174,7 @@
       op.value = o; if (i === q3i) op.selected = true;
       sel.appendChild(op);
     });
-    sel.addEventListener("change", function () { q3i = sel.selectedIndex; renderEstimate(); });
+    sel.addEventListener("change", function () { q3i = sel.selectedIndex; answered = true; renderEstimate(); });
     q3.appendChild(sel);
     wrap.appendChild(q1); wrap.appendChild(q2); wrap.appendChild(q3);
   }
