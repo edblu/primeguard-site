@@ -474,6 +474,8 @@ a { color: var(--gold-bright); }
   .main-nav a:not(.btn) { padding: 13px 16px; border-radius: 12px; font-size: 1rem; }
   .main-nav a:not(.btn):hover, .main-nav a:not(.btn):active { background: rgba(201, 162, 75, 0.1); }
   .btn-nav-call { display: block; text-align: center; margin-top: 8px; }
+  .main-nav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
+  .main-nav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
   .header-actions .btn-call { display: none; }
   .nav-toggle { display: flex; }
 }
@@ -659,9 +661,7 @@ body.modal-open { overflow: hidden; }
 
 /* ---------- Phase 2: responsive additions ---------- */
 @media (max-width: 760px) {
-  .main-nav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
   .lang-toggle button { padding: 8px 10px; }
-  .main-nav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
   .header-actions .btn-auth { display: none; }
 }
 
