@@ -95,6 +95,7 @@
         <button type="button" data-atab="referrals">Referral codes</button>
         <button type="button" data-atab="vendors">Vendors <span class="cnt-b" id="mb-vendors">0</span></button>
         <button type="button" data-atab="team">Acquisition managers</button>
+        <button type="button" data-atab="activity" id="ad-activity-btn">Staff activity</button>
       </div>
     </div>
   </nav>
@@ -236,16 +237,34 @@
     </div>
   </section>
   </div><!-- /atab-team -->
+
+  <div id="atab-activity" class="hidden">
+  <section class="asec">
+    <h2>Staff activity</h2>
+    <div class="acard">
+      <p class="sub">Visible only to the owner account. Times come from logins to this admin page. A session counts as online when it checked in within the last 3 minutes.</p>
+      <div id="ad-act-status"><p style="color:var(--faint)">Loading…</p></div>
+    </div>
+  </section>
+  <section class="asec">
+    <h2>Login history</h2>
+    <div class="acard"><div id="ad-act-history"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  <section class="asec" style="padding-bottom:60px">
+    <h2>Recent activity</h2>
+    <div class="acard"><div id="ad-act-feed"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  </div><!-- /atab-activity -->
 </div><!-- /ad-dash -->
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=3"></script>
+<script src="admin.js?v=4"></script>
 <script>
 (function () {
-  var tabs = ["work", "quotes", "referrals", "vendors", "team"];
+  var tabs = ["work", "quotes", "referrals", "vendors", "team", "activity"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
