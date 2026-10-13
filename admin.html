@@ -49,6 +49,14 @@
   .adrop-menu button { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:0; background:transparent; color:var(--text); font-size:.92rem; font-weight:600; border-radius:10px; cursor:pointer; font-family:inherit; }
   .adrop-menu button:hover { background:rgba(212,168,67,.12); }
   .adrop-menu .cnt-b { font-size:.75rem; background:rgba(212,168,67,.2); color:#f5d67b; border-radius:999px; padding:2px 8px; font-weight:700; }
+  .outcome-grid { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 14px; }
+  .outcome-btn { padding:9px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04); color:var(--text); font-weight:700; font-size:.82rem; cursor:pointer; font-family:inherit; }
+  .outcome-btn:hover { border-color:var(--gold); }
+  .outcome-btn.active { background:linear-gradient(135deg,#e8bd4e,#c9982f); color:#241a0c; border-color:transparent; }
+  .note-form label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:12px; }
+  .note-form textarea, .note-form input[type="date"] { margin-top:6px; width:100%; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:.95rem; font-family:inherit; color-scheme:dark; }
+  .note-follow { font-size:.8rem; color:var(--gold-bright); margin-top:8px; font-weight:700; }
+  .note-follow.done { color:#a9e6b2; }
 </style>
 </head>
 <body>
@@ -94,6 +102,7 @@
         <button type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="mb-quotes">0</span></button>
         <button type="button" data-atab="referrals">Referral codes</button>
         <button type="button" data-atab="vendors">Vendors <span class="cnt-b" id="mb-vendors">0</span></button>
+        <button type="button" data-atab="followups">Follow-ups <span class="cnt-b" id="mb-followups">0</span></button>
         <button type="button" data-atab="team">Acquisition managers</button>
         <button type="button" data-atab="activity" id="ad-activity-btn">Staff activity</button>
       </div>
@@ -185,6 +194,14 @@
     </div>
   </div>
 
+  <!-- Work order notes modal -->
+  <div class="modal-overlay hidden" id="woNoteModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="woNoteTitle">
+      <button class="modal-close" id="woNoteClose" aria-label="Close">×</button>
+      <div id="woNoteBody"></div>
+    </div>
+  </div>
+
   <div id="atab-quotes" class="hidden">
   <section class="asec">
     <h2>Quotes to review</h2>
@@ -203,6 +220,16 @@
   <section class="asec">
     <h2>Vendors</h2>
     <div class="acard"><div id="ad-vendor-list"></div></div>
+  </section>
+  </div>
+
+  <div id="atab-followups" class="hidden">
+  <section class="asec" style="padding-bottom:60px">
+    <h2>Follow-ups</h2>
+    <div class="acard">
+      <p class="sub">Open follow-ups from vendor calls, vendor notes, and work-order notes. Overdue and due-today items come first.</p>
+      <div id="ad-fu-list"><p style="color:var(--faint)">Loading…</p></div>
+    </div>
   </section>
   </div>
 
@@ -261,10 +288,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=4"></script>
+<script src="admin.js?v=5"></script>
 <script>
 (function () {
-  var tabs = ["work", "quotes", "referrals", "vendors", "team", "activity"];
+  var tabs = ["work", "quotes", "referrals", "vendors", "followups", "team", "activity"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
