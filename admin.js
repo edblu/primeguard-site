@@ -66,7 +66,10 @@
     auth.signInWithEmailAndPassword($("ad-email").value.trim(), $("ad-pass").value)
       .catch(function (err) { errEl.textContent = err.message; show(errEl); });
   });
-  $("ad-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
+  $("ad-logout").addEventListener("click", function (e) {
+    e.preventDefault();
+    endSession().then(function () { auth.signOut(); });
+  });
 
   $("ad-google").addEventListener("click", function () {
     var errEl = $("ad-login-err"); hide(errEl);
@@ -120,11 +123,124 @@
       hide($("ad-loginwrap")); show($("ad-dash"));
       $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
       if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
+      if (!isAdmin) { var ab = $("ad-activity-btn"); if (ab) ab.style.display = "none"; }
       loadAll();
+      startTracking();
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); }
+
+  /* ---------- Staff activity tracking (visible to the owner only) ---------- */
+  var mySessionId = null, heartbeatTimer = null, trackingOn = false;
+
+  function startTracking() {
+    if (trackingOn || !me) return;
+    trackingOn = true;
+    mySessionId = db.collection("staff_sessions").doc().id;
+    var sref = db.collection("staff_sessions").doc(mySessionId);
+    sref.set({
+      uid: me.uid, email: me.email, role: myRole,
+      loginAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+      endedAt: null
+    }).catch(function () {});
+    logActivity("Logged in");
+    heartbeatTimer = setInterval(function () {
+      sref.update({ lastSeenAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function () {});
+    }, 60000);
+  }
+
+  function endSession() {
+    if (!mySessionId) return Promise.resolve();
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    var sid = mySessionId; mySessionId = null; trackingOn = false;
+    return db.collection("staff_sessions").doc(sid).update({
+      endedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function () {});
+  }
+
+  function logActivity(action) {
+    if (!me) return;
+    db.collection("staff_activity").add({
+      uid: me.uid, email: me.email, role: myRole, action: action,
+      sessionId: mySessionId || "",
+      at: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function () {});
+  }
+
+  function fmtClock(ts) {
+    if (!ts || !ts.toDate) return "";
+    return ts.toDate().toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+  function fmtDur(ms) {
+    var mins = Math.max(0, Math.round(ms / 60000));
+    if (mins < 60) return mins + "m";
+    return Math.floor(mins / 60) + "h " + (mins % 60) + "m";
+  }
+
+  function loadActivity() {
+    if (!isAdmin) return;
+    var nowD = new Date();
+    var dayStart = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime();
+    db.collection("staff_sessions").orderBy("loginAt", "desc").limit(60).get().then(function (qs) {
+      var byUser = {}, history = [];
+      qs.forEach(function (d) {
+        var s = d.data();
+        var loginMs = s.loginAt && s.loginAt.toDate ? s.loginAt.toDate().getTime() : 0;
+        var seenMs = s.lastSeenAt && s.lastSeenAt.toDate ? s.lastSeenAt.toDate().getTime() : loginMs;
+        var endMs = s.endedAt && s.endedAt.toDate ? s.endedAt.toDate().getTime() : seenMs;
+        var online = !s.endedAt && (Date.now() - seenMs < 3 * 60 * 1000);
+        var u = byUser[s.email] || (byUser[s.email] = { email: s.email, role: s.role, todayMs: 0, lastSeen: 0, online: false });
+        if (loginMs >= dayStart) u.todayMs += Math.max(0, endMs - loginMs);
+        if (seenMs > u.lastSeen) u.lastSeen = seenMs;
+        if (online) u.online = true;
+        history.push({ s: s, dur: Math.max(0, endMs - loginMs), online: online });
+      });
+      var sbox = $("ad-act-status");
+      var emails = Object.keys(byUser);
+      if (!emails.length) { sbox.innerHTML = '<p style="color:var(--faint)">No logins recorded yet. Activity appears here once a team member signs in.</p>'; }
+      else {
+        sbox.innerHTML = "";
+        emails.forEach(function (em) {
+          var u = byUser[em];
+          var row = document.createElement("div"); row.className = "arow";
+          row.innerHTML = '<div class="grow"><strong>' + esc(u.email) + "</strong><small>" + esc(roleLabel(u.role)) +
+            " · Last active " + (u.lastSeen ? new Date(u.lastSeen).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "never") + "</small></div>" +
+            '<span class="pill ' + (u.online ? "p-done" : "p-pend") + '">' + (u.online ? "Online now" : "Offline") + "</span>" +
+            '<span class="pill p-acc">Today: ' + fmtDur(u.todayMs) + "</span>";
+          sbox.appendChild(row);
+        });
+      }
+      var hbox = $("ad-act-history");
+      if (!history.length) { hbox.innerHTML = '<p style="color:var(--faint)">No sessions yet.</p>'; }
+      else {
+        hbox.innerHTML = "";
+        history.slice(0, 20).forEach(function (h) {
+          var row = document.createElement("div"); row.className = "arow";
+          row.innerHTML = '<div class="grow"><strong>' + esc(h.s.email) + "</strong><small>Logged in " + fmtClock(h.s.loginAt) +
+            (h.s.endedAt ? " · logged out " + fmtClock(h.s.endedAt) : (h.online ? " · still active" : " · no logout recorded")) + "</small></div>" +
+            '<span class="pill p-open">' + fmtDur(h.dur) + "</span>";
+          hbox.appendChild(row);
+        });
+      }
+    }).catch(function () {
+      var sb = $("ad-act-status");
+      if (sb) sb.innerHTML = '<p style="color:var(--faint)">Activity tracking is built in, but the database rules update has not been applied yet, so no data can be saved or read.</p>';
+    });
+    db.collection("staff_activity").orderBy("at", "desc").limit(30).get().then(function (qs) {
+      var box = $("ad-act-feed");
+      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No activity yet.</p>'; return; }
+      box.innerHTML = "";
+      qs.forEach(function (d) {
+        var a = d.data();
+        var row = document.createElement("div"); row.className = "arow";
+        row.innerHTML = '<div class="grow"><strong>' + esc(a.action) + "</strong><small>" + esc(a.email) + " · " + fmtClock(a.at) + "</small></div>";
+        box.appendChild(row);
+      });
+    }).catch(function () {});
+  }
 
   function loadReferrals() {
     var box = $("ad-ref-list");
@@ -257,6 +373,7 @@
       status: st,
       verified: st === "approved"
     }).then(function () {
+      logActivity("Set vendor status to " + st);
       vdData.status = st; vdData.verified = st === "approved";
       renderVendorModal();
       var ok = $("vd-ok"); if (ok) ok.classList.remove("hidden");
@@ -329,6 +446,7 @@
       if ($("srQuotePrice")) upd.quotePrice = $("srQuotePrice").value.trim();
       if ($("srQuoteNotes")) upd.quoteNotes = $("srQuoteNotes").value.trim();
       db.collection("service_requests").doc(srId).update(upd).then(function () {
+        logActivity("Updated a customer request (" + upd.status + ")");
         srData.status = upd.status; srData.quotePrice = upd.quotePrice; srData.quoteNotes = upd.quoteNotes;
         saved(); loadServiceRequests();
       });
@@ -550,6 +668,7 @@
       : Promise.resolve([]);
 
     uploadP.then(save).then(function () {
+      logActivity(isEdit ? "Edited a work order" : "Created a work order");
       okEl.classList.remove("hidden");
       resetWoForm();
       loadAll();
@@ -582,7 +701,8 @@
     return "Hi,\n\nEdwin Lora is inviting you to join the PrimeGuard team as " + roleLabel(role) + ".\n\n" +
       "To accept:\n1. Go to https://primeguardmia.com/admin.html\n" +
       "2. Click \"Continue with Google\" and sign in with this email address (" + email + ")\n" +
-      "3. Your staff access activates automatically.\n\n" +
+      "3. Your staff access activates automatically.\n" +
+      "Note: PrimeGuard systems record account activity for operations and security.\n\n" +
       "Questions? Call Edwin at (786) 422-9674.\n\n- PrimeGuard Preservation LLC";
   }
   $("ad-inviteform").addEventListener("submit", function (e) {
@@ -597,6 +717,7 @@
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
       lastInvite = { email: email, role: role };
+      logActivity("Invited " + email + " as " + roleLabel(role));
       $("inv-ok-email").textContent = email;
       $("inv-ok-role").textContent = roleLabel(role);
       okEl.classList.remove("hidden");
@@ -622,10 +743,10 @@
   // ---------- Row actions ----------
   document.addEventListener("click", function (e) {
     var t = e.target, d = t.dataset;
-    if (d.wodone) db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll);
-    if (d.wodel && confirm("Delete this work order?")) db.collection("work_orders").doc(d.wodel).delete().then(loadAll);
+    if (d.wodone) { logActivity("Marked a work order done"); db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll); }
+    if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
-    if (d.srdel && confirm("Delete this customer request?")) db.collection("service_requests").doc(d.srdel).delete().then(loadAll);
+    if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
     if (d.sropen) openRequest(d.sropen);
     if (d.qok) {
       var parts = d.qok.split("|"), qid = parts[0], woid = parts[1];
@@ -637,11 +758,11 @@
             payAgreed: q.price, status: "accepted"
           });
         });
-      }).then(loadAll);
+      }).then(function () { logActivity("Approved a quote"); loadAll(); });
     }
-    if (d.qno) db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll);
+    if (d.qno) { logActivity("Declined a quote"); db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll); }
     if (d.vopen) openVendor(d.vopen);
-    if (d.staffdel && confirm("Remove this team member?")) db.collection("staff").doc(d.staffdel).delete().then(loadTeam);
-    if (d.invdel) db.collection("staff_invites").doc(d.invdel).delete().then(loadTeam);
+    if (d.staffdel && confirm("Remove this team member?")) { logActivity("Removed a team member"); db.collection("staff").doc(d.staffdel).delete().then(loadTeam); }
+    if (d.invdel) { logActivity("Cancelled a team invite"); db.collection("staff_invites").doc(d.invdel).delete().then(loadTeam); }
   });
 })();
