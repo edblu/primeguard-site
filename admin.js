@@ -129,7 +129,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -242,6 +242,158 @@
     }).catch(function () {});
   }
 
+  /* ---------- Shared notes, call log, and follow-ups ---------- */
+  var CALL_OUTCOMES = [
+    ["no_answer", "No answer"],
+    ["left_message", "Left message"],
+    ["not_interested", "Not interested"],
+    ["interested", "Interested"],
+    ["registered", "Registered"]
+  ];
+
+  function outcomeLabel(key) {
+    for (var i = 0; i < CALL_OUTCOMES.length; i++) if (CALL_OUTCOMES[i][0] === key) return CALL_OUTCOMES[i][1];
+    return key || "";
+  }
+  function tsMs(ts) {
+    try { return ts && ts.toDate ? ts.toDate().getTime() : (ts ? new Date(ts).getTime() : 0); } catch (e) { return 0; }
+  }
+  function localDateKey(d) {
+    var m = String(d.getMonth() + 1); if (m.length < 2) m = "0" + m;
+    var day = String(d.getDate()); if (day.length < 2) day = "0" + day;
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function fmtFollowDate(key) {
+    if (!key) return "";
+    var p = key.split("-");
+    if (p.length !== 3) return key;
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  }
+  function noteEntryHtml(n) {
+    var title = n.kind === "call" ? "Call · " + outcomeLabel(n.outcome) : "Note";
+    var whenMs = tsMs(n.createdAt);
+    var when = whenMs ? new Date(whenMs).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+    var follow = "";
+    if (n.followUpOn) {
+      follow = '<div class="note-follow' + (n.followUpDone ? " done" : "") + '">' +
+        (n.followUpDone ? "Follow-up completed" : "Follow-up: " + esc(fmtFollowDate(n.followUpOn))) + "</div>";
+    }
+    return '<div class="sr-comment"><strong>' + esc(title) + "</strong><span>" +
+      esc(n.createdByEmail || "") + (when ? " · " + esc(when) : "") + "</span>" +
+      (n.text ? "<p>" + esc(n.text).replace(/\n/g, "<br>") + "</p>" : "") + follow + "</div>";
+  }
+  function loadItemNotes(entityType, entityId, box) {
+    if (!box) return;
+    box.innerHTML = '<p class="sr-faint">Loading notes…</p>';
+    db.collection("item_notes").where("entityKey", "==", entityType + ":" + entityId).limit(100).get().then(function (qs) {
+      var notes = [];
+      qs.forEach(function (d) { notes.push(d.data()); });
+      notes.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+      box.innerHTML = notes.length ? notes.map(noteEntryHtml).join("") : '<p class="sr-faint">No notes yet.</p>';
+    }).catch(function () {
+      box.innerHTML = '<p class="sr-faint">Notes could not load yet. The database rules update may still need to be published.</p>';
+    });
+  }
+  function saveItemNote(data) {
+    data.entityKey = data.entityType + ":" + data.entityId;
+    data.createdByUid = me ? me.uid : "";
+    data.createdByEmail = me ? me.email : "";
+    data.createdByRole = myRole;
+    data.followUpDone = false;
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    return db.collection("item_notes").add(data);
+  }
+
+  function loadFollowUps() {
+    var box = $("ad-fu-list");
+    if (!box) return;
+    db.collection("item_notes").where("followUpDone", "==", false).limit(100).get().then(function (qs) {
+      var items = [];
+      qs.forEach(function (d) {
+        var n = d.data();
+        if (n.followUpOn) items.push({ id: d.id, n: n });
+      });
+      items.sort(function (a, b) {
+        if (a.n.followUpOn !== b.n.followUpOn) return a.n.followUpOn < b.n.followUpOn ? -1 : 1;
+        return tsMs(a.n.createdAt) - tsMs(b.n.createdAt);
+      });
+      var today = localDateKey(new Date());
+      var due = 0;
+      items.forEach(function (it) { if (it.n.followUpOn <= today) due++; });
+      var mb = $("mb-followups"); if (mb) mb.textContent = due;
+      if (!items.length) { box.innerHTML = '<p style="color:var(--faint)">No open follow-ups. When a note or call gets a follow-up date, it will show up here.</p>'; return; }
+      box.innerHTML = "";
+      items.forEach(function (it) {
+        var n = it.n;
+        var state = n.followUpOn < today ? "Overdue" : (n.followUpOn === today ? "Due today" : "Upcoming");
+        var cls = n.followUpOn < today ? "p-rev" : (n.followUpOn === today ? "p-pend" : "p-acc");
+        var detail = n.kind === "call" ? "Call · " + outcomeLabel(n.outcome) : "Note";
+        if (n.text) detail += " · " + n.text;
+        var row = document.createElement("div"); row.className = "arow";
+        row.innerHTML = '<div class="grow"><strong>' + esc(n.entityLabel || "Item") + "</strong><small>" +
+          esc(detail) + "<br>Set by " + esc(n.createdByEmail || "") + "</small></div>" +
+          '<span class="pill ' + cls + '">' + state + " · " + esc(fmtFollowDate(n.followUpOn)) + "</span>" +
+          ' <button class="mini" data-fuopen="' + esc(n.entityType) + "|" + esc(n.entityId) + '">Open</button>' +
+          ' <button class="mini" data-fudone="' + it.id + '">Done</button>';
+        box.appendChild(row);
+      });
+    }).catch(function () {
+      box.innerHTML = '<p style="color:var(--faint)">Follow-ups could not load yet. The database rules update may still need to be published.</p>';
+    });
+  }
+
+  /* ---------- Work order notes modal ---------- */
+  var woNoteId = null, woNoteTitle = "";
+  function openWorkOrderNotes(id) {
+    db.collection("work_orders").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var w = snap.data();
+      woNoteId = id; woNoteTitle = w.title || "Work order";
+      var box = $("woNoteBody");
+      box.innerHTML = '<h3 id="woNoteTitle">' + esc(woNoteTitle) + "</h3>" +
+        '<p class="sr-meta">' + pill(w.status) + " <span>" + esc(w.area || "") + " · " + esc(w.vendorBusiness || "broadcast") + "</span></p>" +
+        (w.details ? '<div class="sr-card"><h4>Job details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        '<div class="sr-card"><h4>Notes & updates</h4>' +
+        '<div class="note-form"><label>New note<textarea id="wonText" rows="3" placeholder="What happened, what is next…"></textarea></label>' +
+        '<label>Follow-up date (optional)<input type="date" id="wonFollow"></label></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="wonSave" type="button">Save note</button></div>' +
+        '<p class="aok hidden" id="wonOk" style="margin-top:10px">Note saved.</p>' +
+        '<p class="aerr hidden" id="wonErr" style="margin-top:10px"></p>' +
+        '<div class="sr-comments" id="wonNotes" style="margin-top:14px"></div></div>';
+      $("woNoteModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      loadItemNotes("work_order", id, $("wonNotes"));
+      $("wonSave").addEventListener("click", saveWorkOrderNote);
+    });
+  }
+  function closeWorkOrderNotes() {
+    $("woNoteModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    woNoteId = null; woNoteTitle = "";
+  }
+  function saveWorkOrderNote() {
+    if (!woNoteId) return;
+    var text = $("wonText").value.trim();
+    var err = $("wonErr"); err.classList.add("hidden");
+    if (!text) { err.textContent = "Write the note first."; err.classList.remove("hidden"); return; }
+    var btn = $("wonSave"); btn.disabled = true;
+    saveItemNote({
+      entityType: "work_order", entityId: woNoteId, entityLabel: woNoteTitle,
+      kind: "note", outcome: "", text: text,
+      followUpOn: $("wonFollow").value || null
+    }).then(function () {
+      logActivity("Added a note to work order: " + woNoteTitle);
+      $("wonOk").classList.remove("hidden");
+      $("wonText").value = ""; $("wonFollow").value = "";
+      loadItemNotes("work_order", woNoteId, $("wonNotes"));
+      loadFollowUps();
+    }).catch(function (e) {
+      err.textContent = "Could not save: " + (e.message || e);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+
   function loadReferrals() {
     var box = $("ad-ref-list");
     db.collection("referral_codes").orderBy("createdAt", "desc").limit(50).get().then(function (qs) {
@@ -316,12 +468,12 @@
   }
 
   // ---------- Vendor review ----------
-  var vdId = null, vdData = null;
+  var vdId = null, vdData = null, vdOutcome = "";
   function vStatus(v) { return v.status || (v.verified ? "approved" : "pending"); }
   function openVendor(id) {
     db.collection("vendors").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
-      vdId = id; vdData = snap.data();
+      vdId = id; vdData = snap.data(); vdOutcome = "";
       renderVendorModal();
       $("vdModal").classList.remove("hidden");
       document.body.style.overflow = "hidden";
@@ -330,7 +482,7 @@
   function closeVendor() {
     $("vdModal").classList.add("hidden");
     document.body.style.overflow = "";
-    vdId = null; vdData = null;
+    vdId = null; vdData = null; vdOutcome = "";
   }
   function renderVendorModal() {
     var v = vdData, box = $("vdBody"), st = vStatus(v);
@@ -354,21 +506,74 @@
       '<div class="sr-card"><h4>Documents</h4>' +
       docLine("W-9", v.w9Url, v.w9Status) +
       '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
-      (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>' +
-      '<div class="sr-card"><h4>Registration status</h4>' +
-      '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">Set the status when you have everything you need from them. They see this status on their dashboard.</p>' +
-      '<div class="sr-actions">' +
-      '<button class="btn btn-gold btn-sm" data-vstatus="approved" type="button">Approve</button>' +
-      '<button class="btn btn-ghost btn-sm" data-vstatus="pending" type="button">Keep pending</button>' +
-      '<button class="btn btn-ghost btn-sm" data-vstatus="rejected" type="button" style="border-color:#a33;color:#e88">Reject</button>' +
-      '</div><p class="aok hidden" id="vd-ok" style="margin-top:10px">Status saved.</p></div>';
+      (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>';
+    if (isAdmin) {
+      h += '<div class="sr-card"><h4>Registration status</h4>' +
+        '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">Set the status when you have everything you need from them. They see this status on their dashboard.</p>' +
+        '<div class="sr-actions">' +
+        '<button class="btn btn-gold btn-sm" data-vstatus="approved" type="button">Approve</button>' +
+        '<button class="btn btn-ghost btn-sm" data-vstatus="pending" type="button">Keep pending</button>' +
+        '<button class="btn btn-ghost btn-sm" data-vstatus="rejected" type="button" style="border-color:#a33;color:#e88">Reject</button>' +
+        '</div><p class="aok hidden" id="vd-ok" style="margin-top:10px">Status saved.</p></div>';
+    } else {
+      h += '<div class="sr-card"><h4>Registration status</h4>' +
+        '<p>Current status: <strong>' + esc(st) + '</strong></p>' +
+        '<p style="color:var(--muted);font-size:.88rem">Vendor approval is handled by Edwin. Your job is the calls, notes, and follow-ups below.</p></div>';
+    }
+    h += '<div class="sr-card"><h4>Calls & notes</h4>' +
+      '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
+      '<div class="outcome-grid" id="vdOutcomes">' +
+      CALL_OUTCOMES.map(function (o) {
+        return '<button type="button" class="outcome-btn" data-vdoutcome="' + o[0] + '">' + o[1] + "</button>";
+      }).join("") + "</div>" +
+      '<div class="note-form"><label>Notes<textarea id="vdNoteText" rows="3" placeholder="What happened on the call, what they said, what is next…"></textarea></label>' +
+      '<label>Follow-up date (optional)<input type="date" id="vdFollowDate"></label></div>' +
+      '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="vdSaveNote" type="button">Save call / note</button></div>' +
+      '<p class="aok hidden" id="vdNoteOk" style="margin-top:10px">Saved.</p>' +
+      '<p class="aerr hidden" id="vdNoteErr" style="margin-top:10px"></p>' +
+      '<div class="sr-comments" id="vdNotes" style="margin-top:14px"></div></div>';
     box.innerHTML = h;
     box.querySelectorAll("[data-vstatus]").forEach(function (b) {
       b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
     });
+    box.querySelectorAll("[data-vdoutcome]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        vdOutcome = vdOutcome === b.getAttribute("data-vdoutcome") ? "" : b.getAttribute("data-vdoutcome");
+        box.querySelectorAll("[data-vdoutcome]").forEach(function (x) {
+          x.classList.toggle("active", x.getAttribute("data-vdoutcome") === vdOutcome);
+        });
+      });
+    });
+    var vsn = $("vdSaveNote");
+    if (vsn) vsn.addEventListener("click", saveVendorNote);
+    loadItemNotes("vendor", vdId, $("vdNotes"));
+  }
+  function saveVendorNote() {
+    if (!vdId) return;
+    var text = $("vdNoteText").value.trim();
+    var err = $("vdNoteErr"); err.classList.add("hidden");
+    if (!vdOutcome && !text) { err.textContent = "Pick a call outcome or write a note first."; err.classList.remove("hidden"); return; }
+    var btn = $("vdSaveNote"); btn.disabled = true;
+    var label = (vdData && (vdData.business || vdData.name)) || "Vendor";
+    saveItemNote({
+      entityType: "vendor", entityId: vdId, entityLabel: label,
+      kind: vdOutcome ? "call" : "note", outcome: vdOutcome, text: text,
+      followUpOn: $("vdFollowDate").value || null
+    }).then(function () {
+      logActivity((vdOutcome ? "Logged a call (" + outcomeLabel(vdOutcome) + ") with " : "Added a note on ") + label);
+      $("vdNoteOk").classList.remove("hidden");
+      $("vdNoteText").value = ""; $("vdFollowDate").value = "";
+      vdOutcome = "";
+      document.querySelectorAll("[data-vdoutcome]").forEach(function (x) { x.classList.remove("active"); });
+      loadItemNotes("vendor", vdId, $("vdNotes"));
+      loadFollowUps();
+    }).catch(function (e) {
+      err.textContent = "Could not save: " + (e.message || e);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
   }
   function setVendorStatus(st) {
-    if (!vdId) return;
+    if (!vdId || !isAdmin) return;
     db.collection("vendors").doc(vdId).update({
       status: st,
       verified: st === "approved"
@@ -453,6 +658,7 @@
     });
     $("srSaveNotes").addEventListener("click", function () {
       db.collection("service_requests").doc(srId).update({ adminNotes: $("srNotes").value.trim() }).then(function () {
+        logActivity("Saved internal notes on a customer request");
         srData.adminNotes = $("srNotes").value.trim(); saved();
       });
     });
@@ -462,6 +668,7 @@
       db.collection("service_requests").doc(srId).update({
         comments: firebase.firestore.FieldValue.arrayUnion({ by: me ? me.email : "team", text: t, at: new Date() })
       }).then(function () { return db.collection("service_requests").doc(srId).get(); }).then(function (s) {
+        logActivity("Commented on a customer request");
         srData = s.data(); renderRequestModal();
       });
     });
@@ -517,6 +724,7 @@
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(w.title) + "</strong><small>" + esc(w.area || "") + " · " + esc(w.kind || "job") + " · " + esc(w.vendorBusiness || "broadcast") + "</small></div>" +
           pill(w.status) +
+          ' <button class="mini" data-wonotes="' + d.id + '">Notes</button>' +
           (w.status !== "done" ? ' <button class="mini" data-wodone="' + d.id + '">Done</button>' : "") +
           ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>' +
           ' <button class="mini" data-woedit="' + d.id + '">Edit</button>';
@@ -552,7 +760,7 @@
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + "</small></div>" +
           pill(st) +
-          (isAdmin ? ' <button class="mini" data-vopen="' + d.id + '">Review</button>' : "");
+          ' <button class="mini" data-vopen="' + d.id + '">' + (isAdmin ? "Review" : "Open") + "</button>";
         box.appendChild(row);
       });
     });
@@ -746,6 +954,26 @@
     if (d.wodone) { logActivity("Marked a work order done"); db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll); }
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
+    if (d.wonotes) openWorkOrderNotes(d.wonotes);
+    if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
+    if (d.fudone) {
+      db.collection("item_notes").doc(d.fudone).update({
+        followUpDone: true,
+        completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        completedByEmail: me ? me.email : "",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        logActivity("Completed a follow-up");
+        loadFollowUps();
+        if (woNoteId) loadItemNotes("work_order", woNoteId, $("wonNotes"));
+        if (vdId) loadItemNotes("vendor", vdId, $("vdNotes"));
+      }).catch(function () {});
+    }
+    if (d.fuopen) {
+      var fp = d.fuopen.split("|");
+      if (fp[0] === "vendor") openVendor(fp[1]);
+      else if (fp[0] === "work_order") openWorkOrderNotes(fp[1]);
+    }
     if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
     if (d.sropen) openRequest(d.sropen);
     if (d.qok) {
