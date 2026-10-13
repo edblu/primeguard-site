@@ -1,0 +1,48 @@
+# PrimeGuard Preservation LLC - AI crawlers are welcome.
+# This site's facts (services, prices, service area) may be read and
+# cited by AI assistants. See https://primeguardmia.com/llms.txt
+
+# OpenAI (ChatGPT search and browsing)
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic (Claude)
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Google AI (AI Overviews / Gemini training opt-in token)
+User-agent: Google-Extended
+Allow: /
+
+# Common Crawl (feeds many AI models)
+User-agent: CCBot
+Allow: /
+
+# Apple (Apple Intelligence / Siri / Spotlight)
+User-agent: Applebot-Extended
+Allow: /
+
+# Everyone else
+User-agent: *
+Allow: /
+
+Sitemap: https://primeguardmia.com/sitemap.xml
