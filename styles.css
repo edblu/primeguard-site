@@ -602,6 +602,8 @@ div.work-ph::after {
 /* Request detail modal (admin) */
 .sr-modal { width: min(720px, 100%); }
 .sr-modal #srBody, .sr-modal #vdBody, .sr-modal #woNoteBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+/* Dropdown lists: white background needs black text (dark-theme selects inherit light text otherwise) */
+select option, select optgroup { background-color: #ffffff; color: #000000; }
 .sr-modal h3 { padding: 0; margin-bottom: 8px; }
 .sr-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; margin-bottom: 18px; flex-wrap: wrap; }
 .sr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
