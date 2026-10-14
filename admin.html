@@ -61,6 +61,12 @@
   .note-follow { font-size:.8rem; color:var(--gold-bright); margin-top:8px; font-weight:700; }
   .note-follow.done { color:#a9e6b2; }
 
+  /* Button glow hovers (both themes) */
+  .mini, .atab, .outcome-btn, .modal-close { transition:all .18s ease; }
+  .mini:hover { border-color:var(--gold); color:var(--gold-bright); box-shadow:0 0 0 3px rgba(201,162,75,.22), 0 6px 18px rgba(201,162,75,.35); }
+  .atab:hover { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.20), 0 6px 16px rgba(201,162,75,.30); }
+  .outcome-btn:hover { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.20); }
+
   /* ---------- Light theme (top-bar toggle, saved per user) — SAM.gov clean white ---------- */
   :root.pg-light {
     --bg:#ffffff; --bg-2:#ffffff; --card:#ffffff;
@@ -104,12 +110,17 @@
 
   /* Light theme buttons: bold, dark, high contrast */
   .pg-light .mini { background:#1b1b1b; color:#ffffff; border-color:#1b1b1b; font-weight:700; }
-  .pg-light .mini:hover { background:#c9a24b; border-color:#c9a24b; color:#1b1b1b; }
+  .pg-light .mini:hover { background:#c9a24b; border-color:#c9a24b; color:#1b1b1b; box-shadow:0 0 0 3px rgba(201,162,75,.35), 0 8px 22px rgba(201,162,75,.55); transform:translateY(-1px); }
   .pg-light .mini.danger { background:#b50909; border-color:#b50909; color:#ffffff; }
-  .pg-light .mini.danger:hover { background:#8c0606; border-color:#8c0606; color:#ffffff; }
+  .pg-light .mini.danger:hover { background:#8c0606; border-color:#8c0606; color:#ffffff; box-shadow:0 0 0 3px rgba(181,9,9,.25), 0 8px 22px rgba(181,9,9,.45); transform:translateY(-1px); }
   .pg-light .btn-ghost { border:2px solid #1b1b1b; color:#1b1b1b; font-weight:700; }
-  .pg-light .btn-ghost:hover { background:#1b1b1b; color:#ffffff; border-color:#1b1b1b; }
+  .pg-light .btn-ghost:hover { background:#1b1b1b; color:#ffffff; border-color:#1b1b1b; box-shadow:0 8px 22px rgba(0,0,0,.28); transform:translateY(-1px); }
   .pg-light .btn-gold { background:linear-gradient(135deg,#e3c878,#c9a24b 55%,#a07d2c); color:#191408; box-shadow:0 6px 18px rgba(160,125,44,.35); }
+  .pg-light .btn-gold:hover { box-shadow:0 0 0 3px rgba(201,162,75,.30), 0 10px 26px rgba(201,162,75,.60); transform:translateY(-1px); filter:brightness(1.06); }
+  .pg-light .atab { background:#f0f0f0; border-color:#8d9299; }
+  .pg-light .atab:hover { border-color:#c9a24b; box-shadow:0 0 0 3px rgba(201,162,75,.28), 0 6px 18px rgba(201,162,75,.35); }
+  .pg-light .outcome-btn:hover { border-color:#c9a24b; box-shadow:0 0 0 3px rgba(201,162,75,.28), 0 6px 16px rgba(201,162,75,.30); }
+  .pg-light .modal-close:hover { box-shadow:0 0 0 3px rgba(201,162,75,.30), 0 8px 20px rgba(201,162,75,.45); }
   .pg-light .atab { background:#f0f0f0; border-color:#8d9299; }
   .pg-light .atab:hover { border-color:#1b1b1b; }
   .pg-light .atab .cnt-b { background:#1b1b1b; }
