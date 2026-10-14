@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin - PrimeGuard Preservation</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="styles.css?v=23">
+<link rel="stylesheet" href="styles.css?v=24">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   .awrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
@@ -116,8 +116,11 @@
 
   <div id="atab-work">
   <section class="asec">
-    <h2 id="wo-form-title">Create work order</h2>
-    <div class="acard">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <h2 id="wo-form-title" style="margin:0">Create work order</h2>
+      <button class="mini" type="button" id="wo-collapse-btn">Collapse</button>
+    </div>
+    <div class="acard" id="wo-form-card">
       <form id="ad-woform" class="aform">
         <label>Title<input type="text" id="wo-title" required placeholder="Yard cleanup + plant removal"></label>
         <div class="row2">
@@ -304,7 +307,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=7"></script>
+<script src="admin.js?v=8"></script>
 <script>
 (function () {
   var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
