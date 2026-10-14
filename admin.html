@@ -60,7 +60,42 @@
   .note-form textarea, .note-form input[type="date"] { margin-top:6px; width:100%; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:.95rem; font-family:inherit; color-scheme:dark; }
   .note-follow { font-size:.8rem; color:var(--gold-bright); margin-top:8px; font-weight:700; }
   .note-follow.done { color:#a9e6b2; }
+
+  /* ---------- Light theme (top-bar toggle, saved per user) ---------- */
+  :root.pg-light {
+    --bg:#f4efe6; --bg-2:#ffffff; --card:#ffffff;
+    --text:#1d1a14; --muted:#5e584c; --faint:#8d8676;
+    --gold:#a07d2c; --gold-bright:#8a6d2a; --gold-deep:#6e5518;
+    --line:rgba(160,125,44,.38); --line-soft:rgba(29,26,20,.10);
+  }
+  .pg-light body { background-image:radial-gradient(900px 420px at 50% -140px, rgba(201,162,75,.16), rgba(201,162,75,0) 70%); }
+  .pg-light .atop { border-bottom-color:rgba(29,26,20,.10); }
+  .pg-light .acard { background:linear-gradient(180deg,#ffffff,#faf6ec); border-color:rgba(29,26,20,.09); box-shadow:0 14px 34px rgba(84,66,20,.10); }
+  .pg-light .astat { background:#ffffff; border-color:rgba(29,26,20,.09); box-shadow:0 6px 18px rgba(84,66,20,.06); }
+  .pg-light .arow { border-bottom-color:rgba(29,26,20,.08); }
+  .pg-light .aform input, .pg-light .aform textarea, .pg-light .aform select,
+  .pg-light .note-form textarea, .pg-light .note-form input[type="date"],
+  .pg-light .sr-card select, .pg-light .sr-card textarea, .pg-light .sr-card input[type=text],
+  .pg-light .auth-card input { background:#ffffff; border-color:rgba(29,26,20,.18); color:var(--text); color-scheme:light; }
+  .pg-light .p-acc { background:rgba(64,120,215,.14); color:#2c56a0; }
+  .pg-light .p-rev { background:rgba(217,138,38,.16); color:#9c5a0e; }
+  .pg-light .p-done { background:rgba(46,160,80,.14); color:#1e6b34; }
+  .pg-light .mini.danger { border-color:rgba(179,39,30,.45); color:#b3271e; }
+  .pg-light .aerr { color:#b3271e; }
+  .pg-light .athumbs img { border-color:rgba(29,26,20,.14); }
+  .pg-light .atab { border-color:rgba(29,26,20,.18); background:#ffffff; }
+  .pg-light .atab .cnt-b { background:rgba(29,26,20,.55); }
+  .pg-light .adrop-menu { background:#ffffff; box-shadow:0 24px 50px rgba(84,66,20,.18); }
+  .pg-light .adrop-menu .cnt-b { color:#8a6d2a; }
+  .pg-light .outcome-btn { border-color:rgba(29,26,20,.20); background:#ffffff; }
+  .pg-light .note-follow.done { color:#1e6b34; }
+  .pg-light .cal-frame { background:#ffffff; border-color:rgba(29,26,20,.10); }
+  .pg-light .modal-overlay { background:rgba(46,38,16,.45); }
+  .pg-light .modal { box-shadow:0 34px 80px rgba(50,40,10,.28), 0 0 50px rgba(201,162,75,.10); }
+  .pg-light .modal-close { background:rgba(29,26,20,.05); }
+  .pg-light .sr-card, .pg-light .sr-comment { background:rgba(29,26,20,.03); }
 </style>
+<script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
 <body>
 <div class="awrap">
@@ -70,6 +105,7 @@
     <div class="aright">
       <a href="index.html" style="color:var(--muted);font-size:.85rem;text-decoration:none">&#8592; View site</a>
       <span id="ad-who" style="font-size:.85rem;color:var(--muted)"></span>
+      <button class="mini" type="button" id="ad-theme">&#9728; Light</button>
       <a href="#" id="ad-logout" style="color:var(--muted);font-size:.85rem">Log out</a>
     </div>
   </div>
@@ -246,7 +282,7 @@
     <h2>Calendar</h2>
     <div class="acard">
       <p class="sub">The PrimeGuard calendar. Estimate appointments booked by phone land here automatically. If the calendar looks blank, it needs to be shared with your Google account first.</p>
-      <iframe class="cal-frame" title="PrimeGuard calendar" src="https://calendar.google.com/calendar/embed?src=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e%40group.calendar.google.com&ctz=America%2FNew_York&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&bgcolor=%23141417"></iframe>
+      <iframe class="cal-frame" id="cal-frame" title="PrimeGuard calendar" src="https://calendar.google.com/calendar/embed?src=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e%40group.calendar.google.com&ctz=America%2FNew_York&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&bgcolor=%23141417"></iframe>
       <div style="margin-top:14px"><a class="btn btn-ghost btn-sm" href="https://calendar.google.com/calendar/r?cid=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com" target="_blank" rel="noopener">Open in Google Calendar</a></div>
     </div>
   </section>
@@ -307,7 +343,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=8"></script>
+<script src="admin.js?v=9"></script>
 <script>
 (function () {
   var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
