@@ -61,6 +61,24 @@
   .note-follow { font-size:.8rem; color:var(--gold-bright); margin-top:8px; font-weight:700; }
   .note-follow.done { color:#a9e6b2; }
 
+  /* ---------- Apple-grade polish ---------- */
+  .atop { position:sticky; top:0; z-index:60; background:rgba(8,8,10,.72); backdrop-filter:blur(20px) saturate(1.6); -webkit-backdrop-filter:blur(20px) saturate(1.6); margin-left:-24px; margin-right:-24px; padding-left:24px; padding-right:24px; }
+  .acard { border-radius:20px; }
+  .astat { border-radius:18px; }
+  .atabs { background:rgba(255,255,255,.06); border-radius:980px; padding:4px; gap:2px; width:fit-content; max-width:100%; }
+  .atab { border-color:transparent; background:transparent; border-radius:980px; }
+  .atab.on { border-color:transparent; }
+  .adrop-menu { border-radius:18px; }
+  .adrop-menu button, .adrop-menu a { border-radius:10px; }
+  .aform input, .aform textarea, .aform select, .note-form textarea, .note-form input[type="date"] { border-radius:12px; }
+  .aform input:focus, .aform textarea:focus, .aform select:focus, .note-form textarea:focus, .sr-card select:focus, .sr-card textarea:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 4px rgba(201,162,75,.18); }
+  .modal { border-radius:24px; }
+  .modal-overlay { backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  .mini { border-radius:980px; padding:7px 14px; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:rgba(140,140,140,.45); border-radius:8px; border:2px solid transparent; background-clip:content-box; }
+  ::-webkit-scrollbar-track { background:transparent; }
+
   /* Button glow hovers (both themes) */
   .mini, .atab, .outcome-btn, .modal-close { transition:all .18s ease; }
   .mini:hover { border-color:var(--gold); color:var(--gold-bright); box-shadow:0 0 0 3px rgba(201,162,75,.22), 0 6px 18px rgba(201,162,75,.35); }
@@ -69,7 +87,7 @@
 
   /* ---------- Light theme (top-bar toggle, saved per user) — SAM.gov clean white ---------- */
   :root.pg-light {
-    --bg:#ffffff; --bg-2:#ffffff; --card:#ffffff;
+    --bg:#f5f5f7; --bg-2:#ffffff; --card:#ffffff;
     --text:#1b1b1b; --muted:#565c65; --faint:#71767a;
     --gold:#8a6d2a; --gold-bright:#7a5c14; --gold-deep:#5f470e;
     --line:rgba(138,109,42,.45); --line-soft:#dfe1e2;
@@ -132,6 +150,17 @@
   .pg-light .p-acc { background:#b8d4f0; color:#083b66; }
   .pg-light .p-rev { background:#fbe3bd; color:#7a4a08; }
   .pg-light .p-done { background:#bfe8cc; color:#14532a; }
+
+  /* Light theme, Apple finish */
+  .pg-light body { background:#f5f5f7; background-color:#f5f5f7; }
+  .pg-light .atop { background:rgba(255,255,255,.72); border-bottom-color:rgba(0,0,0,.08); }
+  .pg-light .acard { border-color:rgba(0,0,0,.06); box-shadow:0 4px 24px rgba(0,0,0,.06); }
+  .pg-light .astat { border-color:rgba(0,0,0,.06); box-shadow:0 2px 12px rgba(0,0,0,.05); }
+  .pg-light .atabs { background:#e8e8ec; }
+  .pg-light .atab { background:transparent; border-color:transparent; color:#1d1d1f; }
+  .pg-light .atab.on { background:#ffffff; color:#1d1d1f; box-shadow:0 2px 10px rgba(0,0,0,.14); }
+  .pg-light .atab:hover { box-shadow:0 0 0 3px rgba(201,162,75,.22); }
+  .pg-light .adrop-menu { border-color:rgba(0,0,0,.06); box-shadow:0 12px 40px rgba(0,0,0,.16); }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
