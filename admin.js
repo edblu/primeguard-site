@@ -39,6 +39,24 @@
   });
   try { if (localStorage.getItem("pg_wo_form_collapsed")) setWoFormCollapsed(true); } catch (e) {}
 
+  // ---------- Light / dark theme toggle ----------
+  var themeBtn = $("ad-theme");
+  function syncThemeBtn() {
+    var light = document.documentElement.classList.contains("pg-light");
+    if (themeBtn) themeBtn.innerHTML = light ? "&#127769; Dark" : "&#9728; Light";
+    var cal = $("cal-frame");
+    if (cal && cal.src) {
+      cal.src = light ? cal.src.replace("bgcolor=%23141417", "bgcolor=%23ffffff")
+                      : cal.src.replace("bgcolor=%23ffffff", "bgcolor=%23141417");
+    }
+  }
+  if (themeBtn) themeBtn.addEventListener("click", function () {
+    var light = document.documentElement.classList.toggle("pg-light");
+    try { localStorage.setItem("pg_admin_theme", light ? "light" : "dark"); } catch (e) {}
+    syncThemeBtn();
+  });
+  syncThemeBtn();
+
   function resetWoForm() {
     editingId = null;
     woSourceRequestId = null;
