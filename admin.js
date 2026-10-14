@@ -29,6 +29,16 @@
     sel.value = val || sel.options[0].value;
   }
 
+  function setWoFormCollapsed(c) {
+    $("wo-form-card").classList.toggle("hidden", c);
+    $("wo-collapse-btn").textContent = c ? "Expand" : "Collapse";
+    try { localStorage.setItem("pg_wo_form_collapsed", c ? "1" : ""); } catch (e) {}
+  }
+  $("wo-collapse-btn").addEventListener("click", function () {
+    setWoFormCollapsed(!$("wo-form-card").classList.contains("hidden"));
+  });
+  try { if (localStorage.getItem("pg_wo_form_collapsed")) setWoFormCollapsed(true); } catch (e) {}
+
   function resetWoForm() {
     editingId = null;
     woSourceRequestId = null;
@@ -57,6 +67,7 @@
       $("wo-submit").textContent = "Save changes";
       $("wo-ok").textContent = "Work order updated.";
       show($("wo-cancel")); hide($("wo-error")); hide($("wo-ok"));
+      setWoFormCollapsed(false);
       $("wo-form-title").scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -704,6 +715,7 @@
       "\n(From customer request " + srId + ")";
     woSourceRequestId = srId;
     closeRequest();
+    setWoFormCollapsed(false);
     document.getElementById("ad-woform").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
