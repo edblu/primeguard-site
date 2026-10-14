@@ -49,6 +49,9 @@
   .adrop-menu button { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:0; background:transparent; color:var(--text); font-size:.92rem; font-weight:600; border-radius:10px; cursor:pointer; font-family:inherit; }
   .adrop-menu button:hover { background:rgba(212,168,67,.12); }
   .adrop-menu .cnt-b { font-size:.75rem; background:rgba(212,168,67,.2); color:#f5d67b; border-radius:999px; padding:2px 8px; font-weight:700; }
+  .adrop-menu a { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; background:transparent; color:var(--text); font-size:.92rem; font-weight:600; border-radius:10px; cursor:pointer; text-decoration:none; box-sizing:border-box; }
+  .adrop-menu a:hover { background:rgba(212,168,67,.12); }
+  .cal-frame { width:100%; height:72vh; border:1px solid rgba(255,255,255,.08); border-radius:14px; background:#141417; }
   .outcome-grid { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 14px; }
   .outcome-btn { padding:9px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04); color:var(--text); font-weight:700; font-size:.82rem; cursor:pointer; font-family:inherit; }
   .outcome-btn:hover { border-color:var(--gold); }
@@ -103,6 +106,8 @@
         <button type="button" data-atab="referrals">Referral codes</button>
         <button type="button" data-atab="vendors">Vendors <span class="cnt-b" id="mb-vendors">0</span></button>
         <button type="button" data-atab="followups">Follow-ups <span class="cnt-b" id="mb-followups">0</span></button>
+        <button type="button" data-atab="calendar">Calendar</button>
+        <a href="https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--?usp=sharing" target="_blank" rel="noopener">Visual map (globe) <span>&#8599;</span></a>
         <button type="button" data-atab="team">Acquisition managers</button>
         <button type="button" data-atab="activity" id="ad-activity-btn">Staff activity</button>
       </div>
@@ -233,6 +238,17 @@
   </section>
   </div>
 
+  <div id="atab-calendar" class="hidden">
+  <section class="asec" style="padding-bottom:60px">
+    <h2>Calendar</h2>
+    <div class="acard">
+      <p class="sub">The PrimeGuard calendar. Estimate appointments booked by phone land here automatically. If the calendar looks blank, it needs to be shared with your Google account first.</p>
+      <iframe class="cal-frame" title="PrimeGuard calendar" src="https://calendar.google.com/calendar/embed?src=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e%40group.calendar.google.com&ctz=America%2FNew_York&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&bgcolor=%23141417"></iframe>
+      <div style="margin-top:14px"><a class="btn btn-ghost btn-sm" href="https://calendar.google.com/calendar/r?cid=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com" target="_blank" rel="noopener">Open in Google Calendar</a></div>
+    </div>
+  </section>
+  </div>
+
   <div id="atab-team" class="hidden">
   <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
     <h2>Acquisition managers</h2>
@@ -291,7 +307,7 @@
 <script src="admin.js?v=7"></script>
 <script>
 (function () {
-  var tabs = ["work", "quotes", "referrals", "vendors", "followups", "team", "activity"];
+  var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
