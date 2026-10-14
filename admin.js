@@ -46,8 +46,8 @@
     if (themeBtn) themeBtn.innerHTML = light ? "&#127769; Dark" : "&#9728; Light";
     var cal = $("cal-frame");
     if (cal && cal.src) {
-      cal.src = light ? cal.src.replace("bgcolor=%23141417", "bgcolor=%23ffffff")
-                      : cal.src.replace("bgcolor=%23ffffff", "bgcolor=%23141417");
+      cal.src = light ? cal.src.replace("bgcolor=%23141417", "bgcolor=%23f2ecdd")
+                      : cal.src.replace("bgcolor=%23f2ecdd", "bgcolor=%23141417");
     }
   }
   if (themeBtn) themeBtn.addEventListener("click", function () {
