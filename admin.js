@@ -956,6 +956,8 @@
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
+    if (t.id === "srClose" || t.id === "srModal") closeRequest();
+    if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
     if (d.fudone) {
       db.collection("item_notes").doc(d.fudone).update({
         followUpDone: true,
@@ -992,5 +994,12 @@
     if (d.vopen) openVendor(d.vopen);
     if (d.staffdel && confirm("Remove this team member?")) { logActivity("Removed a team member"); db.collection("staff").doc(d.staffdel).delete().then(loadTeam); }
     if (d.invdel) { logActivity("Cancelled a team invite"); db.collection("staff_invites").doc(d.invdel).delete().then(loadTeam); }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (!$("srModal").classList.contains("hidden")) closeRequest();
+    if (!$("vdModal").classList.contains("hidden")) closeVendor();
+    if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
   });
 })();
