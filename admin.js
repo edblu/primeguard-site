@@ -16,6 +16,7 @@
   var me = null, isAdmin = false, isStaff = false, myRole = "acquisition";
   var pendingPhotos = []; // dataURLs selected in the WO form
   var editingId = null; // work order id being edited, or null for create mode
+  var woSourceRequestId = null; // service_requests id the WO form was prefilled from (conversion)
 
   function setSelect(sel, val) {
     // ensure the value exists as an option (older orders may have custom text)
@@ -30,6 +31,7 @@
 
   function resetWoForm() {
     editingId = null;
+    woSourceRequestId = null;
     $("ad-woform").reset();
     $("wo-preview").innerHTML = ""; pendingPhotos = [];
     $("wo-form-title").textContent = "Create work order";
@@ -43,6 +45,7 @@
       if (!snap.exists) return;
       var w = snap.data();
       editingId = id;
+      woSourceRequestId = null;
       $("wo-title").value = w.title || "";
       $("wo-kind").value = w.kind || "job";
       setSelect($("wo-category"), w.category || "");
@@ -424,8 +427,11 @@
       var box = $("ad-sr-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No customer requests yet.</p>'; return; }
       box.innerHTML = "";
+      var shown = 0;
       qs.forEach(function (d) {
         var r = d.data();
+        if (r.status === "converted") return; // already turned into a work order
+        shown++;
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(r.service || "Service request") +
           (r.frequency ? " - " + esc(r.frequency) : "") + "</strong><small>" +
@@ -436,6 +442,7 @@
           ' <button class="mini danger" data-srdel="' + d.id + '">Delete</button>';
         box.appendChild(row);
       });
+      if (!shown) box.innerHTML = '<p style="color:var(--faint)">No customer requests yet.</p>';
     }).catch(function () {
       $("ad-sr-list").innerHTML = '<p style="color:var(--faint)">Couldn\'t load requests.</p>';
     });
@@ -695,6 +702,7 @@
       "\nCustomer: " + (r.name || "") + " " + (r.phone || "") + " " + (r.email || "") +
       (r.address ? "\nAddress: " + r.address : "") +
       "\n(From customer request " + srId + ")";
+    woSourceRequestId = srId;
     closeRequest();
     document.getElementById("ad-woform").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -877,6 +885,16 @@
 
     uploadP.then(save).then(function () {
       logActivity(isEdit ? "Edited a work order" : "Created a work order");
+      if (!isEdit && woSourceRequestId) {
+        var srcId = woSourceRequestId;
+        return db.collection("service_requests").doc(srcId).update({
+          status: "converted",
+          convertedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          logActivity("Converted a customer request to a work order");
+        }).catch(function () {});
+      }
+    }).then(function () {
       okEl.classList.remove("hidden");
       resetWoForm();
       loadAll();
