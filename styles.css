@@ -601,7 +601,7 @@ div.work-ph::after {
 .modal-overlay[hidden] { display: none; }
 /* Request detail modal (admin) */
 .sr-modal { width: min(720px, 100%); }
-.sr-modal #srBody { padding: 26px 30px 30px; overflow-y: auto; }
+.sr-modal #srBody, .sr-modal #vdBody, .sr-modal #woNoteBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
 .sr-modal h3 { padding: 0; margin-bottom: 8px; }
 .sr-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; margin-bottom: 18px; flex-wrap: wrap; }
 .sr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
@@ -622,7 +622,7 @@ div.work-ph::after {
 .sr-comment span { color: var(--faint); font-size: .75rem; margin-left: 8px; }
 .sr-comment p { margin: 6px 0 0; font-size: .9rem; }
 .sr-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-@media (max-width: 640px) { .sr-grid { grid-template-columns: 1fr; } .sr-modal #srBody { padding: 20px 18px 24px; } }
+@media (max-width: 640px) { .sr-grid { grid-template-columns: 1fr; } .sr-modal #srBody, .sr-modal #vdBody, .sr-modal #woNoteBody { padding: 20px 18px 24px; } }
 .modal {
   position: relative; width: min(880px, 100%); max-height: 88vh;
   display: flex; flex-direction: column;
