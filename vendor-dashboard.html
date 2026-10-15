@@ -152,6 +152,11 @@
     <div class="vstat"><div class="l">Open opportunities</div><div class="v" id="st-open">0</div><div class="n">Jobs + quote requests</div></div>
   </section>
 
+  <div style="margin:2px 0 20px">
+    <button class="btn btn-ghost" type="button" id="pgPushBtnVendor">🔔 Turn on job alerts</button>
+    <p style="color:var(--muted);font-size:.85rem;margin-top:8px">Get a buzz on this phone when a new job or quote request comes in.</p>
+  </div>
+
   <section class="vsec hidden" id="vd-docs-sec" style="border:1px solid rgba(212,168,67,.45);background:linear-gradient(160deg,rgba(212,168,67,.1),rgba(212,168,67,.02))">
     <h2>📋 Documents needed</h2>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px" id="vd-docs-sub">Upload these so you can keep receiving paid jobs.</p>
@@ -237,6 +242,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
 <script src="vendor-dashboard.js?v=2"></script>
+<script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
 <script src="site.js?v=30"></script>
