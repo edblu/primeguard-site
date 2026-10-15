@@ -243,11 +243,36 @@
             if (["new", "received", "in_progress", "scheduled", "accepted", "confirmed"].indexOf(st.replace(/[\s-]+/g, "_")) > -1) active++;
             var editable = st.replace(/[\s-]+/g, "_") === "new";
             var div = document.createElement("div"); div.className = "req-row";
-            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + timelineFor(st) + '</div>' + pillFor(d.status) +
+            var mediaHtml = "";
+            var rPhotos = Array.isArray(d.photos) ? d.photos : [];
+            var rVideos = Array.isArray(d.videos) ? d.videos : [];
+            if (rPhotos.length) {
+              mediaHtml += '<div class="job-thumbs">' + rPhotos.slice(0, 4).map(function (u) {
+                return '<img src="' + esc(u) + '" alt="Request photo" loading="lazy">';
+              }).join("") + "</div>";
+            }
+            if (rVideos.length || d.videoLink) {
+              mediaHtml += '<div class="req-vids">' + rVideos.map(function (u, i) {
+                return '<a href="' + esc(u) + '" target="_blank" rel="noopener">🎬 Video ' + (i + 1) + "</a>";
+              }).join("") + (d.videoLink ? '<a href="' + esc(d.videoLink) + '" target="_blank" rel="noopener">🎬 Video link</a>' : "") + "</div>";
+            }
+            div.innerHTML = '<span class="req-dot"></span><div class="req-main"><strong></strong><span class="req-date"></span>' + timelineFor(st) + mediaHtml + '</div>' + pillFor(d.status) +
+              '<button type="button" class="req-edit" data-add-media="' + doc.id + '">Add photos / video</button>' +
               (editable ? '<button type="button" class="req-edit" data-edit-req="' + doc.id + '">Edit</button>' : "");
             div.querySelector("strong").textContent = d.service || "Service request";
             div.querySelector(".req-date").textContent = fmtDate(d.createdAt);
             box.appendChild(div);
+            var panel = document.createElement("div");
+            panel.className = "req-media-panel hidden";
+            panel.setAttribute("data-media-panel", doc.id);
+            panel.innerHTML =
+              '<label>Photos<input type="file" accept="image/*" multiple data-mp-photos></label>' +
+              '<label>Videos <span style="font-weight:400;color:#a89a7d">(25 MB max each. Bigger? Use the link field below)</span><input type="file" accept="video/*" multiple data-mp-videos></label>' +
+              '<label>Or paste a video link<input type="text" data-mp-link placeholder="Google Photos, iCloud, YouTube…"></label>' +
+              '<p class="req-media-msg" data-mp-msg></p>' +
+              '<div class="req-media-btns"><button type="button" class="btn btn-gold btn-sm" data-mp-save>Add to request</button>' +
+              '<button type="button" class="req-edit" data-mp-cancel>Cancel</button></div>';
+            box.appendChild(panel);
           });
           renderQuotes(quotes);
         }
@@ -532,6 +557,7 @@
   var reqModal = $("reqModal");
   var custInfo = { name: "", phone: "", email: "" };
   var reqPhotos = [];      // dataURLs picked in the window
+  var rwVideoFiles = [];   // File objects picked in the window (videos)
   var editingReqId = null; // service_requests doc id being edited, or null
   var rwSvc = null, rwFreq = "One-time";
 
@@ -604,6 +630,8 @@
     rwSvc = null; rwFreq = "One-time"; editingReqId = null; reqPhotos = [];
     $("rwTitle").textContent = "New request";
     $("rwDetails").value = ""; $("rwPhotos").value = ""; $("rwPreview").innerHTML = "";
+    rwVideoFiles = []; $("rwVideos").value = ""; $("rwVideoLink").value = "";
+    $("rwVideoList").innerHTML = ""; $("rwVideoMsg").textContent = ""; hide($("rwVideoMsg"));
     hide($("reqError"));
     $("rwSend").textContent = "Send my request";
     document.querySelectorAll("#rwFreq .rw-chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
@@ -618,6 +646,12 @@
     $("rwTitle").textContent = "Edit request";
     $("rwDetails").value = d.message || "";
     $("rwPhotos").value = ""; $("rwPreview").innerHTML = "";
+    rwVideoFiles = []; $("rwVideos").value = "";
+    $("rwVideoLink").value = d.videoLink || "";
+    $("rwVideoList").innerHTML = ""; $("rwVideoMsg").textContent = ""; hide($("rwVideoMsg"));
+    if (Array.isArray(d.videos) && d.videos.length) {
+      $("rwVideoList").textContent = "🎬 " + d.videos.length + " video" + (d.videos.length === 1 ? "" : "s") + " already on this request.";
+    }
     hide($("reqError"));
     $("rwSend").textContent = "Save changes";
     document.querySelectorAll("#rwFreq .rw-chip").forEach(function (c) {
@@ -646,6 +680,72 @@
       });
     }
   });
+
+  // "Add photos / video" panels on request cards: append media to an existing request.
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var ab = t.closest("[data-add-media]");
+    if (ab) {
+      var pid = ab.getAttribute("data-add-media");
+      document.querySelectorAll("[data-media-panel]").forEach(function (p) {
+        if (p.getAttribute("data-media-panel") === pid) p.classList.toggle("hidden");
+        else p.classList.add("hidden");
+      });
+      return;
+    }
+    var cb = t.closest("[data-mp-cancel]");
+    if (cb) { var cp = cb.closest("[data-media-panel]"); if (cp) cp.classList.add("hidden"); return; }
+    var sb = t.closest("[data-mp-save]");
+    if (sb) saveReqMedia(sb);
+  });
+
+  function saveReqMedia(btn) {
+    var user = auth.currentUser; if (!user) return;
+    var panel = btn.closest("[data-media-panel]"); if (!panel) return;
+    var id = panel.getAttribute("data-media-panel");
+    var msg = panel.querySelector("[data-mp-msg]");
+    var photoFiles = Array.prototype.slice.call(panel.querySelector("[data-mp-photos]").files || []);
+    var videoFiles = Array.prototype.slice.call(panel.querySelector("[data-mp-videos]").files || []);
+    var link = panel.querySelector("[data-mp-link]").value.trim();
+    if (!photoFiles.length && !videoFiles.length && !link) {
+      msg.textContent = "Pick a photo or video first, or paste a video link.";
+      return;
+    }
+    btn.disabled = true;
+    msg.textContent = "Uploading…";
+    var ref = db.collection("service_requests").doc(id);
+    ref.get().then(function (snap) {
+      var d = snap.exists ? snap.data() : {};
+      var exPhotos = Array.isArray(d.photos) ? d.photos.slice() : [];
+      var exVideos = Array.isArray(d.videos) ? d.videos.slice() : [];
+      return Promise.all([
+        uploadPhotoFiles(photoFiles, "service-request-photos"),
+        uploadVideoFiles(videoFiles, "service-request-photos")
+      ]).then(function (res) {
+        var update = {};
+        if (res[0].length) update.photos = exPhotos.concat(res[0]);
+        if (res[1].urls.length) update.videos = exVideos.concat(res[1].urls);
+        if (link && !d.videoLink) update.videoLink = link;
+        var skippedNote = res[1].skipped.length
+          ? " Note: " + res[1].skipped.join(", ") + " was over 25 MB and wasn't attached. Paste a link to it instead."
+          : "";
+        if (!Object.keys(update).length) {
+          msg.textContent = "Nothing new to add." + skippedNote;
+          btn.disabled = false;
+          return null;
+        }
+        // Same doc.update path the portal's edit-request save uses.
+        return ref.update(update).then(function () {
+          msg.textContent = "Added to your request. Thank you!" + skippedNote;
+          setTimeout(function () { loadRequests(user.uid); }, 1200);
+        });
+      });
+    }).catch(function () {
+      msg.textContent = "Couldn't add that. Please try again, or call us at (786) 422-9674.";
+      btn.disabled = false;
+    });
+  }
 
   $("rwBack2").addEventListener("click", function () { rwStep(1); });
   $("rwBack2b").addEventListener("click", function () { rwStep(1); });
@@ -676,6 +776,82 @@
     });
   });
 
+  /* ----- Media upload helpers (shared: request window + request cards) ----- */
+  var VIDEO_MAX_BYTES = 25 * 1024 * 1024;
+  function fmtMB(b) { return (b / (1024 * 1024)).toFixed(1) + " MB"; }
+  function uploadEndpoint() { return (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || ""; }
+  function readAsDataURL(f) {
+    return new Promise(function (res) {
+      var r = new FileReader();
+      r.onload = function () { res(r.result); };
+      r.onerror = function () { res(null); };
+      r.readAsDataURL(f);
+    });
+  }
+  // Photos: same photo-upload pattern the window already uses (dataURLs in, URLs out).
+  function uploadPhotoFiles(files, folder) {
+    var ep = uploadEndpoint();
+    if (!files.length || !ep) return Promise.resolve([]);
+    return Promise.all(files.map(readAsDataURL)).then(function (dus) {
+      dus = dus.filter(Boolean);
+      if (!dus.length) return [];
+      return fetch(ep, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ type: "photo-upload", folder: folder, photos: dus }) })
+        .then(function (r) { return r.json(); })
+        .then(function (out) { return (out && out.urls) || []; })
+        .catch(function () { return []; });
+    });
+  }
+  // One video via the generic doc-upload pattern (FileReader -> POST). The saved
+  // URL comes back as out.urls[0] (same {ok, urls} shape as photo-upload).
+  function uploadOneVideo(f, folder) {
+    var ep = uploadEndpoint();
+    if (!ep) return Promise.resolve(null);
+    return readAsDataURL(f).then(function (dataUrl) {
+      if (!dataUrl) return null;
+      return fetch(ep, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: "doc-upload", folder: folder, name: f.name, mime: f.type, data: dataUrl }) })
+        .then(function (r) { return r.json(); })
+        .then(function (out) { return (out && out.ok && out.urls && out.urls.length) ? out.urls[0] : null; })
+        .catch(function () { return null; });
+    });
+  }
+  // Videos upload ONE BY ONE. Files over 25 MB are skipped (never fatal).
+  function uploadVideoFiles(files, folder) {
+    var urls = [], skipped = [];
+    var chain = Promise.resolve();
+    files.forEach(function (f) {
+      if (f.size > VIDEO_MAX_BYTES) { skipped.push(f.name); return; }
+      chain = chain.then(function () { return uploadOneVideo(f, folder); })
+        .then(function (u) { if (u) urls.push(u); });
+    });
+    return chain.then(function () { return { urls: urls, skipped: skipped }; });
+  }
+
+  // video picker in the window
+  $("rwVideoBtn").addEventListener("click", function () { $("rwVideos").click(); });
+  $("rwVideos").addEventListener("change", function (e) {
+    rwVideoFiles = Array.prototype.slice.call(e.target.files || []);
+    var list = $("rwVideoList"); list.innerHTML = "";
+    var over = 0;
+    rwVideoFiles.forEach(function (f) {
+      var d = document.createElement("div");
+      if (f.size > VIDEO_MAX_BYTES) {
+        over++;
+        d.textContent = "🎬 " + f.name + " (" + fmtMB(f.size) + ") — too big to attach (25 MB max)";
+        d.style.color = "#b3541e"; d.style.fontWeight = "700";
+      } else {
+        d.textContent = "🎬 " + f.name + " (" + fmtMB(f.size) + ")";
+      }
+      list.appendChild(d);
+    });
+    var msg = $("rwVideoMsg");
+    if (over) {
+      msg.textContent = "That video is over 25 MB, so we can't attach it here. No problem: paste a link to it in the link field below (Google Photos, iCloud, YouTube) and we'll watch it there.";
+      show(msg);
+    } else { msg.textContent = ""; hide(msg); }
+  });
+
   $("rwToReview").addEventListener("click", function () {
     if (!rwSvc) return;
     var det = $("rwDetails").value.trim() || "-";
@@ -685,7 +861,9 @@
       '<div class="rw-rrow"><span class="k">Service</span><span class="v">' + esc(rwSvc.name) + ' (from ' + esc(rwSvc.price) + ')</span></div>' +
       '<div class="rw-rrow"><span class="k">Frequency</span><span class="v">' + esc(rwFreq) + '</span></div>' +
       '<div class="rw-rrow"><span class="k">Details</span><span class="v">' + esc(det) + '</span></div>' +
-      (reqPhotos.length ? '<div class="rw-rrow"><span class="k">Photos</span><span class="v">' + reqPhotos.length + ' attached</span></div>' : '');
+      (reqPhotos.length ? '<div class="rw-rrow"><span class="k">Photos</span><span class="v">' + reqPhotos.length + ' attached</span></div>' : '') +
+      (rwVideoFiles.filter(function (f) { return f.size <= VIDEO_MAX_BYTES; }).length ? '<div class="rw-rrow"><span class="k">Videos</span><span class="v">' + rwVideoFiles.filter(function (f) { return f.size <= VIDEO_MAX_BYTES; }).length + ' attached</span></div>' : '') +
+      ($("rwVideoLink").value.trim() ? '<div class="rw-rrow"><span class="k">Video link</span><span class="v">' + esc($("rwVideoLink").value.trim()) + '</span></div>' : '');
     rwStep(3);
   });
 
@@ -697,12 +875,15 @@
     var isEdit = !!editingReqId;
     btn.disabled = true; btn.textContent = isEdit ? "Saving..." : "Sending...";
 
-    function save(urls) {
+    function save(urls, vres) {
       var payload = {
         service: rwSvc.name, frequency: rwFreq,
         message: $("rwDetails").value.trim()
       };
       if (urls && urls.length) payload.photos = urls;
+      if (vres && vres.urls.length) payload.videos = vres.urls;
+      var vlink = $("rwVideoLink").value.trim();
+      if (vlink) payload.videoLink = vlink;
       if (isEdit) {
         return db.collection("service_requests").doc(editingReqId).update(payload);
       }
@@ -721,13 +902,19 @@
         .catch(function () { return []; })
       : Promise.resolve([]);
 
-    uploadP.then(save).then(function () {
+    var videoP = uploadVideoFiles(rwVideoFiles, "service-request-photos");
+    Promise.all([uploadP, videoP]).then(function (res) {
+      return save(res[0], res[1]).then(function () { return res[1]; });
+    }).then(function (vres) {
       $("rwStep3").classList.add("hidden");
       $("rwDone").classList.remove("hidden");
       $("rwDoneTitle").textContent = isEdit ? "Changes saved!" : "Request received!";
       $("rwDoneSummary").textContent = isEdit
         ? "Your " + rwSvc.name.toLowerCase() + " request has been updated."
         : "Your " + rwSvc.name.toLowerCase() + " request (" + rwFreq.toLowerCase() + ") is in. We'll be in touch shortly to confirm the details.";
+      if (vres && vres.skipped.length) {
+        $("rwDoneSummary").textContent += " Note: " + vres.skipped.join(", ") + " was over the 25 MB video limit and wasn't attached. You can add a link to it from your request list anytime.";
+      }
       document.querySelectorAll("#rwSteps .rw-st").forEach(function (d) {
         d.classList.remove("active"); d.classList.add("done");
         d.querySelector(".dot").textContent = "✓";
@@ -743,7 +930,9 @@
               body: JSON.stringify({
                 name: custInfo.name, phone: custInfo.phone, email: custInfo.email,
                 service: "Dashboard request: " + rwSvc.name + " (" + rwFreq + ")",
-                message: $("rwDetails").value.trim(),
+                message: $("rwDetails").value.trim() +
+                  ((vres && vres.urls.length) ? "\nVideos: " + vres.urls.join(", ") : "") +
+                  ($("rwVideoLink").value.trim() ? "\nVideo link: " + $("rwVideoLink").value.trim() : ""),
                 source: "account-dashboard", uid: user.uid,
                 timestamp: new Date().toISOString()
               })
