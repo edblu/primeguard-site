@@ -202,7 +202,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -414,6 +414,342 @@
     }).catch(function () {
       box.innerHTML = '<p style="color:var(--faint)">Follow-ups could not load yet. The database rules update may still need to be published.</p>';
     });
+  }
+
+  /* ---------- Hot leads pipeline + notification bell ---------- */
+  // Customer conversations that got hot (asking prices, ready to move),
+  // worked by the whole acquisition team. Notes reuse the exact item_notes
+  // plumbing (loadItemNotes/saveItemNote) with entityType "hot_lead", in a
+  // modal shell that mirrors the vendor Calls & notes card, same as the
+  // vendor and work-order shells do.
+  var HL_STAGES = [
+    ["new", "New", "p-pend"],
+    ["contacted", "Contacted", "p-acc"],
+    ["quoted", "Quoted", "p-rev"],
+    ["booked", "Booked", "p-done"],
+    ["done", "Done", "p-done"],
+    ["cold", "Cold", "p-cold"]
+  ];
+  var HL_SOURCES = ["Marketplace", "Instagram", "Website", "Referral", "Phone", "Other"];
+  var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
+  var hlNoteId = null, hlNoteData = null, hlOutcome = "";
+  var hlEditId = null;
+
+  function hlStageMeta(stage) {
+    for (var i = 0; i < HL_STAGES.length; i++) if (HL_STAGES[i][0] === stage) return HL_STAGES[i];
+    return HL_STAGES[0];
+  }
+  function timeAgo(ms) {
+    if (!ms) return "";
+    var s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (s < 60) return "just now";
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + "m ago";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    var d = Math.floor(h / 24);
+    if (d < 30) return d + "d ago";
+    return new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  function updateHotLeadBadges() {
+    var unseen = 0;
+    hlLeads.forEach(function (it) { if (!it.d.seen) unseen++; });
+    var db2 = $("pg-nav-b-hotleads");
+    if (db2) { db2.textContent = unseen; db2.style.display = unseen ? "" : "none"; }
+    var bb = $("pgBellBadge");
+    if (bb) { bb.textContent = unseen; bb.classList.toggle("hidden", !unseen); }
+    return unseen;
+  }
+  function loadHotLeads() {
+    var box = $("ad-hl-list");
+    if (!box) return;
+    db.collection("hot_leads").orderBy("createdAt", "desc").limit(100).get().then(function (qs) {
+      hlLeads = [];
+      qs.forEach(function (d) { hlLeads.push({ id: d.id, d: d.data() }); });
+      renderHotLeads();
+      updateHotLeadBadges();
+      renderBellPanel();
+    }).catch(function () {
+      box.innerHTML = '<p style="color:var(--faint)">Hot leads could not load yet. The database rules update may still need to be published.</p>';
+    });
+  }
+  function renderHotLeads() {
+    var box = $("ad-hl-list");
+    if (!box) return;
+    if (!hlLeads.length) {
+      box.innerHTML = '<p style="color:var(--faint)">No hot leads yet. When a customer conversation gets serious, add it here with the Add lead button so the whole team can work it.</p>';
+      return;
+    }
+    box.innerHTML = "";
+    HL_STAGES.forEach(function (st) {
+      var rows = hlLeads.filter(function (it) { return (it.d.stage || "new") === st[0]; });
+      var head = document.createElement("h4");
+      head.className = "hl-stage-head";
+      head.innerHTML = esc(st[1]) + ' <span class="cnt">· ' + rows.length + "</span>";
+      box.appendChild(head);
+      if (!rows.length) {
+        var none = document.createElement("p");
+        none.style.cssText = "color:var(--faint);font-size:.85rem;margin:2px 0 6px";
+        none.textContent = "None";
+        box.appendChild(none);
+        return;
+      }
+      rows.forEach(function (it) {
+        var d = it.d;
+        var whenMs = tsMs(d.createdAt);
+        var when = whenMs ? new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+        var opts = HL_STAGES.map(function (s) {
+          return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+        }).join("");
+        var row = document.createElement("div"); row.className = "arow";
+        row.innerHTML = '<div class="grow"><strong>' + (d.seen ? "" : '<span class="hl-dot" title="Unseen"></span>') + esc(d.name || "Lead") + "</strong><small>" +
+          esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
+          (when ? " · " + esc(when) : "") + (d.createdBy ? " · added by " + esc(d.createdBy) : "") + "</small></div>" +
+          '<span class="pill p-acc">' + esc(d.source || "Other") + "</span>" +
+          '<span class="pill ' + st[2] + '">' + esc(st[1]) + "</span>" +
+          '<select class="hl-stage-sel" data-hlstage="' + it.id + '" aria-label="Move stage">' + opts + "</select>" +
+          ' <button class="mini" data-hlnotes="' + it.id + '">Notes</button>' +
+          ' <button class="mini" data-hledit="' + it.id + '">Edit</button>' +
+          (isAdmin ? ' <button class="mini danger" data-hldel="' + it.id + '">Delete</button>' : "");
+        box.appendChild(row);
+      });
+    });
+  }
+  function hlStageChanged(id, stage) {
+    db.collection("hot_leads").doc(id).update({
+      stage: stage,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      logActivity("Moved hot lead to " + hlStageMeta(stage)[1]);
+      loadHotLeads();
+    }).catch(function (e) { alert("Could not move lead: " + (e.message || e)); loadHotLeads(); });
+  }
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t && t.dataset && t.dataset.hlstage) hlStageChanged(t.dataset.hlstage, t.value);
+  });
+
+  /* ----- Add / edit lead form ----- */
+  function openHotLeadForm(id) {
+    hlEditId = id || null;
+    var d = null;
+    if (id) { for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) { d = hlLeads[i].d; break; } }
+    d = d || {};
+    var srcOpts = HL_SOURCES.map(function (s) {
+      return '<option value="' + s + '"' + ((d.source || "Marketplace") === s ? " selected" : "") + ">" + s + "</option>";
+    }).join("");
+    var stOpts = HL_STAGES.map(function (s) {
+      return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+    }).join("");
+    $("hlFormBody").innerHTML = '<h3 id="hlFormTitle">' + (id ? "Edit lead" : "Add lead") + "</h3>" +
+      '<form id="hlForm" class="aform" style="margin-top:10px">' +
+      '<label>Name<input type="text" id="hl-f-name" required placeholder="Customer name" value="' + esc(d.name || "") + '"></label>' +
+      '<label>Contact<input type="text" id="hl-f-contact" placeholder="Phone, Messenger name, or handle" value="' + esc(d.contact || "") + '"></label>' +
+      '<div class="row2"><label>Source<select id="hl-f-source">' + srcOpts + "</select></label>" +
+      '<label>Stage<select id="hl-f-stage">' + stOpts + "</select></label></div>" +
+      '<div class="row2"><label>Service<input type="text" id="hl-f-service" placeholder="Lawn care, cleanup…" value="' + esc(d.service || "") + '"></label>' +
+      '<label>Area<input type="text" id="hl-f-area" placeholder="Kendall, Richmond Heights…" value="' + esc(d.area || "") + '"></label></div>' +
+      '<label>Notes<textarea id="hl-f-notes" rows="3" placeholder="What they asked, what was quoted, what is next…">' + esc(d.notes || "") + "</textarea></label>" +
+      '<p class="aerr hidden" id="hl-f-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="hl-f-save">' + (id ? "Save changes" : "Add lead") + "</button></div>" +
+      "</form>";
+    $("hlFormModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    $("hlForm").addEventListener("submit", saveHotLead);
+  }
+  function closeHotLeadForm() {
+    $("hlFormModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    hlEditId = null;
+  }
+  function saveHotLead(e) {
+    e.preventDefault();
+    var name = $("hl-f-name").value.trim();
+    var err = $("hl-f-err"); err.classList.add("hidden");
+    if (!name) { err.textContent = "Name is required."; err.classList.remove("hidden"); return; }
+    var fields = {
+      name: name,
+      contact: $("hl-f-contact").value.trim(),
+      source: $("hl-f-source").value,
+      service: $("hl-f-service").value.trim(),
+      area: $("hl-f-area").value.trim(),
+      stage: $("hl-f-stage").value,
+      notes: $("hl-f-notes").value.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    var btn = $("hl-f-save"); btn.disabled = true;
+    var p;
+    if (hlEditId) {
+      p = db.collection("hot_leads").doc(hlEditId).update(fields).then(function () {
+        logActivity("Edited hot lead: " + name);
+      });
+    } else {
+      fields.seen = false;
+      fields.createdBy = me ? me.email : "";
+      fields.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      p = db.collection("hot_leads").add(fields).then(function () {
+        logActivity("Added hot lead: " + name);
+      });
+    }
+    p.then(function () {
+      closeHotLeadForm();
+      loadHotLeads();
+    }).catch(function (e2) {
+      err.textContent = "Could not save: " + (e2.message || e2);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+  var hlAddBtn = $("hl-add");
+  if (hlAddBtn) hlAddBtn.addEventListener("click", function () { openHotLeadForm(null); });
+
+  function deleteHotLead(id) {
+    if (!isAdmin) return;
+    var name = "this lead";
+    for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) { name = hlLeads[i].d.name || name; break; }
+    if (!confirm("Delete hot lead " + name + "? This cannot be undone.")) return;
+    db.collection("hot_leads").doc(id).delete().then(function () {
+      logActivity("Deleted hot lead: " + name);
+      loadHotLeads();
+    }).catch(function (e) { alert("Could not delete lead: " + (e.message || e)); });
+  }
+
+  /* ----- Calls & notes for a lead (item_notes, entityType "hot_lead") ----- */
+  function openHotLeadNotes(id) {
+    db.collection("hot_leads").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var d = snap.data();
+      hlNoteId = id; hlNoteData = d; hlOutcome = "";
+      var st = hlStageMeta(d.stage || "new");
+      var whenMs = tsMs(d.createdAt);
+      var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
+        '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
+        esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
+        (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
+        (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        '<div class="sr-card"><h4>Calls & notes</h4>' +
+        '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
+        '<div class="outcome-grid" id="hlOutcomes">' +
+        CALL_OUTCOMES.map(function (o) {
+          return '<button type="button" class="outcome-btn" data-hloutcome="' + o[0] + '">' + o[1] + "</button>";
+        }).join("") + "</div>" +
+        '<div class="note-form"><label>Notes<textarea id="hlnText" rows="3" placeholder="What happened on the call, what they said, what is next…"></textarea></label>' +
+        '<label>Follow-up date (optional)<input type="date" id="hlnFollow"></label></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="hlnSave" type="button">Save call / note</button></div>' +
+        '<p class="aok hidden" id="hlnOk" style="margin-top:10px">Saved.</p>' +
+        '<p class="aerr hidden" id="hlnErr" style="margin-top:10px"></p>' +
+        '<div class="sr-comments" id="hlnNotes" style="margin-top:14px"></div></div>';
+      var box = $("hlNoteBody");
+      box.innerHTML = h;
+      box.querySelectorAll("[data-hloutcome]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          hlOutcome = hlOutcome === b.getAttribute("data-hloutcome") ? "" : b.getAttribute("data-hloutcome");
+          box.querySelectorAll("[data-hloutcome]").forEach(function (x) {
+            x.classList.toggle("active", x.getAttribute("data-hloutcome") === hlOutcome);
+          });
+        });
+      });
+      $("hlnSave").addEventListener("click", saveHotLeadNote);
+      $("hlNoteModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      loadItemNotes("hot_lead", id, $("hlnNotes"));
+    });
+  }
+  function closeHotLeadNotes() {
+    $("hlNoteModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    hlNoteId = null; hlNoteData = null; hlOutcome = "";
+  }
+  function saveHotLeadNote() {
+    if (!hlNoteId) return;
+    var text = $("hlnText").value.trim();
+    var err = $("hlnErr"); err.classList.add("hidden");
+    if (!hlOutcome && !text) { err.textContent = "Pick a call outcome or write a note first."; err.classList.remove("hidden"); return; }
+    var btn = $("hlnSave"); btn.disabled = true;
+    var label = (hlNoteData && hlNoteData.name) || "Lead";
+    saveItemNote({
+      entityType: "hot_lead", entityId: hlNoteId, entityLabel: label,
+      kind: hlOutcome ? "call" : "note", outcome: hlOutcome, text: text,
+      followUpOn: $("hlnFollow").value || null
+    }).then(function () {
+      logActivity((hlOutcome ? "Logged a call (" + outcomeLabel(hlOutcome) + ") with lead " : "Added a note on lead ") + label);
+      $("hlnOk").classList.remove("hidden");
+      $("hlnText").value = ""; $("hlnFollow").value = "";
+      hlOutcome = "";
+      document.querySelectorAll("[data-hloutcome]").forEach(function (x) { x.classList.remove("active"); });
+      loadItemNotes("hot_lead", hlNoteId, $("hlnNotes"));
+      loadFollowUps();
+    }).catch(function (e) {
+      err.textContent = "Could not save: " + (e.message || e);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+
+  /* ----- Notification bell ----- */
+  function renderBellPanel() {
+    var list = $("pgBellList");
+    if (!list) return;
+    var unseen = hlLeads.filter(function (it) { return !it.d.seen; });
+    if (!unseen.length) {
+      list.innerHTML = '<p class="pg-bell-empty">No new leads. You are all caught up.</p>';
+      return;
+    }
+    list.innerHTML = "";
+    unseen.forEach(function (it) {
+      var d = it.d;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "pg-bell-item";
+      b.setAttribute("data-hlbell", it.id);
+      b.innerHTML = "<strong>" + esc(d.name || "Lead") + "</strong><small>" +
+        esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + " · " + esc(timeAgo(tsMs(d.createdAt))) + "</small>";
+      list.appendChild(b);
+    });
+  }
+  function setBellOpen(open) {
+    var p = $("pgBellPanel");
+    if (p) p.classList.toggle("hidden", !open);
+  }
+  function bellIsOpen() {
+    var p = $("pgBellPanel");
+    return !!(p && !p.classList.contains("hidden"));
+  }
+  var bellBtn = $("pgBell");
+  if (bellBtn) bellBtn.addEventListener("click", function () {
+    if (!bellIsOpen()) renderBellPanel();
+    setBellOpen(!bellIsOpen());
+  });
+  var bellAllBtn = $("pgBellAll");
+  if (bellAllBtn) bellAllBtn.addEventListener("click", function () { markAllLeadsSeen(); });
+  document.addEventListener("click", function (e) {
+    if (!bellIsOpen()) return;
+    var wrap = document.querySelector(".pg-bell-wrap");
+    if (wrap && !wrap.contains(e.target)) setBellOpen(false);
+  });
+  function markLeadSeen(id) {
+    db.collection("hot_leads").doc(id).update({
+      seen: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      loadHotLeads();
+    }).catch(function () {});
+    setBellOpen(false);
+    var btn = document.querySelector('#pgNavDrawer [data-atab="hotleads"]');
+    if (btn) btn.click();
+  }
+  function markAllLeadsSeen() {
+    var unseen = hlLeads.filter(function (it) { return !it.d.seen; });
+    if (!unseen.length) { setBellOpen(false); return; }
+    var batch = db.batch();
+    unseen.forEach(function (it) {
+      batch.update(db.collection("hot_leads").doc(it.id), {
+        seen: true,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    batch.commit().then(function () {
+      logActivity("Marked all hot leads seen");
+      setBellOpen(false);
+      loadHotLeads();
+    }).catch(function () {});
   }
 
   /* ---------- Work order notes modal ---------- */
@@ -1154,13 +1490,21 @@
         loadFollowUps();
         if (woNoteId) loadItemNotes("work_order", woNoteId, $("wonNotes"));
         if (vdId) loadItemNotes("vendor", vdId, $("vdNotes"));
+        if (hlNoteId) loadItemNotes("hot_lead", hlNoteId, $("hlnNotes"));
       }).catch(function () {});
     }
     if (d.fuopen) {
       var fp = d.fuopen.split("|");
       if (fp[0] === "vendor") openVendor(fp[1]);
       else if (fp[0] === "work_order") openWorkOrderNotes(fp[1]);
+      else if (fp[0] === "hot_lead") openHotLeadNotes(fp[1]);
     }
+    if (d.hlnotes) openHotLeadNotes(d.hlnotes);
+    if (d.hledit) openHotLeadForm(d.hledit);
+    if (d.hldel) deleteHotLead(d.hldel);
+    if (d.hlbell) markLeadSeen(d.hlbell);
+    if (t.id === "hlNoteClose" || t.id === "hlNoteModal") closeHotLeadNotes();
+    if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
     if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
     if (d.sropen) openRequest(d.sropen);
     if (d.qok) {
@@ -1185,10 +1529,14 @@
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     var modalOpen = !$("srModal").classList.contains("hidden") || !$("vdModal").classList.contains("hidden") ||
-      !$("woNoteModal").classList.contains("hidden") || !$("cal2Modal").classList.contains("hidden");
+      !$("woNoteModal").classList.contains("hidden") || !$("hlNoteModal").classList.contains("hidden") ||
+      !$("hlFormModal").classList.contains("hidden") || !$("cal2Modal").classList.contains("hidden");
     if (!$("srModal").classList.contains("hidden")) closeRequest();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
+    if (!$("hlNoteModal").classList.contains("hidden")) closeHotLeadNotes();
+    if (!$("hlFormModal").classList.contains("hidden")) closeHotLeadForm();
+    if (bellIsOpen()) setBellOpen(false);
     if (!modalOpen && navOpen) setNavOpen(false);
   });
 })();
