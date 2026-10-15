@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="daylight.css?v=1">
 <style>
   .careers-hero { background: linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.55) 45%, rgba(120,85,15,0.55) 100%), url("assets/hero-government.jpg") center 35% / cover no-repeat; }
 </style>
@@ -53,11 +54,27 @@
 </header>
 
 <!-- ================= GOVERNMENT HERO ================= -->
-<section class="careers-hero">
+<section class="dl-hero">
   <div class="wrap">
-    <p class="section-kicker reveal" data-i18n="gov_kicker">Public sector</p>
-    <h1 class="reveal grad-text-green" data-i18n="gov_title">Government &amp; institutional contracting</h1>
-    <p class="section-lead reveal" data-i18n="gov_lead">PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline. Vetted crews, photo documentation, upfront pricing. To government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.</p>
+    <div class="dl-frame">
+      <img class="dl-hero-img" src="assets/hero-government.jpg" alt="Government facility grounds maintained by PrimeGuard">
+      <span class="dl-corner tl"></span><span class="dl-corner tr"></span><span class="dl-corner bl"></span><span class="dl-corner br"></span>
+      <div class="dl-ringwrap" aria-hidden="true">
+        <svg class="dl-ring" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.95)" stroke-width="2.5" stroke-dasharray="52 26 14 30"/>
+          <circle cx="50" cy="50" r="35" stroke="rgba(255,255,255,.65)" stroke-width="1.5" stroke-dasharray="4 7"/>
+          <circle cx="50" cy="6" r="3.5" fill="#fff"/>
+        </svg>
+        <div class="dl-ringlabel"><b>22BQ3</b><span>CAGE CODE</span></div>
+      </div>
+      <div class="dl-chip dl-c1"><span class="dl-dot"></span>SAM.gov-registered federal contractor</div>
+      <div class="dl-chip dl-c2">UEI <b>&nbsp;C5S5K2928NL1</b></div>
+    </div>
+    <div class="dl-panel">
+      <p class="section-kicker reveal" data-i18n="gov_kicker">Public sector</p>
+      <h1 class="reveal grad-text-green" data-i18n="gov_title">Government &amp; institutional contracting</h1>
+      <p class="section-lead reveal" data-i18n="gov_lead">PrimeGuard Preservation LLC is a SAM.gov-registered federal contractor. We bring our commercial property-services discipline. Vetted crews, photo documentation, upfront pricing. To government facilities work, and we are ready to bid as a prime or support primes as a subcontractor.</p>
+    </div>
   </div>
 </section>
 
