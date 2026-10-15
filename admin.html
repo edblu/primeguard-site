@@ -211,6 +211,7 @@
         <button type="button" data-atab="followups">Follow-ups <span class="cnt-b" id="mb-followups">0</span></button>
         <button type="button" data-atab="calendar">Calendar</button>
         <a href="https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--?usp=sharing" target="_blank" rel="noopener">Visual map (globe) <span>&#8599;</span></a>
+        <a href="https://primeguard-books.web.app" target="_blank" rel="noopener">PrimeGuard Books <span>&#8599;</span></a>
         <button type="button" data-atab="team">Acquisition managers</button>
         <button type="button" data-atab="activity" id="ad-activity-btn">Staff activity</button>
       </div>
@@ -347,19 +348,43 @@
   <div id="atab-calendar" class="hidden">
   <section class="asec" style="padding-bottom:60px">
     <h2>Calendar</h2>
-    <div class="acard" id="cal-form-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <h3 style="margin:0">New appointment</h3>
-        <button type="button" class="btn btn-ghost btn-sm" id="cal-collapse-btn">Expand</button>
+    <div class="acard">
+      <div class="cal2-head">
+        <button type="button" class="btn btn-ghost btn-sm" id="cal2-today">Today</button>
+        <button type="button" class="cal2-nav" id="cal2-prev" aria-label="Previous month">&#8249;</button>
+        <button type="button" class="cal2-nav" id="cal2-next" aria-label="Next month">&#8250;</button>
+        <h3 id="cal2-title" style="margin:0">Calendar</h3>
+        <button type="button" class="btn btn-gold btn-sm" id="cal2-new">+ New appointment</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="cal2-refresh">Refresh</button>
       </div>
-      <div id="cal-form-body" class="hidden">
-      <p class="sub">Adds a real event to the PrimeGuard calendar below, color-coded by service. Lawn is green, pressure washing is blue, estimates are orange. Whoever is signed in needs edit access to the calendar (Edwin has it; Natasha needs the calendar shared with her Google account with "Make changes" turned on).</p>
-      <form id="cal-form" class="aform">
+      <p class="sub" id="cal2-status" style="margin:8px 0">Tap any day to add an appointment. Tap an appointment to edit or delete it. Everything saves to the real PrimeGuard Google calendar, so it also shows in the Google Calendar app.</p>
+      <div class="cal2-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+      <div id="cal2-grid" class="cal2-grid"></div>
+      <div class="cal2-legend">
+        <span><i style="background:#188038"></i>Lawn care</span>
+        <span><i style="background:#039be5"></i>Pressure washing</span>
+        <span><i style="background:#f6bf26"></i>Home maintenance</span>
+        <span><i style="background:#f4511e"></i>Free estimate</span>
+        <span><i style="background:#8e24aa"></i>Vendor / crew</span>
+        <span><i style="background:#616161"></i>Other</span>
+      </div>
+      <div id="cal2-daylist"></div>
+    </div>
+  </section>
+  </div>
+
+  <div id="cal2Modal" class="cal2-modal hidden">
+    <div class="cal2-modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <h3 id="cal2-m-title" style="margin:0">New appointment</h3>
+        <button type="button" class="btn btn-ghost btn-sm" id="cal2-m-close">Close</button>
+      </div>
+      <form id="cal2-form" class="aform" style="margin-top:12px">
         <label>Customer / title
-          <input type="text" id="cal-title" required placeholder="e.g. Garcia, lawn service">
+          <input type="text" id="cal2-f-title" required placeholder="e.g. Garcia, lawn service">
         </label>
         <label>Service type (sets the color)
-          <select id="cal-type">
+          <select id="cal2-f-type">
             <option value="10" selected>&#128994; Lawn care (green)</option>
             <option value="7">&#128309; Pressure washing (blue)</option>
             <option value="5">&#128993; Home maintenance (yellow)</option>
@@ -369,32 +394,51 @@
           </select>
         </label>
         <label>Date
-          <input type="date" id="cal-date" required>
+          <input type="date" id="cal2-f-date" required>
         </label>
         <label>Start time
-          <input type="time" id="cal-start" required value="09:00">
+          <input type="time" id="cal2-f-start" required value="09:00">
         </label>
         <label>End time
-          <input type="time" id="cal-end" required value="10:00">
+          <input type="time" id="cal2-f-end" required value="10:00">
         </label>
         <label>Address
-          <input type="text" id="cal-addr" placeholder="Street, city">
+          <input type="text" id="cal2-f-addr" placeholder="Street, city">
         </label>
         <label>Notes
-          <textarea id="cal-notes" rows="2" placeholder="Gate code, customer phone, job details"></textarea>
+          <textarea id="cal2-f-notes" rows="2" placeholder="Gate code, customer phone, job details"></textarea>
         </label>
-        <button type="submit" class="btn btn-gold" id="cal-create-btn">Add to calendar</button>
-        <p id="cal-msg" class="sub" style="margin-top:10px"></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+          <button type="submit" class="btn btn-gold" id="cal2-f-save">Save appointment</button>
+          <button type="button" class="btn btn-ghost hidden" id="cal2-f-delete">Delete</button>
+        </div>
+        <p id="cal2-f-msg" class="sub" style="margin-top:10px"></p>
       </form>
-      </div>
     </div>
-    <div class="acard">
-      <p class="sub">The PrimeGuard calendar. Estimate appointments booked by phone land here automatically. If the calendar looks blank, it needs to be shared with your Google account first.</p>
-      <iframe class="cal-frame" id="cal-frame" title="PrimeGuard calendar" src="https://calendar.google.com/calendar/embed?src=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e%40group.calendar.google.com&ctz=America%2FNew_York&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&bgcolor=%23141417"></iframe>
-      <div style="margin-top:14px"><a class="btn btn-ghost btn-sm" href="https://calendar.google.com/calendar/r?cid=48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com" target="_blank" rel="noopener">Open in Google Calendar</a></div>
-    </div>
-  </section>
   </div>
+  <style>
+    .cal2-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .cal2-head h3{font-size:20px;margin-right:auto}
+    .cal2-nav{background:none;border:1px solid rgba(140,140,140,.45);color:inherit;border-radius:8px;width:34px;height:34px;font-size:20px;line-height:1;cursor:pointer}
+    .cal2-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-top:12px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;opacity:.75}
+    .cal2-dow span{padding:6px 8px}
+    .cal2-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid rgba(140,140,140,.35);border-left:1px solid rgba(140,140,140,.35)}
+    .cal2-cell{min-height:104px;border-right:1px solid rgba(140,140,140,.35);border-bottom:1px solid rgba(140,140,140,.35);padding:5px 6px;cursor:pointer;overflow:hidden}
+    .cal2-cell:hover{background:rgba(201,162,39,.08)}
+    .cal2-cell.dim{opacity:.42}
+    .cal2-dnum{font-size:13px;font-weight:600;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+    .cal2-cell.today .cal2-dnum{background:#c9a227;color:#141417}
+    .cal2-ev{display:block;margin-top:4px;padding:2px 6px;border-radius:6px;font-size:11.5px;line-height:1.35;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+    .cal2-more{font-size:11px;opacity:.75;margin-top:3px}
+    .cal2-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12.5px}
+    .cal2-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+    .cal2-dayitem{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid rgba(140,140,140,.35);border-radius:10px;margin-top:8px;cursor:pointer;background:none;width:100%;text-align:left;color:inherit;font:inherit}
+    .cal2-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;z-index:1200;overflow:auto}
+    .cal2-modal.hidden{display:none}
+    .cal2-modal-card{background:#1d1d20;color:#f2f2f2;border-radius:16px;max-width:520px;width:100%;padding:20px;border:1px solid rgba(201,162,39,.35)}
+    .pg-light .cal2-modal-card{background:#ffffff;color:#1b1b1b}
+    @media (max-width:640px){.cal2-cell{min-height:78px;padding:4px}.cal2-ev{font-size:10.5px}}
+  </style>
 
   <div id="atab-team" class="hidden">
   <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
@@ -451,7 +495,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=13"></script>
+<script src="admin.js?v=14"></script>
 <script>
 (function () {
   var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
