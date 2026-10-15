@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Get an Instant Quote | PrimeGuard Preservation</title>
 <meta name="description" content="Answer a few quick questions and get your instant ballpark quote. We confirm your exact price before anything is scheduled.">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=25">
 <link rel="icon" type="image/png" href="assets/primeguard-logo-gold-badge.png">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -91,6 +91,9 @@
 
 <header class="site-header" id="siteHeader">
   <div class="wrap header-inner">
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
     <a class="brand" href="index.html" aria-label="PrimeGuard Preservation LLC. Home">
       <img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation LLC logo" class="brand-logo">
       <span class="brand-text">PrimeGuard <span>Preservation LLC</span></span>
@@ -105,9 +108,6 @@
       <a class="btn btn-gold btn-nav-book" href="index.html#booking" data-book-open><span>Book now</span></a>
     </nav>
     <div class="header-actions">
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
 </header>
@@ -260,6 +260,6 @@
 <script src="human-chat.js"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
-<script src="site.js?v=30"></script>
+<script src="site.js?v=31"></script>
 </body>
 </html>
