@@ -131,17 +131,24 @@
           </div>
 
           <div class="qstep" id="qstep2" hidden>
-            <div id="qQuestions"></div>
             <div class="qq">
-              <p>Describe what you need <span style="color:var(--muted);font-weight:400;font-size:.85rem">(optional)</span></p>
-              <textarea id="qDetailText" rows="3" class="qtextarea" placeholder="Tell us about the job in your own words..."></textarea>
+              <p>Tell us exactly what you want done</p>
+              <textarea id="qDetailText" rows="6" class="qtextarea" placeholder="Tell us exactly what you want done: what needs doing, where on the property, how big the area is, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote."></textarea>
             </div>
             <div class="qq">
-              <p>Show us with photos <span style="color:var(--muted);font-weight:400;font-size:.85rem">(optional)</span></p>
+              <p>Show us <span style="color:var(--muted);font-weight:400;font-size:.85rem">(optional)</span></p>
+              <p style="font-size:.88rem;color:var(--muted);margin:0 0 12px;font-weight:400">Show us: add photos or a short video of the area so we can see exactly what you mean.</p>
+              <p style="font-size:.9rem;margin:0 0 6px">📷 Photos</p>
               <input type="file" id="qPhotos" accept="image/*" multiple class="qfile">
               <div class="qthumbs" id="qPhotoPreview"></div>
-              <p style="font-size:.82rem;color:var(--muted);margin-top:8px">A quick photo helps us quote accurately. No need for perfect shots.</p>
+              <p style="font-size:.9rem;margin:16px 0 6px">🎬 Videos</p>
+              <input type="file" id="qVideos" accept="video/*" multiple class="qfile">
+              <div id="qVideoList" style="font-size:.84rem;color:var(--muted);margin-top:8px"></div>
+              <p style="font-size:.82rem;color:var(--muted);margin-top:8px;font-weight:400">Up to 25 MB per video. Got a bigger one? Paste a link to it instead:</p>
+              <input type="url" id="qVideoLink" class="qtextarea" style="margin-top:8px" placeholder="Or paste a video link (Google Photos, iCloud, YouTube…)">
+              <p id="qVideoMsg" hidden style="font-size:.88rem;color:var(--gold-bright);margin-top:10px;font-weight:400"></p>
             </div>
+            <div id="qQuestions"></div>
             <div class="qnav">
               <button type="button" class="btn btn-outline" data-back="1">Back</button>
               <button type="button" class="btn btn-gold" data-next="3">Continue</button>
@@ -240,7 +247,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=17"></script>
-<script src="quote.js?v=3"></script>
+<script src="quote.js?v=4"></script>
 <script src="human-chat.js"></script>
 </body>
 </html>
