@@ -510,6 +510,7 @@
           '<select class="hl-stage-sel" data-hlstage="' + it.id + '" aria-label="Move stage">' + opts + "</select>" +
           ' <button class="mini" data-hlnotes="' + it.id + '">Notes</button>' +
           ' <button class="mini" data-hledit="' + it.id + '">Edit</button>' +
+          ' <button class="mini" data-callead="' + it.id + '">Add to calendar</button>' +
           (isAdmin ? ' <button class="mini danger" data-hldel="' + it.id + '">Delete</button>' : "");
         box.appendChild(row);
       });
@@ -845,6 +846,7 @@
           (r.message ? " · " + esc(r.message) : "") + "</small></div>" +
           pill(r.status) +
           ' <button class="mini" data-sropen="' + d.id + '">Open</button>' +
+          ' <button class="mini" data-calsr="' + d.id + '">Add to calendar</button>' +
           ' <button class="mini danger" data-srdel="' + d.id + '">Delete</button>';
         box.appendChild(row);
       });
@@ -916,6 +918,8 @@
       '<p><strong>Areas:</strong> ' + esc((v.areas || []).join(", ") || "-") + '</p>' +
       '<p><strong>Crew size:</strong> ' + esc(v.crewSize || "-") + '</p>' +
       (v.equipment ? '<p><strong>Equipment:</strong> ' + esc(v.equipment) + '</p>' : '') + '</div></div>' +
+      '<div class="sr-actions" style="margin-bottom:14px">' +
+      '<button class="mini" id="vdCalBtn" type="button">Add to calendar</button></div>' +
       '<div class="sr-card"><h4>Documents</h4>' +
       docLine("W-9", v.w9Url, v.w9Status) +
       '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
@@ -957,6 +961,18 @@
     box.innerHTML = h;
     box.querySelectorAll("[data-vstatus]").forEach(function (b) {
       b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
+    });
+    var vcb = $("vdCalBtn");
+    if (vcb) vcb.addEventListener("click", function () {
+      var v = vdData; if (!v) return;
+      var notes = [v.name ? "Contact: " + v.name : "", v.phone ? "Phone: " + v.phone : "",
+        v.email ? "Email: " + v.email : ""].filter(Boolean).join("\n");
+      openCal({
+        title: (v.business || v.name || "Vendor") + " - meeting",
+        address: v.address || "",
+        colorId: "3",
+        notes: notes
+      });
     });
     var vab = $("vd-archive");
     if (vab) vab.addEventListener("click", archiveVendor);
@@ -1143,6 +1159,7 @@
       '<label>Quote notes (shown to customer)<br><textarea id="srQuoteNotes" rows="2" placeholder="What the price covers…">' + esc(r.quoteNotes || "") + '</textarea></label></div>';
     h += '<div class="sr-actions">' +
       '<button class="btn btn-gold btn-sm" id="srMakeWO" type="button">Create work order</button>' +
+      '<button class="mini" id="srCalBtn" type="button">Add to calendar</button>' +
       '<button class="btn btn-ghost btn-sm" id="srDelete" type="button">Delete request</button></div>';
     box.innerHTML = h;
 
@@ -1181,6 +1198,7 @@
       db.collection("service_requests").doc(srId).delete().then(function () { closeRequest(); loadServiceRequests(); });
     });
     $("srMakeWO").addEventListener("click", function () { requestToWorkOrder(); });
+    $("srCalBtn").addEventListener("click", function () { if (srData) openCal(srCalPrefill(srData)); });
     function saved() {
       var el = $("srSaved");
       if (el) { el.classList.remove("hidden"); setTimeout(function () { el.classList.add("hidden"); }, 1800); }
@@ -1231,6 +1249,7 @@
         row.innerHTML = '<div class="grow"><strong>' + esc(w.title) + "</strong><small>" + esc(w.area || "") + " · " + esc(w.kind || "job") + " · " + esc(w.vendorBusiness || "broadcast") + "</small></div>" +
           pill(w.status) +
           ' <button class="mini" data-wonotes="' + d.id + '">Notes</button>' +
+          ' <button class="mini" data-calwo="' + d.id + '">Add to calendar</button>' +
           (w.status !== "done" ? ' <button class="mini" data-wodone="' + d.id + '">Done</button>' : "") +
           ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>' +
           ' <button class="mini" data-woedit="' + d.id + '">Edit</button>';
@@ -1249,7 +1268,7 @@
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " - " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + (q.quotePdfUrl ? ' · <a href="' + esc(q.quotePdfUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View quote PDF</a>' : "") + "</small></div>" +
           pill(q.status) +
-          (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "");
+          (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini" data-calquote="' + d.id + '">Add to calendar</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "");
         box.appendChild(row);
       });
     });
@@ -1469,6 +1488,81 @@
     else done();
   });
 
+  // ---------- Add to calendar (bridges to the cal2 module's window.openApptEditor) ----------
+  function openCal(prefill) {
+    if (typeof window.openApptEditor === "function") window.openApptEditor(prefill);
+  }
+  function woColorId(category) {
+    var map = { "Lawn care": "10", "Pressure washing": "7", "Home maintenance": "5" };
+    return map[category] || "8";
+  }
+  function srCalPrefill(r) {
+    var notes = [r.phone ? "Phone: " + r.phone : "", r.email ? "Email: " + r.email : "",
+      r.frequency ? "Frequency: " + r.frequency : "", r.message || ""].filter(Boolean).join("\n");
+    return {
+      title: (r.name || "Customer") + " - " + (r.service || "Service") + " estimate",
+      address: r.address || "",
+      colorId: "6",
+      notes: notes
+    };
+  }
+  function calFromRequest(id) {
+    db.collection("service_requests").doc(id).get().then(function (snap) {
+      if (snap.exists) openCal(srCalPrefill(snap.data()));
+    });
+  }
+  function calFromWorkOrder(id) {
+    db.collection("work_orders").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var w = snap.data();
+      var notes = [w.vendorBusiness ? "Vendor: " + w.vendorBusiness : "Not assigned yet",
+        w.pay ? "Pay: " + w.pay : "", w.details || ""].filter(Boolean).join("\n");
+      openCal({
+        title: (w.title || "Work order") + " - " + (w.vendorBusiness || "Crew visit"),
+        address: w.address || w.area || "",
+        colorId: woColorId(w.category),
+        notes: notes
+      });
+    });
+  }
+  function calFromQuote(id) {
+    db.collection("quotes").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var q = snap.data();
+      function build(wo) {
+        var notes = [q.vendorBusiness ? "Vendor: " + q.vendorBusiness : "",
+          q.price ? "Quoted price: $" + q.price : "",
+          q.duration ? "Duration: " + q.duration : "",
+          q.vendorPhone ? "Vendor phone: " + q.vendorPhone : "",
+          q.notes ? "Quote notes: " + q.notes : ""].filter(Boolean).join("\n");
+        openCal({
+          title: ((wo && wo.title) || q.vendorBusiness || "Job") + " - scheduled work",
+          address: (wo && (wo.address || wo.area)) || "",
+          colorId: wo ? woColorId(wo.category) : "8",
+          notes: notes
+        });
+      }
+      if (q.workOrderId) {
+        db.collection("work_orders").doc(q.workOrderId).get()
+          .then(function (ws) { build(ws.exists ? ws.data() : null); })
+          .catch(function () { build(null); });
+      } else build(null);
+    });
+  }
+  function calFromLead(id) {
+    var d = null;
+    for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) { d = hlLeads[i].d; break; }
+    if (!d) return;
+    var notes = [d.contact ? "Contact: " + d.contact : "", d.source ? "Source: " + d.source : "",
+      d.service ? "Service: " + d.service : "", d.notes || ""].filter(Boolean).join("\n");
+    openCal({
+      title: (d.name || "Lead") + " - estimate visit",
+      address: d.area || "",
+      colorId: "6",
+      notes: notes
+    });
+  }
+
   // ---------- Row actions ----------
   document.addEventListener("click", function (e) {
     var t = e.target, d = t.dataset;
@@ -1507,6 +1601,10 @@
     if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
     if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
     if (d.sropen) openRequest(d.sropen);
+    if (d.calsr) calFromRequest(d.calsr);
+    if (d.calwo) calFromWorkOrder(d.calwo);
+    if (d.calquote) calFromQuote(d.calquote);
+    if (d.callead) calFromLead(d.callead);
     if (d.qok) {
       var parts = d.qok.split("|"), qid = parts[0], woid = parts[1];
       db.collection("quotes").doc(qid).get().then(function (qsnap) {
@@ -1554,6 +1652,7 @@
   var events = []; // raw Google events for the visible window
   var accessToken = null, tokenExp = 0, tokenClient = null, started = false;
   var editingId = null;
+  var fromExternal = false; // editor was opened via window.openApptEditor (another admin section)
 
   function $(id) { return document.getElementById(id); }
   function status(t) { $("cal2-status").textContent = t; }
@@ -1729,6 +1828,7 @@
 
   // ---- Editor modal ----
   function openEditor(ev, dateStr) {
+    fromExternal = false;
     editingId = ev ? ev.id : null;
     $("cal2-m-title").textContent = ev ? "Edit appointment" : "New appointment";
     $("cal2-f-delete").classList.toggle("hidden", !ev);
@@ -1751,6 +1851,22 @@
   function closeEditor() { $("cal2Modal").classList.add("hidden"); }
   $("cal2-m-close").addEventListener("click", closeEditor);
   $("cal2Modal").addEventListener("click", function (e) { if (e.target === $("cal2Modal")) closeEditor(); });
+
+  // ---- Shared entry point: any admin section can open the editor prefilled ----
+  // Runs the same lazy init as opening the Calendar tab (start()), then opens
+  // the editor in CREATE mode and applies the caller's prefill. Saving goes
+  // through the normal form handler; GIS sign-in happens on Save via
+  // ensureToken() and any failure lands in the modal's #cal2-f-msg line.
+  window.openApptEditor = function (prefill) {
+    prefill = prefill || {};
+    start();
+    openEditor(null, prefill.date || dayKey(new Date()));
+    if (prefill.title != null) $("cal2-f-title").value = prefill.title;
+    if (prefill.colorId != null) $("cal2-f-type").value = String(prefill.colorId);
+    if (prefill.address != null) $("cal2-f-addr").value = prefill.address;
+    if (prefill.notes != null) $("cal2-f-notes").value = prefill.notes;
+    fromExternal = true;
+  };
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !$("cal2Modal").classList.contains("hidden")) closeEditor();
   });
@@ -1773,8 +1889,16 @@
     var call = editingId ? api("/events/" + encodeURIComponent(editingId), "PATCH", ev) : api("/events", "POST", ev);
     call.then(function () {
       btn.disabled = false;
-      closeEditor();
-      loadEvents();
+      if (fromExternal) {
+        // Opened from another section: confirm in place, then close without
+        // moving the user to the Calendar tab.
+        fromExternal = false;
+        $("cal2-f-msg").textContent = "Saved ✓ Added to the calendar.";
+        setTimeout(function () { closeEditor(); loadEvents(); }, 1100);
+      } else {
+        closeEditor();
+        loadEvents();
+      }
     }).catch(function (err) {
       btn.disabled = false;
       $("cal2-f-msg").textContent = err && err.message ? err.message : "Something went wrong saving that appointment.";
