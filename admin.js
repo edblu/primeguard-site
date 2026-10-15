@@ -1063,7 +1063,7 @@
   var now = new Date();
   var viewY = now.getFullYear(), viewM = now.getMonth();
   var events = []; // raw Google events for the visible window
-  var accessToken = null, tokenClient = null, started = false;
+  var accessToken = null, tokenExp = 0, tokenClient = null, started = false;
   var editingId = null;
 
   function $(id) { return document.getElementById(id); }
@@ -1098,11 +1098,19 @@
   }
   loadGis().then(initTokenClient).catch(function () {});
   function ensureToken() {
+    // Reuse the token Google already gave us (about an hour) instead of
+    // asking Google again on every load/save, which kept bouncing Edwin
+    // back to a sign-in screen.
+    if (accessToken && Date.now() < tokenExp) return Promise.resolve(accessToken);
     return loadGis().then(function () {
       initTokenClient();
       return new Promise(function (resolve, reject) {
         tokenClient.callback = function (resp) {
-          if (resp && resp.access_token) { accessToken = resp.access_token; resolve(accessToken); }
+          if (resp && resp.access_token) {
+            accessToken = resp.access_token;
+            tokenExp = Date.now() + ((resp.expires_in ? resp.expires_in - 60 : 3000) * 1000);
+            resolve(accessToken);
+          }
         };
         tokenClient.error_callback = function () {
           reject(new Error("Google sign-in was closed or blocked. If Google shows a 'hasn't verified this app' warning, tap Advanced, then 'Go to PrimeGuard Admin', then Allow."));
@@ -1118,7 +1126,7 @@
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,
       }).then(function (r) {
-        if (r.status === 401) { accessToken = null; throw new Error("EXPIRED"); }
+        if (r.status === 401) { accessToken = null; tokenExp = 0; throw new Error("EXPIRED"); }
         if (!r.ok) {
           return r.text().then(function (t) {
             throw new Error("Google Calendar said " + r.status + ". " + (r.status === 403 || r.status === 404 ? "Your Google account may not have edit access to the PrimeGuard calendar yet." : String(t).slice(0, 160)));
@@ -1299,7 +1307,6 @@
   $("cal2-next").addEventListener("click", function () { viewM++; if (viewM > 11) { viewM = 0; viewY++; } $("cal2-daylist").innerHTML = ""; loadEvents(); });
   $("cal2-today").addEventListener("click", function () { var n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); $("cal2-daylist").innerHTML = ""; loadEvents(); });
   $("cal2-refresh").addEventListener("click", loadEvents);
-  $("cal2-new").addEventListener("click", function () { openEditor(null, dayKey(new Date())); });
 
   // ---- Start when the Calendar tab is first opened ----
   function start() { if (started) return; started = true; loadEvents(); }
