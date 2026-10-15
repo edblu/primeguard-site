@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lawn Care — Color Directions (comp)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#26262a; font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+  .sheet { max-width:430px; margin:0 auto; }
+  .plabel { padding:20px 20px 14px; color:#f2efe9; }
+  .plabel h2 { font-size:19px; font-weight:800; }
+  .plabel p { font-size:13px; line-height:1.5; color:#b9b4a8; margin-top:4px; }
+  .swatches { display:flex; gap:6px; margin-top:10px; }
+  .swatches i { width:26px; height:26px; border-radius:8px; display:block; border:1px solid rgba(255,255,255,.25); }
+
+  .pg { overflow:hidden; position:relative; padding-bottom:8px; }
+  .topbar { display:flex; align-items:center; gap:12px; padding:16px 20px 8px; }
+  .burger { width:44px; height:44px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex:0 0 44px; }
+  .burger span { display:block; width:16px; height:2px; border-radius:2px; }
+  .wordmark { font-weight:800; letter-spacing:.05em; font-size:16px; line-height:1.05; }
+  .wordmark small { display:block; font-weight:600; letter-spacing:.3em; font-size:8px; margin-top:2px; opacity:.6; }
+  .booknow { margin-left:auto; font:700 13px/1 inherit; padding:11px 16px; border-radius:999px; border:none; cursor:pointer; }
+  .hero { padding:22px 20px 4px; }
+  .kicker { font-size:11px; font-weight:700; letter-spacing:.26em; text-transform:uppercase; margin-bottom:12px; }
+  h1.h { font-size:37px; line-height:1.07; font-weight:800; letter-spacing:-.015em; }
+  .sub { margin-top:12px; font-size:15.5px; line-height:1.55; }
+  .priceline { margin-top:14px; font-size:14.5px; font-weight:700; }
+  .btnrow { margin-top:20px; display:flex; gap:10px; }
+  .btn { font:700 14.5px/1 inherit; padding:14px 21px; border-radius:999px; cursor:pointer; border:1px solid transparent; }
+  .herocard { position:relative; margin:26px 20px 0; }
+  .herocard .frame { border-radius:20px; overflow:hidden; position:relative; }
+  .herocard img { display:block; width:100%; height:225px; object-fit:cover; }
+  .escape { position:absolute; right:-12px; top:-32px; z-index:4; pointer-events:none; }
+  section.blk { padding:28px 20px 4px; }
+  h2.s { font-size:20px; font-weight:800; margin-bottom:14px; }
+  .svc-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  .svc { border-radius:15px; padding:15px 13px; }
+  .svc svg { margin-bottom:8px; }
+  .svc h3 { font-size:14px; font-weight:700; margin-bottom:3px; }
+  .svc p { font-size:12px; line-height:1.45; }
+  .priceband { display:flex; gap:11px; }
+  .price { flex:1; border-radius:15px; padding:17px 14px; }
+  .price .lbl { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-bottom:7px; }
+  .price .amt { font-size:29px; font-weight:800; }
+  .price .amt small { font-size:13px; font-weight:600; }
+  .price p { font-size:12px; line-height:1.45; margin-top:5px; }
+  .finalcta { text-align:center; padding:28px 24px 34px; }
+  .finalcta h2 { font-size:24px; font-weight:800; margin-bottom:8px; }
+  .finalcta p { font-size:14px; line-height:1.55; margin-bottom:18px; }
+
+  /* ============ P1 · Fresh Cut (daylight green) ============ */
+  .p1 { background:#faf8f0; color:#20301f; }
+  .p1 .burger { background:#1e5631; }
+  .p1 .burger span { background:#ffd34d; }
+  .p1 .wordmark em { font-style:normal; color:#2e7d32; }
+  .p1 .booknow { background:#ffd34d; color:#20301f; }
+  .p1 .kicker { color:#2e7d32; }
+  .p1 h1.h .hl { color:#2e7d32; }
+  .p1 .sub { color:#4c5a49; }
+  .p1 .priceline span { color:#7a8774; font-weight:600; }
+  .p1 .btn-a { background:#2e7d32; color:#fff; }
+  .p1 .btn-b { background:transparent; color:#20301f; border-color:#c9cfc0; }
+  .p1 .herocard .frame { box-shadow:0 20px 44px rgba(30,86,49,.25); border:3px solid #fff; }
+  .p1 .svc { background:#fff; border:1px solid #e4e7d8; box-shadow:0 2px 8px rgba(30,86,49,.05); }
+  .p1 .svc p { color:#71806c; }
+  .p1 .price { background:#fff; border:1px solid #e4e7d8; }
+  .p1 .price.featured { background:#1e5631; color:#f4f7ec; border-color:#1e5631; }
+  .p1 .price .lbl { color:#7a8774; } .p1 .price.featured .lbl { color:#ffd34d; }
+  .p1 .price .amt small, .p1 .price p { color:#71806c; } .p1 .price.featured .amt small, .p1 .price.featured p { color:#cfe0c8; }
+  .p1 .finalcta p { color:#4c5a49; }
+
+  /* ============ P2 · Golden Hour Light (cream / terracotta / gold) ============ */
+  .p2 { background:#fbf3e4; color:#33241a; }
+  .p2 .burger { background:#33241a; }
+  .p2 .burger span { background:#f0a840; }
+  .p2 .wordmark em { font-style:normal; color:#c96f2e; }
+  .p2 .booknow { background:#c96f2e; color:#fff7ea; }
+  .p2 .kicker { color:#c96f2e; }
+  .p2 h1.h { font-family:Georgia,'Times New Roman',serif; font-weight:700; }
+  .p2 h1.h .hl { color:#c96f2e; }
+  .p2 .sub { color:#6d5847; }
+  .p2 .priceline span { color:#a68a6e; font-weight:600; }
+  .p2 .btn-a { background:#c96f2e; color:#fff7ea; }
+  .p2 .btn-b { background:transparent; color:#33241a; border-color:#ddc9a8; }
+  .p2 .herocard .frame { box-shadow:0 20px 44px rgba(160,100,40,.28); border:3px solid #fff8ec; }
+  .p2 .svc { background:#fffaf0; border:1px solid #ecd9b8; }
+  .p2 .svc p { color:#937c62; }
+  .p2 .price { background:#fffaf0; border:1px solid #ecd9b8; }
+  .p2 .price.featured { background:#33241a; color:#fdf3e0; border-color:#33241a; }
+  .p2 .price .lbl { color:#a68a6e; } .p2 .price.featured .lbl { color:#f0a840; }
+  .p2 .price .amt small, .p2 .price p { color:#937c62; } .p2 .price.featured .amt small, .p2 .price.featured p { color:#d9c3a5; }
+  .p2 .finalcta p { color:#6d5847; }
+
+  /* ============ P3 · Sky & Palm (coastal blue / palm green) ============ */
+  .p3 { background:#f2f8fb; color:#14313d; }
+  .p3 .burger { background:#0e6e6e; }
+  .p3 .burger span { background:#ffe9a8; }
+  .p3 .wordmark em { font-style:normal; color:#0e6e6e; }
+  .p3 .booknow { background:#ffb703; color:#14313d; }
+  .p3 .kicker { color:#0e7c86; }
+  .p3 h1.h .hl { color:#0e7c86; }
+  .p3 .sub { color:#48626e; }
+  .p3 .priceline span { color:#7d97a1; font-weight:600; }
+  .p3 .btn-a { background:#0e7c86; color:#fff; }
+  .p3 .btn-b { background:transparent; color:#14313d; border-color:#c3dbe2; }
+  .p3 .herocard .frame { box-shadow:0 20px 44px rgba(14,110,110,.22); border:3px solid #fff; }
+  .p3 .svc { background:#fff; border:1px solid #d8e8ec; box-shadow:0 2px 8px rgba(14,110,110,.05); }
+  .p3 .svc p { color:#6d8a94; }
+  .p3 .price { background:#fff; border:1px solid #d8e8ec; }
+  .p3 .price.featured { background:#0b5563; color:#eaf7f5; border-color:#0b5563; }
+  .p3 .price .lbl { color:#7d97a1; } .p3 .price.featured .lbl { color:#ffd34d; }
+  .p3 .price .amt small, .p3 .price p { color:#6d8a94; } .p3 .price.featured .amt small, .p3 .price.featured p { color:#bcd9d4; }
+  .p3 .finalcta p { color:#48626e; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<!-- ================= P1 ================= -->
+<div class="plabel">
+  <h2>Palette 1 · Fresh Cut</h2>
+  <p>Daylight green and sun yellow on warm white. The colors of a healthy lawn at noon — growth, freshness, energy.</p>
+  <div class="swatches"><i style="background:#faf8f0"></i><i style="background:#1e5631"></i><i style="background:#2e7d32"></i><i style="background:#ffd34d"></i><i style="background:#20301f"></i></div>
+</div>
+<div class="pg p1">
+  <div class="topbar"><div class="burger"><span></span><span></span><span></span></div><div class="wordmark">PRIME<em>GUARD</em><small>PRESERVATION LLC</small></div><button class="booknow">Book now</button></div>
+  <div class="hero">
+    <div class="kicker">Lawn Care · Miami-Dade</div>
+    <h1 class="h">Lawn care<br>that <span class="hl">shows up.</span></h1>
+    <p class="sub">Scheduled mowing, trimming and cleanups from a local crew that confirms every visit and sends before-and-after photos.</p>
+    <div class="priceline">From $45 per visit <span>· Monthly plan $90/mo</span></div>
+    <div class="btnrow"><button class="btn btn-a">Get a quote</button><button class="btn btn-b">See plans</button></div>
+  </div>
+  <div class="herocard">
+    <svg class="escape" width="140" height="110" viewBox="0 0 150 120" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" opacity="0.6"><path d="M96 112c-2-30 2-56 11-80"/><path d="M107 32c-12-11-27-13-39-8M107 32c-3-14 2-25 11-33M107 32c11-9 24-11 35-6M107 32c13-2 24 3 32 11M107 32c-14-3-27 1-36 10"/></svg>
+    <div class="frame"><img src="preview-img-backyard.jpg" alt="Backyard with sketch overlay"></div>
+  </div>
+  <section class="blk"><h2 class="s">What we handle</h2>
+    <div class="svc-grid">
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"><path d="M3 20h20M5 20c0-5 3-8 7-9M12 11c1-4 4-6 8-6-1 4-3 7-7 8"/></svg><h3>Mowing &amp; edging</h3><p>Clean lines, striped finish.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"><path d="M13 22V11M13 11c-4 0-7-3-7-7 4 0 7 3 7 7zM13 11c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg><h3>Hedge &amp; palm trimming</h3><p>Shaped hedges, safe palms.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"><path d="M4 22h18M6 22c0-6 3-10 7-12M13 10c4 2 7 6 7 12"/></svg><h3>Yard cleanups</h3><p>Overgrowth hauled off.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"><path d="M13 22c0-6 1-10 4-14M13 22c0-5-1-8-4-11M13 16c3 0 5-2 6-5-3 0-5 2-6 5z"/></svg><h3>Fertilizer &amp; weed care</h3><p>Greener, season by season.</p></div>
+    </div>
+  </section>
+  <section class="blk"><h2 class="s">Simple pricing</h2>
+    <div class="priceband">
+      <div class="price"><div class="lbl">One-time cut</div><div class="amt">$45<small> /visit</small></div><p>Mow, edge, trim, blow-off.</p></div>
+      <div class="price featured"><div class="lbl">Monthly plan</div><div class="amt">$90<small> /mo</small></div><p>Two visits a month, cancel anytime.</p></div>
+    </div>
+  </section>
+  <div class="finalcta"><h2>Your yard, handled.</h2><p>Get your exact price in minutes.</p><button class="btn btn-a">Get my price</button></div>
+</div>
+
+<!-- ================= P2 ================= -->
+<div class="plabel">
+  <h2>Palette 2 · Golden Hour, in daylight</h2>
+  <p>Your golden hour, but as a bright page: warm cream, terracotta and gold. Premium, sunny, a little Mediterranean.</p>
+  <div class="swatches"><i style="background:#fbf3e4"></i><i style="background:#c96f2e"></i><i style="background:#f0a840"></i><i style="background:#33241a"></i><i style="background:#fffaf0"></i></div>
+</div>
+<div class="pg p2">
+  <div class="topbar"><div class="burger"><span></span><span></span><span></span></div><div class="wordmark">PRIME<em>GUARD</em><small>PRESERVATION LLC</small></div><button class="booknow">Book now</button></div>
+  <div class="hero">
+    <div class="kicker">Lawn Care · Miami-Dade</div>
+    <h1 class="h">Lawn care<br>that <span class="hl">shows up.</span></h1>
+    <p class="sub">Scheduled mowing, trimming and cleanups from a local crew that confirms every visit and sends before-and-after photos.</p>
+    <div class="priceline">From $45 per visit <span>· Monthly plan $90/mo</span></div>
+    <div class="btnrow"><button class="btn btn-a">Get a quote</button><button class="btn btn-b">See plans</button></div>
+  </div>
+  <div class="herocard">
+    <svg class="escape" width="140" height="110" viewBox="0 0 150 120" fill="none" stroke="#c96f2e" stroke-width="1.5" stroke-linecap="round" opacity="0.6"><path d="M96 112c-2-30 2-56 11-80"/><path d="M107 32c-12-11-27-13-39-8M107 32c-3-14 2-25 11-33M107 32c11-9 24-11 35-6M107 32c13-2 24 3 32 11M107 32c-14-3-27 1-36 10"/></svg>
+    <div class="frame"><img src="preview-img-home.jpg" alt="Miami home at golden hour with sketch overlay"></div>
+  </div>
+  <section class="blk"><h2 class="s">What we handle</h2>
+    <div class="svc-grid">
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#c96f2e" stroke-width="1.5" stroke-linecap="round"><path d="M3 20h20M5 20c0-5 3-8 7-9M12 11c1-4 4-6 8-6-1 4-3 7-7 8"/></svg><h3>Mowing &amp; edging</h3><p>Clean lines, striped finish.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#c96f2e" stroke-width="1.5" stroke-linecap="round"><path d="M13 22V11M13 11c-4 0-7-3-7-7 4 0 7 3 7 7zM13 11c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg><h3>Hedge &amp; palm trimming</h3><p>Shaped hedges, safe palms.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#c96f2e" stroke-width="1.5" stroke-linecap="round"><path d="M4 22h18M6 22c0-6 3-10 7-12M13 10c4 2 7 6 7 12"/></svg><h3>Yard cleanups</h3><p>Overgrowth hauled off.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#c96f2e" stroke-width="1.5" stroke-linecap="round"><path d="M13 22c0-6 1-10 4-14M13 22c0-5-1-8-4-11M13 16c3 0 5-2 6-5-3 0-5 2-6 5z"/></svg><h3>Fertilizer &amp; weed care</h3><p>Greener, season by season.</p></div>
+    </div>
+  </section>
+  <section class="blk"><h2 class="s">Simple pricing</h2>
+    <div class="priceband">
+      <div class="price"><div class="lbl">One-time cut</div><div class="amt">$45<small> /visit</small></div><p>Mow, edge, trim, blow-off.</p></div>
+      <div class="price featured"><div class="lbl">Monthly plan</div><div class="amt">$90<small> /mo</small></div><p>Two visits a month, cancel anytime.</p></div>
+    </div>
+  </section>
+  <div class="finalcta"><h2>Your yard, handled.</h2><p>Get your exact price in minutes.</p><button class="btn btn-a">Get my price</button></div>
+</div>
+
+<!-- ================= P3 ================= -->
+<div class="plabel">
+  <h2>Palette 3 · Sky &amp; Palm</h2>
+  <p>Coastal Miami: soft sky white, teal and palm green, one hit of sunshine yellow. Fresh, clean, trustworthy.</p>
+  <div class="swatches"><i style="background:#f2f8fb"></i><i style="background:#0e7c86"></i><i style="background:#0b5563"></i><i style="background:#ffb703"></i><i style="background:#14313d"></i></div>
+</div>
+<div class="pg p3">
+  <div class="topbar"><div class="burger"><span></span><span></span><span></span></div><div class="wordmark">PRIME<em>GUARD</em><small>PRESERVATION LLC</small></div><button class="booknow">Book now</button></div>
+  <div class="hero">
+    <div class="kicker">Lawn Care · Miami-Dade</div>
+    <h1 class="h">Lawn care<br>that <span class="hl">shows up.</span></h1>
+    <p class="sub">Scheduled mowing, trimming and cleanups from a local crew that confirms every visit and sends before-and-after photos.</p>
+    <div class="priceline">From $45 per visit <span>· Monthly plan $90/mo</span></div>
+    <div class="btnrow"><button class="btn btn-a">Get a quote</button><button class="btn btn-b">See plans</button></div>
+  </div>
+  <div class="herocard">
+    <svg class="escape" width="140" height="110" viewBox="0 0 150 120" fill="none" stroke="#0e7c86" stroke-width="1.5" stroke-linecap="round" opacity="0.6"><path d="M96 112c-2-30 2-56 11-80"/><path d="M107 32c-12-11-27-13-39-8M107 32c-3-14 2-25 11-33M107 32c11-9 24-11 35-6M107 32c13-2 24 3 32 11M107 32c-14-3-27 1-36 10"/></svg>
+    <div class="frame"><img src="preview-img-botanical.jpg" alt="Light botanical line art"></div>
+  </div>
+  <section class="blk"><h2 class="s">What we handle</h2>
+    <div class="svc-grid">
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#0e7c86" stroke-width="1.5" stroke-linecap="round"><path d="M3 20h20M5 20c0-5 3-8 7-9M12 11c1-4 4-6 8-6-1 4-3 7-7 8"/></svg><h3>Mowing &amp; edging</h3><p>Clean lines, striped finish.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#0e7c86" stroke-width="1.5" stroke-linecap="round"><path d="M13 22V11M13 11c-4 0-7-3-7-7 4 0 7 3 7 7zM13 11c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg><h3>Hedge &amp; palm trimming</h3><p>Shaped hedges, safe palms.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#0e7c86" stroke-width="1.5" stroke-linecap="round"><path d="M4 22h18M6 22c0-6 3-10 7-12M13 10c4 2 7 6 7 12"/></svg><h3>Yard cleanups</h3><p>Overgrowth hauled off.</p></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#0e7c86" stroke-width="1.5" stroke-linecap="round"><path d="M13 22c0-6 1-10 4-14M13 22c0-5-1-8-4-11M13 16c3 0 5-2 6-5-3 0-5 2-6 5z"/></svg><h3>Fertilizer &amp; weed care</h3><p>Greener, season by season.</p></div>
+    </div>
+  </section>
+  <section class="blk"><h2 class="s">Simple pricing</h2>
+    <div class="priceband">
+      <div class="price"><div class="lbl">One-time cut</div><div class="amt">$45<small> /visit</small></div><p>Mow, edge, trim, blow-off.</p></div>
+      <div class="price featured"><div class="lbl">Monthly plan</div><div class="amt">$90<small> /mo</small></div><p>Two visits a month, cancel anytime.</p></div>
+    </div>
+  </section>
+  <div class="finalcta"><h2>Your yard, handled.</h2><p>Get your exact price in minutes.</p><button class="btn btn-a">Get my price</button></div>
+</div>
+
+</div>
+</body>
+</html>
