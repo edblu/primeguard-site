@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrimeGuard Homepage — Cyan Stark concept</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#020409; font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+  .pg { max-width:430px; margin:0 auto; position:relative; overflow:hidden; color:#eaf6ff;
+    background:radial-gradient(120% 40% at 50% -4%, rgba(64,190,230,.20), transparent 60%), linear-gradient(180deg,#030711,#020409 45%,#03060d); }
+  .topbar { display:flex; align-items:center; gap:12px; padding:16px 20px 12px; }
+  .burger { width:46px; height:46px; border-radius:50%; background:rgba(10,26,44,.6); border:1px solid rgba(110,210,255,.55); box-shadow:0 0 14px rgba(64,190,230,.25), inset 0 0 10px rgba(64,190,230,.10); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex:0 0 46px; }
+  .burger span { display:block; width:17px; height:2px; border-radius:2px; background:#6ed2ff; box-shadow:0 0 6px rgba(110,210,255,.9); }
+  .wordmark { font-weight:800; letter-spacing:.05em; font-size:16px; line-height:1.05; }
+  .wordmark em { font-style:normal; color:#6ed2ff; }
+  .wordmark small { display:block; font-weight:600; letter-spacing:.3em; font-size:8px; color:#7d97ad; margin-top:2px; }
+  .booknow { margin-left:auto; font:700 13px/1 inherit; padding:11px 16px; border-radius:999px; border:1px solid rgba(110,210,255,.7); background:linear-gradient(180deg,#aee6ff,#3fa9d9); color:#04121e; cursor:pointer; box-shadow:0 0 18px rgba(64,190,230,.4); }
+
+  .hero { position:relative; margin:6px 14px 0; }
+  .hero .frame { position:relative; border-radius:24px; overflow:hidden; border:1px solid rgba(110,210,255,.35); box-shadow:0 24px 50px rgba(0,0,0,.6), 0 0 34px rgba(64,190,230,.14); }
+  .hero img { display:block; width:100%; height:380px; object-fit:cover; }
+  .hero .wash { position:absolute; inset:0; background:linear-gradient(180deg, rgba(2,8,18,.34) 0%, rgba(2,8,18,0) 36%, rgba(2,8,18,.12) 60%, rgba(2,8,18,.78) 100%); }
+  .corner { position:absolute; width:26px; height:26px; border:2px solid rgba(160,225,255,.9); filter:drop-shadow(0 0 5px rgba(110,210,255,.95)); z-index:4; }
+  .corner.tl { top:10px; left:10px; border-right:none; border-bottom:none; border-radius:8px 0 0 0; }
+  .corner.tr { top:10px; right:10px; border-left:none; border-bottom:none; border-radius:0 8px 0 0; }
+  .corner.bl { bottom:10px; left:10px; border-right:none; border-top:none; border-radius:0 0 0 8px; }
+  .corner.br { bottom:10px; right:10px; border-left:none; border-top:none; border-radius:0 0 8px 0; }
+  .reactor { position:absolute; top:18px; right:18px; width:92px; height:92px; z-index:4; filter:drop-shadow(0 0 10px rgba(110,210,255,.55)); }
+  .spin { transform-origin:50% 50%; animation:spin 40s linear infinite; }
+  .spinr { transform-origin:50% 50%; animation:spinr 26s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes spinr { to { transform:rotate(-360deg); } }
+  .chip { position:absolute; z-index:4; display:flex; align-items:center; gap:8px; padding:9px 13px; border-radius:999px; background:rgba(6,20,36,.55); backdrop-filter:blur(10px); border:1px solid rgba(110,210,255,.5); box-shadow:0 6px 20px rgba(0,0,0,.45), 0 0 14px rgba(64,190,230,.22), inset 0 1px 0 rgba(255,255,255,.14); font-size:12px; font-weight:700; color:#eaf6ff; animation:floaty 6s ease-in-out infinite; }
+  @keyframes floaty { 50% { transform:translateY(-5px); } }
+  .chip .dot { width:7px; height:7px; border-radius:50%; background:#5ee08a; box-shadow:0 0 8px #5ee08a; }
+  .chip.c1 { top:24px; left:16px; }
+  .chip.c2 { bottom:128px; left:16px; animation-delay:1.2s; }
+  .chip.c2 b { color:#6ed2ff; }
+
+  .panel { position:relative; z-index:5; margin:-92px 14px 0; padding:22px 20px 20px; border-radius:20px; background:linear-gradient(160deg, rgba(10,26,46,.80), rgba(4,12,24,.85)); backdrop-filter:blur(14px); border:1px solid rgba(110,210,255,.32); box-shadow:0 22px 44px rgba(0,0,0,.55), 0 0 22px rgba(64,190,230,.12), inset 0 1px 0 rgba(255,255,255,.10); }
+  .kicker { font-size:10.5px; font-weight:700; letter-spacing:.3em; color:#6ed2ff; text-transform:uppercase; margin-bottom:10px; }
+  .kicker::before { content:""; display:inline-block; width:22px; height:1px; background:#6ed2ff; box-shadow:0 0 6px #6ed2ff; vertical-align:middle; margin-right:9px; }
+  h1 { font-size:35px; line-height:1.07; font-weight:800; letter-spacing:-.015em; }
+  h1 .cy { color:#6ed2ff; text-shadow:0 0 18px rgba(110,210,255,.5); }
+  .sub { margin-top:10px; font-size:14.5px; line-height:1.55; color:#b9d2e4; }
+  .btnrow { margin-top:17px; display:flex; gap:9px; }
+  .btn { font:700 14px/1 inherit; padding:14px 20px; border-radius:999px; cursor:pointer; border:1px solid transparent; }
+  .btn-cy { background:linear-gradient(180deg,#aee6ff,#3fa9d9); color:#04121e; box-shadow:0 0 20px rgba(64,190,230,.4); }
+  .btn-ghost { background:rgba(110,210,255,.08); color:#dff2ff; border-color:rgba(110,210,255,.4); }
+
+  .ticker { display:flex; gap:9px; margin:18px 14px 0; }
+  .tk { flex:1; text-align:center; padding:12px 4px; border-radius:14px; background:linear-gradient(170deg, rgba(12,30,52,.66), rgba(5,14,28,.72)); border:1px solid rgba(110,210,255,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); }
+  .tk b { display:block; font-size:16px; font-weight:800; color:#6ed2ff; text-shadow:0 0 10px rgba(110,210,255,.4); }
+  .tk span { font-size:10px; font-weight:600; letter-spacing:.06em; color:#7d97ad; text-transform:uppercase; }
+
+  section.blk { padding:28px 20px 2px; }
+  h2.s { font-size:21px; font-weight:800; margin-bottom:5px; }
+  h2.s .tick { color:#6ed2ff; font-weight:300; margin-right:6px; }
+  .sec-sub { font-size:13.5px; line-height:1.5; color:#7d97ad; margin-bottom:15px; }
+  .svc-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  .svc { border-radius:16px; padding:16px 13px; position:relative; background:linear-gradient(165deg, rgba(12,30,52,.6), rgba(5,14,28,.68)); border:1px solid rgba(110,210,255,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 10px 22px rgba(0,0,0,.35); }
+  .svc::before { content:""; position:absolute; top:9px; left:9px; width:12px; height:12px; border-top:1.5px solid rgba(110,210,255,.8); border-left:1.5px solid rgba(110,210,255,.8); border-radius:3px 0 0 0; }
+  .svc svg { margin:6px 0 8px; filter:drop-shadow(0 0 5px rgba(110,210,255,.4)); }
+  .svc h3 { font-size:14px; font-weight:700; margin-bottom:3px; }
+  .svc p { font-size:12px; line-height:1.45; color:#7d97ad; }
+  .svc .from { margin-top:8px; font-size:12px; font-weight:800; color:#6ed2ff; }
+  .finalcta { text-align:center; padding:30px 24px 36px; }
+  .finalcta h2 { font-size:24px; font-weight:800; margin-bottom:8px; }
+  .finalcta p { font-size:14px; line-height:1.55; color:#7d97ad; margin-bottom:18px; }
+</style>
+</head>
+<body>
+<div class="pg">
+  <div class="topbar"><div class="burger"><span></span><span></span><span></span></div><div class="wordmark">PRIME<em>GUARD</em><small>PRESERVATION LLC</small></div><button class="booknow">Book now</button></div>
+
+  <div class="hero">
+    <div class="frame">
+      <img src="holo-bluehour.jpg" alt="Modern Miami home at dusk">
+      <div class="wash"></div>
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <svg class="reactor" viewBox="0 0 100 100" fill="none">
+        <g class="spin"><circle cx="50" cy="50" r="45" stroke="rgba(110,210,255,.85)" stroke-width="2" stroke-dasharray="40 18 10 24"/><circle cx="50" cy="5" r="3" fill="#6ed2ff"/></g>
+        <g class="spinr"><circle cx="50" cy="50" r="34" stroke="rgba(110,210,255,.55)" stroke-width="1.5" stroke-dasharray="3 6"/></g>
+        <circle cx="50" cy="50" r="17" stroke="rgba(174,230,255,.9)" stroke-width="2"/>
+        <circle cx="50" cy="50" r="7" fill="rgba(110,210,255,.85)"/>
+      </svg>
+      <div class="chip c1"><span class="dot"></span> Crews active in Miami-Dade</div>
+      <div class="chip c2">Next visit <b>&nbsp;confirmed in app</b></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="kicker">Property Care · Miami-Dade</div>
+    <h1>Property care,<br><span class="cy">perfected.</span></h1>
+    <p class="sub">Lawn care, pressure washing, handyman and more, run like a system: scheduled in the app, confirmed before every visit, proven with photos.</p>
+    <div class="btnrow"><button class="btn btn-cy">Get a quote</button><button class="btn btn-ghost">Get the app</button></div>
+  </div>
+
+  <div class="ticker"><div class="tk"><b>$45</b><span>Lawn / visit</span></div><div class="tk"><b>$149</b><span>Pressure wash</span></div><div class="tk"><b>$65</b><span>Handyman / mo</span></div></div>
+
+  <section class="blk"><h2 class="s"><span class="tick">/</span>Services</h2><p class="sec-sub">One company for the whole property.</p>
+    <div class="svc-grid">
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#6ed2ff" stroke-width="1.5" stroke-linecap="round"><path d="M4 22c5-8 13-13 18-14-1 5-6 13-14 18M4 22c-1-4 1-7 4-9"/></svg><h3>Lawn care</h3><p>Mow, edge, trim on schedule.</p><div class="from">From $45/visit</div></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#6ed2ff" stroke-width="1.5" stroke-linecap="round"><path d="M4 22h18M6 22V9l7-5 7 5v13M10 22v-6h6v6"/></svg><h3>Pressure washing</h3><p>Driveways, decks, siding.</p><div class="from">From $149</div></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#6ed2ff" stroke-width="1.5" stroke-linecap="round"><path d="M14 5a4 4 0 0 1 5.7 5.3L12 18l-4 1 1-4 7.7-7.7A4 4 0 0 1 14 5zM5 21h16"/></svg><h3>Handyman</h3><p>The whole list, one visit.</p><div class="from">Plan $65/mo</div></div>
+      <div class="svc"><svg width="25" height="25" viewBox="0 0 26 26" fill="none" stroke="#6ed2ff" stroke-width="1.5" stroke-linecap="round"><path d="M4 8h18l-2 12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM8 8c0-3 2-5 5-5s5 2 5 5"/></svg><h3>Junk removal</h3><p>You point, we haul.</p><div class="from">Priced by load</div></div>
+    </div>
+  </section>
+
+  <div class="finalcta"><h2>Run your home like a system.</h2><p>One app, one schedule, zero chasing contractors.</p><button class="btn btn-cy">Get started</button></div>
+</div>
+</body>
+</html>
