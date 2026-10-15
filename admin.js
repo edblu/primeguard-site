@@ -434,6 +434,10 @@
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
+  var hlPendingPhotos = []; // compressed photos picked in the lead form, not yet uploaded
+  var hlConvertId = null;
+  // Same category options as the work-order form's #wo-category select.
+  var HL_WO_CATEGORIES = ["Lawn care", "Tree trimming", "Tree removal", "Stump grinding", "Cleanups", "Planting", "Pressure washing", "Handyman"];
 
   function hlStageMeta(stage) {
     for (var i = 0; i < HL_STAGES.length; i++) if (HL_STAGES[i][0] === stage) return HL_STAGES[i];
@@ -498,6 +502,7 @@
         var d = it.d;
         var whenMs = tsMs(d.createdAt);
         var when = whenMs ? new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+        var photoCount = Array.isArray(d.photos) ? d.photos.length : 0;
         var opts = HL_STAGES.map(function (s) {
           return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
         }).join("");
@@ -506,11 +511,15 @@
           esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
           (when ? " · " + esc(when) : "") + (d.createdBy ? " · added by " + esc(d.createdBy) : "") + "</small></div>" +
           '<span class="pill p-acc">' + esc(d.source || "Other") + "</span>" +
+          (photoCount ? ' <span class="hl-photo-badge" title="Photos on this lead">📷 ' + photoCount + "</span>" : "") +
           '<span class="pill ' + st[2] + '">' + esc(st[1]) + "</span>" +
           '<select class="hl-stage-sel" data-hlstage="' + it.id + '" aria-label="Move stage">' + opts + "</select>" +
           ' <button class="mini" data-hlnotes="' + it.id + '">Notes</button>' +
           ' <button class="mini" data-hledit="' + it.id + '">Edit</button>' +
           ' <button class="mini" data-callead="' + it.id + '">Add to calendar</button>' +
+          (d.convertedWorkOrderId
+            ? ' <button class="mini" data-hlviewwo="' + it.id + '">Converted ✓</button>'
+            : ' <button class="mini" data-hlconvert="' + it.id + '">Convert to quote request</button>') +
           (isAdmin ? ' <button class="mini danger" data-hldel="' + it.id + '">Delete</button>' : "");
         box.appendChild(row);
       });
@@ -550,48 +559,102 @@
       '<label>Stage<select id="hl-f-stage">' + stOpts + "</select></label></div>" +
       '<div class="row2"><label>Service<input type="text" id="hl-f-service" placeholder="Lawn care, cleanup…" value="' + esc(d.service || "") + '"></label>' +
       '<label>Area<input type="text" id="hl-f-area" placeholder="Kendall, Richmond Heights…" value="' + esc(d.area || "") + '"></label></div>' +
+      '<label>Full street address<input type="text" id="hl-f-address" placeholder="123 Main St, Miami, FL 33101" value="' + esc(d.address || "") + '"></label>' +
       '<label>Notes<textarea id="hl-f-notes" rows="3" placeholder="What they asked, what was quoted, what is next…">' + esc(d.notes || "") + "</textarea></label>" +
+      '<label>Media links<textarea id="hl-f-media" rows="2" placeholder="One link per line: property videos, shared photo albums, Drive links the customer sent…">' + esc((Array.isArray(d.mediaLinks) ? d.mediaLinks : []).join("\n")) + "</textarea></label>" +
+      '<label>Photos<input type="file" id="hl-f-photos" accept="image/*" multiple></label>' +
+      '<div class="athumbs" id="hl-photo-preview"></div>' +
       '<p class="aerr hidden" id="hl-f-err"></p>' +
       '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="hl-f-save">' + (id ? "Save changes" : "Add lead") + "</button></div>" +
       "</form>";
     $("hlFormModal").classList.remove("hidden");
     document.body.style.overflow = "hidden";
     $("hlForm").addEventListener("submit", saveHotLead);
+    // Photo picking mirrors the work-order form exactly: canvas-compress to
+    // max 1600px, JPEG 0.82, collect {filename, mimeType, data} for upload.
+    hlPendingPhotos = [];
+    var hlPrev = $("hl-photo-preview");
+    (Array.isArray(d.photos) ? d.photos : []).forEach(function (u) {
+      var im = document.createElement("img"); im.src = u; im.className = "hl-thumb-old"; im.alt = "lead photo";
+      hlPrev.appendChild(im);
+    });
+    $("hl-f-photos").addEventListener("change", function (e) {
+      hlPendingPhotos = [];
+      hlPrev.querySelectorAll(".hl-thumb-new").forEach(function (n) { n.remove(); });
+      Array.prototype.forEach.call(e.target.files, function (f) {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1600, r = Math.min(1, max / Math.max(img.width, img.height));
+          var c = document.createElement("canvas");
+          c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          var url = c.toDataURL("image/jpeg", 0.82);
+          hlPendingPhotos.push({ filename: f.name, mimeType: "image/jpeg", data: url.split(",")[1] });
+          var th = document.createElement("img"); th.src = url; th.className = "hl-thumb-new";
+          hlPrev.appendChild(th);
+        };
+        var fr = new FileReader();
+        fr.onload = function () { img.src = fr.result; };
+        fr.readAsDataURL(f);
+      });
+    });
   }
   function closeHotLeadForm() {
     $("hlFormModal").classList.add("hidden");
     document.body.style.overflow = "";
     hlEditId = null;
+    hlPendingPhotos = [];
   }
   function saveHotLead(e) {
     e.preventDefault();
     var name = $("hl-f-name").value.trim();
     var err = $("hl-f-err"); err.classList.add("hidden");
     if (!name) { err.textContent = "Name is required."; err.classList.remove("hidden"); return; }
+    var mediaLinks = $("hl-f-media").value.split(/\n/).map(function (s) { return s.trim(); })
+      .filter(function (s) { return !!s; });
     var fields = {
       name: name,
       contact: $("hl-f-contact").value.trim(),
       source: $("hl-f-source").value,
       service: $("hl-f-service").value.trim(),
       area: $("hl-f-area").value.trim(),
+      address: $("hl-f-address").value.trim(),
       stage: $("hl-f-stage").value,
       notes: $("hl-f-notes").value.trim(),
+      mediaLinks: mediaLinks,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    var btn = $("hl-f-save"); btn.disabled = true;
-    var p;
+    var existingPhotos = [];
     if (hlEditId) {
-      p = db.collection("hot_leads").doc(hlEditId).update(fields).then(function () {
-        logActivity("Edited hot lead: " + name);
-      });
-    } else {
+      var cur = hlLeadData(hlEditId);
+      if (cur && Array.isArray(cur.photos)) existingPhotos = cur.photos.slice();
+    }
+    var btn = $("hl-f-save"); btn.disabled = true;
+    // Same photo store the work-order form uses: the compressed JPEGs are
+    // POSTed to SITE_CONFIG.photoEndpoint, which returns hosted URLs that
+    // land on the doc as `photos: [url, ...]`.
+    var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
+    var uploadP = (hlPendingPhotos.length && endpoint)
+      ? fetch(endpoint, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ type: "photo-upload", folder: "work-order-photos", photos: hlPendingPhotos }) })
+        .then(function (r) { return r.json(); }).then(function (out) { return out.urls || []; })
+      : Promise.resolve([]);
+    var p = uploadP.then(function (urls) {
+      if (hlEditId) {
+        // Keep already-saved photos; append any newly uploaded ones.
+        if (urls.length) fields.photos = existingPhotos.concat(urls);
+        return db.collection("hot_leads").doc(hlEditId).update(fields).then(function () {
+          logActivity("Edited hot lead: " + name);
+        });
+      }
+      fields.photos = urls || [];
       fields.seen = false;
       fields.createdBy = me ? me.email : "";
       fields.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      p = db.collection("hot_leads").add(fields).then(function () {
+      return db.collection("hot_leads").add(fields).then(function () {
         logActivity("Added hot lead: " + name);
       });
-    }
+    });
     p.then(function () {
       closeHotLeadForm();
       loadHotLeads();
@@ -599,6 +662,10 @@
       err.textContent = "Could not save: " + (e2.message || e2);
       err.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; });
+  }
+  function hlLeadData(id) {
+    for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) return hlLeads[i].d;
+    return null;
   }
   var hlAddBtn = $("hl-add");
   if (hlAddBtn) hlAddBtn.addEventListener("click", function () { openHotLeadForm(null); });
@@ -622,11 +689,35 @@
       hlNoteId = id; hlNoteData = d; hlOutcome = "";
       var st = hlStageMeta(d.stage || "new");
       var whenMs = tsMs(d.createdAt);
+      var photos = Array.isArray(d.photos) ? d.photos : [];
+      var mediaLinks = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
+      var convMs = tsMs(d.convertedAt);
+      var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
       var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
         '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
         esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
+        (d.address ? " · " + esc(d.address) : "") +
         (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
         (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        (photos.length ? '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
+          photos.map(function (u) {
+            return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="lead photo" loading="lazy"></a>';
+          }).join("") + "</div></div>" : "") +
+        (mediaLinks.length ? '<div class="sr-card"><h4>Media links (' + mediaLinks.length + ')</h4><p>' +
+          mediaLinks.map(function (u) {
+            return /^https?:\/\//i.test(u)
+              ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + "</a>"
+              : esc(u);
+          }).join("<br>") + "</p></div>" : "") +
+        '<div class="sr-card"><h4>History</h4>' +
+        '<p><strong>Added:</strong> ' + esc(fullDate(whenMs)) + (d.createdBy ? " by " + esc(d.createdBy) : "") + '</p>' +
+        '<p><strong>Stage:</strong> ' + esc(st[1]) + '</p>' +
+        '<p><strong>Photos:</strong> ' + photos.length + ' · <strong>Media links:</strong> ' + mediaLinks.length + '</p>' +
+        (d.convertedWorkOrderId
+          ? '<p><strong>Quote request:</strong> converted' + (convMs ? " " + esc(fullDate(convMs)) : "") + '</p>' +
+            '<div class="sr-actions"><button class="mini" type="button" data-hlviewwo="' + id + '">Open work order</button></div>'
+          : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to quote request</button></div>') +
+        "</div>" +
         '<div class="sr-card"><h4>Calls & notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
         '<div class="outcome-grid" id="hlOutcomes">' +
@@ -683,6 +774,134 @@
       err.textContent = "Could not save: " + (e.message || e);
       err.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; });
+  }
+
+  /* ----- Convert a lead into a vendor quote request ----- */
+  // Creates a work_orders doc with kind "quote_request" through the exact
+  // same doc shape the work-order create form saves (see the ad-woform
+  // submit handler), carrying the lead's photos (same hosted URL strings),
+  // details, media links and contact info. vendorNotifyPending flags the
+  // new work order for the background vendor-notification watch.
+  function gotoWorkOrders() {
+    var btn = document.querySelector('#pgNavDrawer [data-atab="work"]');
+    if (btn) btn.click();
+  }
+  function openHotLeadConvert(id) {
+    var d = hlLeadData(id);
+    if (!d || d.convertedWorkOrderId) return;
+    hlConvertId = id;
+    var links = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
+    var photos = Array.isArray(d.photos) ? d.photos : [];
+    var catOpts = HL_WO_CATEGORIES.map(function (c) {
+      return '<option value="' + c + '"' + ((d.service || "").toLowerCase() === c.toLowerCase() ? " selected" : "") + ">" + c + "</option>";
+    }).join("");
+    var det = [];
+    if (d.notes) det.push(d.notes);
+    if (links.length) det.push("Media links:\n" + links.join("\n"));
+    if (d.contact) det.push("Contact: " + d.contact);
+    if (d.address) det.push("Address: " + d.address);
+    // Same assignment options loadVendorOptions() built for the WO form:
+    // "broadcast" plus one option per non-archived vendor (value = vendor id).
+    var assignHtml = $("wo-assign") ? $("wo-assign").innerHTML
+      : '<option value="broadcast">All vendors (broadcast)</option>';
+    $("hlConvertBody").innerHTML = '<h3 id="hlConvertTitle">Convert to quote request</h3>' +
+      '<p class="sr-faint" style="margin-top:6px">Creates a quote request for ' + esc(d.name || "this lead") +
+      ' with everything saved on the lead attached: photos, media links, contact info and notes. It goes live on the vendor portal right away and is flagged for vendor notification.</p>' +
+      '<form id="hlConvertForm" class="aform" style="margin-top:10px">' +
+      '<label>Title<input type="text" id="hl-cv-title" required value="' + esc((d.name || "Lead") + " - " + (d.service || "Service")) + '"></label>' +
+      '<div class="row2"><label>Category<select id="hl-cv-category">' + catOpts + "</select></label>" +
+      '<label>Area<input type="text" id="hl-cv-area" value="' + esc(d.area || "") + '"></label></div>' +
+      '<label>Address<input type="text" id="hl-cv-address" value="' + esc(d.address || "") + '"></label>' +
+      '<label>Details<textarea id="hl-cv-details" rows="5">' + esc(det.join("\n\n")) + "</textarea></label>" +
+      '<div class="row2"><label>Pay (optional)<input type="text" id="hl-cv-pay" placeholder="$280 or per job"></label>' +
+      '<label>Send to<select id="hl-cv-assign">' + assignHtml + "</select></label></div>" +
+      (photos.length ? '<label>Photos from the lead (' + photos.length + ')</label><div class="athumbs">' +
+        photos.map(function (u) { return '<img src="' + esc(u) + '" alt="lead photo">'; }).join("") + "</div>" : "") +
+      '<p class="aerr hidden" id="hl-cv-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="hl-cv-save">Create quote request</button></div>' +
+      "</form>";
+    $("hlConvertModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    $("hlConvertForm").addEventListener("submit", submitHotLeadConvert);
+  }
+  function closeHotLeadConvert() {
+    $("hlConvertModal").classList.add("hidden");
+    if ($("hlNoteModal").classList.contains("hidden") && $("hlFormModal").classList.contains("hidden")) {
+      document.body.style.overflow = "";
+    }
+    hlConvertId = null;
+  }
+  function submitHotLeadConvert(e) {
+    e.preventDefault();
+    if (!hlConvertId) return;
+    var d = hlLeadData(hlConvertId);
+    if (!d) return;
+    var err = $("hl-cv-err"); err.classList.add("hidden");
+    var title = $("hl-cv-title").value.trim();
+    if (!title) { err.textContent = "Title is required."; err.classList.remove("hidden"); return; }
+    var assignVal = $("hl-cv-assign").value;
+    var btn = $("hl-cv-save"); btn.disabled = true; btn.textContent = "Creating...";
+    var leadId = hlConvertId, leadName = d.name || "lead";
+    // Doc shape mirrors the work-order create form's save() exactly, plus
+    // the lead link (sourceLeadId/sourceLeadName), the street address the
+    // calendar bridge already reads (w.address), and the notify flag.
+    var wo = {
+      title: title,
+      kind: "quote_request",
+      category: $("hl-cv-category").value,
+      area: $("hl-cv-area").value.trim(),
+      details: $("hl-cv-details").value.trim(),
+      pay: $("hl-cv-pay").value.trim(),
+      broadcast: assignVal === "broadcast",
+      vendorId: assignVal === "broadcast" ? null : assignVal,
+      vendorBusiness: null,
+      status: "open",
+      photos: (Array.isArray(d.photos) ? d.photos : []).slice(),
+      address: $("hl-cv-address").value.trim(),
+      sourceLeadId: leadId,
+      sourceLeadName: leadName,
+      vendorNotifyPending: true,
+      vendorNotifyTarget: assignVal === "broadcast" ? "broadcast" : assignVal,
+      createdBy: me ? me.email : "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (wo.vendorId) {
+      var opt = $("hl-cv-assign").selectedOptions[0];
+      if (opt) wo.vendorBusiness = opt.textContent.split(" - ")[0];
+    }
+    db.collection("work_orders").add(wo).then(function (ref) {
+      return db.collection("hot_leads").doc(leadId).update({
+        stage: "quoted",
+        convertedWorkOrderId: ref.id,
+        convertedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }).then(function () {
+      logActivity("Converted hot lead " + leadName + " to quote request");
+      $("hlConvertBody").innerHTML = '<h3>Quote request created ✓</h3>' +
+        '<p style="margin-top:8px">The quote request for ' + esc(leadName) +
+        ' is live on the vendor portal with the lead photos and details attached, and flagged for vendor notification. The lead is now at the Quoted stage with the full history kept.</p>' +
+        '<div class="sr-actions" style="margin-top:14px">' +
+        '<button class="btn btn-gold btn-sm" type="button" id="hl-cv-view">Open work orders</button>' +
+        '<button class="btn btn-ghost btn-sm" type="button" id="hl-cv-done">Done</button></div>';
+      $("hl-cv-view").addEventListener("click", function () {
+        closeHotLeadConvert(); closeHotLeadNotes(); gotoWorkOrders();
+      });
+      $("hl-cv-done").addEventListener("click", function () {
+        var reopen = leadId;
+        closeHotLeadConvert();
+        loadHotLeads();
+        if (!$("hlNoteModal").classList.contains("hidden")) openHotLeadNotes(reopen);
+      });
+      loadHotLeads();
+      loadWorkOrders();
+    }).catch(function (e2) {
+      err.textContent = "Could not convert: " + (e2.message || e2);
+      err.classList.remove("hidden");
+    }).finally(function () {
+      var b = $("hl-cv-save");
+      if (b) { b.disabled = false; b.textContent = "Create quote request"; }
+    });
   }
 
   /* ----- Notification bell ----- */
@@ -1557,7 +1776,7 @@
       d.service ? "Service: " + d.service : "", d.notes || ""].filter(Boolean).join("\n");
     openCal({
       title: (d.name || "Lead") + " - estimate visit",
-      address: d.area || "",
+      address: d.address || d.area || "",
       colorId: "6",
       notes: notes
     });
@@ -1597,8 +1816,11 @@
     if (d.hledit) openHotLeadForm(d.hledit);
     if (d.hldel) deleteHotLead(d.hldel);
     if (d.hlbell) markLeadSeen(d.hlbell);
+    if (d.hlconvert) openHotLeadConvert(d.hlconvert);
+    if (d.hlviewwo) { closeHotLeadConvert(); closeHotLeadNotes(); gotoWorkOrders(); }
     if (t.id === "hlNoteClose" || t.id === "hlNoteModal") closeHotLeadNotes();
     if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
+    if (t.id === "hlConvertClose" || t.id === "hlConvertModal") closeHotLeadConvert();
     if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
     if (d.sropen) openRequest(d.sropen);
     if (d.calsr) calFromRequest(d.calsr);
@@ -1628,10 +1850,12 @@
     if (e.key !== "Escape") return;
     var modalOpen = !$("srModal").classList.contains("hidden") || !$("vdModal").classList.contains("hidden") ||
       !$("woNoteModal").classList.contains("hidden") || !$("hlNoteModal").classList.contains("hidden") ||
-      !$("hlFormModal").classList.contains("hidden") || !$("cal2Modal").classList.contains("hidden");
+      !$("hlFormModal").classList.contains("hidden") || !$("hlConvertModal").classList.contains("hidden") ||
+      !$("cal2Modal").classList.contains("hidden");
     if (!$("srModal").classList.contains("hidden")) closeRequest();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
+    if (!$("hlConvertModal").classList.contains("hidden")) closeHotLeadConvert();
     if (!$("hlNoteModal").classList.contains("hidden")) closeHotLeadNotes();
     if (!$("hlFormModal").classList.contains("hidden")) closeHotLeadForm();
     if (bellIsOpen()) setBellOpen(false);
