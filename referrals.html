@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="daylight.css?v=1">
 <style>
   .careers-hero { background: linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.55) 45%, rgba(120,85,15,0.55) 100%), url("assets/hero-referrals.jpg") center 35% / cover no-repeat; }
 </style>
@@ -53,11 +54,27 @@
 </header>
 
 <!-- ================= REFERRALS HERO ================= -->
-<section class="careers-hero">
+<section class="dl-hero">
   <div class="wrap">
-    <p class="section-kicker reveal" data-i18n="ref_kicker">Refer &amp; earn</p>
-    <h1 class="reveal grad-text" data-i18n="ref_title">Give $20, get $20</h1>
-    <p class="section-lead reveal" data-i18n="ref_lead">Know someone who needs property care? Share your personal code. They get $20 off their first service, and you get a $20 credit after their job is done.</p>
+    <div class="dl-frame">
+      <img class="dl-hero-img" src="assets/hero-referrals.jpg" alt="Neighbors in a bright Miami neighborhood">
+      <span class="dl-corner tl"></span><span class="dl-corner tr"></span><span class="dl-corner bl"></span><span class="dl-corner br"></span>
+      <div class="dl-ringwrap" aria-hidden="true">
+        <svg class="dl-ring" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.95)" stroke-width="2.5" stroke-dasharray="52 26 14 30"/>
+          <circle cx="50" cy="50" r="35" stroke="rgba(255,255,255,.65)" stroke-width="1.5" stroke-dasharray="4 7"/>
+          <circle cx="50" cy="6" r="3.5" fill="#fff"/>
+        </svg>
+        <div class="dl-ringlabel"><b>$20</b><span>GIVE &amp; GET</span></div>
+      </div>
+      <div class="dl-chip dl-c1"><span class="dl-dot"></span>They get $20 off their first service</div>
+      <div class="dl-chip dl-c2">You get a <b>&nbsp;$20 credit</b></div>
+    </div>
+    <div class="dl-panel">
+      <p class="section-kicker reveal" data-i18n="ref_kicker">Refer &amp; earn</p>
+      <h1 class="reveal grad-text" data-i18n="ref_title">Give $20, get $20</h1>
+      <p class="section-lead reveal" data-i18n="ref_lead">Know someone who needs property care? Share your personal code. They get $20 off their first service, and you get a $20 credit after their job is done.</p>
+    </div>
   </div>
 </section>
 
