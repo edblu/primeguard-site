@@ -29,19 +29,10 @@
     show($("form-signup")); hide($("form-login"));
   });
 
-  // Mobile hamburger menu
-  (function () {
-    var toggle = document.getElementById("navToggle"), nav = document.getElementById("mainNav");
-    if (!toggle || !nav) return;
-    toggle.addEventListener("click", function () {
-      var isOpen = nav.classList.toggle("open");
-      toggle.classList.toggle("open", isOpen);
-      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
-    nav.querySelectorAll("a").forEach(function (l) {
-      l.addEventListener("click", function () { nav.classList.remove("open"); toggle.classList.remove("open"); });
-    });
-  })();
+  // Mobile hamburger menu: wired by site.js's standalone nav-drawer
+  // module (this page loads site.js in PWA-only mode, and that module
+  // runs there too). Do not wire #navToggle here — double handlers
+  // would toggle the drawer open and shut on a single click.
 
   // Promo banner slot (Midnight Gold dashboard). Driven by SITE_CONFIG.promoBanner.
   // Empty/missing title = banner stays hidden.
