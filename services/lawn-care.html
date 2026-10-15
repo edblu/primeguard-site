@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lawn Care | PrimeGuard Preservation</title>
 <meta name="description" content="Never think about your yard again. Precision mowing, crisp edging, and full cleanup on a schedule you can count on.">
-<link rel="stylesheet" href="../styles.css?v=22">
+<link rel="stylesheet" href="../styles.css?v=25">
 <link rel="icon" type="image/png" href="../assets/primeguard-logo-gold-badge.png">
 <script type="application/ld+json">
 {
@@ -85,8 +85,11 @@
 
 <header class="site-header">
   <div class="header-inner">
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
     <a class="brand" href="../index.html"><img src="../assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation logo" class="brand-logo"><span class="brand-text">PrimeGuard <span>Preservation LLC</span></span></a>
-    <nav class="main-nav">
+    <nav class="main-nav" id="mainNav">
       <a href="../index.html#services">Services</a>
       <a href="../plans.html">Plans</a>
       <a href="../work.html">Work</a>
@@ -212,5 +215,54 @@
 
 <script src="../config.js"></script>
 <script src="../human-chat.js"></script>
+
+<script>
+/* Mobile nav drawer (hamburger -> left slide-over) — same behavior as site.js */
+(function () {
+  var toggle = document.getElementById("navToggle");
+  var nav = document.getElementById("mainNav");
+  if (!toggle || !nav) return;
+
+  var backdrop = document.getElementById("navBackdrop");
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id = "navBackdrop";
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.appendChild(backdrop);
+  }
+
+  function isOpen() { return nav.classList.contains("open"); }
+  function openMenu() {
+    nav.classList.add("open");
+    toggle.classList.add("open");
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-label", "Close menu");
+    backdrop.classList.add("show");
+    document.body.classList.add("nav-open");
+  }
+  function closeMenu() {
+    nav.classList.remove("open");
+    toggle.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open menu");
+    backdrop.classList.remove("show");
+    document.body.classList.remove("nav-open");
+  }
+
+  toggle.addEventListener("click", function () {
+    if (isOpen()) closeMenu(); else openMenu();
+  });
+  backdrop.addEventListener("click", closeMenu);
+  nav.querySelectorAll("a").forEach(function (link) {
+    link.addEventListener("click", closeMenu);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeMenu();
+  });
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 1024) closeMenu();
+  });
+})();
+</script>
 </body>
 </html>
