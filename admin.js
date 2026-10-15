@@ -58,8 +58,10 @@
   syncThemeBtn();
 
   // ---------- Left drawer navigation (mirrors the LoraLedger drawer) ----------
-  // Drawer items carry data-navtab (NOT data-atab) and activate the existing
-  // tab buttons with .click(), so all tab logic stays in one place.
+  // Drawer items carry data-atab, the same attribute as the top tab bar, so the
+  // inline tab script in admin.html wires them to showTab() exactly like any
+  // other tab button — one code path per destination. This handler only adds
+  // the drawer extras: highlight sync + close on selection.
   var navDrawer = $("pgNavDrawer"), navBackdrop = $("pgNavBackdrop"), navOpen = false;
   function navStoredClosed() {
     try { return localStorage.getItem("pg_admin_nav_closed") !== "0"; } catch (e) { return true; }
@@ -70,31 +72,21 @@
     if (navBackdrop) navBackdrop.classList.toggle("open", navOpen);
     if (persist !== false) { try { localStorage.setItem("pg_admin_nav_closed", navOpen ? "0" : "1"); } catch (e) {} }
   }
-  function syncNavBadges() {
-    [["mb-quotes", "pg-nav-b-quotes"], ["mb-vendors", "pg-nav-b-vendors"], ["mb-followups", "pg-nav-b-followups"]].forEach(function (pair) {
-      var src = $(pair[0]), dst = $(pair[1]);
-      if (src && dst) dst.textContent = src.textContent;
-    });
-  }
   function syncNavActive(name) {
-    document.querySelectorAll("[data-navtab]").forEach(function (b) {
-      b.classList.toggle("active", b.getAttribute("data-navtab") === name);
+    document.querySelectorAll("#pgNavDrawer [data-atab]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-atab") === name);
     });
   }
-  if ($("pgNavToggle")) $("pgNavToggle").addEventListener("click", function () { if (!navOpen) syncNavBadges(); setNavOpen(!navOpen); });
+  if ($("pgNavToggle")) $("pgNavToggle").addEventListener("click", function () { setNavOpen(!navOpen); });
   if ($("pgNavClose")) $("pgNavClose").addEventListener("click", function () { setNavOpen(false); });
   if (navBackdrop) navBackdrop.addEventListener("click", function () { setNavOpen(false); });
-  document.querySelectorAll("[data-navtab]").forEach(function (b) {
+  document.querySelectorAll("#pgNavDrawer [data-atab]").forEach(function (b) {
     b.addEventListener("click", function () {
-      var name = b.getAttribute("data-navtab");
-      var target = document.querySelector('#ad-more-menu [data-atab="' + name + '"]') ||
-                   document.querySelector('.atabs [data-atab="' + name + '"]');
-      if (target) target.click();
-      syncNavActive(name);
+      syncNavActive(b.getAttribute("data-atab"));
       setNavOpen(false);
     });
   });
-  // Keep drawer highlights in sync when the top tab bar / More menu is used instead.
+  // Keep drawer highlights in sync when the top tab bar is used instead.
   document.querySelectorAll("[data-atab]").forEach(function (b) {
     b.addEventListener("click", function () { syncNavActive(b.getAttribute("data-atab")); });
   });
@@ -202,10 +194,9 @@
       hide($("ad-loginwrap")); show($("ad-dash"));
       document.body.classList.add("pg-nav-on");
       setNavOpen(!navStoredClosed(), false);
-      syncNavBadges();
       $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
       if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
-      if (!isAdmin) { var ab = $("ad-activity-btn"); if (ab) ab.style.display = "none"; var nab = $("pg-nav-activity"); if (nab) nab.style.display = "none"; }
+      if (!isAdmin) { var nab = $("pg-nav-activity"); if (nab) nab.style.display = "none"; }
       loadAll();
       startTracking();
     });
@@ -403,7 +394,7 @@
       var today = localDateKey(new Date());
       var due = 0;
       items.forEach(function (it) { if (it.n.followUpOn <= today) due++; });
-      var mb = $("mb-followups"); if (mb) mb.textContent = due;
+      var mb = $("pg-nav-b-followups"); if (mb) mb.textContent = due;
       if (!items.length) { box.innerHTML = '<p style="color:var(--faint)">No open follow-ups. When a note or call gets a follow-up date, it will show up here.</p>'; return; }
       box.innerHTML = "";
       items.forEach(function (it) {
@@ -884,8 +875,8 @@
       qs.forEach(function (d) { var s = d.data().status; if (s === "open") open++; else if (s !== "done") active++; });
       $("as-open").textContent = open; $("as-active").textContent = active;
     });
-    db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("mb-quotes"); if (mb) mb.textContent = qs.size; });
-    db.collection("vendors").get().then(function (qs) { var n = 0; qs.forEach(function (d) { if (d.data().status !== "archived") n++; }); $("as-vendors").textContent = n; var mb = $("mb-vendors"); if (mb) mb.textContent = n; });
+    db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("pg-nav-b-quotes"); if (mb) mb.textContent = qs.size; });
+    db.collection("vendors").get().then(function (qs) { var n = 0; qs.forEach(function (d) { if (d.data().status !== "archived") n++; }); $("as-vendors").textContent = n; var mb = $("pg-nav-b-vendors"); if (mb) mb.textContent = n; });
   }
 
   function pill(s) {
