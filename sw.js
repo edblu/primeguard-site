@@ -1,5 +1,5 @@
 /* ============================================================
-   PrimeGuard service worker (pg-v1)
+   PrimeGuard service worker (pg-v2)
    ------------------------------------------------------------
    Deliberately conservative for a live business site:
    - Static assets (CSS/JS/images/fonts, anything under /assets/):
@@ -8,11 +8,63 @@
    - Staff/vendor surfaces (/admin.html, /vendor-dashboard*):
      NEVER intercepted and NEVER cached. Network only.
    - Non-GET requests are never touched.
-   Also carries the push-notification foundation at the bottom:
-   payload-driven handlers only (no FCM, no subscriptions yet).
+   Push: an FCM layer (Firebase Cloud Messaging, below) shows
+   background notifications for pushes sent via FCM, and a
+   generic payload-driven push handler (bottom) covers any
+   non-FCM push. The generic handler skips FCM-shaped payloads
+   so a message is never shown twice.
    ============================================================ */
 
-var CACHE_NAME = "pg-v1";
+/* ============================================================
+   FIREBASE CLOUD MESSAGING (background notifications)
+   ------------------------------------------------------------
+   The compat SDKs run inside the worker so FCM pushes (sent by
+   send-push.mjs and the watches) can wake the app when no page
+   is open. The firebase config mirrors config.js (public web
+   config, not a secret). The whole block is guarded: if the
+   SDKs fail to load or init, the worker keeps working as a
+   plain caching + generic-push worker.
+   ============================================================ */
+var PG_FCM_ACTIVE = false;
+try {
+  importScripts(
+    "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js",
+    "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"
+  );
+  if (typeof firebase !== "undefined" && firebase.messaging) {
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyDDOcUiuTlollOGoNUJd_Eos-tovJ1dqA0",
+        authDomain: "primeguard-83e88.firebaseapp.com",
+        projectId: "primeguard-83e88",
+        storageBucket: "primeguard-83e88.firebasestorage.app",
+        messagingSenderId: "1031375547061",
+        appId: "1:1031375547061:web:947b8ed95695a0df2b2cfc"
+      });
+    }
+    firebase.messaging().onBackgroundMessage(function (payload) {
+      var n = (payload && payload.notification) || {};
+      var d = (payload && payload.data) || {};
+      var title = n.title || d.title || "PrimeGuard";
+      var url = d.url ||
+        (payload && payload.fcmOptions && payload.fcmOptions.link) ||
+        "/account.html";
+      var options = {
+        body: n.body || d.body || "You have an update from PrimeGuard.",
+        icon: n.icon || d.icon || "/assets/icon-192.png",
+        badge: "/assets/icon-192.png",
+        tag: "primeguard-update",
+        /* The existing notificationclick handler (bottom) reads
+           data.url and opens / focuses the right page. */
+        data: { url: url }
+      };
+      return self.registration.showNotification(title, options);
+    });
+    PG_FCM_ACTIVE = true;
+  }
+} catch (e) { /* FCM is an enhancement; never break the worker over it. */ }
+
+var CACHE_NAME = "pg-v2";
 
 /* Small app shell precached on install so the installed app can
    open offline. Everything else is runtime-cached on first use. */
@@ -112,16 +164,15 @@ self.addEventListener("fetch", function (event) {
 });
 
 /* ============================================================
-   PUSH NOTIFICATION FOUNDATION (no FCM / subscriptions yet)
+   GENERIC PUSH HANDLER (non-FCM payloads)
    ------------------------------------------------------------
-   Payload-driven only: when a push service eventually delivers
-   a message, its JSON payload is expected to look like:
+   Payload-driven: a plain push payload is expected to look like:
      { "title": "...", "body": "...", "url": "/account.html",
        "icon": "/assets/icon-192.png" }
-   Anything missing falls back to the defaults below. There is
-   deliberately NO subscription logic, NO permission prompt and
-   NO messaging keys in this pass; this is the receiving end so
-   notifications never have to be retrofitted later.
+   Anything missing falls back to the defaults below. FCM
+   messages are handled by the messaging layer at the top and
+   are SKIPPED here (see looksLikeFcmMessage) so the customer
+   never sees the same notification twice.
    ============================================================ */
 
 var PUSH_DEFAULTS = {
@@ -131,6 +182,24 @@ var PUSH_DEFAULTS = {
   icon: "/assets/icon-192.png"
 };
 
+/* FCM web-push payloads are recognizable: a "from" field (the
+   sender id), keys namespaced "google." / "gcm." added by the
+   FCM backend, or the notification + fcmOptions pairing our
+   sender produces. When the messaging layer above is active it
+   owns those messages; showing them here too would double up. */
+function looksLikeFcmMessage(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.from) return true;
+  var keys = Object.keys(data);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (k.indexOf("google.") === 0 || k.indexOf("gcm.") === 0 ||
+        k.indexOf("firebase-messaging") === 0) return true;
+  }
+  if (data.fcmOptions && data.notification) return true;
+  return false;
+}
+
 self.addEventListener("push", function (event) {
   var data = {};
   if (event.data) {
@@ -139,6 +208,9 @@ self.addEventListener("push", function (event) {
       try { data = { body: event.data.text() }; } catch (e2) { data = {}; }
     }
   }
+  /* FCM message: the messaging layer's onBackgroundMessage
+     handler shows it. Stay silent here to avoid duplicates. */
+  if (PG_FCM_ACTIVE && looksLikeFcmMessage(data)) return;
   var title = data.title || PUSH_DEFAULTS.title;
   var url = data.url || PUSH_DEFAULTS.url;
   var options = {
