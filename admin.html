@@ -226,6 +226,105 @@
   .pg-light .hl-photo-badge { background:#d9e8f6; color:#0b4778; }
   .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
   @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 20px 18px 24px; } }
+
+  /* ============================================================
+     BOOKS RESKIN (admin v23) — PrimeGuard Books design language
+     applied to the admin dashboard. Purely visual: no ids,
+     classes, markup or handlers changed; every rule below only
+     restyles existing hooks. Where Books uses green for money
+     commands, the admin uses GOLD (per Edwin, Oct 15).
+     Books tokens adopted: ink #141414 / ink-deep #0d0d0f,
+     gold #c9a227, gold-bright #f5c542, gold-deep #8a6d14,
+     gold-soft #fdf6dd, warm page #f6f5f1, warm line #e5e2d8,
+     card radius 14px, stat .v 750 weight / -.02em / tabular,
+     ledger row hairline #f2f0e8, soft shadow
+     0 1px 3px rgba(20,20,20,.07), 0 4px 14px rgba(20,20,20,.05),
+     focus ring rgba(201,162,39,.4), type stack
+     "Avenir Next","Segoe UI",system-ui.
+     ============================================================ */
+
+  /* Books type stack for the admin (headings keep the site display face) */
+  body { font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,"Inter",sans-serif; }
+
+  /* Layout rhythm: Books' 1120px measure + 14px-gap breathing room */
+  .awrap { max-width:1120px; }
+  .asec { padding-top:28px; }
+  .asec h2 { letter-spacing:-.01em; }
+
+  /* Top bar: Books' bar gets its 2px gold rule underneath */
+  .atop { border-bottom:2px solid rgba(201,162,75,.55); }
+
+  /* Cards: Books treatment — 14px radius, warm gold hairline, soft layered shadow */
+  .acard { background:linear-gradient(180deg,#151517,#101012); border-color:rgba(201,162,75,.14); border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.35); padding:22px; }
+  .acard h3 { font-size:17px; letter-spacing:-.01em; }
+  .acard .sub, .sub { line-height:1.5; }
+
+  /* Stat tiles: Books .stat pattern — capped label, big tabular numeral */
+  .astats { gap:14px; margin:22px 0 8px; }
+  .astat { background:#151517; border-color:rgba(201,162,75,.14); border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25); padding:16px 18px; }
+  .astat .l { font-size:.72rem; letter-spacing:.08em; }
+  .astat .v { font-size:1.75rem; font-weight:750; letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin-top:3px; }
+
+  /* Ledger rows: Books table rhythm on the .arow lists */
+  .arow { padding:11px 6px; border-bottom-color:rgba(255,255,255,.055); font-variant-numeric:tabular-nums; }
+  .arow:last-child { border-bottom:none; }
+
+  /* Active tab: Books tabs — ink surface, gold text (commands stay gold) */
+  .atab.active { background:#0d0d0f; color:var(--gold-bright); border-color:rgba(201,162,75,.5); box-shadow:0 2px 10px rgba(0,0,0,.35); }
+  .outcome-btn.active { background:#0d0d0f; color:var(--gold-bright); border-color:rgba(201,162,75,.5); }
+
+  /* Pills: Books pill metrics */
+  .pill { text-transform:none; letter-spacing:.02em; font-size:.72rem; padding:3px 10px; }
+
+  /* .btn-sm existed in the markup with no metrics — Books .btn.small sizing */
+  .btn-sm, .btn-ghost.btn-sm, .btn-gold.btn-sm { padding:7px 15px; font-size:.83rem; }
+
+  /* Secondary buttons pick up Books' warm gold hairline */
+  .btn-ghost { border-color:rgba(201,162,75,.35); }
+
+  /* Modals: Books card radius + deep soft shadow */
+  .modal { border-radius:16px; border-color:rgba(201,162,75,.30); box-shadow:0 18px 50px rgba(0,0,0,.5); }
+  .modal h3 { letter-spacing:-.01em; }
+
+  /* Inner modal panels: Books inset card (lifted surface, warm hairline) */
+  .sr-card { background:rgba(255,255,255,.045); border-color:rgba(201,162,75,.14); border-radius:14px; }
+  .sr-card h4 { font-size:.8rem; }
+  .sr-comment { background:rgba(255,255,255,.045); border-radius:0 12px 12px 0; }
+
+  /* Calendar editor: Books modal shadow (grid rules stay in the cal2 block below) */
+  #cal2Modal .cal2-modal-card { box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  .cal2-nav { border-radius:9px; }
+  .cal2-nav:hover { border-color:var(--gold); }
+  .cal2-dayitem:hover { border-color:var(--gold); }
+
+  /* Drawer + bell: Books radius language */
+  #pgNavDrawer { box-shadow:24px 0 60px rgba(0,0,0,.55), 0 0 0 1px rgba(201,162,75,.12); }
+  #pgBellPanel { border-radius:14px; }
+
+  /* Login card: Books gate-card (radius, surface, deep soft shadow) */
+  .auth-card { background:linear-gradient(180deg,#151517,#101012); border:1px solid rgba(201,162,75,.16); border-radius:22px; box-shadow:0 18px 50px rgba(0,0,0,.45); padding:28px; }
+
+  /* ---------- Books reskin, light theme: warm off-white canvas, white cards, warm hairlines ---------- */
+  :root.pg-light { --bg:#f6f5f1; --line-soft:#e5e2d8; }
+  .pg-light body { background:#f6f5f1; background-color:#f6f5f1; }
+  .pg-light .atop { background:rgba(246,245,241,.82); border-bottom:2px solid rgba(201,162,39,.6); }
+  .pg-light .acard { background:#ffffff; border-color:#e5e2d8; box-shadow:0 1px 3px rgba(20,20,20,.07), 0 4px 14px rgba(20,20,20,.05); }
+  .pg-light .astat { background:#ffffff; border-color:#e5e2d8; box-shadow:0 1px 3px rgba(20,20,20,.07), 0 4px 14px rgba(20,20,20,.05); }
+  .pg-light .arow { border-bottom-color:#f2f0e8; }
+  .pg-light .atabs { background:#edebe2; }
+  .pg-light .atab.active { background:#0d0d0f; border-color:#0d0d0f; color:#f5c542; box-shadow:0 2px 10px rgba(20,20,20,.25); }
+  .pg-light .outcome-btn.active { background:#0d0d0f; border-color:#0d0d0f; color:#f5c542; }
+  .pg-light .modal { border-color:#e5e2d8; box-shadow:0 18px 50px rgba(20,20,20,.22); }
+  .pg-light .sr-card, .pg-light .sr-comment { background:#faf9f5; border-color:#e5e2d8; }
+  .pg-light #pgNavDrawer { border-right-color:#e5e2d8; }
+  .pg-light .pg-nav-head { border-bottom-color:#e5e2d8; }
+  .pg-light .pg-nav-foot { border-top-color:#e5e2d8; }
+  .pg-light .pg-nav-item:hover { background:#fdf6dd; }
+  .pg-light #pgBellPanel { border-color:#e5e2d8; }
+  .pg-light .pg-bell-head { border-bottom-color:#e5e2d8; }
+  .pg-light .pg-bell-item { border-bottom-color:#f2f0e8; }
+  .pg-light #cal2Modal .cal2-modal-card { border-color:#e5e2d8; box-shadow:0 18px 50px rgba(20,20,20,.25); }
+  .pg-light .auth-card { background:#ffffff; border-color:#e5e2d8; box-shadow:0 18px 50px rgba(20,20,20,.18); }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
