@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=25">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b0b0d">
@@ -209,6 +209,9 @@
 <!-- ================= HEADER ================= -->
 <header class="site-header" id="siteHeader">
   <div class="wrap header-inner">
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
     <a class="brand" href="#top" aria-label="PrimeGuard Preservation LLC. Home">
       <img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation LLC logo" class="brand-logo">
       <span class="brand-text">PrimeGuard <span>Preservation LLC</span></span>
@@ -229,9 +232,6 @@
         <button type="button" data-lang="es">ES</button>
       </div>
       <button class="btn btn-ghost btn-auth" data-auth-open aria-label="Log in to your account" data-i18n-aria="login_aria"><span id="authBtnLabel" data-i18n="login">Log in</span></button>
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
 </header>
@@ -647,7 +647,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=17"></script>
-<script src="site.js?v=30"></script>
+<script src="site.js?v=31"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
