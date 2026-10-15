@@ -211,8 +211,10 @@
   .hl-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:linear-gradient(135deg,#e8bd4e,#c9982f); margin-right:8px; box-shadow:0 0 8px rgba(201,162,75,.8); vertical-align:1px; }
   .hl-stage-sel { padding:7px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-size:.8rem; font-family:inherit; cursor:pointer; }
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
-  .sr-modal #hlNoteBody, .sr-modal #hlFormBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody { padding: 20px 18px 24px; } }
+  .hl-photo-badge { font-size:.72rem; background:rgba(120,180,255,.14); color:#a9c8ff; border-radius:999px; padding:4px 10px; font-weight:700; white-space:nowrap; }
+  .pg-light .hl-photo-badge { background:#d9e8f6; color:#0b4778; }
+  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 20px 18px 24px; } }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
@@ -395,6 +397,14 @@
     <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="hlFormTitle">
       <button class="modal-close" id="hlFormClose" aria-label="Close">×</button>
       <div id="hlFormBody"></div>
+    </div>
+  </div>
+
+  <!-- Hot lead convert-to-quote-request modal (after the notes/form modals so it stacks on top) -->
+  <div class="modal-overlay hidden" id="hlConvertModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="hlConvertTitle">
+      <button class="modal-close" id="hlConvertClose" aria-label="Close">×</button>
+      <div id="hlConvertBody"></div>
     </div>
   </div>
 
@@ -595,7 +605,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=20"></script>
+<script src="admin.js?v=21"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
