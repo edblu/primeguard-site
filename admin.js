@@ -1051,3 +1051,124 @@
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
   });
 })();
+
+// ---------- Calendar: create color-coded appointments (Google Calendar API) ----------
+(function () {
+  var form = document.getElementById("cal-form");
+  if (!form) return;
+  var CAL_ID = "48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com";
+  var CLIENT_ID = "1031375547061-mlni2m610tne83odo52honlp9af47rnk.apps.googleusercontent.com";
+  var accessToken = null;
+  var tokenClient = null;
+
+  function msg(text) {
+    document.getElementById("cal-msg").textContent = text;
+  }
+  function loadGis() {
+    return new Promise(function (resolve, reject) {
+      if (window.google && google.accounts && google.accounts.oauth2) return resolve();
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error("Could not load Google sign-in.")); };
+      document.head.appendChild(s);
+    });
+  }
+  function ensureToken() {
+    return loadGis().then(function () {
+      return new Promise(function (resolve, reject) {
+        if (!tokenClient) {
+          tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: "https://www.googleapis.com/auth/calendar.events",
+            callback: function (resp) {
+              if (resp && resp.access_token) {
+                accessToken = resp.access_token;
+                resolve(accessToken);
+              }
+            },
+            error_callback: function () {
+              reject(new Error("Google sign-in was closed or blocked."));
+            },
+          });
+        }
+        tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+      });
+    });
+  }
+  function createEvent(token, ev) {
+    return fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(CAL_ID) + "/events",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ev),
+      }
+    ).then(function (r) {
+      if (r.status === 401) {
+        accessToken = null;
+        throw new Error("EXPIRED");
+      }
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error("Google Calendar said " + r.status + ". " + (r.status === 403 || r.status === 404 ? "Your Google account may not have edit access to the PrimeGuard calendar yet. Edwin can share it with edit access from Google Calendar settings." : t.slice(0, 160)));
+        });
+      }
+      return r.json();
+    });
+  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var title = document.getElementById("cal-title").value.trim();
+    var typeName = document.getElementById("cal-type").selectedOptions[0].textContent.replace(/^\S+\s/, "");
+    var colorId = document.getElementById("cal-type").value;
+    var date = document.getElementById("cal-date").value;
+    var start = document.getElementById("cal-start").value;
+    var end = document.getElementById("cal-end").value;
+    var addr = document.getElementById("cal-addr").value.trim();
+    var notes = document.getElementById("cal-notes").value.trim();
+    if (!title || !date || !start || !end) {
+      msg("Fill in the title, date, and both times.");
+      return;
+    }
+    if (end <= start) {
+      msg("End time has to be after the start time.");
+      return;
+    }
+    var ev = {
+      summary: title + " (" + typeName.replace(/\s*\(.*\)\s*$/, "") + ")",
+      location: addr || undefined,
+      description: notes || undefined,
+      colorId: colorId,
+      start: { dateTime: date + "T" + start + ":00", timeZone: "America/New_York" },
+      end: { dateTime: date + "T" + end + ":00", timeZone: "America/New_York" },
+    };
+    var btn = document.getElementById("cal-create-btn");
+    btn.disabled = true;
+    msg("Adding to the calendar...");
+    ensureToken()
+      .then(function (token) { return createEvent(token, ev); })
+      .catch(function (err) {
+        if (err && err.message === "EXPIRED") {
+          return ensureToken().then(function (token) { return createEvent(token, ev); });
+        }
+        throw err;
+      })
+      .then(function () {
+        msg("Added. It shows on the calendar below in its service color (give it a few seconds, or reload the page).");
+        if (typeof logActivity === "function") logActivity("Added a calendar appointment: " + ev.summary);
+        var frame = document.getElementById("cal-frame");
+        if (frame) { var src = frame.src; frame.src = src; }
+        form.reset();
+        document.getElementById("cal-start").value = "09:00";
+        document.getElementById("cal-end").value = "10:00";
+      })
+      .catch(function (err) {
+        msg(err && err.message ? err.message : "Something went wrong adding that appointment.");
+      })
+      .then(function () { btn.disabled = false; });
+  });
+})();
