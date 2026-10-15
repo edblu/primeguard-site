@@ -170,10 +170,26 @@
     } catch (e) { return 0; }
   }
 
+  // Staff-only "Admin dashboard" entry: visible when a staff/{uid} doc exists
+  // or for the owner account; stays hidden for regular customers and on any error.
+  function checkStaffEntry(user) {
+    var btn = $("pgAdminBtn");
+    if (!btn) return;
+    hide(btn);
+    if (!user) return;
+    try {
+      if (user.email === "edblucorp@gmail.com") { show(btn); return; }
+      db.collection("staff").doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) show(btn);
+      }).catch(function () { /* leave hidden */ });
+    } catch (e) { /* leave hidden */ }
+  }
+
   // Auth state
   auth.onAuthStateChanged(function (user) {
     if (user) {
       hide(authForms); hide($("account-hero-static")); show(dashboard);
+      checkStaffEntry(user);
       var ref = db.collection("customers").doc(user.uid);
       ref.get().then(function (snap) {
         var d = snap.exists ? snap.data() : {};
@@ -198,6 +214,7 @@
       loadRequests(user.uid); loadJobs(user.uid); loadExtras(user);
     } else {
       show(authForms); show($("account-hero-static")); hide(dashboard);
+      checkStaffEntry(null);
     }
   });
 
