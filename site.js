@@ -14,8 +14,9 @@
      below (this file's i18n pass would overwrite their page titles
      and meta). They set
      window.__PG_PWA_ONLY__ before loading site.js so they receive only
-     the PWA install module at the bottom of this file. Every other page
-     leaves the flag unset and is completely unaffected. */
+     the standalone modules at the bottom of this file (mobile nav
+     drawer + PWA install). Every other page leaves the flag unset
+     and is completely unaffected. */
   if (window.__PG_PWA_ONLY__) return;
   var cfg = window.SITE_CONFIG || {};
 
@@ -549,27 +550,10 @@
     } catch (e) { /* poster image shows instead */ }
   }
 
-  /* ---------- Mobile hamburger menu ---------- */
-  var toggle = document.getElementById("navToggle");
-  var nav = document.getElementById("mainNav");
-  function closeMenu() {
-    nav.classList.remove("open");
-    toggle.classList.remove("open");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open menu");
-  }
-  toggle.addEventListener("click", function () {
-    var isOpen = nav.classList.toggle("open");
-    toggle.classList.toggle("open", isOpen);
-    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    toggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
-  });
-  nav.querySelectorAll("a").forEach(function (link) {
-    link.addEventListener("click", closeMenu);
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeMenu();
-  });
+  /* ---------- Mobile hamburger menu ----------
+     Wired by the standalone nav-drawer module at the bottom of this
+     file (it must also run on the PWA-only pages, which skip this
+     IIFE). Nothing to do here. */
 
   /* ---------- Scroll-reveal animations ---------- */
   var revealEls = document.querySelectorAll(".reveal");
@@ -1683,6 +1667,66 @@
   renderPlanPrices();
   if (!plans.length && plansSection) plansSection.style.display = "none";
   applyI18n();
+})();
+
+/* ============================================================
+   Mobile nav drawer (hamburger -> left slide-over)
+   ------------------------------------------------------------
+   - The round gold-on-black toggle sits LEFT of the brand and
+     opens #mainNav as a left drawer over a dimmed backdrop —
+     the same pattern as LoraLedger and the admin dashboard.
+   - Self-contained and deliberately OUTSIDE the main IIFE above:
+     account.html and quote.html load site.js in PWA-only mode
+     (the main IIFE returns early for them), and their hamburger
+     must still work. account.js / vendor.js no longer wire the
+     toggle themselves.
+   - Pages without #navToggle / #mainNav (admin, vendor
+     dashboard) simply skip everything below.
+   ============================================================ */
+(function () {
+  var toggle = document.getElementById("navToggle");
+  var nav = document.getElementById("mainNav");
+  if (!toggle || !nav) return;
+
+  var backdrop = document.getElementById("navBackdrop");
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id = "navBackdrop";
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.appendChild(backdrop);
+  }
+
+  function isOpen() { return nav.classList.contains("open"); }
+  function openMenu() {
+    nav.classList.add("open");
+    toggle.classList.add("open");
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-label", "Close menu");
+    backdrop.classList.add("show");
+    document.body.classList.add("nav-open");
+  }
+  function closeMenu() {
+    nav.classList.remove("open");
+    toggle.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open menu");
+    backdrop.classList.remove("show");
+    document.body.classList.remove("nav-open");
+  }
+
+  toggle.addEventListener("click", function () {
+    if (isOpen()) closeMenu(); else openMenu();
+  });
+  backdrop.addEventListener("click", closeMenu);
+  nav.querySelectorAll("a").forEach(function (link) {
+    link.addEventListener("click", closeMenu);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeMenu();
+  });
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 1024) closeMenu();
+  });
 })();
 
 /* ============================================================
