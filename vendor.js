@@ -1,18 +1,50 @@
 // PrimeGuard vendor registration (Firebase Auth + Firestore).
 (function () {
-  // Mobile hamburger menu (runs even if Firebase config is missing)
+  // Mobile hamburger menu -> left drawer (runs even if Firebase
+  // config is missing). This page does not load site.js, so the
+  // drawer wiring lives here; it mirrors site.js's standalone
+  // nav-drawer module exactly (backdrop, scroll lock, Escape,
+  // close on resize past the mobile breakpoint).
   (function () {
     var toggle = document.getElementById("navToggle"), nav = document.getElementById("mainNav");
-    if (toggle && nav) {
-      toggle.addEventListener("click", function () {
-        var isOpen = nav.classList.toggle("open");
-        toggle.classList.toggle("open", isOpen);
-        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      });
-      nav.querySelectorAll("a").forEach(function (l) {
-        l.addEventListener("click", function () { nav.classList.remove("open"); toggle.classList.remove("open"); });
-      });
+    if (!toggle || !nav) return;
+    var backdrop = document.getElementById("navBackdrop");
+    if (!backdrop) {
+      backdrop = document.createElement("div");
+      backdrop.id = "navBackdrop";
+      backdrop.setAttribute("aria-hidden", "true");
+      document.body.appendChild(backdrop);
     }
+    function isOpen() { return nav.classList.contains("open"); }
+    function openMenu() {
+      nav.classList.add("open");
+      toggle.classList.add("open");
+      toggle.setAttribute("aria-expanded", "true");
+      toggle.setAttribute("aria-label", "Close menu");
+      backdrop.classList.add("show");
+      document.body.classList.add("nav-open");
+    }
+    function closeMenu() {
+      nav.classList.remove("open");
+      toggle.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-label", "Open menu");
+      backdrop.classList.remove("show");
+      document.body.classList.remove("nav-open");
+    }
+    toggle.addEventListener("click", function () {
+      if (isOpen()) closeMenu(); else openMenu();
+    });
+    backdrop.addEventListener("click", closeMenu);
+    nav.querySelectorAll("a").forEach(function (l) {
+      l.addEventListener("click", closeMenu);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeMenu();
+    });
+    window.addEventListener("resize", function () {
+      if (window.innerWidth > 1024) closeMenu();
+    });
   })();
 
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
