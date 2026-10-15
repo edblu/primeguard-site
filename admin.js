@@ -431,6 +431,15 @@
     ["cold", "Cold", "p-cold"]
   ];
   var HL_SOURCES = ["Marketplace", "Instagram", "Website", "Referral", "Phone", "Other"];
+  // Temperature: how hot the lead is, independent of pipeline stage.
+  // [value, label, pill class], mirroring HL_STAGES. A lead with a
+  // missing/invalid temperature is treated as "hot" everywhere.
+  var HL_TEMPS = [
+    ["hot", "Hot", "p-hot"],
+    ["warm", "Warm", "p-warm"],
+    ["cold", "Cold", "p-cold"]
+  ];
+  var hlTempFilter = "all"; // active temperature filter chip: all|hot|warm|cold
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
@@ -442,6 +451,15 @@
   function hlStageMeta(stage) {
     for (var i = 0; i < HL_STAGES.length; i++) if (HL_STAGES[i][0] === stage) return HL_STAGES[i];
     return HL_STAGES[0];
+  }
+  function hlTempMeta(temp) {
+    for (var i = 0; i < HL_TEMPS.length; i++) if (HL_TEMPS[i][0] === temp) return HL_TEMPS[i];
+    return HL_TEMPS[0];
+  }
+  function leadTemp(d) { return hlTempMeta((d && d.temperature) || "")[0]; }
+  function hlTempRank(d) {
+    var t = leadTemp(d);
+    return t === "hot" ? 0 : (t === "warm" ? 1 : 2);
   }
   function timeAgo(ms) {
     if (!ms) return "";
@@ -477,16 +495,43 @@
       box.innerHTML = '<p style="color:var(--faint)">Hot leads could not load yet. The database rules update may still need to be published.</p>';
     });
   }
+  function renderHlTempChips() {
+    var wrap = $("ad-hl-filters");
+    if (!wrap) return;
+    var counts = { all: hlLeads.length, hot: 0, warm: 0, cold: 0 };
+    hlLeads.forEach(function (it) { counts[leadTemp(it.d)]++; });
+    var defs = [["all", "All"]].concat(HL_TEMPS.map(function (t) { return [t[0], t[1]]; }));
+    wrap.innerHTML = defs.map(function (df) {
+      return '<button type="button" class="hl-chip' + (hlTempFilter === df[0] ? " active" : "") +
+        '" data-hltempfilter="' + df[0] + '">' + df[1] + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
+    }).join("");
+  }
   function renderHotLeads() {
     var box = $("ad-hl-list");
     if (!box) return;
+    renderHlTempChips();
     if (!hlLeads.length) {
       box.innerHTML = '<p style="color:var(--faint)">No hot leads yet. When a customer conversation gets serious, add it here with the Add lead button so the whole team can work it.</p>';
       return;
     }
+    var visible = hlLeads.filter(function (it) {
+      return hlTempFilter === "all" || leadTemp(it.d) === hlTempFilter;
+    });
     box.innerHTML = "";
+    if (!visible.length) {
+      box.innerHTML = '<p style="color:var(--faint)">No ' + esc(hlTempMeta(hlTempFilter)[1].toLowerCase()) + ' leads right now. Pick another temperature above to see the rest of the pipeline.</p>';
+      return;
+    }
     HL_STAGES.forEach(function (st) {
-      var rows = hlLeads.filter(function (it) { return (it.d.stage || "new") === st[0]; });
+      var rows = visible.filter(function (it) { return (it.d.stage || "new") === st[0]; });
+      // With a temperature filter on, stages with nothing visible drop out;
+      // per-stage counts below are the filtered counts.
+      if (!rows.length && hlTempFilter !== "all") return;
+      // Hottest first within the stage, then newest first.
+      rows.sort(function (a, b) {
+        var dr = hlTempRank(a.d) - hlTempRank(b.d);
+        return dr || (tsMs(b.d.createdAt) - tsMs(a.d.createdAt));
+      });
       var head = document.createElement("h4");
       head.className = "hl-stage-head";
       head.innerHTML = esc(st[1]) + ' <span class="cnt">· ' + rows.length + "</span>";
@@ -503,8 +548,12 @@
         var whenMs = tsMs(d.createdAt);
         var when = whenMs ? new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
         var photoCount = Array.isArray(d.photos) ? d.photos.length : 0;
+        var tm = hlTempMeta(leadTemp(d));
         var opts = HL_STAGES.map(function (s) {
           return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+        }).join("");
+        var tempOpts = HL_TEMPS.map(function (s) {
+          return '<option value="' + s[0] + '"' + (leadTemp(d) === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
         }).join("");
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + (d.seen ? "" : '<span class="hl-dot" title="Unseen"></span>') + esc(d.name || "Lead") + "</strong><small>" +
@@ -513,7 +562,9 @@
           '<span class="pill p-acc">' + esc(d.source || "Other") + "</span>" +
           (photoCount ? ' <span class="hl-photo-badge" title="Photos on this lead">📷 ' + photoCount + "</span>" : "") +
           '<span class="pill ' + st[2] + '">' + esc(st[1]) + "</span>" +
+          '<span class="pill ' + tm[2] + '">' + esc(tm[1]) + "</span>" +
           '<select class="hl-stage-sel" data-hlstage="' + it.id + '" aria-label="Move stage">' + opts + "</select>" +
+          '<select class="hl-stage-sel" data-hltemp="' + it.id + '" aria-label="Set temperature">' + tempOpts + "</select>" +
           ' <button class="mini" data-hlnotes="' + it.id + '">Notes</button>' +
           ' <button class="mini" data-hledit="' + it.id + '">Edit</button>' +
           ' <button class="mini" data-callead="' + it.id + '">Add to calendar</button>' +
@@ -534,9 +585,19 @@
       loadHotLeads();
     }).catch(function (e) { alert("Could not move lead: " + (e.message || e)); loadHotLeads(); });
   }
+  function hlTempChanged(id, temp) {
+    db.collection("hot_leads").doc(id).update({
+      temperature: temp,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      logActivity("Set hot lead temperature to " + hlTempMeta(temp)[1]);
+      loadHotLeads();
+    }).catch(function (e) { alert("Could not set temperature: " + (e.message || e)); loadHotLeads(); });
+  }
   document.addEventListener("change", function (e) {
     var t = e.target;
     if (t && t.dataset && t.dataset.hlstage) hlStageChanged(t.dataset.hlstage, t.value);
+    if (t && t.dataset && t.dataset.hltemp) hlTempChanged(t.dataset.hltemp, t.value);
   });
 
   /* ----- Add / edit lead form ----- */
@@ -551,14 +612,18 @@
     var stOpts = HL_STAGES.map(function (s) {
       return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
     }).join("");
+    var tempOpts = HL_TEMPS.map(function (s) {
+      return '<option value="' + s[0] + '"' + (leadTemp(d) === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+    }).join("");
     $("hlFormBody").innerHTML = '<h3 id="hlFormTitle">' + (id ? "Edit lead" : "Add lead") + "</h3>" +
       '<form id="hlForm" class="aform" style="margin-top:10px">' +
       '<label>Name<input type="text" id="hl-f-name" required placeholder="Customer name" value="' + esc(d.name || "") + '"></label>' +
       '<label>Contact<input type="text" id="hl-f-contact" placeholder="Phone, Messenger name, or handle" value="' + esc(d.contact || "") + '"></label>' +
       '<div class="row2"><label>Source<select id="hl-f-source">' + srcOpts + "</select></label>" +
       '<label>Stage<select id="hl-f-stage">' + stOpts + "</select></label></div>" +
-      '<div class="row2"><label>Service<input type="text" id="hl-f-service" placeholder="Lawn care, cleanup…" value="' + esc(d.service || "") + '"></label>' +
-      '<label>Area<input type="text" id="hl-f-area" placeholder="Kendall, Richmond Heights…" value="' + esc(d.area || "") + '"></label></div>' +
+      '<div class="row2"><label>Temperature<select id="hl-f-temp">' + tempOpts + "</select></label>" +
+      '<label>Service<input type="text" id="hl-f-service" placeholder="Lawn care, cleanup…" value="' + esc(d.service || "") + '"></label></div>' +
+      '<label>Area<input type="text" id="hl-f-area" placeholder="Kendall, Richmond Heights…" value="' + esc(d.area || "") + '"></label>' +
       '<label>Full street address<input type="text" id="hl-f-address" placeholder="123 Main St, Miami, FL 33101" value="' + esc(d.address || "") + '"></label>' +
       '<label>Notes<textarea id="hl-f-notes" rows="3" placeholder="What they asked, what was quoted, what is next…">' + esc(d.notes || "") + "</textarea></label>" +
       '<label>Media links<textarea id="hl-f-media" rows="2" placeholder="One link per line: property videos, shared photo albums, Drive links the customer sent…">' + esc((Array.isArray(d.mediaLinks) ? d.mediaLinks : []).join("\n")) + "</textarea></label>" +
@@ -620,6 +685,7 @@
       area: $("hl-f-area").value.trim(),
       address: $("hl-f-address").value.trim(),
       stage: $("hl-f-stage").value,
+      temperature: $("hl-f-temp").value,
       notes: $("hl-f-notes").value.trim(),
       mediaLinks: mediaLinks,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -688,13 +754,14 @@
       var d = snap.data();
       hlNoteId = id; hlNoteData = d; hlOutcome = "";
       var st = hlStageMeta(d.stage || "new");
+      var tm = hlTempMeta(leadTemp(d));
       var whenMs = tsMs(d.createdAt);
       var photos = Array.isArray(d.photos) ? d.photos : [];
       var mediaLinks = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
       var convMs = tsMs(d.convertedAt);
       var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
       var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
-        '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
+        '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill ' + tm[2] + '">' + esc(tm[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
         esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
         (d.address ? " · " + esc(d.address) : "") +
         (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
@@ -712,6 +779,7 @@
         '<div class="sr-card"><h4>History</h4>' +
         '<p><strong>Added:</strong> ' + esc(fullDate(whenMs)) + (d.createdBy ? " by " + esc(d.createdBy) : "") + '</p>' +
         '<p><strong>Stage:</strong> ' + esc(st[1]) + '</p>' +
+        '<p><strong>Temperature:</strong> ' + esc(tm[1]) + '</p>' +
         '<p><strong>Photos:</strong> ' + photos.length + ' · <strong>Media links:</strong> ' + mediaLinks.length + '</p>' +
         (d.convertedWorkOrderId
           ? '<p><strong>Quote request:</strong> converted' + (convMs ? " " + esc(fullDate(convMs)) : "") + '</p>' +
@@ -1330,6 +1398,7 @@
   function renderRequestModal() {
     var r = srData, box = $("srBody");
     var photos = Array.isArray(r.photos) ? r.photos : [];
+    var videos = Array.isArray(r.videos) ? r.videos : [];
     var comments = Array.isArray(r.comments) ? r.comments : [];
     var h = '<h3 id="srTitle">' + esc(r.service || "Service request") +
       (r.frequency ? " - " + esc(r.frequency) : "") + '</h3>' +
@@ -1353,6 +1422,21 @@
         photos.map(function (u) {
           return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="request photo" loading="lazy"></a>';
         }).join("") + '</div></div>';
+    }
+    if (videos.length || r.videoLink) {
+      // Mirrors the lead media-links guard: only http(s) values become
+      // anchors; anything else renders as plain text.
+      var vids = videos.map(function (u, i) {
+        return /^https?:\/\//i.test(u)
+          ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">🎬 Video ' + (i + 1) + "</a>"
+          : "🎬 Video " + (i + 1) + ": " + esc(u);
+      });
+      if (r.videoLink) {
+        vids.push(/^https?:\/\//i.test(r.videoLink)
+          ? '<a href="' + esc(r.videoLink) + '" target="_blank" rel="noopener">🎬 Customer\'s video link</a>'
+          : "🎬 Customer's video link: " + esc(r.videoLink));
+      }
+      h += '<div class="sr-card"><h4>Videos (' + vids.length + ')</h4><p>' + vids.join("<br>") + "</p></div>";
     }
     h += '<div class="sr-card"><h4>Evaluation</h4>' +
       '<div class="sr-row"><label>Status<br><select id="srStatus">' +
@@ -1812,6 +1896,7 @@
       else if (fp[0] === "work_order") openWorkOrderNotes(fp[1]);
       else if (fp[0] === "hot_lead") openHotLeadNotes(fp[1]);
     }
+    if (d.hltempfilter) { hlTempFilter = d.hltempfilter; renderHotLeads(); }
     if (d.hlnotes) openHotLeadNotes(d.hlnotes);
     if (d.hledit) openHotLeadForm(d.hledit);
     if (d.hldel) deleteHotLead(d.hldel);
