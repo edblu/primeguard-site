@@ -188,6 +188,18 @@
   .rw-photo-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px dashed #e0d2b0; border-radius: 12px; padding: 14px; color: #8a7a5f; font-weight: 700; font-size: .86rem; width: 100%; background: #fff; cursor: pointer; font-family: inherit; }
   .rw-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .rw-thumbs img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #e0d2b0; }
+  .rw-body input[type="text"] { width: 100%; border: 1.5px solid #e0d2b0; border-radius: 12px; padding: 12px 13px; font-size: .9rem; font-family: inherit; background: #fff; color: #3d3225; box-sizing: border-box; }
+  .rw-body input[type="text"]:focus { outline: none; border-color: #c98f1b; box-shadow: 0 0 0 3px rgba(201,143,27,.15); }
+  .rw-vid-list { font-size: .8rem; color: #8a7a5f; margin-top: 8px; line-height: 1.5; }
+  .rw-vid-msg { font-size: .82rem; color: #b3541e; margin: 8px 0 0; line-height: 1.5; }
+  /* Request-card media (photos/videos on existing requests) */
+  .req-vids { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .req-vids a { color: #ffd873; font-size: .78rem; font-weight: 700; text-decoration: none; border: 1px solid rgba(255,200,90,.4); padding: 4px 10px; border-radius: 999px; }
+  .req-media-panel { border: 1px solid rgba(255,200,90,.25); border-radius: 14px; padding: 14px; margin: 2px 0 12px; background: rgba(0,0,0,.25); }
+  .req-media-panel label { display: block; font-size: .82rem; font-weight: 700; color: #f5f1e6; margin-bottom: 10px; }
+  .req-media-panel input { display: block; margin-top: 6px; width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid #4a4232; background: #1d1d20; color: #f5f1e6; font-size: .88rem; font-family: inherit; }
+  .req-media-msg { font-size: .82rem; color: #ffd873; margin: 2px 0 10px; }
+  .req-media-btns { display: flex; gap: 8px; align-items: center; }
   .rw-how { background: linear-gradient(150deg, #2a2118, #4a3a22); color: #f2e8d2; border-radius: 16px; padding: 13px 15px; font-size: .82rem; line-height: 1.55; margin-bottom: 12px; }
   .rw-how strong { color: #ffd873; }
   .rw-rev { background: #fff; border: 1px solid #ecdfc2; border-radius: 16px; padding: 15px; margin-bottom: 12px; }
@@ -419,7 +431,20 @@
         <div class="rw-bene"><h4>What's included</h4><ul id="rwBenefits"></ul></div>
         <div class="rw-how">📌 <strong>How it works:</strong> send your request here → we confirm details &amp; price with you → nothing is scheduled until you approve it.</div>
         <div class="rw-panel">
-          <h4>How often?</h4>
+          <label class="rw-f" for="rwDetails" style="margin-top:0">Tell us exactly what you want done</label>
+          <textarea id="rwDetails" rows="6" placeholder="Tell us exactly what you want done: what needs doing, where on the property, how big the area is, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote."></textarea>
+          <label class="rw-f">Show us <span class="opt">(optional)</span></label>
+          <p class="rw-hint">Show us: add photos or a short video of the area so we can see exactly what you mean.</p>
+          <button class="rw-photo-btn" id="rwPhotoBtn" type="button">📷 &nbsp;Add photos</button>
+          <input type="file" id="rwPhotos" accept="image/*" multiple class="hidden">
+          <div class="rw-thumbs" id="rwPreview"></div>
+          <button class="rw-photo-btn" id="rwVideoBtn" type="button" style="margin-top:10px">🎬 &nbsp;Add a video</button>
+          <input type="file" id="rwVideos" accept="video/*" multiple class="hidden">
+          <div class="rw-vid-list" id="rwVideoList"></div>
+          <p class="rw-vid-msg hidden" id="rwVideoMsg"></p>
+          <label class="rw-f" for="rwVideoLink">Or paste a video link <span class="opt">(optional)</span></label>
+          <input type="text" id="rwVideoLink" placeholder="Or paste a video link (Google Photos, iCloud, YouTube…)">
+          <h4 style="margin-top:18px">How often?</h4>
           <p class="rw-hint">One-time is perfect for trying us out.</p>
           <div class="rw-chips" id="rwFreq">
             <button class="rw-chip active" data-freq="One-time" type="button">One-time</button>
@@ -427,12 +452,6 @@
             <button class="rw-chip" data-freq="Biweekly" type="button">Biweekly</button>
             <button class="rw-chip" data-freq="Monthly" type="button">Monthly</button>
           </div>
-          <label class="rw-f" for="rwDetails">Tell us about the job</label>
-          <textarea id="rwDetails" rows="3" placeholder="e.g. Front and back yard, side gate on the left…"></textarea>
-          <label class="rw-f">Photos <span class="opt">(optional. Helps us quote accurately)</span></label>
-          <button class="rw-photo-btn" id="rwPhotoBtn" type="button">📷 &nbsp;Add photos</button>
-          <input type="file" id="rwPhotos" accept="image/*" multiple class="hidden">
-          <div class="rw-thumbs" id="rwPreview"></div>
         </div>
         <p class="form-error hidden" id="reqError"></p>
         <div class="rw-btnrow">
@@ -516,6 +535,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=7"></script>
+<script src="account.js?v=8"></script>
 </body>
 </html>
