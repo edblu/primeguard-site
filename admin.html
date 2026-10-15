@@ -347,8 +347,12 @@
   <div id="atab-calendar" class="hidden">
   <section class="asec" style="padding-bottom:60px">
     <h2>Calendar</h2>
-    <div class="acard">
-      <h3 style="margin-top:0">New appointment</h3>
+    <div class="acard" id="cal-form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <h3 style="margin:0">New appointment</h3>
+        <button type="button" class="btn btn-ghost btn-sm" id="cal-collapse-btn">Expand</button>
+      </div>
+      <div id="cal-form-body" class="hidden">
       <p class="sub">Adds a real event to the PrimeGuard calendar below, color-coded by service. Lawn is green, pressure washing is blue, estimates are orange. Whoever is signed in needs edit access to the calendar (Edwin has it; Natasha needs the calendar shared with her Google account with "Make changes" turned on).</p>
       <form id="cal-form" class="aform">
         <label>Customer / title
@@ -382,6 +386,7 @@
         <button type="submit" class="btn btn-gold" id="cal-create-btn">Add to calendar</button>
         <p id="cal-msg" class="sub" style="margin-top:10px"></p>
       </form>
+      </div>
     </div>
     <div class="acard">
       <p class="sub">The PrimeGuard calendar. Estimate appointments booked by phone land here automatically. If the calendar looks blank, it needs to be shared with your Google account first.</p>
@@ -446,7 +451,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=12"></script>
+<script src="admin.js?v=13"></script>
 <script>
 (function () {
   var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
