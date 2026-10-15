@@ -103,15 +103,39 @@ a { color: var(--gold-bright); }
 .header-actions .btn { white-space: nowrap; }
 .btn-call { white-space: nowrap; padding: 11px 26px; }
 
+/* Hamburger toggle: PrimeGuard family pattern (same round button as
+   LoraLedger + the admin dashboard) — matte black circle, gold bars,
+   gold ring with a soft glow on hover. First child of .header-inner,
+   so it sits LEFT of the brand. Hidden on desktop, shown <=1024px. */
 .nav-toggle {
-  display: none; flex-direction: column; justify-content: center; gap: 5px;
-  width: 44px; height: 44px; background: transparent; border: 1px solid var(--line-soft);
-  border-radius: 12px; cursor: pointer; padding: 0 11px;
+  display: none; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  position: relative; flex: 0 0 auto;
+  width: 46px; height: 46px; padding: 0;
+  background: #0b0b0d; border: 1px solid rgba(232, 189, 78, 0.45); border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.nav-toggle span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.25s ease, opacity 0.25s ease; }
+.nav-toggle:hover, .nav-toggle:focus-visible {
+  border-color: rgba(232, 189, 78, 0.9);
+  box-shadow: 0 0 0 3px rgba(232, 189, 78, 0.16), 0 0 18px rgba(232, 189, 78, 0.35), 0 2px 10px rgba(0, 0, 0, 0.45);
+  outline: none;
+}
+.nav-toggle span { display: block; width: 20px; height: 2px; background: #e8bd4e; border-radius: 2px; transition: transform 0.25s ease, opacity 0.25s ease; }
 .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav-toggle.open span:nth-child(2) { opacity: 0; }
 .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile nav drawer backdrop (element injected by site.js / vendor.js)
+   and the body scroll lock while the drawer is open. The backdrop sits
+   below the sticky header (z-index 100) so the toggle stays tappable. */
+#navBackdrop {
+  position: fixed; inset: 0; z-index: 95;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+}
+#navBackdrop.show { opacity: 1; pointer-events: auto; }
+body.nav-open { overflow: hidden; }
 
 /* ---------- Hero ---------- */
 .hero { position: relative; overflow: hidden; padding: 130px 0 120px; min-height: 92vh; display: flex; align-items: center; }
@@ -474,8 +498,49 @@ a { color: var(--gold-bright); }
 }
 
 @media (max-width: 1024px) {
-  /* hamburger nav (tablet + phone) */
-  .main-nav {
+  /* Hamburger nav (tablet + phone): LEFT slide-over drawer, the
+     PrimeGuard family pattern (LoraLedger + admin dashboard).
+     Scoped to #mainNav — the id only exists on the main site pages.
+     Layering inside the header's stacking context: toggle (z 130)
+     stays visible above the drawer (z 120); the JS-injected
+     #navBackdrop (z 95, body level) dims the page behind the header. */
+  .nav-toggle { display: flex; z-index: 130; }
+  #mainNav {
+    position: fixed; left: 0; top: 0; z-index: 120;
+    width: min(340px, 88vw); height: 100dvh;
+    flex-direction: column; align-items: stretch; gap: 4px;
+    background: linear-gradient(165deg, rgba(21, 21, 26, 0.99), rgba(10, 10, 13, 0.99));
+    border-right: 1px solid var(--line); border-radius: 0 20px 20px 0;
+    padding: 96px 18px 28px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    box-shadow: 30px 0 70px rgba(0, 0, 0, 0.55);
+    overflow-y: auto; overscroll-behavior: contain;
+    transform: translateX(-105%); visibility: hidden;
+    transition: transform 0.28s ease, visibility 0s linear 0.28s;
+  }
+  #mainNav.open { transform: none; visibility: visible; transition: transform 0.28s ease; }
+  /* Drawer header: brand wordmark beside the round toggle, gold rule under it. */
+  #mainNav::before {
+    content: "PrimeGuard";
+    position: absolute; top: 24px; left: 84px;
+    font-family: var(--display); font-size: 1.3rem; font-weight: 700;
+    letter-spacing: -0.01em; color: var(--text); line-height: 1;
+  }
+  #mainNav::after {
+    content: "";
+    position: absolute; top: 58px; left: 84px; width: 46px; height: 2px;
+    background: linear-gradient(90deg, var(--gold-bright), var(--gold));
+    border-radius: 2px;
+  }
+  #mainNav a:not(.btn) { padding: 13px 16px; border-radius: 12px; font-size: 1rem; }
+  #mainNav a:not(.btn):hover, #mainNav a:not(.btn):active { background: rgba(201, 162, 75, 0.1); }
+  .btn-nav-call { display: block; text-align: center; margin-top: 8px; }
+  #mainNav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
+  #mainNav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
+  .header-actions .btn-call { display: none; }
+  /* Legacy dropdown card, kept ONLY for .main-nav without #mainNav
+     (the services/* pages, which have no hamburger toggle). */
+  .main-nav:not(#mainNav) {
     position: fixed; top: 74px; left: 16px; right: 16px; z-index: 99;
     flex-direction: column; align-items: stretch; gap: 4px;
     background: rgba(13, 13, 16, 0.97);
@@ -485,14 +550,6 @@ a { color: var(--gold-bright); }
     opacity: 0; transform: translateY(-12px); pointer-events: none;
     transition: opacity 0.25s ease, transform 0.25s ease;
   }
-  .main-nav.open { opacity: 1; transform: none; pointer-events: auto; }
-  .main-nav a:not(.btn) { padding: 13px 16px; border-radius: 12px; font-size: 1rem; }
-  .main-nav a:not(.btn):hover, .main-nav a:not(.btn):active { background: rgba(201, 162, 75, 0.1); }
-  .btn-nav-call { display: block; text-align: center; margin-top: 8px; }
-  .main-nav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
-  .main-nav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }
-  .header-actions .btn-call { display: none; }
-  .nav-toggle { display: flex; }
 }
 
 @media (max-width: 760px) {
