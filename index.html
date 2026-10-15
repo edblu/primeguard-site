@@ -29,6 +29,25 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PrimeGuard">
+<style>
+/* ===== Get-the-app promo section (scoped) ===== */
+.pgapp-section{position:relative;padding:84px 0;overflow:hidden;background:radial-gradient(640px 340px at 16% 50%,rgba(201,162,75,.16),transparent 65%),linear-gradient(180deg,#0b0b0d 0%,#121215 55%,#0b0b0d 100%);border-top:1px solid rgba(201,162,75,.18);border-bottom:1px solid rgba(201,162,75,.12)}
+.pgapp-inner{display:grid;grid-template-columns:auto 1fr;gap:56px;align-items:center}
+.pgapp-visual{position:relative;display:flex;justify-content:center}
+.pgapp-visual::before{content:"";position:absolute;top:50%;left:50%;width:340px;height:340px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(201,162,75,.35),transparent 62%);pointer-events:none}
+.pgapp-icon{position:relative;width:200px;height:200px;border-radius:22.5%;box-shadow:0 30px 60px rgba(0,0,0,.55),0 0 0 1px rgba(201,162,75,.35),0 18px 44px rgba(201,162,75,.22)}
+.pgapp-copy h2{font-family:var(--display,'Sora',sans-serif);font-size:clamp(1.9rem,4vw,2.7rem);line-height:1.12;margin:10px 0 16px;color:#fff}
+.pgapp-lead{font-size:1.06rem;line-height:1.65;color:#cfc9ba;max-width:56ch;margin:0 0 28px}
+.pgapp-actions{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.pgapp-note{font-size:.86rem;color:var(--muted,#9a958a);margin:0}
+@media (max-width:760px){
+  .pgapp-section{padding:60px 0}
+  .pgapp-inner{grid-template-columns:1fr;gap:34px;text-align:center}
+  .pgapp-icon{width:150px;height:150px}
+  .pgapp-actions{align-items:center}
+  .pgapp-lead{margin-left:auto;margin-right:auto}
+}
+</style>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -248,11 +267,30 @@
     <p class="hero-hours reveal"><span data-hours></span> · <span data-area></span></p>
     <div class="hero-cta reveal">
       <button class="btn btn-gold btn-lg" data-book-open><span data-i18n="book_now">Book now</span></button>
+      <a href="#" class="btn btn-outline btn-lg pg-get-app">📲 Get the app</a>
     </div>
   </div>
   <a class="hero-scroll" href="#services" aria-label="Scroll to services">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
   </a>
+</section>
+
+<!-- ================= GET THE APP ================= -->
+<section class="pgapp-section" id="get-app">
+  <div class="wrap pgapp-inner">
+    <div class="pgapp-visual reveal">
+      <img class="pgapp-icon" src="assets/icon-512.png" alt="PrimeGuard app icon" width="512" height="512" loading="lazy">
+    </div>
+    <div class="pgapp-copy reveal">
+      <p class="section-kicker">Get the app</p>
+      <h2>PrimeGuard <span class="gold-text">in your pocket</span></h2>
+      <p class="pgapp-lead">Download the PrimeGuard app and everything gets easier. Track your requests in one place, send photos and videos of the job in seconds, and get a notification the moment your quote is ready or your crew is on the schedule. No app store, no password to remember. It installs right from this page in one tap.</p>
+      <div class="pgapp-actions">
+        <a href="#" class="btn btn-gold btn-lg pg-get-app">Install the app</a>
+        <p class="pgapp-note">Free • Works on iPhone and Android • No app store needed</p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ================= TRUST STRIP ================= -->
