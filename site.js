@@ -9,6 +9,13 @@
    7. "Book now" modal -> embeds SITE_CONFIG.bookingUrl, or "coming soon" + call.
    8. Review buttons shown only when their config URLs are set. */
 (function () {
+  /* PWA-only mode: account.html and quote.html run their own Firebase
+     stack and do NOT use the site behaviors below (this file's i18n pass
+     would overwrite their page titles and meta). They set
+     window.__PG_PWA_ONLY__ before loading site.js so they receive only
+     the PWA install module at the bottom of this file. Every other page
+     leaves the flag unset and is completely unaffected. */
+  if (window.__PG_PWA_ONLY__) return;
   var cfg = window.SITE_CONFIG || {};
 
   /* ============================================================
@@ -1675,4 +1682,225 @@
   renderPlanPrices();
   if (!plans.length && plansSection) plansSection.style.display = "none";
   applyI18n();
+})();
+
+/* ============================================================
+   PWA: installable app (service worker + install experience)
+   ------------------------------------------------------------
+   - Registers /sw.js (see sw.js for the caching rules; staff and
+     vendor surfaces are never intercepted there).
+   - Captures Chrome's beforeinstallprompt and offers a one-tap
+     install via a floating banner and the footer "Get the app"
+     button (.pg-get-app). iOS has no install prompt, so there the
+     buttons open a short "Add to Home Screen" instruction card.
+   - Never shows install UI when the site is already running as
+     the installed app, and respects a 30-day dismissal.
+   - This block is intentionally self-contained and also runs on
+     account.html / quote.html, which load site.js in PWA-only
+     mode (see the guard at the top of this file).
+   ============================================================ */
+(function () {
+  var LS_INSTALLED = "pg_app_installed";
+  var LS_DISMISSED = "pg_install_dismissed";
+  var DISMISS_MS = 30 * 24 * 60 * 60 * 1000; /* re-ask after 30 days */
+  var path = window.location.pathname || "";
+  var EXCLUDED = path.indexOf("/admin") === 0 ||
+                 path.indexOf("/vendor-dashboard") === 0;
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+
+  function isStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+    } catch (e) { /* ignore */ }
+    return window.navigator.standalone === true;
+  }
+  function isInstalled() {
+    return isStandalone() || lsGet(LS_INSTALLED) === "1";
+  }
+  function isIOS() {
+    var ua = window.navigator.userAgent || "";
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return true;
+    /* iPadOS 13+ reports as desktop Safari but has touch points. */
+    return window.navigator.platform === "MacIntel" &&
+           window.navigator.maxTouchPoints > 1;
+  }
+  function recentlyDismissed() {
+    var t = parseInt(lsGet(LS_DISMISSED) || "0", 10);
+    return t && (Date.now() - t) < DISMISS_MS;
+  }
+
+  /* ---------- Service worker registration ---------- */
+  try {
+    if ("serviceWorker" in window.navigator &&
+        (window.location.protocol === "https:" ||
+         window.location.hostname === "localhost" ||
+         window.location.hostname === "127.0.0.1")) {
+      window.addEventListener("load", function () {
+        window.navigator.serviceWorker.register("/sw.js").catch(function () {
+          /* Registration is progressive enhancement only. */
+        });
+      });
+    }
+  } catch (e) { /* never break the page over the app shell */ }
+
+  if (EXCLUDED) return; /* No install UI on staff/vendor surfaces. */
+
+  /* ---------- Install prompt capture ---------- */
+  var deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    window.setTimeout(maybeShowBanner, 1200);
+  });
+  window.addEventListener("appinstalled", function () {
+    lsSet(LS_INSTALLED, "1");
+    hideBanner();
+    hideCard();
+  });
+
+  /* ---------- Styles (injected; scoped to .pg-app-*) ---------- */
+  var css = [
+    ".pg-app-banner{position:fixed;left:50%;bottom:16px;transform:translate(-50%,180%);width:min(560px,calc(100% - 24px));z-index:1200;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:20px;background:linear-gradient(160deg,#1a1a1e,#0b0b0d 72%);border:1px solid rgba(212,168,67,.55);box-shadow:0 22px 50px rgba(0,0,0,.6),0 0 34px rgba(212,168,67,.16);color:#f5f1e6;font-family:Inter,system-ui,-apple-system,sans-serif;transition:transform .45s cubic-bezier(.22,1,.36,1);}",
+    ".pg-app-banner.pg-show{transform:translate(-50%,0);}",
+    ".pg-app-banner img{width:52px;height:52px;border-radius:13px;flex:none;box-shadow:0 0 0 1px rgba(212,168,67,.45);}",
+    ".pg-app-txt{flex:1;min-width:0;font-size:.9rem;line-height:1.45;color:#e9e2cf;}",
+    ".pg-app-txt strong{display:block;color:#ffd873;font-size:.99rem;margin-bottom:2px;font-family:Sora,Inter,system-ui,sans-serif;}",
+    ".pg-app-btn{flex:none;background:linear-gradient(180deg,#ffd873,#dfa437);color:#241b07;font-weight:800;font-size:.9rem;border:none;border-radius:999px;padding:11px 20px;cursor:pointer;font-family:inherit;box-shadow:0 8px 22px rgba(255,190,80,.35);}",
+    ".pg-app-x{flex:none;align-self:flex-start;background:none;border:none;color:#bfae8d;font-size:1.35rem;line-height:1;cursor:pointer;padding:2px 4px;font-family:inherit;}",
+    "@media (max-width:640px){.pg-app-banner{left:12px;width:calc(100% - 96px);transform:translate(0,180%);}.pg-app-banner.pg-show{transform:translate(0,0);}}",
+    ".pg-app-cardwrap{position:fixed;inset:0;z-index:1300;background:rgba(5,5,9,.68);display:flex;align-items:center;justify-content:center;padding:18px;}",
+    ".pg-app-card{width:min(420px,100%);background:linear-gradient(165deg,#1a1a1e,#0e0e10);border:1px solid rgba(212,168,67,.5);border-radius:22px;padding:26px 24px;color:#f0e9d8;box-shadow:0 30px 80px rgba(0,0,0,.65);text-align:center;font-family:Inter,system-ui,-apple-system,sans-serif;}",
+    ".pg-app-card img{width:64px;height:64px;border-radius:15px;margin-bottom:12px;box-shadow:0 0 0 1px rgba(212,168,67,.45);}",
+    ".pg-app-card h3{color:#ffd873;margin:0 0 8px;font-size:1.2rem;font-family:Sora,Inter,system-ui,sans-serif;}",
+    ".pg-app-card p{color:#d8cdb2;line-height:1.6;font-size:.94rem;margin:0 0 18px;}",
+    ".pg-hide{display:none !important;}"
+  ].join("\n");
+  var styleEl = document.createElement("style");
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ---------- Banner ---------- */
+  var banner = null;
+  function buildBanner() {
+    if (banner) return banner;
+    banner = document.createElement("div");
+    banner.className = "pg-app-banner";
+    banner.setAttribute("role", "dialog");
+    banner.setAttribute("aria-label", "Install the PrimeGuard app");
+    banner.innerHTML =
+      '<img src="/assets/icon-192.png" alt="PrimeGuard app icon">' +
+      '<div class="pg-app-txt"><strong>Get the PrimeGuard app</strong>' +
+      "Track your requests, photos, quotes and updates, right from your home screen.</div>" +
+      '<button type="button" class="pg-app-btn">Install app</button>' +
+      '<button type="button" class="pg-app-x" aria-label="Not now">&times;</button>';
+    banner.querySelector(".pg-app-btn").addEventListener("click", triggerInstall);
+    banner.querySelector(".pg-app-x").addEventListener("click", function () {
+      lsSet(LS_DISMISSED, String(Date.now()));
+      hideBanner();
+    });
+    document.body.appendChild(banner);
+    return banner;
+  }
+  function showBanner() {
+    buildBanner();
+    /* Next frame so the slide-in transition plays. */
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        if (banner) banner.classList.add("pg-show");
+      });
+    });
+  }
+  function hideBanner() { if (banner) banner.classList.remove("pg-show"); }
+
+  function maybeShowBanner() {
+    if (isInstalled() || recentlyDismissed() || banner && banner.classList.contains("pg-show")) return;
+    if (deferredPrompt || isIOS()) showBanner();
+  }
+
+  /* ---------- Info / instruction card ---------- */
+  var cardWrap = null, cardTitle = null, cardBody = null;
+  function buildCard() {
+    if (cardWrap) return cardWrap;
+    cardWrap = document.createElement("div");
+    cardWrap.className = "pg-app-cardwrap pg-hide";
+    cardWrap.innerHTML =
+      '<div class="pg-app-card" role="dialog" aria-modal="true">' +
+      '<img src="/assets/icon-192.png" alt="PrimeGuard app icon">' +
+      "<h3></h3><p></p>" +
+      '<button type="button" class="pg-app-btn">Done</button></div>';
+    cardTitle = cardWrap.querySelector("h3");
+    cardBody = cardWrap.querySelector("p");
+    cardWrap.querySelector(".pg-app-btn").addEventListener("click", hideCard);
+    cardWrap.addEventListener("click", function (e) {
+      if (e.target === cardWrap) hideCard();
+    });
+    document.body.appendChild(cardWrap);
+    return cardWrap;
+  }
+  function showCard(title, body) {
+    buildCard();
+    cardTitle.textContent = title;
+    cardBody.textContent = body;
+    cardWrap.classList.remove("pg-hide");
+  }
+  function hideCard() { if (cardWrap) cardWrap.classList.add("pg-hide"); }
+
+  /* ---------- The one install flow (banner button + footer) ---------- */
+  function triggerInstall() {
+    if (isInstalled()) {
+      hideBanner();
+      showCard("You're all set",
+        "The PrimeGuard app is already on this device. Look for the gold PrimeGuard icon on your home screen.");
+      return;
+    }
+    if (deferredPrompt) {
+      var promptEvent = deferredPrompt;
+      deferredPrompt = null;
+      promptEvent.prompt();
+      promptEvent.userChoice.then(function (choice) {
+        if (choice && choice.outcome === "accepted") {
+          lsSet(LS_INSTALLED, "1");
+          hideBanner();
+        } else {
+          /* Declined the native prompt: don't nag again for 30 days. */
+          lsSet(LS_DISMISSED, String(Date.now()));
+          hideBanner();
+        }
+      }).catch(function () { /* prompt already consumed */ });
+      return;
+    }
+    if (isIOS()) {
+      hideBanner();
+      showCard("Add PrimeGuard to your home screen",
+        "Tap the Share button, then 'Add to Home Screen' \u2014 that's it. The gold PrimeGuard icon will sit on your home screen like any other app.");
+      return;
+    }
+    hideBanner();
+    showCard("Get the PrimeGuard app",
+      "Open this site on your phone and tap Install, or add it to your home screen from your browser menu.");
+  }
+
+  /* Footer "Get the app" buttons (same markup on every page). */
+  document.addEventListener("click", function (e) {
+    var el = e.target;
+    while (el && el !== document) {
+      if (el.classList && el.classList.contains("pg-get-app")) {
+        e.preventDefault();
+        triggerInstall();
+        return;
+      }
+      el = el.parentElement;
+    }
+  });
+
+  /* iOS never fires beforeinstallprompt, so offer the banner on load. */
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    window.setTimeout(maybeShowBanner, 1200);
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      window.setTimeout(maybeShowBanner, 1200);
+    });
+  }
 })();
