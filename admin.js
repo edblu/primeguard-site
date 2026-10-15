@@ -440,6 +440,7 @@
     ["cold", "Cold", "p-cold"]
   ];
   var hlTempFilter = "all"; // active temperature filter chip: all|hot|warm|cold
+  var hlStageFilter = "all"; // active stage filter chip: all|new|contacted|quoted|booked|done|cold
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
@@ -495,85 +496,127 @@
       box.innerHTML = '<p style="color:var(--faint)">Hot leads could not load yet. The database rules update may still need to be published.</p>';
     });
   }
-  function renderHlTempChips() {
+  function hlStageValue(d) { return hlStageMeta((d && d.stage) || "new")[0]; }
+  function hlIdleMs(d) {
+    var touchedMs = tsMs(d && d.updatedAt) || tsMs(d && d.createdAt);
+    return touchedMs ? Math.max(0, Date.now() - touchedMs) : 0;
+  }
+  function hlIdleDays(d) { return Math.floor(hlIdleMs(d) / 86400000); }
+  function hlAreaLabel(d) {
+    if (!d) return "";
+    if (d.area) return d.area;
+    if (!d.address) return "";
+    var parts = String(d.address).split(",").map(function (p) { return p.trim(); }).filter(Boolean);
+    if (parts.length >= 3) return parts[1];
+    if (parts.length === 2) return parts[1].replace(/\s+\b[A-Z]{2}\b(?:\s+\d{5}(?:-\d{4})?)?$/, "").trim();
+    return "";
+  }
+  function hlExcerpt(text) {
+    var clean = String(text || "").replace(/\s+/g, " ").trim();
+    return clean.length > 140 ? clean.slice(0, 137).trim() + "..." : clean;
+  }
+  function renderHlFilterChips() {
     var wrap = $("ad-hl-filters");
     if (!wrap) return;
-    var counts = { all: hlLeads.length, hot: 0, warm: 0, cold: 0 };
-    hlLeads.forEach(function (it) { counts[leadTemp(it.d)]++; });
-    var defs = [["all", "All"]].concat(HL_TEMPS.map(function (t) { return [t[0], t[1]]; }));
-    wrap.innerHTML = defs.map(function (df) {
-      return '<button type="button" class="hl-chip' + (hlTempFilter === df[0] ? " active" : "") +
-        '" data-hltempfilter="' + df[0] + '">' + df[1] + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
+    var stageCounts = { all: hlLeads.length };
+    HL_STAGES.forEach(function (s) { stageCounts[s[0]] = 0; });
+    var tempCounts = { all: hlLeads.length, hot: 0, warm: 0, cold: 0 };
+    hlLeads.forEach(function (it) {
+      stageCounts[hlStageValue(it.d)]++;
+      tempCounts[leadTemp(it.d)]++;
+    });
+    var stageDefs = [["all", "All"]].concat(HL_STAGES);
+    var stageHtml = stageDefs.map(function (df) {
+      return '<button type="button" class="hl-chip hl-stage-chip' + (hlStageFilter === df[0] ? " active" : "") +
+        '" data-hlstagefilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + stageCounts[df[0]] + "</span></button>";
     }).join("");
+    var tempDefs = [["all", "All"]].concat(HL_TEMPS.map(function (t) { return [t[0], t[1]]; }));
+    var tempHtml = tempDefs.map(function (df) {
+      return '<button type="button" class="hl-chip' + (hlTempFilter === df[0] ? " active" : "") +
+        '" data-hltempfilter="' + df[0] + '">' + df[1] + ' <span class="cnt">' + tempCounts[df[0]] + "</span></button>";
+    }).join("");
+    wrap.innerHTML = '<div class="hl-filter-row hl-stage-filter-row" aria-label="Filter by stage">' + stageHtml + "</div>" +
+      '<div class="hl-filter-row hl-temp-filter-row" aria-label="Filter by temperature">' + tempHtml + "</div>";
+  }
+  function hlStepperHtml(id, d) {
+    var stage = hlStageValue(d);
+    var pipeline = HL_STAGES.slice(0, 5);
+    var current = -1;
+    pipeline.forEach(function (s, i) { if (s[0] === stage) current = i; });
+    var parts = [];
+    pipeline.forEach(function (s, i) {
+      var cls = stage === "cold" ? "" : (i < current ? " done" : (i === current ? " now" : ""));
+      parts.push('<button type="button" class="hlq-step' + cls + '" data-hlstep="' + id + '" data-stage="' + s[0] + '" aria-label="Move to ' + esc(s[1]) + '">' + esc(s[1]) + "</button>");
+      if (i < pipeline.length - 1) parts.push('<span class="hlq-step-line" aria-hidden="true"></span>');
+    });
+    if (stage === "cold") {
+      parts.push('<span class="hlq-step-line" aria-hidden="true"></span><span class="hlq-step now hlq-cold-now">Cold</span>' +
+        '<button type="button" class="hlq-park" data-hlrevive="' + id + '">Revive</button>');
+    } else {
+      parts.push('<span class="hlq-step-line" aria-hidden="true"></span><button type="button" class="hlq-park" data-hlpark="' + id + '">Park as Cold</button>');
+    }
+    return '<div class="hlq-stepper" aria-label="Lead stage">' + parts.join("") + "</div>";
   }
   function renderHotLeads() {
     var box = $("ad-hl-list");
     if (!box) return;
-    renderHlTempChips();
+    renderHlFilterChips();
     if (!hlLeads.length) {
       box.innerHTML = '<p style="color:var(--faint)">No hot leads yet. When a customer conversation gets serious, add it here with the Add lead button so the whole team can work it.</p>';
       return;
     }
     var visible = hlLeads.filter(function (it) {
-      return hlTempFilter === "all" || leadTemp(it.d) === hlTempFilter;
+      var stageOk = hlStageFilter === "all" || hlStageValue(it.d) === hlStageFilter;
+      var tempOk = hlTempFilter === "all" || leadTemp(it.d) === hlTempFilter;
+      return stageOk && tempOk;
+    });
+    visible.sort(function (a, b) {
+      var unseenRank = (a.d.seen ? 1 : 0) - (b.d.seen ? 1 : 0);
+      if (unseenRank) return unseenRank;
+      var tempRank = hlTempRank(a.d) - hlTempRank(b.d);
+      if (tempRank) return tempRank;
+      var idleRank = hlIdleMs(b.d) - hlIdleMs(a.d);
+      if (idleRank) return idleRank;
+      return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
     });
     box.innerHTML = "";
     if (!visible.length) {
-      box.innerHTML = '<p style="color:var(--faint)">No ' + esc(hlTempMeta(hlTempFilter)[1].toLowerCase()) + ' leads right now. Pick another temperature above to see the rest of the pipeline.</p>';
+      var labelParts = [];
+      if (hlStageFilter !== "all") labelParts.push(hlStageMeta(hlStageFilter)[1].toLowerCase());
+      if (hlTempFilter !== "all") labelParts.push(hlTempMeta(hlTempFilter)[1].toLowerCase());
+      box.innerHTML = '<p style="color:var(--faint)">No ' + esc(labelParts.join(" ")) + ' leads right now.</p>';
       return;
     }
-    HL_STAGES.forEach(function (st) {
-      var rows = visible.filter(function (it) { return (it.d.stage || "new") === st[0]; });
-      // With a temperature filter on, stages with nothing visible drop out;
-      // per-stage counts below are the filtered counts.
-      if (!rows.length && hlTempFilter !== "all") return;
-      // Hottest first within the stage, then newest first.
-      rows.sort(function (a, b) {
-        var dr = hlTempRank(a.d) - hlTempRank(b.d);
-        return dr || (tsMs(b.d.createdAt) - tsMs(a.d.createdAt));
-      });
-      var head = document.createElement("h4");
-      head.className = "hl-stage-head";
-      head.innerHTML = esc(st[1]) + ' <span class="cnt">· ' + rows.length + "</span>";
-      box.appendChild(head);
-      if (!rows.length) {
-        var none = document.createElement("p");
-        none.style.cssText = "color:var(--faint);font-size:.85rem;margin:2px 0 6px";
-        none.textContent = "None";
-        box.appendChild(none);
-        return;
-      }
-      rows.forEach(function (it) {
-        var d = it.d;
-        var whenMs = tsMs(d.createdAt);
-        var when = whenMs ? new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
-        var photoCount = Array.isArray(d.photos) ? d.photos.length : 0;
-        var tm = hlTempMeta(leadTemp(d));
-        var opts = HL_STAGES.map(function (s) {
-          return '<option value="' + s[0] + '"' + ((d.stage || "new") === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
-        }).join("");
-        var tempOpts = HL_TEMPS.map(function (s) {
-          return '<option value="' + s[0] + '"' + (leadTemp(d) === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
-        }).join("");
-        var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + (d.seen ? "" : '<span class="hl-dot" title="Unseen"></span>') + esc(d.name || "Lead") + "</strong><small>" +
-          esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
-          (when ? " · " + esc(when) : "") + (d.createdBy ? " · added by " + esc(d.createdBy) : "") + "</small></div>" +
-          '<span class="pill p-acc">' + esc(d.source || "Other") + "</span>" +
-          (photoCount ? ' <span class="hl-photo-badge" title="Photos on this lead">📷 ' + photoCount + "</span>" : "") +
-          '<span class="pill ' + st[2] + '">' + esc(st[1]) + "</span>" +
-          '<span class="pill ' + tm[2] + '">' + esc(tm[1]) + "</span>" +
-          '<select class="hl-stage-sel" data-hlstage="' + it.id + '" aria-label="Move stage">' + opts + "</select>" +
-          '<select class="hl-stage-sel" data-hltemp="' + it.id + '" aria-label="Set temperature">' + tempOpts + "</select>" +
-          ' <button class="mini" data-hlnotes="' + it.id + '">Notes</button>' +
-          ' <button class="mini" data-hledit="' + it.id + '">Edit</button>' +
-          ' <button class="mini" data-callead="' + it.id + '">Add to calendar</button>' +
+    visible.forEach(function (it) {
+      var d = it.d;
+      var temp = leadTemp(d);
+      var tm = hlTempMeta(temp);
+      var idleDays = hlIdleDays(d);
+      var idleCls = idleDays >= 7 ? " red" : (idleDays >= 3 ? " amber" : "");
+      var serviceLine = [d.service || "", hlAreaLabel(d), d.contact || ""].filter(Boolean).join(" · ");
+      var excerpt = hlExcerpt(d.notes);
+      var photoCount = Array.isArray(d.photos) ? d.photos.length : 0;
+      var row = document.createElement("article");
+      row.className = "hlq-card hlq-temp-" + temp;
+      row.innerHTML =
+        '<div class="hlq-head"><button type="button" class="hlq-name" data-hldetail="' + it.id + '">' +
+          (d.seen ? "" : '<span class="hl-dot" title="Unseen"></span>') + esc(d.name || "Lead") + '</button>' +
+          '<span class="pill ' + tm[2] + '">' + esc(tm[1]) + "</span></div>" +
+        (serviceLine ? '<div class="hlq-service">' + esc(serviceLine) + (photoCount ? ' <span class="hl-photo-badge" title="Photos on this lead">📷 ' + photoCount + "</span>" : "") + "</div>" : "") +
+        (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
+        hlStepperHtml(it.id, d) +
+        '<div class="hlq-actions">' +
+          '<button type="button" class="mini hlq-action hlq-action-primary" data-hlnotes="' + it.id + '">Notes</button>' +
+          '<button type="button" class="mini hlq-action hlq-action-ghost" data-callead="' + it.id + '">Calendar</button>' +
           (d.convertedWorkOrderId
-            ? ' <button class="mini" data-hlviewwo="' + it.id + '">Converted ✓</button>'
-            : ' <button class="mini" data-hlconvert="' + it.id + '">Convert to quote request</button>') +
-          (isAdmin ? ' <button class="mini danger" data-hldel="' + it.id + '">Delete</button>' : "");
-        box.appendChild(row);
-      });
+            ? '<button type="button" class="mini hlq-action hlq-action-ghost" disabled>Converted ✓</button>'
+            : '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlconvert="' + it.id + '">Convert</button>') +
+        "</div>" +
+        '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since touch</span>' +
+          '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-hledit="' + it.id + '">Edit</button>' +
+          (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-hldel="' + it.id + '">Delete</button>' : "") + '</span>' +
+          '<span class="hlq-source">' + esc(d.source || "Other") + "</span></div>";
+      box.appendChild(row);
     });
   }
   function hlStageChanged(id, stage) {
@@ -581,24 +624,10 @@
       stage: stage,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
-      logActivity("Moved hot lead to " + hlStageMeta(stage)[1]);
+      logActivity("hot_lead_stage");
       loadHotLeads();
     }).catch(function (e) { alert("Could not move lead: " + (e.message || e)); loadHotLeads(); });
   }
-  function hlTempChanged(id, temp) {
-    db.collection("hot_leads").doc(id).update({
-      temperature: temp,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () {
-      logActivity("Set hot lead temperature to " + hlTempMeta(temp)[1]);
-      loadHotLeads();
-    }).catch(function (e) { alert("Could not set temperature: " + (e.message || e)); loadHotLeads(); });
-  }
-  document.addEventListener("change", function (e) {
-    var t = e.target;
-    if (t && t.dataset && t.dataset.hlstage) hlStageChanged(t.dataset.hlstage, t.value);
-    if (t && t.dataset && t.dataset.hltemp) hlTempChanged(t.dataset.hltemp, t.value);
-  });
 
   /* ----- Add / edit lead form ----- */
   function openHotLeadForm(id) {
@@ -1869,6 +1898,8 @@
   // ---------- Row actions ----------
   document.addEventListener("click", function (e) {
     var t = e.target, d = t.dataset;
+    var hlActionEl = t.closest ? t.closest("[data-hlstagefilter],[data-hltempfilter],[data-hldetail],[data-hlstep],[data-hlpark],[data-hlrevive]") : null;
+    if (hlActionEl) d = hlActionEl.dataset;
     if (d.wodone) { logActivity("Marked a work order done"); db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll); }
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
@@ -1896,7 +1927,12 @@
       else if (fp[0] === "work_order") openWorkOrderNotes(fp[1]);
       else if (fp[0] === "hot_lead") openHotLeadNotes(fp[1]);
     }
+    if (d.hlstagefilter) { hlStageFilter = d.hlstagefilter; renderHotLeads(); }
     if (d.hltempfilter) { hlTempFilter = d.hltempfilter; renderHotLeads(); }
+    if (d.hldetail) openHotLeadNotes(d.hldetail);
+    if (d.hlstep && d.stage) hlStageChanged(d.hlstep, d.stage);
+    if (d.hlpark) hlStageChanged(d.hlpark, "cold");
+    if (d.hlrevive) hlStageChanged(d.hlrevive, "contacted");
     if (d.hlnotes) openHotLeadNotes(d.hlnotes);
     if (d.hledit) openHotLeadForm(d.hledit);
     if (d.hldel) deleteHotLead(d.hldel);
