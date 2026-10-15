@@ -161,7 +161,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -543,13 +543,22 @@
       docLine("W-9", v.w9Url, v.w9Status) +
       '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
       (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>';
-    if (isAdmin) {
+    if (isAdmin && st === "archived") {
+      h += '<div class="sr-card"><h4>Registration status</h4>' +
+        '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">This vendor is archived, so they are hidden from the active vendor list. Their record, calls, and notes are kept.' +
+        (v.archivedAt && v.archivedAt.toDate ? ' Archived ' + esc(v.archivedAt.toDate().toLocaleDateString()) + '.' : '') +
+        (v.archivedBy ? ' Archived by ' + esc(v.archivedBy) + '.' : '') + '</p>' +
+        '<div class="sr-actions">' +
+        '<button class="btn btn-gold btn-sm" id="vd-restore" type="button">Restore vendor</button>' +
+        '</div></div>';
+    } else if (isAdmin) {
       h += '<div class="sr-card"><h4>Registration status</h4>' +
         '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">Set the status when you have everything you need from them. They see this status on their dashboard.</p>' +
         '<div class="sr-actions">' +
         '<button class="btn btn-gold btn-sm" data-vstatus="approved" type="button">Approve</button>' +
         '<button class="btn btn-ghost btn-sm" data-vstatus="pending" type="button">Keep pending</button>' +
         '<button class="btn btn-ghost btn-sm" data-vstatus="rejected" type="button" style="border-color:#a33;color:#e88">Reject</button>' +
+        '<button class="btn btn-ghost btn-sm" id="vd-archive" type="button">Archive</button>' +
         '</div><p class="aok hidden" id="vd-ok" style="margin-top:10px">Status saved.</p></div>';
     } else {
       h += '<div class="sr-card"><h4>Registration status</h4>' +
@@ -572,6 +581,10 @@
     box.querySelectorAll("[data-vstatus]").forEach(function (b) {
       b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
     });
+    var vab = $("vd-archive");
+    if (vab) vab.addEventListener("click", archiveVendor);
+    var vrb = $("vd-restore");
+    if (vrb) vrb.addEventListener("click", function () { restoreVendor(vdId); });
     box.querySelectorAll("[data-vdoutcome]").forEach(function (b) {
       b.addEventListener("click", function () {
         vdOutcome = vdOutcome === b.getAttribute("data-vdoutcome") ? "" : b.getAttribute("data-vdoutcome");
@@ -623,6 +636,84 @@
       alert("Could not save status: " + (err.message || err) + "\n\nIf this says permission denied, the database rules need the staff update — check the setup notes.");
     });
   }
+
+  // ---------- Vendor archive (owner only) ----------
+  // Archiving keeps the vendor's record, calls, and notes; it only takes
+  // them out of the active vendor list. prevStatus remembers where they
+  // were so Restore can put them back exactly.
+  function archiveVendor() {
+    if (!vdId || !isAdmin) return;
+    var name = (vdData && (vdData.business || vdData.name)) || "this vendor";
+    if (!confirm("Archive " + name + "? They will leave the active vendor list. Their record is kept and can be restored.")) return;
+    db.collection("vendors").doc(vdId).update({
+      status: "archived",
+      prevStatus: vStatus(vdData),
+      archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      archivedBy: me ? me.email : ""
+    }).then(function () {
+      logActivity("vendor_archived: " + name + " (" + vdId + ")");
+      closeVendor();
+      loadVendors(); loadArchivedVendors(); loadVendorOptions();
+    }).catch(function (err) {
+      alert("Could not archive vendor: " + (err.message || err) + "\n\nIf this says permission denied, the database rules need the staff update — check the setup notes.");
+    });
+  }
+  function restoreVendor(id) {
+    if (!id || !isAdmin) return;
+    db.collection("vendors").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var v = snap.data();
+      var back = v.prevStatus || "pending";
+      return db.collection("vendors").doc(id).update({
+        status: back,
+        archivedAt: null,
+        archivedBy: null
+      }).then(function () {
+        logActivity("vendor_restored: " + (v.business || v.name || "Vendor") + " (" + id + ")");
+        if (vdId === id) closeVendor();
+        loadVendors(); loadArchivedVendors(); loadVendorOptions();
+      });
+    }).catch(function (err) {
+      alert("Could not restore vendor: " + (err.message || err) + "\n\nIf this says permission denied, the database rules need the staff update — check the setup notes.");
+    });
+  }
+  var archivedVendors = [], archivedOpen = false;
+  function loadArchivedVendors() {
+    var sec = $("ad-vendor-archived-sec");
+    if (!sec) return;
+    if (!isAdmin) { sec.classList.add("hidden"); return; }
+    db.collection("vendors").where("status", "==", "archived").get().then(function (qs) {
+      archivedVendors = [];
+      qs.forEach(function (d) { archivedVendors.push({ id: d.id, v: d.data() }); });
+      archivedVendors.sort(function (a, b) { return tsMs(b.v.archivedAt) - tsMs(a.v.archivedAt); });
+      sec.classList.remove("hidden");
+      renderArchivedVendors();
+    }).catch(function () {});
+  }
+  function renderArchivedVendors() {
+    var btn = $("ad-vendor-archived-toggle"), box = $("ad-vendor-archived-list");
+    if (!btn || !box) return;
+    btn.textContent = "Archived (" + archivedVendors.length + ")" + (archivedOpen ? " — hide" : " — show");
+    box.classList.toggle("hidden", !archivedOpen);
+    if (!archivedOpen) return;
+    if (!archivedVendors.length) { box.innerHTML = '<p style="color:var(--faint)">No archived vendors.</p>'; return; }
+    box.innerHTML = "";
+    archivedVendors.forEach(function (item) {
+      var v = item.v;
+      var when = v.archivedAt && v.archivedAt.toDate ? v.archivedAt.toDate().toLocaleDateString() : "";
+      var row = document.createElement("div"); row.className = "arow";
+      row.innerHTML = '<div class="grow"><strong>' + esc(v.business || v.name || "Vendor") + "</strong><small>" +
+        esc(v.name || "") + (when ? " · archived " + esc(when) : "") + (v.archivedBy ? " · by " + esc(v.archivedBy) : "") + "</small></div>" +
+        ' <button class="mini" data-vopen="' + item.id + '">Open</button>' +
+        ' <button class="mini" data-vrestore="' + item.id + '">Restore</button>';
+      box.appendChild(row);
+    });
+  }
+  var arcToggle = $("ad-vendor-archived-toggle");
+  if (arcToggle) arcToggle.addEventListener("click", function () {
+    archivedOpen = !archivedOpen;
+    renderArchivedVendors();
+  });
 
   function renderRequestModal() {
     var r = srData, box = $("srBody");
@@ -744,7 +835,7 @@
       $("as-open").textContent = open; $("as-active").textContent = active;
     });
     db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("mb-quotes"); if (mb) mb.textContent = qs.size; });
-    db.collection("vendors").get().then(function (qs) { $("as-vendors").textContent = qs.size; var mb = $("mb-vendors"); if (mb) mb.textContent = qs.size; });
+    db.collection("vendors").get().then(function (qs) { var n = 0; qs.forEach(function (d) { if (d.data().status !== "archived") n++; }); $("as-vendors").textContent = n; var mb = $("mb-vendors"); if (mb) mb.textContent = n; });
   }
 
   function pill(s) {
@@ -792,15 +883,19 @@
       var box = $("ad-vendor-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
       box.innerHTML = "";
+      var shown = 0;
       qs.forEach(function (d) {
         var v = d.data();
         var st = v.status || (v.verified ? "approved" : "pending");
+        if (st === "archived") return; // archived vendors live in the Archived section below
+        shown++;
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + "</small></div>" +
           pill(st) +
           ' <button class="mini" data-vopen="' + d.id + '">' + (isAdmin ? "Review" : "Open") + "</button>";
         box.appendChild(row);
       });
+      if (!shown) box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>';
     });
   }
 
@@ -838,6 +933,7 @@
       sel.innerHTML = '<option value="broadcast">All vendors (broadcast)</option>';
       qs.forEach(function (d) {
         var v = d.data();
+        if (v.status === "archived") return;
         var o = document.createElement("option");
         o.value = d.id; o.textContent = (v.business || v.name) + " - " + (v.areas || []).join(", ");
         sel.appendChild(o);
@@ -1040,6 +1136,7 @@
     }
     if (d.qno) { logActivity("Declined a quote"); db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll); }
     if (d.vopen) openVendor(d.vopen);
+    if (d.vrestore) restoreVendor(d.vrestore);
     if (d.staffdel && confirm("Remove this team member?")) { logActivity("Removed a team member"); db.collection("staff").doc(d.staffdel).delete().then(loadTeam); }
     if (d.invdel) { logActivity("Cancelled a team invite"); db.collection("staff_invites").doc(d.invdel).delete().then(loadTeam); }
   });
