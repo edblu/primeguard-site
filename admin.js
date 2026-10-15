@@ -789,11 +789,13 @@
       var mediaLinks = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
       var convMs = tsMs(d.convertedAt);
       var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
+      var hlToolsEntity = { label: d.name || "Lead", area: d.area || hlAreaLabel(d), address: d.address || "", service: d.service || "" };
       var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
         '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill ' + tm[2] + '">' + esc(tm[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
         esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
         (d.address ? " · " + esc(d.address) : "") +
         (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
+        pgJobToolsHtml(hlToolsEntity) +
         (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
         (photos.length ? '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
           photos.map(function (u) {
@@ -838,6 +840,7 @@
         });
       });
       $("hlnSave").addEventListener("click", saveHotLeadNote);
+      wireJobTools(box, hlToolsEntity, function () { closeHotLeadNotes(); });
       $("hlNoteModal").classList.remove("hidden");
       document.body.style.overflow = "hidden";
       loadItemNotes("hot_lead", id, $("hlnNotes"));
@@ -1076,9 +1079,11 @@
       if (!snap.exists) return;
       var w = snap.data();
       woNoteId = id; woNoteTitle = w.title || "Work order";
+      var woToolsEntity = { label: woNoteTitle, area: w.area || "", address: w.address || "", service: w.category || "" };
       var box = $("woNoteBody");
       box.innerHTML = '<h3 id="woNoteTitle">' + esc(woNoteTitle) + "</h3>" +
         '<p class="sr-meta">' + pill(w.status) + " <span>" + esc(w.area || "") + " · " + esc(w.vendorBusiness || "broadcast") + "</span></p>" +
+        ((w.area || w.address) ? pgJobToolsHtml(woToolsEntity) : "") +
         (w.details ? '<div class="sr-card"><h4>Job details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>" : "") +
         '<div class="sr-card"><h4>Notes & updates</h4>' +
         '<div class="note-form"><label>New note<textarea id="wonText" rows="3" placeholder="What happened, what is next…"></textarea></label>' +
@@ -1091,6 +1096,7 @@
       document.body.style.overflow = "hidden";
       loadItemNotes("work_order", id, $("wonNotes"));
       $("wonSave").addEventListener("click", saveWorkOrderNote);
+      if (w.area || w.address) wireJobTools(box, woToolsEntity, function () { closeWorkOrderNotes(); });
     });
   }
   function closeWorkOrderNotes() {
@@ -1119,6 +1125,165 @@
       err.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; });
   }
+
+  /* ---------- Job tools: "Vendors for this job" + globe (Edwin, 2026-10-15) ---------- */
+  // Shared by the hot-lead detail/notes modal and the work-order notes
+  // modal. Given the entity being evaluated ({label, area, address,
+  // service}), the tools row offers: (1) the approved vendors who cover
+  // the job's area (and, when known, its service), and (2) a globe button
+  // that opens the shared vendor Earth project with the job address
+  // copied for paste-search (Earth projects cannot deep-link an address).
+  var PG_EARTH_URL = "https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--";
+  var pgVmUnderlyingClose = null;
+
+  function pgNorm(s) { return String(s == null ? "" : s).toLowerCase().trim(); }
+  function pgAreaCandidates(entity) {
+    var out = [];
+    function push(x) {
+      var n = pgNorm(x);
+      if (n && out.indexOf(n) < 0) out.push(n);
+    }
+    push(entity.area);
+    if (entity.address) {
+      var parts = String(entity.address).split(",").map(function (p) { return p.trim(); }).filter(Boolean);
+      if (parts.length >= 2) push(parts[1].replace(/\s+\b[A-Z]{2}\b(?:\s+\d{5}(?:-\d{4})?)?$/, "").trim());
+    }
+    return out;
+  }
+  function pgAreaHit(vendorAreas, candidates) {
+    var hit = false;
+    (vendorAreas || []).forEach(function (va) {
+      var n = pgNorm(va);
+      if (!n) return;
+      candidates.forEach(function (c) {
+        if (c.length < 3) return;
+        if (n.indexOf(c) >= 0 || c.indexOf(n) >= 0) hit = true;
+      });
+    });
+    return hit;
+  }
+  function pgServiceHit(vendorServices, serviceText) {
+    var st = pgNorm(serviceText);
+    if (!st) return false;
+    var hit = false;
+    (vendorServices || []).forEach(function (s) {
+      var vs = pgNorm(s);
+      if (vs && (vs.indexOf(st) >= 0 || st.indexOf(vs) >= 0)) hit = true;
+    });
+    return hit;
+  }
+
+  // Resolves to [{id, v, serviceMatch}] of APPROVED vendors covering the
+  // entity's area; service matches sort ahead of area-only matches.
+  window.pgVendorMatch = function (entity) {
+    entity = entity || {};
+    var candidates = pgAreaCandidates(entity);
+    return db.collection("vendors").limit(100).get().then(function (qs) {
+      var out = [];
+      qs.forEach(function (doc) {
+        var v = doc.data();
+        if (vStatus(v) !== "approved") return;
+        if (!candidates.length || !pgAreaHit(v.areas, candidates)) return;
+        out.push({ id: doc.id, v: v, serviceMatch: pgServiceHit(v.services, entity.service) });
+      });
+      out.sort(function (a, b) { return (b.serviceMatch ? 1 : 0) - (a.serviceMatch ? 1 : 0); });
+      return out;
+    });
+  };
+
+  function pgJobToolsHtml(entity) {
+    var target = entity.address || entity.area || "";
+    return '<div class="sr-actions" style="margin:2px 0 12px">' +
+      '<button class="mini" type="button" data-pgvendors="1">Vendors for this job</button>' +
+      '<button class="mini" type="button" data-pgglobe="1"' + (target ? ' title="' + esc(target) + '"' : "") + ">🌐 View on globe</button></div>";
+  }
+  function wireJobTools(scope, entity, closeUnderlyingFn) {
+    if (!scope) return;
+    var vb = scope.querySelector("[data-pgvendors]");
+    if (vb) vb.addEventListener("click", function () {
+      pgVmUnderlyingClose = closeUnderlyingFn || null;
+      window.openJobVendorTools(entity);
+    });
+    var gb = scope.querySelector("[data-pgglobe]");
+    if (gb) gb.addEventListener("click", function () { pgOpenGlobe(entity); });
+  }
+  function pgOpenGlobe(entity) {
+    var target = String((entity && (entity.address || entity.area)) || "").trim();
+    if (target) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          var p = navigator.clipboard.writeText(target);
+          if (p && p.catch) p.catch(function () {});
+        }
+      } catch (e) {}
+    }
+    window.open(PG_EARTH_URL, "_blank", "noopener");
+  }
+
+  function ensurePgVmModal() {
+    if ($("pgVmModal")) return;
+    var ov = document.createElement("div");
+    ov.className = "modal-overlay hidden";
+    ov.id = "pgVmModal";
+    ov.innerHTML = '<div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="pgVmTitle">' +
+      '<button class="modal-close" id="pgVmClose" aria-label="Close">×</button><div id="pgVmBody"></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function (e) { if (e.target === ov) closePgVmModal(); });
+    $("pgVmClose").addEventListener("click", closePgVmModal);
+  }
+  function closePgVmModal() {
+    var m = $("pgVmModal");
+    if (m) m.classList.add("hidden");
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closePgVmModal();
+  });
+
+  window.openJobVendorTools = function (entity) {
+    entity = entity || {};
+    ensurePgVmModal();
+    var area = entity.area || "";
+    $("pgVmBody").innerHTML = '<h3 id="pgVmTitle">Vendors for this job</h3>' +
+      '<p class="sr-meta"><span>' + esc(entity.label || "Job") +
+      (entity.service ? " · " + esc(entity.service) : "") +
+      (area ? " · " + esc(area) : "") + "</span></p>" +
+      '<div id="pgVmList"><p class="sr-faint">Finding approved vendors…</p></div>';
+    $("pgVmModal").classList.remove("hidden");
+    window.pgVendorMatch(entity).then(function (matches) {
+      var list = $("pgVmList");
+      if (!list) return;
+      if (!area) {
+        list.innerHTML = '<p>No area is saved for this job yet, so vendors cannot be matched.</p>';
+        return;
+      }
+      if (!matches.length) {
+        list.innerHTML = "<p>No approved vendor covers " + esc(area) + " yet.</p>";
+        return;
+      }
+      list.innerHTML = matches.map(function (m) {
+        var v = m.v;
+        var digits = String(v.phone || "").replace(/\D/g, "");
+        return '<div class="arow"><div class="grow"><strong>' + esc(v.business || v.name || "Vendor") + "</strong><small>" +
+          esc(v.name || "") +
+          (v.crewSize ? " · Crew: " + esc(v.crewSize) : "") +
+          ((v.areas || []).length ? " · " + esc((v.areas || []).join(", ")) : "") + "</small></div>" +
+          '<span class="pill ' + (m.serviceMatch ? "p-acc" : "p-open") + '">' + (m.serviceMatch ? "Service match" : "Area match") + "</span>" +
+          (v.phone ? ' <a class="mini" href="tel:' + esc(digits) + '">' + esc(v.phone) + "</a>" : "") +
+          ' <button class="mini" type="button" data-pgvmopen="' + m.id + '">Open</button></div>';
+      }).join("");
+      list.querySelectorAll("[data-pgvmopen]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var vid = b.getAttribute("data-pgvmopen");
+          closePgVmModal();
+          if (pgVmUnderlyingClose) { var f = pgVmUnderlyingClose; pgVmUnderlyingClose = null; f(); }
+          openVendor(vid);
+        });
+      });
+    }).catch(function () {
+      var list = $("pgVmList");
+      if (list) list.innerHTML = '<p class="aerr">Could not load vendors. Try again.</p>';
+    });
+  };
 
   function loadReferrals() {
     var box = $("ad-ref-list");
