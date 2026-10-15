@@ -1056,6 +1056,25 @@
 (function () {
   var form = document.getElementById("cal-form");
   if (!form) return;
+  // Collapsible form card (starts collapsed; remembers the choice).
+  var calBody = document.getElementById("cal-form-body");
+  var calBtn = document.getElementById("cal-collapse-btn");
+  if (calBody && calBtn) {
+    var applyCal = function () {
+      var collapsed = localStorage.getItem("pg_cal_form_collapsed") !== "0";
+      calBody.classList.toggle("hidden", collapsed);
+      calBtn.textContent = collapsed ? "Expand" : "Collapse";
+    };
+    if (localStorage.getItem("pg_cal_form_collapsed") === null) {
+      localStorage.setItem("pg_cal_form_collapsed", "1");
+    }
+    calBtn.addEventListener("click", function () {
+      var now = localStorage.getItem("pg_cal_form_collapsed") !== "0";
+      localStorage.setItem("pg_cal_form_collapsed", now ? "0" : "1");
+      applyCal();
+    });
+    applyCal();
+  }
   var CAL_ID = "48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com";
   var CLIENT_ID = "1031375547061-mlni2m610tne83odo52honlp9af47rnk.apps.googleusercontent.com";
   var accessToken = null;
@@ -1074,24 +1093,31 @@
       document.head.appendChild(s);
     });
   }
+  function initTokenClient() {
+    if (tokenClient || !window.google || !google.accounts || !google.accounts.oauth2) return;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/calendar.events",
+      callback: function () {},
+      error_callback: function () {},
+    });
+  }
+  // Warm up Google sign-in at page load so the actual request later happens
+  // inside the button tap (mobile browsers block popups opened after awaits).
+  loadGis().then(initTokenClient).catch(function () {});
   function ensureToken() {
     return loadGis().then(function () {
+      initTokenClient();
       return new Promise(function (resolve, reject) {
-        if (!tokenClient) {
-          tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: "https://www.googleapis.com/auth/calendar.events",
-            callback: function (resp) {
-              if (resp && resp.access_token) {
-                accessToken = resp.access_token;
-                resolve(accessToken);
-              }
-            },
-            error_callback: function () {
-              reject(new Error("Google sign-in was closed or blocked."));
-            },
-          });
-        }
+        tokenClient.callback = function (resp) {
+          if (resp && resp.access_token) {
+            accessToken = resp.access_token;
+            resolve(accessToken);
+          }
+        };
+        tokenClient.error_callback = function () {
+          reject(new Error("Google sign-in was closed or blocked."));
+        };
         tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
       });
     });
