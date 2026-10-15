@@ -57,6 +57,53 @@
   });
   syncThemeBtn();
 
+  // ---------- Left drawer navigation (mirrors the LoraLedger drawer) ----------
+  // Drawer items carry data-navtab (NOT data-atab) and activate the existing
+  // tab buttons with .click(), so all tab logic stays in one place.
+  var navDrawer = $("pgNavDrawer"), navBackdrop = $("pgNavBackdrop"), navOpen = false;
+  function navStoredClosed() {
+    try { return localStorage.getItem("pg_admin_nav_closed") !== "0"; } catch (e) { return true; }
+  }
+  function setNavOpen(open, persist) {
+    navOpen = !!open;
+    if (navDrawer) navDrawer.classList.toggle("open", navOpen);
+    if (navBackdrop) navBackdrop.classList.toggle("open", navOpen);
+    if (persist !== false) { try { localStorage.setItem("pg_admin_nav_closed", navOpen ? "0" : "1"); } catch (e) {} }
+  }
+  function syncNavBadges() {
+    [["mb-quotes", "pg-nav-b-quotes"], ["mb-vendors", "pg-nav-b-vendors"], ["mb-followups", "pg-nav-b-followups"]].forEach(function (pair) {
+      var src = $(pair[0]), dst = $(pair[1]);
+      if (src && dst) dst.textContent = src.textContent;
+    });
+  }
+  function syncNavActive(name) {
+    document.querySelectorAll("[data-navtab]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-navtab") === name);
+    });
+  }
+  if ($("pgNavToggle")) $("pgNavToggle").addEventListener("click", function () { if (!navOpen) syncNavBadges(); setNavOpen(!navOpen); });
+  if ($("pgNavClose")) $("pgNavClose").addEventListener("click", function () { setNavOpen(false); });
+  if (navBackdrop) navBackdrop.addEventListener("click", function () { setNavOpen(false); });
+  document.querySelectorAll("[data-navtab]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var name = b.getAttribute("data-navtab");
+      var target = document.querySelector('#ad-more-menu [data-atab="' + name + '"]') ||
+                   document.querySelector('.atabs [data-atab="' + name + '"]');
+      if (target) target.click();
+      syncNavActive(name);
+      setNavOpen(false);
+    });
+  });
+  // Keep drawer highlights in sync when the top tab bar / More menu is used instead.
+  document.querySelectorAll("[data-atab]").forEach(function (b) {
+    b.addEventListener("click", function () { syncNavActive(b.getAttribute("data-atab")); });
+  });
+  // External drawer links close the drawer too (they open in a new tab).
+  document.querySelectorAll("#pgNavDrawer a.pg-nav-item").forEach(function (a) {
+    a.addEventListener("click", function () { setNavOpen(false); });
+  });
+  syncNavActive("work");
+
   function resetWoForm() {
     editingId = null;
     woSourceRequestId = null;
@@ -130,7 +177,7 @@
 
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); return; }
+    if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); document.body.classList.remove("pg-nav-on"); setNavOpen(false, false); return; }
     isAdmin = (user.email === ADMIN_EMAIL);
     var check = isAdmin
       ? Promise.resolve({ ok: true, role: "owner" })
@@ -151,11 +198,14 @@
     check.then(function (res) {
       isStaff = res.ok;
       myRole = res.role || "acquisition";
-      if (!res.ok) { show($("ad-loginwrap")); hide($("ad-dash")); $("ad-login-err").textContent = "This account is not staff."; show($("ad-login-err")); auth.signOut(); return; }
+      if (!res.ok) { show($("ad-loginwrap")); hide($("ad-dash")); document.body.classList.remove("pg-nav-on"); setNavOpen(false, false); $("ad-login-err").textContent = "This account is not staff."; show($("ad-login-err")); auth.signOut(); return; }
       hide($("ad-loginwrap")); show($("ad-dash"));
+      document.body.classList.add("pg-nav-on");
+      setNavOpen(!navStoredClosed(), false);
+      syncNavBadges();
       $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
       if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
-      if (!isAdmin) { var ab = $("ad-activity-btn"); if (ab) ab.style.display = "none"; }
+      if (!isAdmin) { var ab = $("ad-activity-btn"); if (ab) ab.style.display = "none"; var nab = $("pg-nav-activity"); if (nab) nab.style.display = "none"; }
       loadAll();
       startTracking();
     });
@@ -1143,9 +1193,12 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
+    var modalOpen = !$("srModal").classList.contains("hidden") || !$("vdModal").classList.contains("hidden") ||
+      !$("woNoteModal").classList.contains("hidden") || !$("cal2Modal").classList.contains("hidden");
     if (!$("srModal").classList.contains("hidden")) closeRequest();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
+    if (!modalOpen && navOpen) setNavOpen(false);
   });
 })();
 
