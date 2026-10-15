@@ -1052,37 +1052,31 @@
   });
 })();
 
-// ---------- Calendar: create color-coded appointments (Google Calendar API) ----------
+// ---------- Calendar: native month view on the real Google calendar ----------
 (function () {
-  var form = document.getElementById("cal-form");
-  if (!form) return;
-  // Collapsible form card (starts collapsed; remembers the choice).
-  var calBody = document.getElementById("cal-form-body");
-  var calBtn = document.getElementById("cal-collapse-btn");
-  if (calBody && calBtn) {
-    var applyCal = function () {
-      var collapsed = localStorage.getItem("pg_cal_form_collapsed") !== "0";
-      calBody.classList.toggle("hidden", collapsed);
-      calBtn.textContent = collapsed ? "Expand" : "Collapse";
-    };
-    if (localStorage.getItem("pg_cal_form_collapsed") === null) {
-      localStorage.setItem("pg_cal_form_collapsed", "1");
-    }
-    calBtn.addEventListener("click", function () {
-      var now = localStorage.getItem("pg_cal_form_collapsed") !== "0";
-      localStorage.setItem("pg_cal_form_collapsed", now ? "0" : "1");
-      applyCal();
-    });
-    applyCal();
-  }
+  var grid = document.getElementById("cal2-grid");
+  if (!grid) return;
   var CAL_ID = "48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com";
   var CLIENT_ID = "1031375547061-mlni2m610tne83odo52honlp9af47rnk.apps.googleusercontent.com";
-  var accessToken = null;
-  var tokenClient = null;
+  var COLORS = { "1": "#7986cb", "2": "#33b679", "3": "#8e24aa", "4": "#e67c73", "5": "#f6bf26", "6": "#f4511e", "7": "#039be5", "8": "#616161", "9": "#3f51b5", "10": "#188038", "11": "#d50000" };
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var now = new Date();
+  var viewY = now.getFullYear(), viewM = now.getMonth();
+  var events = []; // raw Google events for the visible window
+  var accessToken = null, tokenClient = null, started = false;
+  var editingId = null;
 
-  function msg(text) {
-    document.getElementById("cal-msg").textContent = text;
+  function $(id) { return document.getElementById(id); }
+  function status(t) { $("cal2-status").textContent = t; }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function dayKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
   }
+
+  // ---- Google sign-in (GIS token client, warmed up at page load) ----
   function loadGis() {
     return new Promise(function (resolve, reject) {
       if (window.google && google.accounts && google.accounts.oauth2) return resolve();
@@ -1102,99 +1096,215 @@
       error_callback: function () {},
     });
   }
-  // Warm up Google sign-in at page load so the actual request later happens
-  // inside the button tap (mobile browsers block popups opened after awaits).
   loadGis().then(initTokenClient).catch(function () {});
   function ensureToken() {
     return loadGis().then(function () {
       initTokenClient();
       return new Promise(function (resolve, reject) {
         tokenClient.callback = function (resp) {
-          if (resp && resp.access_token) {
-            accessToken = resp.access_token;
-            resolve(accessToken);
-          }
+          if (resp && resp.access_token) { accessToken = resp.access_token; resolve(accessToken); }
         };
         tokenClient.error_callback = function () {
-          reject(new Error("Google sign-in was closed or blocked."));
+          reject(new Error("Google sign-in was closed or blocked. If Google shows a 'hasn't verified this app' warning, tap Advanced, then 'Go to PrimeGuard Admin', then Allow."));
         };
         tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
       });
     });
   }
-  function createEvent(token, ev) {
-    return fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(CAL_ID) + "/events",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ev),
-      }
-    ).then(function (r) {
-      if (r.status === 401) {
-        accessToken = null;
-        throw new Error("EXPIRED");
-      }
-      if (!r.ok) {
-        return r.text().then(function (t) {
-          throw new Error("Google Calendar said " + r.status + ". " + (r.status === 403 || r.status === 404 ? "Your Google account may not have edit access to the PrimeGuard calendar yet. Edwin can share it with edit access from Google Calendar settings." : t.slice(0, 160)));
-        });
-      }
-      return r.json();
+  function api(path, method, body) {
+    function attempt(token) {
+      return fetch("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(CAL_ID) + path, {
+        method: method || "GET",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      }).then(function (r) {
+        if (r.status === 401) { accessToken = null; throw new Error("EXPIRED"); }
+        if (!r.ok) {
+          return r.text().then(function (t) {
+            throw new Error("Google Calendar said " + r.status + ". " + (r.status === 403 || r.status === 404 ? "Your Google account may not have edit access to the PrimeGuard calendar yet." : String(t).slice(0, 160)));
+          });
+        }
+        return r.status === 204 ? null : r.json();
+      });
+    }
+    return ensureToken().then(attempt).catch(function (e) {
+      if (e && e.message === "EXPIRED") return ensureToken().then(attempt);
+      throw e;
     });
   }
-  form.addEventListener("submit", function (e) {
+
+  // ---- Data ----
+  function gridWindow() {
+    var first = new Date(viewY, viewM, 1);
+    var start = new Date(first); start.setDate(1 - first.getDay());
+    var end = new Date(start); end.setDate(start.getDate() + 42);
+    return { start: start, end: end };
+  }
+  function loadEvents() {
+    var w = gridWindow();
+    status("Loading appointments...");
+    var q = "/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=" +
+      encodeURIComponent(w.start.toISOString()) + "&timeMax=" + encodeURIComponent(w.end.toISOString());
+    return api(q).then(function (res) {
+      events = (res && res.items) || [];
+      render();
+      status("Tap any day to add an appointment. Tap an appointment to edit or delete it. Everything saves to the real PrimeGuard Google calendar.");
+    }).catch(function (e) {
+      status(e && e.message ? e.message : "Could not load the calendar.");
+      render();
+    });
+  }
+  function evDay(ev) {
+    if (ev.start && ev.start.date) return ev.start.date; // all-day
+    if (ev.start && ev.start.dateTime) return ev.start.dateTime.slice(0, 10);
+    return "";
+  }
+  function evTime(ev) {
+    if (!ev.start || !ev.start.dateTime) return "All day";
+    var d = new Date(ev.start.dateTime);
+    var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "PM" : "AM";
+    h = h % 12; if (h === 0) h = 12;
+    return h + (m ? ":" + pad(m) : "") + " " + ap;
+  }
+
+  // ---- Render ----
+  function render() {
+    $("cal2-title").textContent = MONTHS[viewM] + " " + viewY;
+    var w = gridWindow();
+    var byDay = {};
+    events.forEach(function (ev) {
+      var k = evDay(ev);
+      if (!byDay[k]) byDay[k] = [];
+      byDay[k].push(ev);
+    });
+    var todayK = dayKey(new Date());
+    var html = "";
+    for (var i = 0; i < 42; i++) {
+      var d = new Date(w.start); d.setDate(w.start.getDate() + i);
+      var k = dayKey(d);
+      var list = byDay[k] || [];
+      html += '<div class="cal2-cell' + (d.getMonth() !== viewM ? " dim" : "") + (k === todayK ? " today" : "") + '" data-day="' + k + '">' +
+        '<span class="cal2-dnum">' + d.getDate() + "</span>";
+      list.slice(0, 3).forEach(function (ev) {
+        var c = COLORS[ev.colorId] || "#c9a227";
+        html += '<span class="cal2-ev" data-ev="' + esc(ev.id) + '" style="background:' + c + '">' + esc(evTime(ev)) + " " + esc(ev.summary || "(no title)") + "</span>";
+      });
+      if (list.length > 3) html += '<div class="cal2-more">+ ' + (list.length - 3) + " more below</div>";
+      html += "</div>";
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll(".cal2-cell").forEach(function (cell) {
+      cell.addEventListener("click", function (e) {
+        if (e.target.classList.contains("cal2-ev")) return;
+        openEditor(null, cell.getAttribute("data-day"));
+        renderDayList(cell.getAttribute("data-day"));
+      });
+    });
+    grid.querySelectorAll(".cal2-ev").forEach(function (chip) {
+      chip.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = chip.getAttribute("data-ev");
+        var ev = events.filter(function (x) { return x.id === id; })[0];
+        if (ev) openEditor(ev, evDay(ev));
+      });
+    });
+  }
+  function renderDayList(k) {
+    var box = $("cal2-daylist");
+    var list = events.filter(function (ev) { return evDay(ev) === k; });
+    var parts = k.split("-");
+    var label = MONTHS[Number(parts[1]) - 1] + " " + Number(parts[2]) + ", " + parts[0];
+    if (!list.length) { box.innerHTML = ""; return; }
+    var html = '<h4 style="margin:16px 0 4px">' + esc(label) + "</h4>";
+    list.forEach(function (ev) {
+      var c = COLORS[ev.colorId] || "#c9a227";
+      html += '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8">' + esc(evTime(ev)) + "</span></button>";
+    });
+    box.innerHTML = html;
+    box.querySelectorAll(".cal2-dayitem").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-ev");
+        var ev = events.filter(function (x) { return x.id === id; })[0];
+        if (ev) openEditor(ev, evDay(ev));
+      });
+    });
+  }
+
+  // ---- Editor modal ----
+  function openEditor(ev, dateStr) {
+    editingId = ev ? ev.id : null;
+    $("cal2-m-title").textContent = ev ? "Edit appointment" : "New appointment";
+    $("cal2-f-delete").classList.toggle("hidden", !ev);
+    $("cal2-f-msg").textContent = "";
+    $("cal2-f-title").value = ev ? (ev.summary || "") : "";
+    $("cal2-f-type").value = ev && ev.colorId ? String(ev.colorId) : "10";
+    $("cal2-f-date").value = dateStr || dayKey(new Date());
+    if (ev && ev.start && ev.start.dateTime) {
+      var s = new Date(ev.start.dateTime), en = new Date(ev.end.dateTime);
+      $("cal2-f-start").value = pad(s.getHours()) + ":" + pad(s.getMinutes());
+      $("cal2-f-end").value = pad(en.getHours()) + ":" + pad(en.getMinutes());
+    } else {
+      $("cal2-f-start").value = "09:00";
+      $("cal2-f-end").value = "10:00";
+    }
+    $("cal2-f-addr").value = ev ? (ev.location || "") : "";
+    $("cal2-f-notes").value = ev ? (ev.description || "") : "";
+    $("cal2Modal").classList.remove("hidden");
+  }
+  function closeEditor() { $("cal2Modal").classList.add("hidden"); }
+  $("cal2-m-close").addEventListener("click", closeEditor);
+  $("cal2Modal").addEventListener("click", function (e) { if (e.target === $("cal2Modal")) closeEditor(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !$("cal2Modal").classList.contains("hidden")) closeEditor();
+  });
+  $("cal2-form").addEventListener("submit", function (e) {
     e.preventDefault();
-    var title = document.getElementById("cal-title").value.trim();
-    var typeName = document.getElementById("cal-type").selectedOptions[0].textContent.replace(/^\S+\s/, "");
-    var colorId = document.getElementById("cal-type").value;
-    var date = document.getElementById("cal-date").value;
-    var start = document.getElementById("cal-start").value;
-    var end = document.getElementById("cal-end").value;
-    var addr = document.getElementById("cal-addr").value.trim();
-    var notes = document.getElementById("cal-notes").value.trim();
-    if (!title || !date || !start || !end) {
-      msg("Fill in the title, date, and both times.");
-      return;
-    }
-    if (end <= start) {
-      msg("End time has to be after the start time.");
-      return;
-    }
+    var title = $("cal2-f-title").value.trim();
+    var date = $("cal2-f-date").value, start = $("cal2-f-start").value, end = $("cal2-f-end").value;
+    if (!title || !date || !start || !end) { $("cal2-f-msg").textContent = "Fill in the title, date, and both times."; return; }
+    if (end <= start) { $("cal2-f-msg").textContent = "End time has to be after the start time."; return; }
     var ev = {
-      summary: title + " (" + typeName.replace(/\s*\(.*\)\s*$/, "") + ")",
-      location: addr || undefined,
-      description: notes || undefined,
-      colorId: colorId,
+      summary: title,
+      colorId: $("cal2-f-type").value,
+      location: $("cal2-f-addr").value.trim() || undefined,
+      description: $("cal2-f-notes").value.trim() || undefined,
       start: { dateTime: date + "T" + start + ":00", timeZone: "America/New_York" },
       end: { dateTime: date + "T" + end + ":00", timeZone: "America/New_York" },
     };
-    var btn = document.getElementById("cal-create-btn");
-    btn.disabled = true;
-    msg("Adding to the calendar...");
-    ensureToken()
-      .then(function (token) { return createEvent(token, ev); })
-      .catch(function (err) {
-        if (err && err.message === "EXPIRED") {
-          return ensureToken().then(function (token) { return createEvent(token, ev); });
-        }
-        throw err;
-      })
-      .then(function () {
-        msg("Added. It shows on the calendar below in its service color (give it a few seconds, or reload the page).");
-        if (typeof logActivity === "function") logActivity("Added a calendar appointment: " + ev.summary);
-        var frame = document.getElementById("cal-frame");
-        if (frame) { var src = frame.src; frame.src = src; }
-        form.reset();
-        document.getElementById("cal-start").value = "09:00";
-        document.getElementById("cal-end").value = "10:00";
-      })
-      .catch(function (err) {
-        msg(err && err.message ? err.message : "Something went wrong adding that appointment.");
-      })
-      .then(function () { btn.disabled = false; });
+    var btn = $("cal2-f-save"); btn.disabled = true;
+    $("cal2-f-msg").textContent = "Saving...";
+    var call = editingId ? api("/events/" + encodeURIComponent(editingId), "PATCH", ev) : api("/events", "POST", ev);
+    call.then(function () {
+      btn.disabled = false;
+      closeEditor();
+      loadEvents();
+    }).catch(function (err) {
+      btn.disabled = false;
+      $("cal2-f-msg").textContent = err && err.message ? err.message : "Something went wrong saving that appointment.";
+    });
   });
+  $("cal2-f-delete").addEventListener("click", function () {
+    if (!editingId) return;
+    if (!confirm("Delete this appointment?")) return;
+    api("/events/" + encodeURIComponent(editingId), "DELETE").then(function () {
+      closeEditor();
+      loadEvents();
+    }).catch(function (err) {
+      $("cal2-f-msg").textContent = err && err.message ? err.message : "Could not delete that appointment.";
+    });
+  });
+
+  // ---- Header controls ----
+  $("cal2-prev").addEventListener("click", function () { viewM--; if (viewM < 0) { viewM = 11; viewY--; } $("cal2-daylist").innerHTML = ""; loadEvents(); });
+  $("cal2-next").addEventListener("click", function () { viewM++; if (viewM > 11) { viewM = 0; viewY++; } $("cal2-daylist").innerHTML = ""; loadEvents(); });
+  $("cal2-today").addEventListener("click", function () { var n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); $("cal2-daylist").innerHTML = ""; loadEvents(); });
+  $("cal2-refresh").addEventListener("click", loadEvents);
+  $("cal2-new").addEventListener("click", function () { openEditor(null, dayKey(new Date())); });
+
+  // ---- Start when the Calendar tab is first opened ----
+  function start() { if (started) return; started = true; loadEvents(); }
+  var tabBtn = document.querySelector('[data-atab="calendar"]');
+  if (tabBtn) tabBtn.addEventListener("click", start);
+  if (!$("atab-calendar").classList.contains("hidden")) start();
+  render(); // paint the empty grid immediately
 })();
