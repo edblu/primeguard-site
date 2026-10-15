@@ -9,9 +9,10 @@
    7. "Book now" modal -> embeds SITE_CONFIG.bookingUrl, or "coming soon" + call.
    8. Review buttons shown only when their config URLs are set. */
 (function () {
-  /* PWA-only mode: account.html and quote.html run their own Firebase
-     stack and do NOT use the site behaviors below (this file's i18n pass
-     would overwrite their page titles and meta). They set
+  /* PWA-only mode: account.html, quote.html and vendor-dashboard.html
+     run their own Firebase stack and do NOT use the site behaviors
+     below (this file's i18n pass would overwrite their page titles
+     and meta). They set
      window.__PG_PWA_ONLY__ before loading site.js so they receive only
      the PWA install module at the bottom of this file. Every other page
      leaves the flag unset and is completely unaffected. */
@@ -1695,17 +1696,28 @@
      buttons open a short "Add to Home Screen" instruction card.
    - Never shows install UI when the site is already running as
      the installed app, and respects a 30-day dismissal.
+   - Path-aware: the vendor dashboard (/vendor-dashboard*) gets
+     the "PrimeGuard Vendor" wording and its own install flow;
+     admin pages get no install UI at all. The /sw.js
+     registration below runs on every page regardless (it sits
+     above the install-UI gate).
    - This block is intentionally self-contained and also runs on
-     account.html / quote.html, which load site.js in PWA-only
-     mode (see the guard at the top of this file).
+     account.html / quote.html / vendor-dashboard.html, which
+     load site.js in PWA-only mode (see the guard at the top).
    ============================================================ */
 (function () {
   var LS_INSTALLED = "pg_app_installed";
   var LS_DISMISSED = "pg_install_dismissed";
   var DISMISS_MS = 30 * 24 * 60 * 60 * 1000; /* re-ask after 30 days */
   var path = window.location.pathname || "";
-  var EXCLUDED = path.indexOf("/admin") === 0 ||
-                 path.indexOf("/vendor-dashboard") === 0;
+  var IS_ADMIN = path.indexOf("/admin") === 0;
+  var IS_VENDOR = path.indexOf("/vendor-dashboard") === 0;
+  /* Only staff (admin) surfaces are fully excluded from install UI.
+     The vendor dashboard has its own app (vendor-manifest.webmanifest,
+     start_url /vendor-dashboard.html) and gets vendor wording below
+     via APP_NAME and the IS_VENDOR branch in the banner copy. */
+  var EXCLUDED = IS_ADMIN;
+  var APP_NAME = IS_VENDOR ? "PrimeGuard Vendor app" : "PrimeGuard app";
 
   function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
@@ -1745,7 +1757,7 @@
     }
   } catch (e) { /* never break the page over the app shell */ }
 
-  if (EXCLUDED) return; /* No install UI on staff/vendor surfaces. */
+  if (EXCLUDED) return; /* No install UI on staff (admin) surfaces. */
 
   /* ---------- Install prompt capture ---------- */
   var deferredPrompt = null;
@@ -1788,11 +1800,13 @@
     banner = document.createElement("div");
     banner.className = "pg-app-banner";
     banner.setAttribute("role", "dialog");
-    banner.setAttribute("aria-label", "Install the PrimeGuard app");
+    banner.setAttribute("aria-label", "Install the " + APP_NAME);
     banner.innerHTML =
       '<img src="/assets/icon-192.png" alt="PrimeGuard app icon">' +
-      '<div class="pg-app-txt"><strong>Get the PrimeGuard app</strong>' +
-      "Track your requests, photos, quotes and updates, right from your home screen.</div>" +
+      '<div class="pg-app-txt"><strong>Get the ' + APP_NAME + "</strong>" +
+      (IS_VENDOR
+        ? "Quote requests, jobs and updates right on your home screen.</div>"
+        : "Track your requests, photos, quotes and updates, right from your home screen.</div>") +
       '<button type="button" class="pg-app-btn">Install app</button>' +
       '<button type="button" class="pg-app-x" aria-label="Not now">&times;</button>';
     banner.querySelector(".pg-app-btn").addEventListener("click", triggerInstall);
@@ -1852,7 +1866,7 @@
     if (isInstalled()) {
       hideBanner();
       showCard("You're all set",
-        "The PrimeGuard app is already on this device. Look for the gold PrimeGuard icon on your home screen.");
+        "The " + APP_NAME + " is already on this device. Look for the gold PrimeGuard icon on your home screen.");
       return;
     }
     if (deferredPrompt) {
@@ -1873,12 +1887,12 @@
     }
     if (isIOS()) {
       hideBanner();
-      showCard("Add PrimeGuard to your home screen",
+      showCard("Add " + (IS_VENDOR ? "PrimeGuard Vendor" : "PrimeGuard") + " to your home screen",
         "Tap the Share button, then 'Add to Home Screen' \u2014 that's it. The gold PrimeGuard icon will sit on your home screen like any other app.");
       return;
     }
     hideBanner();
-    showCard("Get the PrimeGuard app",
+    showCard("Get the " + APP_NAME,
       "Open this site on your phone and tap Install, or add it to your home screen from your browser menu.");
   }
 
