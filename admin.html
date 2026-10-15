@@ -208,6 +208,17 @@
   .hl-stage-head .cnt { color:var(--faint); letter-spacing:0; }
   .p-cold { background:rgba(160,160,160,.16); color:#c9c9c9; }
   .pg-light .p-cold { background:#e4e4e7; color:#52525b; }
+  .p-hot { background:rgba(255,110,80,.16); color:#ff9d85; }
+  .pg-light .p-hot { background:#fde3d8; color:#9a3412; }
+  .p-warm { background:rgba(255,190,90,.16); color:#ffd28a; }
+  .pg-light .p-warm { background:#fdf0d5; color:#8a5a00; }
+  .hl-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .hl-chip { padding:7px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-size:.8rem; font-weight:700; font-family:inherit; cursor:pointer; }
+  .hl-chip .cnt { color:var(--faint); font-weight:400; }
+  .hl-chip.active { border-color:var(--gold); color:var(--gold-bright); background:rgba(201,162,75,.14); }
+  .pg-light .hl-chip { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
+  .pg-light .hl-chip.active { background:#1b1b1b; border-color:#1b1b1b; color:#ffffff; }
+  .pg-light .hl-chip.active .cnt { color:#e8bd4e; }
   .hl-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:linear-gradient(135deg,#e8bd4e,#c9982f); margin-right:8px; box-shadow:0 0 8px rgba(201,162,75,.8); vertical-align:1px; }
   .hl-stage-sel { padding:7px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-size:.8rem; font-family:inherit; cursor:pointer; }
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
@@ -414,6 +425,7 @@
       <h2 style="margin:0">Hot Leads</h2>
       <button class="btn btn-gold btn-sm" type="button" id="hl-add">Add lead</button>
     </div>
+    <div id="ad-hl-filters" class="hl-filters"></div>
     <div class="acard"><div id="ad-hl-list"><p style="color:var(--faint)">Loading…</p></div></div>
   </section>
   </div>
@@ -605,7 +617,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=21"></script>
+<script src="admin.js?v=22"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
