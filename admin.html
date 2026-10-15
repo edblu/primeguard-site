@@ -161,10 +161,67 @@
   .pg-light .atab.on { background:#ffffff; color:#1d1d1f; box-shadow:0 2px 10px rgba(0,0,0,.14); }
   .pg-light .atab:hover { box-shadow:0 0 0 3px rgba(201,162,75,.22); }
   .pg-light .adrop-menu { border-color:rgba(0,0,0,.06); box-shadow:0 12px 40px rgba(0,0,0,.16); }
+
+  /* ---------- Left drawer navigation (mirrors the LoraLedger drawer) ---------- */
+  /* Z-stack: backdrop 80 < drawer 90 < hamburger 95 — above the sticky top bar (60), below modals (.modal-overlay 200, .cal2-modal 1200). */
+  #pgNavToggle { display:none; position:fixed; top:10px; left:10px; width:46px; height:46px; border-radius:50%; background:#0b0b0d; border:1px solid rgba(212,168,67,.55); color:#e8bd4e; font-size:20px; line-height:1; align-items:center; justify-content:center; cursor:pointer; z-index:95; box-shadow:0 8px 24px rgba(0,0,0,.45); font-family:inherit; padding:0; }
+  body.pg-nav-on #pgNavToggle { display:flex; }
+  body.pg-nav-on .atop { padding-left:66px; }
+  #pgNavToggle:hover { box-shadow:0 0 0 3px rgba(201,162,75,.22), 0 8px 24px rgba(201,162,75,.35); }
+  #pgNavBackdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:80; opacity:0; visibility:hidden; transition:opacity .28s ease, visibility 0s .28s; }
+  #pgNavBackdrop.open { opacity:1; visibility:visible; transition:opacity .28s ease; }
+  #pgNavDrawer { position:fixed; left:0; top:0; height:100dvh; width:min(340px,88vw); z-index:90; background:linear-gradient(180deg,#141417,#0b0b0d); border-right:1px solid rgba(212,168,67,.35); border-radius:0 20px 20px 0; box-shadow:24px 0 60px rgba(0,0,0,.55); transform:translateX(-105%); visibility:hidden; transition:transform .28s ease, visibility 0s .28s; display:flex; flex-direction:column; overflow-y:auto; padding:18px 14px 22px; box-sizing:border-box; }
+  #pgNavDrawer.open { transform:translateX(0); visibility:visible; transition:transform .28s ease; }
+  body:not(.pg-nav-on) #pgNavDrawer, body:not(.pg-nav-on) #pgNavBackdrop { display:none; }
+  .pg-nav-head { display:flex; align-items:center; gap:10px; padding:2px 6px 14px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:12px; }
+  .pg-nav-brand { font-weight:800; font-size:1rem; color:var(--text); white-space:nowrap; }
+  .pg-nav-brand span { color:var(--gold); }
+  .pg-nav-tag { font-size:.62rem; text-transform:uppercase; letter-spacing:.2em; color:var(--gold); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+  #pgNavClose { margin-left:auto; flex:none; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.16); background:transparent; color:var(--text); font-size:17px; line-height:1; cursor:pointer; font-family:inherit; }
+  #pgNavClose:hover { border-color:var(--gold); }
+  .pg-nav-sec { font-size:.66rem; text-transform:uppercase; letter-spacing:.18em; color:var(--faint); padding:10px 8px 6px; }
+  .pg-nav-item { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; padding:12px 14px; margin-bottom:4px; border:1px solid transparent; background:transparent; color:var(--text); font-size:.94rem; font-weight:600; border-radius:12px; cursor:pointer; font-family:inherit; text-decoration:none; box-sizing:border-box; }
+  .pg-nav-item:hover { background:rgba(212,168,67,.12); }
+  .pg-nav-item.active { background:rgba(201,162,75,.16); color:var(--gold-bright); border-color:rgba(212,168,67,.4); }
+  .pg-nav-item .cnt-b { font-size:.75rem; background:rgba(212,168,67,.2); color:#f5d67b; border-radius:999px; padding:2px 8px; font-weight:700; }
+  .pg-nav-item .arr { color:var(--gold); font-size:.85rem; }
+  .pg-nav-foot { margin-top:auto; padding:14px 8px 0; border-top:1px solid rgba(255,255,255,.08); color:var(--faint); font-size:.76rem; }
+  /* Drawer in the light theme: clean white surface, same gold accents */
+  .pg-light #pgNavDrawer { background:#ffffff; border-right-color:#dfe1e2; box-shadow:24px 0 60px rgba(0,0,0,.18); }
+  .pg-light .pg-nav-head { border-bottom-color:#e6e8ea; }
+  .pg-light .pg-nav-brand { color:#1b1b1b; }
+  .pg-light #pgNavClose { border-color:#aeb0b5; color:#1b1b1b; }
+  .pg-light .pg-nav-item { color:#1b1b1b; }
+  .pg-light .pg-nav-item:hover { background:#f0f0f0; }
+  .pg-light .pg-nav-item.active { background:rgba(201,162,75,.20); color:#7a5c14; border-color:rgba(138,109,42,.45); }
+  .pg-light .pg-nav-item .cnt-b { background:#c9a24b; color:#1b1b1b; }
+  .pg-light .pg-nav-foot { border-top-color:#e6e8ea; }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
 <body>
+<button id="pgNavToggle" type="button" aria-label="Open menu">&#9776;</button>
+<div id="pgNavBackdrop"></div>
+<aside id="pgNavDrawer" aria-label="Admin navigation">
+  <div class="pg-nav-head">
+    <div class="pg-nav-brand">PrimeGuard <span>Preservation</span></div>
+    <div class="pg-nav-tag">Admin</div>
+    <button id="pgNavClose" type="button" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="pg-nav-sec">Navigate</div>
+  <button class="pg-nav-item" type="button" data-navtab="work">Work orders</button>
+  <button class="pg-nav-item" type="button" data-navtab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
+  <button class="pg-nav-item" type="button" data-navtab="referrals">Referral codes</button>
+  <button class="pg-nav-item" type="button" data-navtab="vendors">Vendors <span class="cnt-b" id="pg-nav-b-vendors">0</span></button>
+  <button class="pg-nav-item" type="button" data-navtab="followups">Follow-ups <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
+  <button class="pg-nav-item" type="button" data-navtab="calendar">Calendar</button>
+  <button class="pg-nav-item" type="button" data-navtab="team">Acquisition managers</button>
+  <button class="pg-nav-item" type="button" data-navtab="activity" id="pg-nav-activity">Staff activity</button>
+  <div class="pg-nav-sec">Open</div>
+  <a class="pg-nav-item" href="https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--?usp=sharing" target="_blank" rel="noopener">Visual map (globe) <span class="arr">&#8599;</span></a>
+  <a class="pg-nav-item" href="https://primeguard-books.web.app" target="_blank" rel="noopener">PrimeGuard Books <span class="arr">&#8599;</span></a>
+  <div class="pg-nav-foot">PrimeGuard Preservation LLC &middot; Admin</div>
+</aside>
 <div class="awrap">
   <div class="atop">
     <a class="abrand" href="index.html" style="text-decoration:none;color:inherit">PrimeGuard <span>Preservation</span></a>
@@ -501,7 +558,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=16"></script>
+<script src="admin.js?v=17"></script>
 <script>
 (function () {
   var tabs = ["work", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
