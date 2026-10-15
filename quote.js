@@ -183,7 +183,7 @@
     q3.appendChild(sel);
     wrap.appendChild(q1); wrap.appendChild(q2); wrap.appendChild(q3);
     var dt = $("qDetailText");
-    if (dt && c.detailPh) dt.placeholder = c.detailPh;
+    if (dt) dt.placeholder = "Tell us exactly what you want done: what needs doing, where on the property, how big the area is, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote." + (c.detailPh ? " " + c.detailPh : "");
   }
 
   /* ---------- Step 2: detail text + photos ---------- */
@@ -199,6 +199,66 @@
       fr.readAsDataURL(f);
     });
   });
+
+  /* ---------- Step 2: videos (doc-upload pattern, one by one, 25 MB guard) ---------- */
+  var VIDEO_MAX_BYTES = 25 * 1024 * 1024;
+  function fmtMB(bytes) { return (bytes / (1024 * 1024)).toFixed(1) + " MB"; }
+  function showVideoMsg(text) {
+    var m = $("qVideoMsg");
+    if (!m) return;
+    if (text) { m.textContent = text; m.hidden = false; }
+    else { m.textContent = ""; m.hidden = true; }
+  }
+  $("qVideos").addEventListener("change", function () {
+    var list = $("qVideoList"); list.innerHTML = "";
+    var over = [];
+    Array.prototype.forEach.call(this.files, function (f) {
+      var d = document.createElement("div");
+      if (f.size > VIDEO_MAX_BYTES) {
+        over.push(f.name);
+        d.textContent = "🎬 " + f.name + " (" + fmtMB(f.size) + ") — too big to attach (25 MB max)";
+        d.style.color = "#ff9d9d";
+      } else {
+        d.textContent = "🎬 " + f.name + " (" + fmtMB(f.size) + ")";
+      }
+      list.appendChild(d);
+    });
+    if (over.length) {
+      showVideoMsg("That video is over 25 MB, so we can't attach it here. No problem: paste a link to it in the video link field above (Google Photos, iCloud, YouTube) and we'll watch it there.");
+    } else { showVideoMsg(""); }
+  });
+
+  function uploadOneQuoteVideo(f) {
+    var endpoint = cfg.photoEndpoint || "";
+    if (!endpoint) return Promise.resolve(null);
+    return new Promise(function (res) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        fetch(endpoint, {
+          method: "POST", mode: "cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ type: "doc-upload", folder: "quote-requests", name: f.name, mime: f.type, data: fr.result })
+        }).then(function (r) { return r.json(); }).then(function (out) {
+          res((out && out.ok && out.urls && out.urls.length) ? out.urls[0] : null);
+        }).catch(function () { res(null); });
+      };
+      fr.onerror = function () { res(null); };
+      fr.readAsDataURL(f);
+    });
+  }
+
+  function uploadQuoteVideos() {
+    var files = $("qVideos").files;
+    var urls = [], skipped = [];
+    if (!files || !files.length) return Promise.resolve({ urls: urls, skipped: skipped });
+    var chain = Promise.resolve();
+    Array.prototype.forEach.call(files, function (f) {
+      if (f.size > VIDEO_MAX_BYTES) { skipped.push(f.name); return; }
+      chain = chain.then(function () { return uploadOneQuoteVideo(f); })
+        .then(function (u) { if (u) urls.push(u); });
+    });
+    return chain.then(function () { return { urls: urls, skipped: skipped }; });
+  }
 
   function uploadQuotePhotos() {
     var files = $("qPhotos").files;
@@ -268,15 +328,21 @@
     var jobDesc = ($("qDetailText").value || "").trim();
     if (jobDesc) detail += "; Customer notes: " + jobDesc;
     var photos = $("qPhotos").files;
-    if (photos && photos.length) btn.textContent = "Uploading photos...";
+    var vids = $("qVideos").files;
+    if ((photos && photos.length) || (vids && vids.length)) btn.textContent = "Uploading...";
     uploadQuotePhotos().then(function (photoUrls) {
+      return uploadQuoteVideos().then(function (vres) {
       if (photoUrls.length) detail += "; Photos: " + photoUrls.join(", ");
+      if (vres.urls.length) detail += "; Videos: " + vres.urls.join(", ");
+      var videoLink = ($("qVideoLink").value || "").trim();
+      if (videoLink) detail += "; Video link: " + videoLink;
       var payload = {
         type: "quote-request", status: "new", ref: ref,
         service: c.name, estimate: p, unit: c.unit, details: detail,
         name: name, phone: phone, email: f.email.value.trim(),
         address: address, date: f.date.value, referrer: f.referrer.value.trim(),
         notes: f.notes.value.trim(),
+        videos: vres.urls, videoLink: videoLink,
         message: "Instant estimate: $" + p + " " + c.unit + " (" + c.name + " - " + detail + ")." +
           (f.notes.value.trim() ? " Notes: " + f.notes.value.trim() : ""),
         source: "quote-page", page: location.pathname,
@@ -289,11 +355,15 @@
           service: "Quote request " + ref + " - " + c.name,
           message: payload.message, status: "new",
           photos: photoUrls,
+          videos: vres.urls, videoLink: videoLink,
           source: "quote-page", ref: ref, estimate: p,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(function () {});
       }
       var done = function () {
+        if (vres.skipped.length) {
+          $("qdoneMsg").textContent = "We'll call you shortly to confirm your exact quote. One heads-up: " + vres.skipped.join(", ") + " was over our 25 MB video limit, so it wasn't attached. Text us a link to it (Google Photos, iCloud, YouTube) anytime and we'll take a look.";
+        }
         $("qdoneRef").textContent = ref;
         $("qdonePrice").textContent = "$" + p + " " + c.unit;
         goStep(1); $("qstep1").hidden = true; $("qstepDone").hidden = false;
@@ -307,6 +377,7 @@
           body: JSON.stringify(payload)
         }).then(done).catch(done);
       } else { done(); }
+      });
     }).catch(function () {
       btn.disabled = false; btn.textContent = "Get my quote";
       err.textContent = "Something went wrong sending your quote. Please try again.";
