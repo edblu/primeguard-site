@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrimeGuard Plans — Daylight hologram concept</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#e8e6df; font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+  .pg { max-width:430px; margin:0 auto; position:relative; overflow:hidden; color:#17222b;
+    background:radial-gradient(120% 40% at 50% -4%, rgba(245,197,66,.20), transparent 60%), linear-gradient(180deg,#faf8f1,#f3f0e6 55%,#efece1); }
+  .topbar { display:flex; align-items:center; gap:12px; padding:16px 20px 12px; }
+  .burger { width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,.75); backdrop-filter:blur(8px); border:1px solid rgba(14,90,110,.35); box-shadow:0 4px 14px rgba(23,34,43,.10); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex:0 0 46px; }
+  .burger span { display:block; width:17px; height:2px; border-radius:2px; background:#0e5a6e; }
+  .wordmark { font-weight:800; letter-spacing:.05em; font-size:16px; line-height:1.05; color:#101c26; }
+  .wordmark em { font-style:normal; color:#b8860b; }
+  .wordmark small { display:block; font-weight:600; letter-spacing:.3em; font-size:8px; color:#7a7263; margin-top:2px; }
+  .booknow { margin-left:auto; font:700 13px/1 inherit; padding:11px 16px; border-radius:999px; border:none; background:linear-gradient(180deg,#ffd968,#d9ab2b); color:#171205; cursor:pointer; box-shadow:0 6px 16px rgba(217,171,43,.35); }
+
+  .hero { position:relative; margin:6px 14px 0; }
+  .hero .frame { position:relative; border-radius:24px; overflow:hidden; border:1px solid rgba(255,255,255,.9); box-shadow:0 24px 48px rgba(23,34,43,.22), 0 0 0 1px rgba(14,90,110,.10); }
+  .hero img { display:block; width:100%; height:330px; object-fit:cover; }
+  .corner { position:absolute; width:26px; height:26px; border:2px solid rgba(255,255,255,.95); filter:drop-shadow(0 1px 4px rgba(0,0,0,.35)); z-index:4; }
+  .corner.tl { top:10px; left:10px; border-right:none; border-bottom:none; border-radius:8px 0 0 0; }
+  .corner.tr { top:10px; right:10px; border-left:none; border-bottom:none; border-radius:0 8px 0 0; }
+  .corner.bl { bottom:10px; left:10px; border-right:none; border-top:none; border-radius:0 0 0 8px; }
+  .corner.br { bottom:10px; right:10px; border-left:none; border-top:none; border-radius:0 0 8px 0; }
+  .ring { position:absolute; top:18px; right:18px; width:82px; height:82px; z-index:4; animation:spin 46s linear infinite; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ringlabel { position:absolute; top:47px; right:18px; width:82px; text-align:center; z-index:4; font-size:8px; font-weight:700; letter-spacing:.16em; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.75); }
+  .ringlabel b { display:block; font-size:16px; letter-spacing:0; }
+  .chip { position:absolute; z-index:4; display:flex; align-items:center; gap:8px; padding:9px 13px; border-radius:999px; background:rgba(255,255,255,.68); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.95); box-shadow:0 8px 22px rgba(23,34,43,.18), inset 0 1px 0 rgba(255,255,255,1); font-size:12px; font-weight:700; color:#143140; animation:floaty 6s ease-in-out infinite; }
+  @keyframes floaty { 50% { transform:translateY(-5px); } }
+  .chip .dot { width:7px; height:7px; border-radius:50%; background:#1d9d57; box-shadow:0 0 7px rgba(29,157,87,.8); }
+  .chip.c1 { top:22px; left:16px; }
+  .chip.c2 { bottom:112px; right:16px; animation-delay:1.3s; }
+  .chip.c2 b { color:#b8860b; }
+
+  .panel { position:relative; z-index:5; margin:-80px 14px 0; padding:22px 20px 20px; border-radius:20px; background:linear-gradient(160deg, rgba(255,255,255,.82), rgba(255,255,255,.66)); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.95); box-shadow:0 22px 44px rgba(23,34,43,.16), inset 0 1px 0 #fff; }
+  .kicker { font-size:10.5px; font-weight:700; letter-spacing:.3em; color:#0e7c86; text-transform:uppercase; margin-bottom:10px; }
+  .kicker::before { content:""; display:inline-block; width:22px; height:1px; background:#0e7c86; vertical-align:middle; margin-right:9px; }
+  h1 { font-size:33px; line-height:1.08; font-weight:800; letter-spacing:-.015em; color:#101c26; }
+  h1 .gold { color:#b8860b; }
+  .sub { margin-top:10px; font-size:14.5px; line-height:1.55; color:#4c5a52; }
+  .btnrow { margin-top:16px; display:flex; gap:9px; }
+  .btn { font:700 14px/1 inherit; padding:14px 20px; border-radius:999px; cursor:pointer; border:1px solid transparent; }
+  .btn-gold { background:linear-gradient(180deg,#ffd968,#d9ab2b); color:#171205; box-shadow:0 8px 18px rgba(217,171,43,.35); }
+  .btn-ghost { background:rgba(255,255,255,.6); color:#143140; border-color:rgba(14,90,110,.35); }
+
+  section.blk { padding:28px 20px 2px; }
+  h2.s { font-size:21px; font-weight:800; margin-bottom:5px; color:#101c26; }
+  h2.s .tick { color:#0e7c86; font-weight:300; margin-right:6px; }
+  .sec-sub { font-size:13.5px; line-height:1.5; color:#6d7668; margin-bottom:15px; }
+  .plan { border-radius:18px; padding:18px 16px; margin-bottom:11px; position:relative; background:linear-gradient(160deg, rgba(255,255,255,.85), rgba(255,255,255,.6)); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.95); box-shadow:0 12px 26px rgba(23,34,43,.10), inset 0 1px 0 #fff; }
+  .plan.featured { border-color:rgba(217,171,43,.75); box-shadow:0 14px 30px rgba(217,171,43,.22), inset 0 1px 0 #fff; }
+  .plan .row { display:flex; align-items:baseline; gap:10px; }
+  .plan h3 { font-size:16px; font-weight:800; }
+  .plan .amt { margin-left:auto; font-size:24px; font-weight:800; color:#101c26; }
+  .plan .amt small { font-size:12px; font-weight:600; color:#6d7668; }
+  .plan p { font-size:12.5px; line-height:1.5; color:#5d6a60; margin-top:5px; }
+  .plan .tag { position:absolute; top:-9px; right:14px; font-size:9.5px; font-weight:800; letter-spacing:.12em; padding:4px 9px; border-radius:999px; background:linear-gradient(180deg,#ffd968,#d9ab2b); color:#171205; box-shadow:0 4px 10px rgba(217,171,43,.4); }
+  .steps { display:grid; gap:0; }
+  .step { display:flex; gap:14px; padding:11px 2px; position:relative; }
+  .step .node { flex:0 0 34px; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#171205; background:radial-gradient(circle at 34% 30%, #ffe9a8, #d9ab2b); box-shadow:0 6px 14px rgba(217,171,43,.4); position:relative; z-index:1; }
+  .step:not(:last-child)::before { content:""; position:absolute; left:18px; top:44px; bottom:-4px; width:1.5px; background:linear-gradient(180deg, rgba(217,171,43,.6), rgba(14,124,134,.3)); }
+  .step h3 { font-size:15px; font-weight:700; padding-top:2px; }
+  .step p { font-size:13px; color:#6d7668; line-height:1.45; margin-top:2px; }
+  .finalcta { text-align:center; padding:28px 24px 36px; }
+  .finalcta h2 { font-size:24px; font-weight:800; margin-bottom:8px; color:#101c26; }
+  .finalcta p { font-size:14px; line-height:1.55; color:#6d7668; margin-bottom:18px; }
+</style>
+</head>
+<body>
+<div class="pg">
+  <div class="topbar"><div class="burger"><span></span><span></span><span></span></div><div class="wordmark">PRIME<em>GUARD</em><small>PRESERVATION LLC</small></div><button class="booknow">Book now</button></div>
+
+  <div class="hero">
+    <div class="frame">
+      <img src="holo-daylight.jpg" alt="Bright Miami backyard with pool">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <svg class="ring" viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.95)" stroke-width="2.5" stroke-dasharray="52 26 14 30"/>
+        <circle cx="50" cy="50" r="35" stroke="rgba(255,255,255,.65)" stroke-width="1.5" stroke-dasharray="4 7"/>
+        <circle cx="50" cy="6" r="3.5" fill="#fff"/>
+      </svg>
+      <div class="ringlabel"><b>3</b>PLANS</div>
+      <div class="chip c1"><span class="dot"></span> No contracts to start</div>
+      <div class="chip c2">Cancel <b>&nbsp;anytime</b></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="kicker">Plans · Miami-Dade</div>
+    <h1>Set it once.<br><span class="gold">Forget it.</span></h1>
+    <p class="sub">Recurring care on a set schedule, confirmed in the app before every visit and proven with photos after. Pick the plan, we run it.</p>
+    <div class="btnrow"><button class="btn btn-gold">See plans</button><button class="btn btn-ghost">How it works</button></div>
+  </div>
+
+  <section class="blk"><h2 class="s"><span class="tick">/</span>The plans</h2><p class="sec-sub">Straight prices, printed up front.</p>
+    <div class="plan featured"><span class="tag">MOST POPULAR</span><div class="row"><h3>Lawn Care Plan</h3><div class="amt">$90<small> /month</small></div></div><p>Two visits a month: mow, edge, trim. Priority scheduling and photo proof after every visit.</p></div>
+    <div class="plan"><div class="row"><h3>Home Maintenance</h3><div class="amt">$65<small> /month</small></div></div><p>A standing handyman for the small stuff: fixtures, mounting, touch-ups, one list per visit.</p></div>
+    <div class="plan"><div class="row"><h3>Pressure Washing</h3><div class="amt">$149<small> /visit</small></div></div><p>Quarterly visits keep driveways, decks and siding bright all year.</p></div>
+  </section>
+
+  <section class="blk"><h2 class="s"><span class="tick">/</span>How it works</h2>
+    <div class="steps">
+      <div class="step"><div class="node">1</div><div><h3>Pick your plan</h3><p>Two minutes online, no contract to start.</p></div></div>
+      <div class="step"><div class="node">2</div><div><h3>We set the schedule</h3><p>Visits land in your app, confirmed before each one.</p></div></div>
+      <div class="step"><div class="node">3</div><div><h3>Photos prove it</h3><p>Before-and-after shots after every visit.</p></div></div>
+    </div>
+  </section>
+
+  <div class="finalcta"><h2>Your home, on a system.</h2><p>Start today, first visit this week.</p><button class="btn btn-gold">Start my plan</button></div>
+</div>
+</body>
+</html>
