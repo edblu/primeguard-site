@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Account | PrimeGuard Preservation</title>
 <meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=25">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -245,6 +245,9 @@
 <body class="acct-page">
 <header class="site-header">
   <div class="header-inner">
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
     <a class="brand" href="index.html"><img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation logo" class="brand-logo"><span class="brand-text">PrimeGuard <span>Preservation LLC</span></span></a>
     <nav class="main-nav" id="mainNav">
       <a href="index.html#services">Services</a>
@@ -256,9 +259,6 @@
     </nav>
     <div class="header-actions">
       <a class="btn btn-gold" href="index.html#contact">Book now</a>
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
 </header>
@@ -545,10 +545,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=8"></script>
+<script src="account.js?v=9"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
-<script src="site.js?v=30"></script>
+<script src="site.js?v=31"></script>
 </body>
 </html>
