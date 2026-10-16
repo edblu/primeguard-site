@@ -665,6 +665,7 @@
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
   var woFilter = "all"; // Work Orders queue filter chip: all|quote|active|done
   var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
+  var woOpenId = null; // work order id whose card is expanded inline (Open/Close toggle)
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
   var hlPendingPhotos = []; // compressed photos picked in the lead form, not yet uploaded
@@ -2983,6 +2984,62 @@
         '" data-wofilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
     }).join("");
   }
+  // Full inline detail for an expanded work-order card (the Open toggle).
+  // Shows everything stored on the doc: customer + contact, address,
+  // area, service, the complete details text (property notes live inside
+  // it on prepared orders, and in their own field when present), the
+  // assigned vendor + pay, schedule hints, every photo and video link,
+  // and the record timestamps. Built from the cached row, so expanding
+  // never needs a network round-trip.
+  function woDetailHtml(w) {
+    function row(label, valueHtml) {
+      if (!valueHtml) return "";
+      return '<div class="woq-drow"><span class="woq-dlabel">' + esc(label) + '</span><span class="woq-dval">' + valueHtml + "</span></div>";
+    }
+    function fmtWhen(v) {
+      var ms = tsMs(v);
+      if (ms) return esc(new Date(ms).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }));
+      return esc(String(v || ""));
+    }
+    var contactBits = [w.customerContact || w.contact || "", w.customerPhone || w.phone || "", w.customerEmail || w.email || ""]
+      .filter(function (x) { return x && String(x).trim(); });
+    var assign = w.vendorBusiness || (w.broadcast ? "Broadcast (all approved vendors)" : (w.vendorId ? "Vendor " + w.vendorId : ""));
+    var when = w.scheduledAt || w.scheduledFor || w.preferredTime || w.when || "";
+    var html = '<div class="woq-detail">';
+    html += row("Customer", woCustomerName(w) ? esc(woCustomerName(w)) : "");
+    if (contactBits.length) html += row("Contact", esc(contactBits.join(" · ")));
+    html += row("Address", w.address ? esc(w.address) : "");
+    html += row("Area", w.area ? esc(w.area) : "");
+    html += row("Service", w.category ? esc(w.category) : "");
+    html += row("Type", w.kind ? esc(String(w.kind).replace(/_/g, " ")) : "");
+    html += row("Status", esc(String(woStatusValue(w)).replace(/_/g, " ")));
+    html += row("Assigned to", assign ? esc(assign) : "");
+    html += row("Pay", w.pay ? esc(w.pay) : "");
+    if (when) html += row("Scheduled", fmtWhen(when));
+    if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
+    if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
+    if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
+    if (w.details) html += '<div class="woq-dblock"><h4>Full details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>";
+    var propNotes = w.propertyNotes || w.property_notes || "";
+    if (propNotes) html += '<div class="woq-dblock"><h4>Property notes</h4><p>' + esc(propNotes).replace(/\n/g, "<br>") + "</p></div>";
+    var photoUrls = (Array.isArray(w.photos) ? w.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    if (photoUrls.length) {
+      html += '<div class="woq-dblock"><h4>Photos (' + photoUrls.length + ')</h4><div class="athumbs woq-thumbs">' +
+        photoUrls.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="work order photo"></a>'; }).join("") + "</div></div>";
+    }
+    var vids = woVideoLinks(w);
+    if (vids.length) {
+      html += '<div class="woq-dblock"><h4>Videos</h4><p class="woq-vids">' +
+        vids.map(function (u, i) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener">Video ' + (i + 1) + "</a>"; }).join(" · ") + "</p></div>";
+    }
+    var created = fmtWhen(w.createdAt), updated = fmtWhen(w.updatedAt);
+    var metaBits = [];
+    if (created) metaBits.push("Created " + created + (w.createdBy ? " by " + esc(w.createdBy) : ""));
+    if (updated && updated !== created) metaBits.push("Updated " + updated);
+    if (metaBits.length) html += '<p class="woq-dmeta">' + metaBits.join(" · ") + "</p>";
+    html += "</div>";
+    return html;
+  }
   function renderWorkOrders() {
     var box = $("ad-wo-list");
     if (!box) return;
@@ -3021,12 +3078,14 @@
       var mediaHtml = (photoCount ? ' <span class="hl-photo-badge" title="Photos on this work order">📷 ' + photoCount + "</span>" : "") +
         (videoCount ? ' <span class="hl-photo-badge" title="Videos on this work order">🎬 ' + videoCount + "</span>" : "");
       var sendHtml = woSendHtml(it.id, w);
+      var isOpen = woOpenId === it.id;
       var card = document.createElement("article");
       card.className = "hlq-card woq-card " + (bucket === 0 ? "woq-action" : (bucket === 3 ? "woq-done" : "woq-progress"));
       card.innerHTML =
         '<div class="hlq-head"><button type="button" class="hlq-name" data-wonotes="' + it.id + '">' +
           esc(title + (customer && title.indexOf(customer) < 0 ? " · " + customer : "")) + "</button>" +
-          pill(w.status) + "</div>" +
+          '<span class="hlq-head-right"><button type="button" class="mini woq-open-btn" data-woopen="' + it.id + '" aria-expanded="' + (isOpen ? "true" : "false") + '">' + (isOpen ? "Close" : "Open") + "</button>" +
+          pill(w.status) + "</span></div>" +
         (metaLine || mediaHtml ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + "</div>" : "") +
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
         '<div class="hlq-actions">' +
@@ -3038,7 +3097,8 @@
         '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since update</span>' +
           '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
           '<button type="button" class="hlq-manage-btn danger" data-wodel="' + it.id + '">Delete</button></span>' +
-          '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>";
+          '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>" +
+        (isOpen ? woDetailHtml(w) : "");
       box.appendChild(card);
     });
   }
@@ -3956,6 +4016,8 @@
     if (hlActionEl) d = hlActionEl.dataset;
     var woFilterEl = t.closest ? t.closest("[data-wofilter]") : null;
     if (woFilterEl) d = woFilterEl.dataset;
+    var woOpenEl = t.closest ? t.closest("[data-woopen]") : null;
+    if (woOpenEl) d = woOpenEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
     if (d.wodone) {
@@ -3973,6 +4035,7 @@
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
+    if (d.woopen) { woOpenId = (woOpenId === d.woopen) ? null : d.woopen; renderWorkOrders(); }
     if (d.wosend) openWoSendPreview(d.wosend, t);
     if (d.woboard) toggleWoBoard(d.woboard, t);
     if (d.woprevlang) { woPrevLang = d.woprevlang; renderWoPrev(); }
