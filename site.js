@@ -1123,6 +1123,26 @@
   var authGoogle = document.getElementById("authGoogle");
   var authMode = "login";
 
+  /* The nav drawer's closeMenu lives in its own IIFE at the bottom of
+     this file and is NOT in scope here — openAuth()/openProfile()
+     calling it threw a ReferenceError and the modal never opened
+     (the real "Log in button does nothing" bug, caught in live
+     verification 2026-10-15). This local version mirrors the drawer's
+     close behavior defensively. */
+  function closeMenu() {
+    var nav = document.getElementById("mainNav");
+    var toggle = document.getElementById("navToggle");
+    var backdrop = document.getElementById("navBackdrop");
+    if (nav) nav.classList.remove("open");
+    if (toggle) {
+      toggle.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-label", "Open menu");
+    }
+    if (backdrop) backdrop.classList.remove("show");
+    document.body.classList.remove("nav-open");
+  }
+
   function openAuth() {
     closeMenu();
     authError.hidden = true;
