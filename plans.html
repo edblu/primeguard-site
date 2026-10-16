@@ -35,6 +35,102 @@
   .bb-combo span { background:rgba(217,171,43,.18); color:#8a6d2a; border:1px solid rgba(217,171,43,.55); font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
   .order-disc { color:#8a6d2a; font-weight:600; }
   .order-save { color:#8a6d2a; font-weight:800; margin-top:8px; }
+  /* Plan signup modal redesign — Daylight (2026-10-16, page-scoped .pm2) */
+  .modal.plan-modal.pm2 {
+    background:linear-gradient(165deg, rgba(255,255,255,.97), rgba(250,248,241,.94));
+    color:#17222b;
+    border:1px solid rgba(201,162,75,.35);
+    border-radius:24px;
+    box-shadow:0 18px 50px rgba(60,50,20,.18), 0 4px 14px rgba(60,50,20,.08);
+  }
+  .modal.pm2 [hidden] { display:none !important; }
+  .pm2-photo {
+    position:relative; flex:0 0 auto; height:120px;
+    background:url("assets/hero-plans-daylight.jpg") center 42% / cover no-repeat;
+  }
+  .pm2-photo::after {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(16,28,38,.10) 0%, rgba(16,28,38,0) 55%, rgba(16,28,38,.12) 100%);
+  }
+  .pm2-pill {
+    position:absolute; top:14px; left:16px; z-index:2;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.7);
+    color:#0e7c86;
+    font-size:.68rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+    padding:7px 12px; border-radius:999px;
+    box-shadow:0 4px 12px rgba(16,28,38,.14);
+  }
+  .pm2-photo .modal-close.pm2-close {
+    top:12px; right:14px; z-index:2;
+    width:36px; height:36px;
+    background:#fff; border:1px solid rgba(16,28,38,.08);
+    color:#101c26; font-size:1.05rem; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 12px rgba(16,28,38,.18);
+  }
+  .pm2-photo .modal-close.pm2-close:hover { background:#fdf6dd; border-color:rgba(201,162,75,.5); }
+  .pm2-body { padding:22px 24px 26px; }
+  .pm2 #planModalTitle {
+    padding:0; margin:0;
+    font-family:"Sora","Inter",sans-serif;
+    color:#101c26; font-size:1.55rem; font-weight:700; letter-spacing:-.01em; line-height:1.2;
+  }
+  .pm2-price-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px 12px; margin-top:10px; }
+  .pm2-price {
+    font-family:"Sora","Inter",sans-serif;
+    color:#101c26; font-size:2.5rem; font-weight:800; line-height:1.1; letter-spacing:-.02em;
+  }
+  .pm2-was { color:#8b93a0; font-size:1.15rem; font-weight:600; text-decoration:line-through; text-decoration-thickness:2px; }
+  .pm2-save-chip {
+    background:linear-gradient(180deg,#ffd968,#d9ab2b);
+    color:#171205; font-size:.8rem; font-weight:800;
+    padding:6px 12px; border-radius:999px;
+    box-shadow:0 4px 10px rgba(217,171,43,.35);
+    white-space:nowrap;
+  }
+  .pm2-per { margin:6px 0 0; color:#6b7480; font-size:.9rem; font-weight:500; }
+  .pm2-inc-label {
+    margin:22px 0 0;
+    color:#0e7c86; font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  }
+  .pm2-list { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .pm2-list li {
+    display:flex; align-items:center; gap:12px;
+    background:#faf6ea;
+    border:1px solid rgba(201,162,75,.28);
+    border-radius:14px;
+    padding:11px 14px;
+    font-size:.95rem; font-weight:600; color:#17222b;
+  }
+  .pm2-list li::before {
+    content:"✓"; flex:0 0 24px; width:24px; height:24px; border-radius:50%;
+    background:linear-gradient(180deg,#ffd968,#d9ab2b);
+    color:#171205; font-size:.8rem; font-weight:800; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(217,171,43,.4);
+  }
+  .pm2 #planForm label { color:#101c26; }
+  .pm2 #planForm input {
+    background:#fff; color:#101c26;
+    border:1.5px solid rgba(16,28,38,.16); border-radius:12px;
+  }
+  .pm2 #planForm input::placeholder { color:#9aa3ad; }
+  .pm2 #planForm input:focus { border-color:#c9a24b; box-shadow:0 0 0 3px rgba(217,171,43,.22); }
+  .pm2-note { margin:12px 0 0; text-align:center; color:#7a828d; font-size:.82rem; line-height:1.45; }
+  .pm2 .plan-secure { color:#7a828d; }
+  .pm2 .plan-alt { color:#55606a; }
+  .pm2 .plan-alt a { color:#8a6d2a; }
+  .pm2 .plan-trust span { color:#8a6d2a; }
+  .pm2 .plan-success p { background:#faf6ea; border-color:rgba(201,162,75,.4); color:#17222b; }
+  @media (max-width:400px) {
+    .pm2-body { padding:18px 16px 22px; }
+    .pm2 #planModalTitle { font-size:1.35rem; }
+    .pm2-price { font-size:2.1rem; }
+    .pm2-photo { height:104px; }
+    .pm2-list li { font-size:.9rem; padding:10px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -338,17 +434,21 @@
 
 <!-- ================= PLAN SIGNUP ================= -->
 <div class="modal-overlay" id="planModal" hidden>
-  <div class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
-    <button class="modal-close" id="planClose" aria-label="Close" data-i18n-aria="close">×</button>
-    <div class="plan-modal-hero">
-      <p class="section-kicker" data-i18n="plan_modal_kicker">You&apos;re one step away</p>
-      <h3 id="planModalTitle"><span id="planSummaryName"></span></h3>
-      <p class="plan-modal-price" id="planSummaryPrice"></p>
-      <p class="plan-modal-desc" id="planSummaryDesc"></p>
+  <div class="modal plan-modal pm2" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+    <div class="pm2-photo">
+      <span class="pm2-pill" data-i18n="plan_modal_kicker">You&apos;re one step away</span>
+      <button class="modal-close pm2-close" id="planClose" aria-label="Close" data-i18n-aria="close">×</button>
     </div>
-    <div class="modal-body">
-      <p class="plan-inc-title" data-i18n="plan_included_title">What&apos;s included:</p>
-      <ul class="plan-includes plan-modal-perks" id="planSummaryInc"></ul>
+    <div class="modal-body pm2-body">
+      <h3 id="planModalTitle"><span id="planSummaryName"></span></h3>
+      <div class="pm2-price-row">
+        <span class="pm2-price" id="planSummaryPrice"></span>
+        <s class="pm2-was" id="planSummaryWas" hidden></s>
+        <span class="pm2-save-chip" id="planSummarySave" hidden></span>
+      </div>
+      <p class="pm2-per" id="planSummaryPer"></p>
+      <p class="plan-inc-title pm2-inc-label" data-i18n="plan_included_title">What&apos;s included:</p>
+      <ul class="pm2-list" id="planSummaryInc"></ul>
       <form id="planForm" novalidate>
         <label><span data-i18n="form_name">Full name</span>
           <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
@@ -367,6 +467,7 @@
           <span data-i18n="plan_continue_pay">Continue to secure payment</span>
         </button>
         <p class="plan-secure" data-i18n="plan_secure_note">Secure checkout powered by Stripe. Cancel anytime.</p>
+        <p class="pm2-note" data-i18n="plan_modal_note">No payment due today. We confirm your start date first.</p>
         <div class="plan-trust">
           <span data-i18n="plan_trust_1">Secure Stripe checkout</span>
           <span data-i18n="plan_trust_2">Cancel anytime</span>
@@ -389,7 +490,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=18"></script>
-<script src="site.js?v=34"></script>
+<script src="site.js?v=35"></script>
 <script src="human-chat.js"></script>
 </body>
 </html>
