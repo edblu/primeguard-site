@@ -600,3 +600,46 @@ footer.site-footer{
 .quote-form input:focus,.quote-form select:focus,.quote-form textarea:focus{
   border-color:rgba(217,171,43,.75); box-shadow:0 0 0 3px rgba(217,171,43,.22);
 }
+
+/* ---------- 12. Contact band beatdown (the section kept its dark
+   cinematic paint against every earlier override — restate the whole
+   band at winning specificity: cream canvas, no scrim, glass form,
+   white inputs, ink text) ---------- */
+section#contact{
+  background-color:#f5f1e6;
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(245,197,66,.20), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 88% 78%, rgba(201,162,75,.10), transparent 70%),
+    linear-gradient(180deg,#faf8f1,#f3f0e6 60%,#efe9da);
+  border-top:1px solid rgba(201,162,75,.4);
+  border-bottom:none;
+}
+section#contact::before{ background:none; }
+#contact h2{ color:var(--ink); text-shadow:none; }
+#contact .section-kicker{
+  background:rgba(255,255,255,.78); color:var(--teal);
+  border:1px solid rgba(14,124,134,.35); text-shadow:none;
+}
+#contact .section-lead{ color:#55645c; text-shadow:none; }
+#contact .info-label{ color:var(--teal); text-shadow:none; }
+#contact .info-value{ color:var(--ink); text-shadow:none; }
+#contact .info-link{ color:var(--ink); }
+#contact .info-link:hover{ color:var(--gold-deep); }
+#contact .quote-form{
+  background:var(--glass); border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#contact .quote-form h3{ color:var(--ink); }
+#contact .quote-form label{ color:#33424e; }
+#contact .quote-form input,#contact .quote-form select,#contact .quote-form textarea{
+  background:rgba(255,255,255,.94); color:var(--ink);
+  border:1px solid rgba(23,34,43,.18);
+}
+#contact .quote-form input:focus,#contact .quote-form select:focus,#contact .quote-form textarea:focus{
+  border-color:rgba(217,171,43,.75); box-shadow:0 0 0 3px rgba(217,171,43,.22);
+}
+#contact .plan-note{
+  background:rgba(255,255,255,.8); border-color:rgba(201,162,75,.5); color:#8a6d2a;
+}
+#contact .plan-note button{ color:var(--gold-deep); }
