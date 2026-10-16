@@ -1129,10 +1129,13 @@
   /* ---------- Job tools: "Vendors for this job" + globe (Edwin, 2026-10-15) ---------- */
   // Shared by the hot-lead detail/notes modal and the work-order notes
   // modal. Given the entity being evaluated ({label, area, address,
-  // service}), the tools row offers: (1) the approved vendors who cover
-  // the job's area (and, when known, its service), and (2) a globe button
-  // that opens the shared vendor Earth project with the job address
-  // copied for paste-search (Earth projects cannot deep-link an address).
+  // service}), the tools row offers: (1) a vendor browser window listing
+  // every approved/pending vendor as a designed card — searchable,
+  // filterable by service category, sortable, badged for area/service
+  // matches, with each vendor's distance from the job — and (2) a globe
+  // button that opens the shared vendor Earth project with the job
+  // address copied for paste-search (Earth projects cannot deep-link an
+  // address).
   var PG_EARTH_URL = "https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--";
   var pgVmUnderlyingClose = null;
 
@@ -1173,23 +1176,115 @@
     return hit;
   }
 
-  // Resolves to [{id, v, serviceMatch}] of APPROVED vendors covering the
-  // entity's area; service matches sort ahead of area-only matches.
-  window.pgVendorMatch = function (entity) {
+  function pgTsMs(ts) {
+    if (!ts) return 0;
+    try {
+      if (ts.toDate) return ts.toDate().getTime();
+      if (ts.seconds) return ts.seconds * 1000;
+      var t = new Date(ts).getTime();
+      return isNaN(t) ? 0 : t;
+    } catch (e) { return 0; }
+  }
+  function pgCrewOf(v) { return v.crewSize || v.crew || ""; }
+  function pgOriginQuery(entity) {
+    var addr = String((entity && entity.address) || "").trim();
+    if (addr) return addr;
+    var area = String((entity && entity.area) || "").trim();
+    return area ? area + ", FL" : "";
+  }
+  function pgVendorPointQuery(v) {
+    var addr = String((v && v.address) || "").trim();
+    if (addr) return addr;
+    var areas = (v && v.areas) || [];
+    for (var i = 0; i < areas.length; i++) {
+      var a = String(areas[i] || "").trim();
+      if (a) return a + ", FL";
+    }
+    return "";
+  }
+
+  // Loads EVERY vendor who could take work (approved or pending; archived
+  // and rejected stay out) and annotates each row with how it matches the
+  // job: covers the area, does the service. Distance back to the job is
+  // filled in later by the geocoder (row.dist; row.distState goes
+  // "idle" -> "busy" -> "done").
+  function pgLoadVendorRows(entity) {
     entity = entity || {};
     var candidates = pgAreaCandidates(entity);
     return db.collection("vendors").limit(100).get().then(function (qs) {
-      var out = [];
+      var rows = [];
       qs.forEach(function (doc) {
         var v = doc.data();
-        if (vStatus(v) !== "approved") return;
-        if (!candidates.length || !pgAreaHit(v.areas, candidates)) return;
-        out.push({ id: doc.id, v: v, serviceMatch: pgServiceHit(v.services, entity.service) });
+        var st = vStatus(v);
+        if (st !== "approved" && st !== "pending") return;
+        rows.push({
+          id: doc.id, v: v, status: st,
+          areaMatch: !!candidates.length && pgAreaHit(v.areas, candidates),
+          serviceMatch: pgServiceHit(v.services, entity.service),
+          dist: null, distState: "idle", createdMs: pgTsMs(v.createdAt)
+        });
       });
-      out.sort(function (a, b) { return (b.serviceMatch ? 1 : 0) - (a.serviceMatch ? 1 : 0); });
-      return out;
+      return rows;
+    });
+  }
+
+  // v24 contract kept for compatibility: approved vendors covering the
+  // job's area, service matches first. The browser below works off
+  // pgLoadVendorRows directly.
+  window.pgVendorMatch = function (entity) {
+    return pgLoadVendorRows(entity).then(function (rows) {
+      return rows.filter(function (r) { return r.status === "approved" && r.areaMatch; })
+        .sort(function (a, b) { return (b.serviceMatch ? 1 : 0) - (a.serviceMatch ? 1 : 0); });
     });
   };
+
+  /* ----- Geocoding (Nominatim) + Haversine, cached ----- */
+  var PG_GEO_LS_KEY = "pg_geo_cache_v1";
+  var pgGeoMem = null;
+  function pgGeoCacheLoad() {
+    if (pgGeoMem) return pgGeoMem;
+    pgGeoMem = {};
+    try {
+      var raw = localStorage.getItem(PG_GEO_LS_KEY);
+      if (raw) { var parsed = JSON.parse(raw); if (parsed && typeof parsed === "object") pgGeoMem = parsed; }
+    } catch (e) {}
+    return pgGeoMem;
+  }
+  function pgGeoCacheSave() {
+    try { localStorage.setItem(PG_GEO_LS_KEY, JSON.stringify(pgGeoMem)); } catch (e) {}
+  }
+  function pgGeoKey(q) { return String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); }
+  function pgGeoCached(query) {
+    var cache = pgGeoCacheLoad(), key = pgGeoKey(query);
+    return key && Object.prototype.hasOwnProperty.call(cache, key);
+  }
+  // Resolves to [lat, lon] or null. Hits (and misses) are cached in
+  // localStorage keyed by the normalized query, so repeat opens are
+  // instant; network failures are NOT cached, so a later open can retry.
+  function pgGeocode(query) {
+    var key = pgGeoKey(query);
+    if (!key) return Promise.resolve(null);
+    var cache = pgGeoCacheLoad();
+    if (Object.prototype.hasOwnProperty.call(cache, key)) return Promise.resolve(cache[key]);
+    var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(query);
+    return fetch(url, { headers: { "Accept": "application/json" } }).then(function (res) {
+      if (!res.ok) throw new Error("geocode " + res.status);
+      return res.json();
+    }).then(function (arr) {
+      var pt = null;
+      if (arr && arr.length && isFinite(+arr[0].lat) && isFinite(+arr[0].lon)) pt = [+arr[0].lat, +arr[0].lon];
+      cache[key] = pt; pgGeoCacheSave();
+      return pt;
+    }).catch(function () { return null; });
+  }
+  function pgHaversineMi(a, b) {
+    var R = 3958.8, rad = Math.PI / 180;
+    var dLat = (b[0] - a[0]) * rad, dLon = (b[1] - a[1]) * rad;
+    var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  }
+  function pgDelay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   function pgJobToolsHtml(entity) {
     var target = entity.address || entity.area || "";
@@ -1221,6 +1316,7 @@
   }
 
   function ensurePgVmModal() {
+    ensurePgVbStyles();
     if ($("pgVmModal")) return;
     var ov = document.createElement("div");
     ov.className = "modal-overlay hidden";
@@ -1239,38 +1335,215 @@
     if (e.key === "Escape") closePgVmModal();
   });
 
-  window.openJobVendorTools = function (entity) {
-    entity = entity || {};
-    ensurePgVmModal();
-    var area = entity.area || "";
-    $("pgVmBody").innerHTML = '<h3 id="pgVmTitle">Vendors for this job</h3>' +
-      '<p class="sr-meta"><span>' + esc(entity.label || "Job") +
-      (entity.service ? " · " + esc(entity.service) : "") +
-      (area ? " · " + esc(area) : "") + "</span></p>" +
-      '<div id="pgVmList"><p class="sr-faint">Finding approved vendors…</p></div>';
-    $("pgVmModal").classList.remove("hidden");
-    window.pgVendorMatch(entity).then(function (matches) {
-      var list = $("pgVmList");
-      if (!list) return;
-      if (!area) {
-        list.innerHTML = '<p>No area is saved for this job yet, so vendors cannot be matched.</p>';
-        return;
-      }
-      if (!matches.length) {
-        list.innerHTML = "<p>No approved vendor covers " + esc(area) + " yet.</p>";
-        return;
-      }
-      list.innerHTML = matches.map(function (m) {
-        var v = m.v;
-        var digits = String(v.phone || "").replace(/\D/g, "");
-        return '<div class="arow"><div class="grow"><strong>' + esc(v.business || v.name || "Vendor") + "</strong><small>" +
-          esc(v.name || "") +
-          (v.crewSize ? " · Crew: " + esc(v.crewSize) : "") +
-          ((v.areas || []).length ? " · " + esc((v.areas || []).join(", ")) : "") + "</small></div>" +
-          '<span class="pill ' + (m.serviceMatch ? "p-acc" : "p-open") + '">' + (m.serviceMatch ? "Service match" : "Area match") + "</span>" +
-          (v.phone ? ' <a class="mini" href="tel:' + esc(digits) + '">' + esc(v.phone) + "</a>" : "") +
-          ' <button class="mini" type="button" data-pgvmopen="' + m.id + '">Open</button></div>';
-      }).join("");
+  /* ----- Vendor browser (v25): searchable, filterable, distance-aware ----- */
+  // Replaces the v24 match list. Shows ALL approved + pending vendors as
+  // designed cards, with live search, service-category chips, sorting
+  // (closest / name / newest), match badges, and each vendor's distance
+  // from the job geocoded in the background (never blocks the render).
+  var pgVb = null; // {entity, rows, cats, search, cat, sort, origin, geoDone, seq}
+  var pgVbStylesDone = false;
+
+  function ensurePgVbStyles() {
+    if (pgVbStylesDone) return;
+    pgVbStylesDone = true;
+    var s = document.createElement("style");
+    s.id = "pgVbStyles";
+    s.textContent =
+      "#pgVmModal .modal{width:min(920px,100%)}" +
+      "#pgVmBody{padding:26px 30px 30px;overflow-y:auto;min-height:0;flex:1 1 auto}" +
+      "#pgVmBody h3{padding:0}" +
+      "@media (max-width:640px){#pgVmBody{padding:20px 16px 24px}}" +
+      ".pgvb-ctx{display:flex;flex-wrap:wrap;gap:12px 30px;background:rgba(255,255,255,.03);border:1px solid var(--line-soft);border-radius:14px;padding:14px 18px;margin:4px 0 16px}" +
+      ".pgvb-ctxi{min-width:0}" +
+      ".pgvb-ctxi .k{display:block;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);margin-bottom:2px}" +
+      ".pgvb-ctxi .v{font-weight:700;font-size:.95rem;color:var(--text)}" +
+      ".pgvb-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}" +
+      ".pgvb-search{flex:1 1 230px;display:flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:0 16px;background:rgba(255,255,255,.04)}" +
+      ".pgvb-search:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.18)}" +
+      ".pgvb-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:inherit;font-size:.92rem;padding:10px 0;outline:none}" +
+      ".pgvb-sort{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:.88rem;padding:10px 14px;cursor:pointer}" +
+      ".pgvb-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px}" +
+      ".pgvb-chip{flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1px solid var(--line-soft);background:transparent;color:var(--muted);font:inherit;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s ease}" +
+      ".pgvb-chip:hover{border-color:var(--gold);color:var(--gold-bright)}" +
+      ".pgvb-chip.active{background:linear-gradient(135deg,#e8bd4e,#c9982f);color:#241a0c;border-color:transparent}" +
+      ".pgvb-chip .cnt{opacity:.6;font-weight:400}" +
+      ".pgvb-status{color:var(--faint);font-size:.82rem;margin:4px 0 12px}" +
+      ".pgvb-foot{color:var(--faint);font-size:.8rem;margin:12px 0 0}" +
+      ".pgvb-empty{border:1px dashed var(--line);border-radius:14px;padding:26px 20px;text-align:center;display:grid;gap:6px;justify-items:center;color:var(--muted)}" +
+      ".pgvb-empty strong{color:var(--text);font-size:1rem}" +
+      ".pgvb-empty span{font-size:.86rem}" +
+      ".pgvb-empty .mini{margin-top:8px}" +
+      ".pgvb-card{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015)),var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:10px}" +
+      ".pgvb-card.both{box-shadow:inset 3px 0 0 var(--gold)}" +
+      ".pgvb-av{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:2px solid var(--gold);background:radial-gradient(circle at 32% 28%,rgba(245,197,66,.38),rgba(201,162,39,.10) 72%);color:var(--gold-bright);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;letter-spacing:.02em}" +
+      ".pgvb-main{flex:1;min-width:0}" +
+      ".pgvb-toprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}" +
+      ".pgvb-biz{font-weight:800;font-size:1rem;color:var(--text);line-height:1.25;overflow-wrap:anywhere}" +
+      ".pgvb-contact{color:var(--muted);font-size:.84rem;margin-top:2px}" +
+      ".pgvb-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}" +
+      ".pgvb-badge{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px;background:rgba(201,162,39,.16);color:var(--gold-bright);border:1px solid rgba(201,162,39,.38)}" +
+      ".pgvb-info{color:var(--muted);font-size:.85rem;margin-top:8px;display:flex;gap:4px 18px;flex-wrap:wrap}" +
+      ".pgvb-info a{color:var(--gold-bright);text-decoration:none;font-weight:700}" +
+      ".pgvb-svcs{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}" +
+      ".pgvb-svc{font-size:.72rem;border:1px solid var(--line-soft);border-radius:999px;padding:3px 9px;color:var(--muted);background:rgba(255,255,255,.03)}" +
+      ".pgvb-svc.more{color:var(--gold-bright);border-color:rgba(201,162,39,.38)}" +
+      ".pgvb-areas{color:var(--faint);font-size:.78rem;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+      ".pgvb-side{flex:0 0 auto;min-width:94px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right}" +
+      ".pgvb-dist .n{font-size:1.5rem;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums}" +
+      ".pgvb-dist .n small{font-size:.78rem;font-weight:700;color:var(--muted)}" +
+      ".pgvb-dist .c{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);margin-top:3px}" +
+      ".pgvb-dist.pend .n{color:var(--faint)}" +
+      "@media (max-width:560px){.pgvb-card{flex-wrap:wrap}.pgvb-side{flex-direction:row;align-items:center;justify-content:space-between;width:100%;text-align:left}}" +
+      ":root.pg-light .pgvb-card{background:#ffffff;border-color:#e7e4da;box-shadow:0 2px 12px rgba(20,20,20,.05)}" +
+      ":root.pg-light .pgvb-ctx{background:#f6f5f1;border-color:#e5e2d8}" +
+      ":root.pg-light .pgvb-search,:root.pg-light .pgvb-sort{background:#ffffff;border-color:#d8d4c8;color:#1b1b1b}" +
+      ":root.pg-light .pgvb-search input{color:#1b1b1b}" +
+      ":root.pg-light .pgvb-chip{background:#ffffff}" +
+      ":root.pg-light .pgvb-svc{background:#f6f5f1}" +
+      ":root.pg-light .pgvb-empty{border-color:#d8d4c8}";
+    document.head.appendChild(s);
+  }
+
+  function pgInitials(name) {
+    var words = String(name || "Vendor").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+    var first = words[0] || "V";
+    var ini = first.charAt(0) + (words.length > 1 ? words[1].charAt(0) : (first.charAt(1) || ""));
+    return ini.toUpperCase();
+  }
+  function pgVbCategories(rows) {
+    var map = {};
+    rows.forEach(function (r) {
+      (r.v.services || []).forEach(function (sv) {
+        var label = String(sv || "").replace(/\s+/g, " ").trim();
+        if (!label) return;
+        var key = label.toLowerCase();
+        if (!map[key]) map[key] = { label: label, count: 0 };
+        map[key].count++;
+      });
+    });
+    return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) {
+      return b.count - a.count || a.label.localeCompare(b.label);
+    });
+  }
+  function pgRowHasCat(row, catLabel) {
+    if (!catLabel) return true;
+    var key = catLabel.toLowerCase();
+    return (row.v.services || []).some(function (sv) {
+      return String(sv || "").replace(/\s+/g, " ").trim().toLowerCase() === key;
+    });
+  }
+  function pgVbCounts(state) {
+    var cover = 0, svc = 0;
+    state.rows.forEach(function (r) { if (r.areaMatch) cover++; if (r.serviceMatch) svc++; });
+    return { total: state.rows.length, cover: cover, svc: svc };
+  }
+  function pgVbUpdateStatus(state) {
+    var el = $("pgVbStatus");
+    if (!el || pgVb !== state) return;
+    var c = pgVbCounts(state);
+    var txt = c.total + (c.total === 1 ? " vendor" : " vendors") +
+      " · " + c.cover + " cover this area · " + c.svc + " do this service";
+    if (!state.geoDone && pgOriginQuery(state.entity)) txt += " · measuring distances…";
+    el.textContent = txt;
+  }
+  function pgVbVisibleRows(state) {
+    var q = pgNorm(state.search);
+    var rows = state.rows.filter(function (r) {
+      if (!pgRowHasCat(r, state.cat)) return false;
+      if (!q) return true;
+      var v = r.v;
+      var hay = pgNorm([v.business, v.name, v.phone, v.address,
+        (v.services || []).join(" "), (v.areas || []).join(" ")].join(" "));
+      return hay.indexOf(q) >= 0;
+    });
+    function byName(a, b) { return pgNorm(a.v.business || a.v.name).localeCompare(pgNorm(b.v.business || b.v.name)); }
+    if (state.sort === "name") rows.sort(byName);
+    else if (state.sort === "newest") rows.sort(function (a, b) { return b.createdMs - a.createdMs || byName(a, b); });
+    else rows.sort(function (a, b) { // closest first; unknown distance last
+      var da = a.dist == null ? Infinity : a.dist;
+      var db = b.dist == null ? Infinity : b.dist;
+      if (da !== db) return da - db;
+      var ma = (a.areaMatch ? 1 : 0) + (a.serviceMatch ? 1 : 0);
+      var mb = (b.areaMatch ? 1 : 0) + (b.serviceMatch ? 1 : 0);
+      if (ma !== mb) return mb - ma;
+      return byName(a, b);
+    });
+    return rows;
+  }
+  function pgVbDistHtml(row) {
+    if (row.dist != null) return '<div class="n">' + row.dist.toFixed(1) + " <small>mi</small></div>" + '<div class="c">from job</div>';
+    if (row.distState === "done") return '<div class="n">—</div><div class="c">from job</div>';
+    return '<div class="n">…</div><div class="c">measuring</div>';
+  }
+  function pgVbPaintDist(row) {
+    var el = document.querySelector('[data-pgvb-dist="' + row.id + '"]');
+    if (!el) return;
+    el.innerHTML = pgVbDistHtml(row);
+    el.classList.toggle("pend", row.dist == null && row.distState !== "done");
+  }
+  function pgVbCardHtml(row) {
+    var v = row.v;
+    var biz = v.business || v.name || "Vendor";
+    var crew = pgCrewOf(v);
+    var digits = String(v.phone || "").replace(/\D/g, "");
+    var svcs = (v.services || []).map(function (sv) { return String(sv || "").replace(/\s+/g, " ").trim(); }).filter(Boolean);
+    var shown = svcs.slice(0, 4), extra = svcs.length - shown.length;
+    var areas = (v.areas || []).filter(Boolean);
+    var badges = "";
+    if (row.areaMatch) badges += '<span class="pgvb-badge">Covers this area</span>';
+    if (row.serviceMatch) badges += '<span class="pgvb-badge">Does this service</span>';
+    var info = "";
+    if (crew) info += "<span>Crew: " + esc(crew) + "</span>";
+    if (v.phone) info += '<span>Call: <a href="tel:' + esc(digits) + '">' + esc(v.phone) + "</a></span>";
+    if (v.equipment) info += "<span>" + esc(v.equipment) + "</span>";
+    return '<div class="pgvb-card' + (row.areaMatch && row.serviceMatch ? " both" : "") + '">' +
+      '<div class="pgvb-av">' + esc(pgInitials(biz)) + "</div>" +
+      '<div class="pgvb-main">' +
+        '<div class="pgvb-toprow"><span class="pgvb-biz">' + esc(biz) + "</span>" + pill(row.status) + "</div>" +
+        (v.name && v.name !== biz ? '<div class="pgvb-contact">' + esc(v.name) + "</div>" : "") +
+        (badges ? '<div class="pgvb-badges">' + badges + "</div>" : "") +
+        (info ? '<div class="pgvb-info">' + info + "</div>" : "") +
+        (shown.length ? '<div class="pgvb-svcs">' + shown.map(function (sv) { return '<span class="pgvb-svc">' + esc(sv) + "</span>"; }).join("") +
+          (extra > 0 ? '<span class="pgvb-svc more">+' + extra + " more</span>" : "") + "</div>" : "") +
+        (areas.length ? '<div class="pgvb-areas" title="' + esc(areas.join(", ")) + '">Areas: ' + esc(areas.join(", ")) + "</div>" : "") +
+      "</div>" +
+      '<div class="pgvb-side"><div class="pgvb-dist' + (row.dist == null && row.distState !== "done" ? " pend" : "") + '" data-pgvb-dist="' + row.id + '">' + pgVbDistHtml(row) + "</div>" +
+      '<button class="mini" type="button" data-pgvmopen="' + row.id + '">Open</button></div></div>';
+  }
+  function pgVbRenderChips(state) {
+    var box = $("pgVbChips");
+    if (!box || pgVb !== state) return;
+    var html = '<button type="button" class="pgvb-chip' + (!state.cat ? " active" : "") + '" data-pgvbcat="">All</button>';
+    html += state.cats.map(function (c) {
+      return '<button type="button" class="pgvb-chip' + (state.cat === c.label ? " active" : "") + '" data-pgvbcat="' + esc(c.label) + '">' + esc(c.label) + ' <span class="cnt">' + c.count + "</span></button>";
+    }).join("");
+    box.innerHTML = html;
+    box.querySelectorAll("[data-pgvbcat]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.cat = b.getAttribute("data-pgvbcat") || "";
+        pgVbRenderChips(state);
+        pgVbRenderList(state);
+      });
+    });
+  }
+  function pgVbRenderList(state) {
+    var list = $("pgVbList");
+    if (!list || pgVb !== state) return;
+    var rows = pgVbVisibleRows(state);
+    var foot = $("pgVbFoot");
+    if (!state.rows.length) {
+      list.innerHTML = '<div class="pgvb-empty"><strong>No vendors on file yet.</strong><span>When a vendor registers, they show up here automatically.</span></div>';
+    } else if (!rows.length) {
+      list.innerHTML = '<div class="pgvb-empty"><strong>No vendors match</strong><span>Try a different search or category.</span>' +
+        '<button class="mini" type="button" id="pgVbClear">Clear filters</button></div>';
+      var c = $("pgVbClear");
+      if (c) c.addEventListener("click", function () {
+        state.search = ""; state.cat = "";
+        var si = $("pgVbSearch"); if (si) si.value = "";
+        pgVbRenderChips(state); pgVbRenderList(state);
+      });
+    } else {
+      list.innerHTML = rows.map(pgVbCardHtml).join("");
       list.querySelectorAll("[data-pgvmopen]").forEach(function (b) {
         b.addEventListener("click", function () {
           var vid = b.getAttribute("data-pgvmopen");
@@ -1279,9 +1552,100 @@
           openVendor(vid);
         });
       });
+    }
+    if (foot) foot.textContent = state.rows.length
+      ? "Showing " + rows.length + " of " + state.rows.length + (state.rows.length === 1 ? " vendor" : " vendors")
+      : "";
+  }
+  function pgVbDistUpdated(state, row) {
+    if (pgVb !== state) return;
+    if (state.sort === "closest") pgVbRenderList(state);
+    else pgVbPaintDist(row);
+  }
+  // Geocodes the job origin, then each vendor's point, sequentially and
+  // cache-first (a short pause before uncached lookups keeps Nominatim
+  // happy). Distances paint in as they land; nothing here blocks render.
+  function pgVbGeocodeAll(state) {
+    var originQ = pgOriginQuery(state.entity);
+    if (!originQ) {
+      state.rows.forEach(function (r) { r.distState = "done"; });
+      state.geoDone = true;
+      pgVbRenderList(state);
+      return;
+    }
+    pgGeocode(originQ).then(function (origin) {
+      if (pgVb !== state) return;
+      state.origin = origin;
+      var p = Promise.resolve();
+      state.rows.forEach(function (row) {
+        p = p.then(function () {
+          if (pgVb !== state) return null;
+          var q = pgVendorPointQuery(row.v);
+          if (!q || !origin) { row.distState = "done"; row.dist = null; pgVbDistUpdated(state, row); return null; }
+          row.distState = "busy"; pgVbPaintDist(row);
+          var wait = pgGeoCached(q) ? 0 : 150;
+          return pgDelay(wait).then(function () { return pgGeocode(q); }).then(function (pt) {
+            row.distState = "done";
+            row.dist = pt ? pgHaversineMi(origin, pt) : null;
+            pgVbDistUpdated(state, row);
+          });
+        });
+      });
+      return p;
+    }).then(function () {
+      if (pgVb !== state) return;
+      state.geoDone = true;
+      pgVbUpdateStatus(state);
+      if (state.sort === "closest") pgVbRenderList(state);
+    }).catch(function () {});
+  }
+
+  window.openJobVendorTools = function (entity) {
+    entity = entity || {};
+    ensurePgVmModal();
+    var hasOrigin = !!pgOriginQuery(entity);
+    var prevSeq = pgVb ? pgVb.seq : 0;
+    var state = pgVb = {
+      entity: entity, rows: [], cats: [], search: "", cat: "",
+      sort: hasOrigin ? "closest" : "name",
+      origin: null, geoDone: !hasOrigin, seq: prevSeq + 1
+    };
+    var loc = entity.address || entity.area || "";
+    $("pgVmBody").innerHTML =
+      '<h3 id="pgVmTitle">Vendors for this job</h3>' +
+      '<div class="pgvb-ctx">' +
+        '<div class="pgvb-ctxi"><span class="k">Job</span><span class="v">' + esc(entity.label || "Job") + "</span></div>" +
+        (entity.service ? '<div class="pgvb-ctxi"><span class="k">Service needed</span><span class="v">' + esc(entity.service) + "</span></div>" : "") +
+        (loc ? '<div class="pgvb-ctxi"><span class="k">Location</span><span class="v">' + esc(loc) + "</span></div>" : "") +
+      "</div>" +
+      '<div class="pgvb-controls">' +
+        '<label class="pgvb-search"><input type="search" id="pgVbSearch" placeholder="Search name, business, area, service…" autocomplete="off"></label>' +
+        '<select class="pgvb-sort" id="pgVbSort" aria-label="Sort vendors">' +
+          '<option value="closest"' + (state.sort === "closest" ? " selected" : "") + ">Closest first</option>" +
+          '<option value="name"' + (state.sort === "name" ? " selected" : "") + ">Name A–Z</option>" +
+          '<option value="newest"' + (state.sort === "newest" ? " selected" : "") + ">Newest first</option>" +
+        "</select>" +
+      "</div>" +
+      '<div class="pgvb-chips" id="pgVbChips"></div>' +
+      '<p class="pgvb-status" id="pgVbStatus">Loading vendors…</p>' +
+      '<div id="pgVbList"><p class="sr-faint">Loading vendors…</p></div>' +
+      '<p class="pgvb-foot" id="pgVbFoot"></p>';
+    $("pgVmModal").classList.remove("hidden");
+    $("pgVbSearch").addEventListener("input", function (e) { state.search = e.target.value; pgVbRenderList(state); });
+    $("pgVbSort").addEventListener("change", function (e) { state.sort = e.target.value; pgVbRenderList(state); });
+    pgLoadVendorRows(entity).then(function (rows) {
+      if (pgVb !== state) return;
+      state.rows = rows;
+      state.cats = pgVbCategories(rows);
+      pgVbRenderChips(state);
+      pgVbUpdateStatus(state);
+      pgVbRenderList(state);
+      pgVbGeocodeAll(state);
     }).catch(function () {
-      var list = $("pgVmList");
+      if (pgVb !== state) return;
+      var list = $("pgVbList");
       if (list) list.innerHTML = '<p class="aerr">Could not load vendors. Try again.</p>';
+      var st = $("pgVbStatus"); if (st) st.textContent = "";
     });
   };
 
