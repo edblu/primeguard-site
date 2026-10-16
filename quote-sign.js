@@ -26,15 +26,30 @@
     var day = String(d.getDate()); if (day.length < 2) day = "0" + day;
     return d.getFullYear() + "-" + m + "-" + day;
   }
-  function fmtKey(key) {
-    if (!key) return "";
-    var p = String(key).split("-");
-    if (p.length !== 3) return String(key);
-    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
-  }
-  function fmtTs(ts) {
-    try { return ts && ts.toDate ? ts.toDate().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : ""; }
-    catch (e) { return ""; }
+  // Firestore date fields arrive in different shapes depending on how
+  // they were written: an ISO / "YYYY-MM-DD" string, a Firestore
+  // Timestamp instance (toDate() / seconds), or a plain
+  // { seconds, nanoseconds } object. Normalize all of them to a Date
+  // and render a friendly US date; anything missing or unparseable
+  // renders "" (never the raw object text, never "Invalid Date").
+  function fmtDate(v) {
+    if (v == null || v === "") return "";
+    try {
+      var d = null;
+      if (typeof v === "string") {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+        if (m) d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        else { var p = new Date(v); if (!isNaN(p.getTime())) d = p; }
+      } else if (typeof v.toDate === "function") {
+        d = v.toDate();
+      } else if (v.seconds != null && isFinite(Number(v.seconds))) {
+        d = new Date(Number(v.seconds) * 1000 + Math.floor((Number(v.nanoseconds) || 0) / 1e6));
+      } else if (v instanceof Date) {
+        d = v;
+      }
+      if (!d || isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    } catch (e) { return ""; }
   }
 
   var id = "", paidParam = "";
@@ -164,7 +179,8 @@
       return '<div class="qs-line"><span>' + esc(it.label || "Service") + "</span><span>" + esc(money(it.amount)) + "</span></div>";
     }).join("");
     $("qs-total").textContent = money(total);
-    $("qs-expiry").textContent = q.expiresAt ? "Valid until " + fmtKey(q.expiresAt) : "";
+    var expTxt = fmtDate(q.expiresAt);
+    $("qs-expiry").textContent = expTxt ? "Valid until " + expTxt : "";
     if (q.notes) { var n = $("qs-notes"); n.textContent = q.notes; show(n); }
 
     $("qs-opt-full-t").textContent = "Pay in full: " + money(total);
@@ -228,7 +244,7 @@
 
   function renderSigned(q, paidReturn) {
     var d = dueOf(q);
-    var when = fmtTs(q.signedAt);
+    var when = fmtDate(q.signedAt);
     var s = $("qs-signed");
     s.innerHTML = '<div class="qs-ok-ico">✓</div>' +
       '<h1 class="qs-title">This quote is signed</h1>' +
