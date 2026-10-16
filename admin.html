@@ -224,8 +224,11 @@
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .hl-photo-badge { font-size:.72rem; background:rgba(120,180,255,.14); color:#a9c8ff; border-radius:999px; padding:4px 10px; font-weight:700; white-space:nowrap; }
   .pg-light .hl-photo-badge { background:#d9e8f6; color:#0b4778; }
-  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody { padding: 20px 18px 24px; } }
+  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody { padding: 20px 18px 24px; } }
+  .woprev-actions { position: sticky; bottom: 0; display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; margin: 16px -30px -30px; padding: 14px 30px; background: #17181c; border-top: 1px solid rgba(201,162,75,.35); }
+  .pg-light .woprev-actions { background: #f6f5f1; border-top-color: #ddd6c2; }
+  @media (max-width: 640px) { .woprev-actions { margin: 16px -18px -24px; padding: 12px 18px; } .woprev-actions .btn { flex: 1 1 auto; } }
 
   /* ============================================================
      BOOKS RESKIN (admin v23) — PrimeGuard Books design language
@@ -915,7 +918,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=33"></script>
+<script src="admin.js?v=34"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];

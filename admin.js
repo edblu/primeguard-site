@@ -3010,9 +3010,9 @@
       langs.map(mailBlock).join("") +
       '<div class="sr-card woprev-sec"><h4>Phone push notification</h4>' + langs.map(pushLine).join("") + "</div>" +
       '<div class="sr-card woprev-sec"><h4>What they\'ll see in their portal</h4>' + woPrevPortalHtml(w) + "</div>" +
-      '<div class="sr-actions" style="margin-top:16px">' +
-        '<button class="btn btn-ghost btn-sm" type="button" data-woprevcancel>Cancel</button>' +
-        '<button class="btn btn-gold btn-sm" type="button" data-woprevconfirm>Send to vendor(s)</button></div>';
+      '<div class="sr-actions woprev-actions">' +
+        '<button class="btn btn-ghost" type="button" data-woprevcancel>Cancel</button>' +
+        '<button class="btn btn-gold" type="button" data-woprevconfirm>Send to vendor(s)</button></div>';
   }
   function openWoSendPreview(id, btn) {
     var wrap = btn && btn.closest ? btn.closest(".wo-send") : null;
