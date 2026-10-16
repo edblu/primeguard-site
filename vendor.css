@@ -262,3 +262,9 @@ body { background: linear-gradient(180deg, #fbf3da, #f6ecd2); }
 }
 #vendor-register-form .form-error{ color:#b3352b; }
 #vendor-register-form .form-ok{ color:#1d7a3a; }
+
+/* ---------- Register form headings patch (section labels are <p>
+   elements inheriting the old pale section color) ---------- */
+#vendor-register-form p{ color:#4a3f22; }
+#vendor-register-form strong{ color:#8a6d2a !important; }
+#vendor-register-form span{ color:#4a3f22; }
