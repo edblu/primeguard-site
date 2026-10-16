@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Header B · Golden Banner — Vendor Portal</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #e9e2cf, #ddd3ba);
+    min-height: 100vh; padding: 26px 12px 40px;
+    color: #221a05;
+  }
+  .phone {
+    max-width: 420px; margin: 0 auto;
+    background: linear-gradient(180deg, #fbf3da, #f6ecd2);
+    border-radius: 28px; padding: 18px 16px 30px;
+    box-shadow: 0 30px 70px rgba(60,45,5,.28);
+  }
+
+  /* ===== CONCEPT B — GOLDEN BANNER ===== */
+  .band {
+    position: relative; overflow: hidden; border-radius: 22px;
+    background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+    box-shadow: 0 18px 44px rgba(120,90,10,.16);
+    border: 1px solid rgba(255,255,255,.5);
+    padding: 22px 20px 30px;
+  }
+  /* decorative rings bleeding off the right edge */
+  .ring {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    width: 300px; height: 300px; right: -118px; top: -104px;
+    border: 46px solid rgba(255,255,255,.20);
+  }
+  .ring2 {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    width: 150px; height: 150px; right: -52px; bottom: -96px;
+    border: 26px solid rgba(255,255,255,.13);
+  }
+  .band-in { position: relative; z-index: 2; display: flex; gap: 14px; align-items: flex-start; }
+  .band-main { flex: 1 1 auto; min-width: 0; }
+  .band-logo { height: 32px; width: auto; display: block; margin-bottom: 12px; }
+  .kicker {
+    font-size: .68rem; font-weight: 800; letter-spacing: .24em; text-transform: uppercase;
+    color: rgba(34,26,5,.60); margin-bottom: 5px;
+  }
+  .band-main h1 { font-size: 2.05rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.05; color: #221a05; }
+  .band-sub { margin-top: 7px; font-size: .92rem; font-weight: 600; color: rgba(34,26,5,.80); line-height: 1.35; }
+
+  .band-side { flex: none; display: flex; flex-direction: column; align-items: center; gap: 9px; padding-top: 2px; }
+  .avatar {
+    width: 62px; height: 62px; border-radius: 50%;
+    background: #221a05; color: #f5c542;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.18rem; font-weight: 800; letter-spacing: .02em;
+    border: 2px solid rgba(255,255,255,.55);
+    box-shadow: 0 10px 24px rgba(120,90,10,.30);
+  }
+  .pill-ink {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #221a05; color: #ffe9a8;
+    font-size: .74rem; font-weight: 800; letter-spacing: .02em;
+    padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(34,26,5,.28);
+  }
+
+  /* slim stats strip overlapping the band's bottom edge */
+  .ministrip {
+    position: relative; z-index: 3;
+    margin: -16px 14px 0;
+    background: rgba(255,255,255,.96); border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(120,90,10,.10);
+    border: 1px solid rgba(255,255,255,.95);
+    display: flex; padding: 11px 6px;
+  }
+  .mini { flex: 1 1 0; min-width: 0; text-align: center; }
+  .mini + .mini { border-left: 1px solid rgba(120,90,10,.18); }
+  .mini strong { display: block; font-size: 1.02rem; font-weight: 800; color: #221a05; line-height: 1.15; }
+  .mini span { display: block; font-size: .66rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #7a6c48; margin-top: 2px; }
+
+  /* ===== shared context below (existing portal pieces) ===== */
+  .money { display: flex; gap: 10px; margin-top: 14px; }
+  .tile {
+    flex: 1 1 0; min-width: 0; border-radius: 18px; padding: 14px 16px;
+    background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+    border: 1px solid rgba(255,255,255,.5);
+    box-shadow: 0 12px 26px rgba(185,138,29,.28);
+  }
+  .tile.plain { background: rgba(255,255,255,.92); box-shadow: 0 10px 24px rgba(120,90,10,.10); }
+  .tile small { display: block; font-size: .78rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #6d5c26; }
+  .tile.plain small { color: #7a6c48; }
+  .tile strong { display: block; font-size: 2rem; font-weight: 800; line-height: 1.1; margin-top: 2px; color: #221a05; }
+
+  /* ===== APP PROMO B — deep ink card ===== */
+  .promo {
+    position: relative; overflow: hidden; margin-top: 14px;
+    background: #221a05; border-radius: 18px; padding: 16px;
+    box-shadow: 0 16px 36px rgba(34,26,5,.35);
+  }
+  .promo-ring {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    width: 190px; height: 190px; right: -74px; top: -88px;
+    border: 30px solid rgba(245,197,66,.20);
+  }
+  .promo-row { position: relative; z-index: 2; display: flex; align-items: center; gap: 13px; }
+  .promo-icon {
+    flex: none; width: 54px; height: 54px; border-radius: 15px; display: block;
+    border: 2px solid #f5c542; box-shadow: 0 8px 20px rgba(0,0,0,.4);
+  }
+  .promo-txt { flex: 1 1 auto; min-width: 0; }
+  .promo-txt strong { display: block; font-size: 1.06rem; font-weight: 800; color: #fff8e6; line-height: 1.2; }
+  .promo-txt span { display: block; font-size: .86rem; font-weight: 600; color: rgba(245,197,66,.78); margin-top: 2px; line-height: 1.35; }
+  .promo-btn {
+    position: relative; z-index: 2;
+    margin-top: 14px; min-height: 52px; border-radius: 999px;
+    background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26); color: #221a05;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    font-size: .98rem; font-weight: 800; letter-spacing: .01em;
+    box-shadow: 0 12px 26px rgba(245,197,66,.25);
+  }
+
+  .sect { margin: 24px 2px 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .sect h2 { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; color: #221a05; }
+  .sect .cnt { font-size: .9rem; font-weight: 700; color: #8a6d2a; white-space: nowrap; }
+</style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- CONCEPT B — Golden Banner -->
+    <div class="band">
+      <span class="ring"></span><span class="ring2"></span>
+      <div class="band-in">
+        <div class="band-main">
+          <img class="band-logo" src="https://primeguardmia.com/assets/logo-transparent.png" alt="PrimeGuard">
+          <div class="kicker">Portal de Vendedores</div>
+          <h1>Hola, Ángel</h1>
+          <div class="band-sub">Naturascape LLC · Kendall · Viernes 16 de octubre</div>
+        </div>
+        <div class="band-side">
+          <div class="avatar">AM</div>
+          <span class="pill-ink">✓ Aprobado</span>
+        </div>
+      </div>
+    </div>
+    <div class="ministrip">
+      <div class="mini"><strong>12</strong><span>Trabajos</span></div>
+      <div class="mini"><strong>$1,240</strong><span>Ganado</span></div>
+      <div class="mini"><strong>2026</strong><span>Desde</span></div>
+    </div>
+
+    <!-- context: existing money strip -->
+    <div class="money">
+      <div class="tile"><small>Por cobrar</small><strong>$45</strong></div>
+      <div class="tile plain"><small>Este mes</small><strong>$180</strong></div>
+    </div>
+
+    <!-- APP PROMO B — deep ink card -->
+    <div class="promo">
+      <span class="promo-ring"></span>
+      <div class="promo-row">
+        <img class="promo-icon" src="https://primeguardmia.com/assets/icon-192.png" alt="PrimeGuard app">
+        <div class="promo-txt">
+          <strong>PrimeGuard en tu pantalla</strong>
+          <span>Acceso en un toque y avisos de trabajos nuevos.</span>
+        </div>
+      </div>
+      <div class="promo-btn">Agregar a mi pantalla
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- context: next section heading -->
+    <div class="sect"><h2>Tu próximo trabajo</h2><span class="cnt">1 en curso</span></div>
+
+  </div>
+</body>
+</html>
