@@ -53,6 +53,10 @@
   #qs-sign-btn { width: 100%; }
   #qs-sign-btn:disabled { opacity: .45; cursor: not-allowed; }
   .qs-ok-ico { width: 58px; height: 58px; border-radius: 50%; background: rgba(46,140,70,.14); color: #2e8c46; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+  .qs-pay { background: rgba(201,162,39,.09); border: 1px solid rgba(201,162,39,.3); border-radius: 14px; padding: 18px; margin-top: 22px; }
+  .qs-pay-done { background: rgba(46,140,70,.1); border-color: rgba(46,140,70,.35); }
+  .qs-pay-btn { width: 100%; margin-top: 12px; }
+  .qs-pay-btn:disabled { opacity: .55; cursor: wait; }
   .qs-help { text-align: center; color: #43545f; font-size: .92rem; margin-top: 16px; }
   .qs-help a { color: #8a6d14; font-weight: 700; }
   @media (max-width: 640px) { .qs-card { padding: 22px 18px 26px; } .qs-total { font-size: 1.8rem; } }
@@ -119,7 +123,7 @@
             <li>Everything goes into a written work order before we start.</li>
             <li>You get before and after photos on every job.</li>
             <li>Pay in full now, or put 20% down to schedule and pay the balance when the job is done.</li>
-            <li>Your signature below accepts this quote. We then email your secure payment link and confirm your start date.</li>
+            <li>Your signature below accepts this quote. You can then pay securely online right on this page, and we confirm your start date.</li>
           </ul>
         </div>
 
@@ -188,7 +192,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=18"></script>
-<script src="quote-sign.js?v=1"></script>
+<script src="quote-sign.js?v=2"></script>
 <script src="site.js?v=34"></script>
 <script src="human-chat.js"></script>
 </body>
