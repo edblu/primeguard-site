@@ -123,8 +123,10 @@
 
   function renderHeader() {
     $("vd-biz").textContent = vendor.business || "Vendor";
-    $("vd-area").textContent = (vendor.areas || []).join(", ");
-    $("vd-avatar").textContent = (vendor.business || "V").charAt(0).toUpperCase();
+    // Photo hero sub-line shows the primary area, plus "+n" when the
+    // vendor covers more (profile section still lists them all).
+    var areas = vendor.areas || [];
+    $("vd-area").textContent = areas.length ? areas[0] + (areas.length > 1 ? " +" + (areas.length - 1) : "") : "";
     $("vd-hello").textContent = (vendor.name || "there").split(" ")[0];
   }
 
@@ -151,6 +153,14 @@
       banner.textContent = st === "rejected"
         ? "Your registration was not approved. Contact PrimeGuard at (786) 422-9674 if you think this is a mistake."
         : "Your registration is under review. You'll be able to accept jobs once approved.";
+    }
+    // Photo hero status pill: same status the profile/banners already
+    // compute — gold for approved, frosted for everything else.
+    var pill = $("vd-status-pill");
+    if (pill) {
+      if (st === "approved") { pill.className = "vd-ph-pill"; pill.textContent = "✓ Aprobado"; }
+      else if (st === "pending") { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = "En revisión"; }
+      else { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = stTxt; }
     }
     $("vd-profile").innerHTML = [
       ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
