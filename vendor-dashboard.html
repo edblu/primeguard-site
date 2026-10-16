@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
 <link rel="stylesheet" href="vendor.css?v=4">
-<link rel="stylesheet" href="vendor-dash.css?v=2">
+<link rel="stylesheet" href="vendor-dash.css?v=3">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
@@ -78,6 +78,43 @@
 
 <!-- Dashboard -->
 <div class="vwrap hidden" id="vd-dash">
+
+  <!-- Left slide-over menu: round burger (fixed, top-left) + drawer.
+       Lives inside #vd-dash, so it only exists while the dashboard is
+       shown — same scoping as the bottom tab bar. -->
+  <button class="vd-burger" id="vd-burger" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="vd-drawer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="vd-drawer-backdrop" id="vd-drawer-backdrop"></div>
+  <aside class="vd-drawer" id="vd-drawer" aria-label="Menú del portal">
+    <div class="vd-drawer-head">
+      <div class="vd-drawer-top">
+        <div class="vd-drawer-avatar" id="vd-drawer-initials">PG</div>
+        <button class="vd-drawer-x" id="vd-drawer-close" type="button" aria-label="Cerrar menú">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <strong class="vd-drawer-biz" id="vd-drawer-biz">Vendor</strong>
+      <span class="vd-drawer-status" id="vd-drawer-status"></span>
+    </div>
+    <nav class="vd-drawer-nav">
+      <a class="vd-drawer-link" href="#vd-topbar">Inicio</a>
+      <a class="vd-drawer-link" href="#sec-proximo">Tu próximo trabajo</a>
+      <a class="vd-drawer-link" href="#sec-disponibles">Trabajos disponibles<span class="vd-drawer-badge hidden" id="vd-nav-badge-avail"></span></a>
+      <a class="vd-drawer-link" href="#sec-jobs">Trabajos directos</a>
+      <a class="vd-drawer-link" href="#sec-mistrabajos">Mis trabajos<span class="vd-drawer-badge hidden" id="vd-nav-badge-active"></span></a>
+      <a class="vd-drawer-link" href="#sec-cotizar">Enviar mi precio</a>
+      <a class="vd-drawer-link" href="#sec-done">Terminados</a>
+      <div class="vd-drawer-group">Cuenta</div>
+      <a class="vd-drawer-link" href="#vd-w9-sec">Documentos W-9<span class="vd-drawer-dot hidden" id="vd-nav-dot-w9"></span></a>
+      <a class="vd-drawer-link" href="#vd-agreements">Acuerdos<span class="vd-drawer-dot hidden" id="vd-nav-dot-agree"></span></a>
+      <a class="vd-drawer-link" href="#vd-avisos">Avisos</a>
+      <a class="vd-drawer-link" href="#vd-perfil">Mi perfil</a>
+    </nav>
+    <div class="vd-drawer-foot">
+      <button class="vd-drawer-logout" id="vd-drawer-logout" type="button">Salir</button>
+    </div>
+  </aside>
 
   <!-- Mi dinero: money strip + mini stats -->
   <section class="vsec" id="sec-dinero" style="padding-top:10px">
@@ -204,7 +241,7 @@
       <p class="vok hidden" id="va-ok"></p>
     </div>
 
-    <h3 class="vd-subhead">Avisos</h3>
+    <h3 class="vd-subhead" id="vd-avisos">Avisos</h3>
     <div class="vd-masrow">
       <div class="vd-masrow-tx">
         <strong>Avisos de trabajos</strong>
@@ -213,7 +250,7 @@
       <button class="btn btn-gold" type="button" id="pgPushBtnVendor">🔔 Activar avisos</button>
     </div>
 
-    <div class="vd-sect" style="margin-top:22px"><h3 class="vd-subhead" style="margin:0">Mi perfil</h3><span class="cnt" id="cnt-verified"></span></div>
+    <div class="vd-sect" id="vd-perfil" style="margin-top:22px"><h3 class="vd-subhead" style="margin:0">Mi perfil</h3><span class="cnt" id="cnt-verified"></span></div>
     <div class="vgrid2" id="vd-profile"></div>
   </section>
 
@@ -282,7 +319,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=10"></script>
+<script src="vendor-dashboard.js?v=11"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
