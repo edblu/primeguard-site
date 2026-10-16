@@ -175,12 +175,15 @@
   function checkStaffEntry(user) {
     var btn = $("pgAdminBtn");
     if (!btn) return;
-    hide(btn);
+    // The button is hidden with an inline style="display:none" in the HTML,
+    // so toggle the inline style directly — the class-based show()/hide()
+    // helpers cannot override it (that mismatch kept the button invisible).
+    btn.style.display = "none";
     if (!user) return;
     try {
-      if (user.email === "edblucorp@gmail.com") { show(btn); return; }
+      if (user.email === "edblucorp@gmail.com") { btn.style.display = ""; return; }
       db.collection("staff").doc(user.uid).get().then(function (snap) {
-        if (snap && snap.exists) show(btn);
+        if (snap && snap.exists) btn.style.display = "";
       }).catch(function () { /* leave hidden */ });
     } catch (e) { /* leave hidden */ }
   }
