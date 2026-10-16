@@ -1320,11 +1320,24 @@
   var custRows = []; // cached { id, d } rows from the last loadCustomers()
   var custId = null, custData = null, custOutcome = "";
   var custEditId = null;
+  var custFilter = "all"; // Customers page filter chip: all|winback|annual
+  var custHotLeads = []; // hot_leads data cached by loadCustomers() for the numbers strip
 
   function custLastMs(d) { return tsMs(d && d.lastServiceAt); }
   function custDaysSince(d) {
     var ms = custLastMs(d);
     return ms ? Math.floor((Date.now() - ms) / 86400000) : null;
+  }
+  // Win-back: serviced before, 30+ days since, and no signed annual
+  // contract. Annual-contract-ready is the narrower slice the per-card
+  // gold chip flags: 30+ days since service and contract still "none".
+  function custIsWinBack(d) {
+    var days = custDaysSince(d);
+    return days != null && days >= 30 && (d.annualContract || "none") !== "signed";
+  }
+  function custIsAnnualReady(d) {
+    var days = custDaysSince(d);
+    return days != null && days >= 30 && (d.annualContract || "none") === "none";
   }
   function custContactLine(d) {
     if (!d) return "";
@@ -1356,21 +1369,99 @@
         if (bm) return 1;
         return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
       });
+      // One extra read of hot_leads feeds the numbers strip on this page
+      // (leads this month, top source, lead -> job conversion). Best
+      // effort: if it fails, the strip just shows the customer counts.
+      return db.collection("hot_leads").limit(500).get().then(function (hqs) {
+        custHotLeads = [];
+        hqs.forEach(function (doc) { custHotLeads.push(doc.data()); });
+      }).catch(function () { custHotLeads = []; });
+    }).then(function () {
       renderCustomers();
     }).catch(function () {
       box.innerHTML = '<p style="color:var(--faint)">Customers could not load yet. The database rules update may still need to be published.</p>';
     });
   }
 
+  /* ----- Customers page: numbers strip + win-back filters ----- */
+  function renderCustStats() {
+    var box = $("ad-cust-stats");
+    if (!box) return;
+    var repeats = 0;
+    custRows.forEach(function (it) { if ((it.d.totalJobs || 0) >= 2) repeats++; });
+    var nowD = new Date();
+    var leadsMonth = 0, converted = 0;
+    var srcCounts = {}, srcOrder = [];
+    custHotLeads.forEach(function (d) {
+      var ms = tsMs(d && d.createdAt);
+      if (ms) {
+        var cd = new Date(ms);
+        if (cd.getFullYear() === nowD.getFullYear() && cd.getMonth() === nowD.getMonth()) leadsMonth++;
+      }
+      if (d && d.convertedWorkOrderId) converted++;
+      var src = (d && d.source) || "Other";
+      if (!(src in srcCounts)) { srcCounts[src] = 0; srcOrder.push(src); }
+      srcCounts[src]++;
+    });
+    var topSource = "—";
+    if (custHotLeads.length) {
+      var best = "";
+      srcOrder.forEach(function (s) { if (!best || srcCounts[s] > srcCounts[best]) best = s; });
+      topSource = best + " · " + srcCounts[best];
+    }
+    var conv = custHotLeads.length ? Math.round(100 * converted / custHotLeads.length) + "%" : "—";
+    box.innerHTML = '<section class="astats">' +
+      '<div class="astat"><div class="l">Customers</div><div class="v">' + custRows.length + "</div></div>" +
+      '<div class="astat"><div class="l">Repeat customers</div><div class="v">' + repeats + "</div></div>" +
+      '<div class="astat"><div class="l">Leads this month</div><div class="v">' + leadsMonth + "</div></div>" +
+      '<div class="astat"><div class="l">Top source</div><div class="v">' + esc(topSource) + "</div></div>" +
+      '<div class="astat"><div class="l">Lead → job conversion</div><div class="v">' + conv + "</div></div></section>";
+  }
+  function renderCustFilterChips() {
+    var wrap = $("ad-cust-filters");
+    if (!wrap) return;
+    var counts = { all: custRows.length, winback: 0, annual: 0 };
+    custRows.forEach(function (it) {
+      if (custIsWinBack(it.d)) counts.winback++;
+      if (custIsAnnualReady(it.d)) counts.annual++;
+    });
+    var defs = [["all", "All"], ["winback", "Win-back"], ["annual", "Annual contract ready"]];
+    wrap.innerHTML = defs.map(function (df) {
+      return '<button type="button" class="hl-chip' + (custFilter === df[0] ? " active" : "") +
+        '" data-custfilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
+    }).join("");
+  }
+
   function renderCustomers() {
     var box = $("ad-cust-list");
     if (!box) return;
+    renderCustStats();
+    renderCustFilterChips();
     if (!custRows.length) {
       box.innerHTML = '<p style="color:var(--faint)">No customers yet. Promote a lead with "Make customer" on the lead detail, or add one with the Add customer button.</p>';
       return;
     }
+    // Filter chips: never-serviced customers (no lastServiceAt) only ever
+    // match "All" — both other filters require 30+ days since a service.
+    var visible = custRows.filter(function (it) {
+      if (custFilter === "winback") return custIsWinBack(it.d);
+      if (custFilter === "annual") return custIsAnnualReady(it.d);
+      return true;
+    });
+    if (custFilter === "winback") {
+      // Longest-lapsed first so the stalest relationships get worked first.
+      visible = visible.slice().sort(function (a, b) {
+        return (custDaysSince(b.d) || 0) - (custDaysSince(a.d) || 0);
+      });
+    }
     box.innerHTML = "";
-    custRows.forEach(function (it) {
+    if (!visible.length) {
+      box.innerHTML = '<p style="color:var(--faint)">' +
+        (custFilter === "winback" ? "No win-back customers right now. Nobody is 30+ days past their last service without a signed annual contract."
+          : "No customers are annual-contract ready right now. Customers land here 30 days after a service with no contract on file.") + "</p>";
+      return;
+    }
+    visible.forEach(function (it) {
       var d = it.d;
       var lastMs = custLastMs(d);
       var days = custDaysSince(d);
@@ -1525,29 +1616,84 @@
     });
   }
 
+  /* ----- Review-request task, auto-created when a job completes ----- */
+  // One Tasks-page item per completed job, linked to the customer, so the
+  // team asks for a Google review while the work is fresh. Best effort by
+  // design: every failure is swallowed — this must never block or break
+  // work-order completion. Dedupe: skip when an OPEN task for the same
+  // customer with the same review title was already created in the last
+  // 7 days (a second job inside a week does not need a second ask).
+  function createReviewRequestTask(custId, cd) {
+    try {
+      if (!custId || !cd) return Promise.resolve();
+      var custName = cd.name || "Customer";
+      var title = "Ask " + custName + " for a Google review";
+      var firstName = String(custName).trim().split(/\s+/)[0] || custName;
+      var weekAgo = Date.now() - 7 * 86400000;
+      return db.collection("tasks").where("entityId", "==", custId).limit(50).get()
+        .then(function (qs) {
+          var dupe = false;
+          qs.forEach(function (doc) {
+            var t = doc.data();
+            if (!t || t.done) return;
+            if (typeof t.title !== "string" || t.title.indexOf(title) !== 0) return;
+            if (tsMs(t.createdAt) >= weekAgo) dupe = true;
+          });
+          if (dupe) return;
+          return db.collection("tasks").add({
+            title: title,
+            details: "The job is done — strike while it's fresh.\n" +
+              "1. First ask how everything went. If they're happy, send the review link with this message:\n" +
+              "\"Hi " + firstName + ", thanks for choosing PrimeGuard! If you're happy with the work, a quick Google review helps a small local business like ours more than you'd think: {REVIEW LINK}\"\n" +
+              "2. If they're NOT happy, don't send the link — call Edwin first.",
+            dueDate: localDateKey(new Date()),
+            assigneeEmail: "",
+            entityType: "customer",
+            entityId: custId,
+            entityName: custName,
+            done: false,
+            createdBy: "System (job completed)",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            doneAt: null
+          });
+        })
+        .catch(function () {});
+    } catch (e) {
+      return Promise.resolve();
+    }
+  }
+
   /* ----- Completing a work order stamps the linked customer ----- */
   // Linkage: work_orders.customerId when present, else the customer whose
   // leadId matches the work order's sourceLeadId (the convert path).
   function custServicedFromWorkOrder(w) {
     if (!w) return Promise.resolve();
-    function apply(ref, cd) {
+    function apply(ref, cd, custId) {
       return ref.update({
         lastServiceAt: firebase.firestore.Timestamp.fromDate(new Date()),
         lastServiceLabel: w.category || w.title || "Service visit",
         totalJobs: (cd.totalJobs || 0) + 1,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        // Fire-and-forget: queue the review ask on the Tasks page. Its
+        // own errors are swallowed inside, so completion never waits on
+        // or breaks because of it.
+        try {
+          var p = createReviewRequestTask(custId, cd);
+          if (p && p.catch) p.catch(function () {});
+        } catch (e) {}
       });
     }
     if (w.customerId) {
       var ref = db.collection("customers").doc(w.customerId);
-      return ref.get().then(function (s) { if (s.exists) return apply(ref, s.data()); }).catch(function () {});
+      return ref.get().then(function (s) { if (s.exists) return apply(ref, s.data(), w.customerId); }).catch(function () {});
     }
     if (w.sourceLeadId) {
       return db.collection("customers").where("leadId", "==", w.sourceLeadId).limit(1).get()
         .then(function (qs) {
           if (qs.empty) return;
           var doc = qs.docs[0];
-          return apply(doc.ref, doc.data());
+          return apply(doc.ref, doc.data(), doc.id);
         }).catch(function () {});
     }
     return Promise.resolve();
@@ -2931,6 +3077,8 @@
     var t = e.target, d = t.dataset;
     var hlActionEl = t.closest ? t.closest("[data-hlstagefilter],[data-hltempfilter],[data-hldetail],[data-hlstep],[data-hlpark],[data-hlrevive]") : null;
     if (hlActionEl) d = hlActionEl.dataset;
+    var custFilterEl = t.closest ? t.closest("[data-custfilter]") : null;
+    if (custFilterEl) d = custFilterEl.dataset;
     if (d.wodone) {
       logActivity("Marked a work order done");
       var woRef = db.collection("work_orders").doc(d.wodone);
@@ -3026,6 +3174,7 @@
     if (d.custemail) logActivity("Emailed customer");
     if (d.custedit) openCustomerForm(d.custedit);
     if (d.custdel) deleteCustomer(d.custdel);
+    if (d.custfilter) { custFilter = d.custfilter; renderCustomers(); }
     if (d.hlmakecustomer) {
       var mkId = d.hlmakecustomer;
       makeCustomerFromLead(mkId).then(function () {

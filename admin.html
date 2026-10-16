@@ -705,10 +705,12 @@
 
   <div id="atab-customers" class="hidden">
   <section class="asec">
+    <div id="ad-cust-stats"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
       <h2 style="margin:0">Customers</h2>
       <button class="btn btn-gold btn-sm" type="button" id="cust-add">Add customer</button>
     </div>
+    <div id="ad-cust-filters" class="hl-filters"></div>
     <div class="acard"><div id="ad-cust-list"><p style="color:var(--faint)">Loading…</p></div></div>
   </section>
   </div>
@@ -862,7 +864,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=29"></script>
+<script src="admin.js?v=30"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
