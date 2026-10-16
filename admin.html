@@ -466,6 +466,12 @@
   .woq-vids a { color:var(--gold-bright); font-weight:700; }
   .pg-light .woq-vids a { color:#8a6d14; }
   .woq-dmeta { color:var(--faint); font-size:.78rem; margin:10px 0 0; }
+  .woq-thumb-btn { background:none; border:0; cursor:zoom-in; display:block; padding:0; }
+  .woq-thumb-btn:hover img { border-color:var(--gold); }
+  .pg-lightbox { cursor:zoom-out; z-index:400; }
+  .pg-lightbox img { border:1px solid rgba(201,162,75,.45); border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.6); max-height:92vh; max-width:94vw; object-fit:contain; }
+  .pg-light .pg-lightbox { background:rgba(0,0,0,.78); }
+  .pg-light .pg-lightbox img { border-color:rgba(201,162,75,.4); box-shadow:0 30px 80px rgba(0,0,0,.45); }
   @media (max-width:640px) {
     .hlq-stepper { flex-wrap:wrap; overflow-x:visible; row-gap:5px; }
     .hlq-step-line { flex-basis:10px; }
@@ -748,6 +754,12 @@
     </div>
   </div>
 
+  <!-- Photo lightbox: work order photos open in-page (Drive pages bounce to a Google sign-in wall) -->
+  <div class="modal-overlay pg-lightbox hidden" id="pgLightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="modal-close" id="pgLightboxClose" aria-label="Close">×</button>
+    <img id="pgLightboxImg" alt="Work order photo">
+  </div>
+
   <div id="atab-hotleads" class="hidden">
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -1015,7 +1027,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=39"></script>
+<script src="admin.js?v=40"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
