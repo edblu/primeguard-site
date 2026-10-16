@@ -16,20 +16,22 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
 <link rel="stylesheet" href="vendor.css?v=4">
-<link rel="stylesheet" href="vendor-dash.css?v=1">
+<link rel="stylesheet" href="vendor-dash.css?v=2">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
-  <header class="vd-hdr">
-    <img class="vd-hdr-logo" src="assets/logo-transparent.png" alt="PrimeGuard">
-    <div class="vd-hdr-who">
-      <strong>Hola, <span id="vd-hello">there</span></strong>
-      <span id="vd-biz">Vendor</span>
-      <span id="vd-area"></span>
+  <!-- Photo hero header (Concept A · Photo Hero) -->
+  <div class="vd-ph">
+    <span class="vd-ph-br tl"></span><span class="vd-ph-br tr"></span><span class="vd-ph-br bl"></span><span class="vd-ph-br br2"></span>
+    <div class="vd-ph-logochip"><img src="assets/logo-transparent.png" alt="PrimeGuard"></div>
+    <a href="#" id="vd-logout" class="vd-ph-logout">Salir</a>
+    <div class="vd-ph-body">
+      <div class="vd-ph-kicker">Portal de Vendedores</div>
+      <h1 class="vd-ph-greet">Hola, <span id="vd-hello">there</span></h1>
+      <div class="vd-ph-sub"><span id="vd-biz">Vendor</span><span id="vd-area"></span></div>
+      <span class="vd-ph-pill" id="vd-status-pill"></span>
     </div>
-    <div class="vavatar" id="vd-avatar">V</div>
-    <a href="#" id="vd-logout" class="vd-hdr-logout">Log out</a>
-  </header>
+  </div>
 </div>
 
 <!-- Login gate -->
@@ -88,6 +90,20 @@
       <div class="vd-mini"><span class="vd-mini-l">Ganado</span><strong id="st-earned">$0</strong></div>
       <div class="vd-mini"><span class="vd-mini-l">Oportunidades abiertas</span><strong id="st-open">0</strong></div>
     </div>
+  </section>
+
+  <!-- App promo (Concept A · gold banner, right under the money strip) -->
+  <section class="vd-promo" aria-label="PrimeGuard app">
+    <div class="vd-promo-row">
+      <div class="vd-promo-ico"><img src="assets/icon-192.png" alt="PrimeGuard app"></div>
+      <div class="vd-promo-txt">
+        <strong>Tu app de PrimeGuard</strong>
+        <span>Los trabajos nuevos te llegan al teléfono al instante.</span>
+      </div>
+    </div>
+    <button class="vd-promo-btn pg-get-app" type="button">Instalar la app
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </section>
 
   <!-- Tu próximo trabajo: next accepted job hero -->
@@ -197,15 +213,6 @@
       <button class="btn btn-gold" type="button" id="pgPushBtnVendor">🔔 Activar avisos</button>
     </div>
 
-    <section class="pg-app-card">
-      <img class="pg-app-ico" src="assets/icon-192.png" alt="">
-      <div class="pg-app-txt">
-        <h3>Get the PrimeGuard Vendor app</h3>
-        <p>Job alerts the second a quote request comes in. Your jobs, photos, and work orders in one place. Send your price right from the truck.</p>
-      </div>
-      <button class="btn pg-app-btn pg-get-app" type="button">Install the app</button>
-    </section>
-
     <div class="vd-sect" style="margin-top:22px"><h3 class="vd-subhead" style="margin:0">Mi perfil</h3><span class="cnt" id="cnt-verified"></span></div>
     <div class="vgrid2" id="vd-profile"></div>
   </section>
@@ -275,7 +282,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=8"></script>
+<script src="vendor-dashboard.js?v=9"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
