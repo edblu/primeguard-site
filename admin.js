@@ -1326,7 +1326,11 @@
   var custRows = []; // cached { id, d } rows from the last loadCustomers()
   var custId = null, custData = null, custOutcome = "";
   var custEditId = null;
-  var custFilter = "all"; // Customers page filter chip: all|winback|annual
+  // Customers filter panel state (slide-over, applies live). quick is a
+  // single preset; sources is a list of source keys ("__none__" = blank
+  // source); the rest are single-pick buckets. custSort orders the list.
+  var custFilters = { quick: "all", sources: [], lastService: "any", jobs: "any", annual: "any" };
+  var custSort = "recent_service";
   var custHotLeads = []; // hot_leads data cached by loadCustomers() for the numbers strip
 
   function custLastMs(d) { return tsMs(d && d.lastServiceAt); }
@@ -1409,62 +1413,219 @@
       if (!(src in srcCounts)) { srcCounts[src] = 0; srcOrder.push(src); }
       srcCounts[src]++;
     });
-    var topSource = "—";
+    // Top source renders name and count on separate lines (the .vsrc
+    // class shrinks the name) so a long source like "Marketplace" can
+    // never overflow its tile on a phone.
+    var topName = "—", topCount = "";
     if (custHotLeads.length) {
       var best = "";
       srcOrder.forEach(function (s) { if (!best || srcCounts[s] > srcCounts[best]) best = s; });
-      topSource = best + " · " + srcCounts[best];
+      topName = best;
+      topCount = srcCounts[best] + (srcCounts[best] === 1 ? " lead" : " leads");
     }
     var conv = custHotLeads.length ? Math.round(100 * converted / custHotLeads.length) + "%" : "—";
     box.innerHTML = '<section class="astats">' +
       '<div class="astat"><div class="l">Customers</div><div class="v">' + custRows.length + "</div></div>" +
       '<div class="astat"><div class="l">Repeat customers</div><div class="v">' + repeats + "</div></div>" +
       '<div class="astat"><div class="l">Leads this month</div><div class="v">' + leadsMonth + "</div></div>" +
-      '<div class="astat"><div class="l">Top source</div><div class="v">' + esc(topSource) + "</div></div>" +
+      '<div class="astat"><div class="l">Top source</div><div class="v vsrc">' + esc(topName) + '</div>' + (topCount ? '<div class="vsub">' + esc(topCount) + "</div>" : "") + "</div>" +
       '<div class="astat"><div class="l">Lead → job conversion</div><div class="v">' + conv + "</div></div></section>";
   }
-  function renderCustFilterChips() {
+  /* ----- Customers filter toolbar + slide-over panel ----- */
+  var CUST_SORTS = [
+    ["recent_service", "Sort: Recent service"],
+    ["longest_waiting", "Sort: Longest waiting"],
+    ["name", "Sort: Name A–Z"],
+    ["most_jobs", "Sort: Most jobs"],
+    ["newest", "Sort: Newest added"]
+  ];
+  function custActiveFilterCount() {
+    var n = 0;
+    if (custFilters.quick !== "all") n++;
+    n += custFilters.sources.length;
+    if (custFilters.lastService !== "any") n++;
+    if (custFilters.jobs !== "any") n++;
+    if (custFilters.annual !== "any") n++;
+    return n;
+  }
+  function renderCustToolbar(visibleCount) {
     var wrap = $("ad-cust-filters");
     if (!wrap) return;
-    var counts = { all: custRows.length, winback: 0, annual: 0 };
-    custRows.forEach(function (it) {
-      if (custIsWinBack(it.d)) counts.winback++;
-      if (custIsAnnualReady(it.d)) counts.annual++;
-    });
-    var defs = [["all", "All"], ["winback", "Win-back"], ["annual", "Annual contract ready"]];
-    wrap.innerHTML = defs.map(function (df) {
-      return '<button type="button" class="hl-chip' + (custFilter === df[0] ? " active" : "") +
-        '" data-custfilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
+    var n = custActiveFilterCount();
+    var opts = CUST_SORTS.map(function (s) {
+      return '<option value="' + s[0] + '"' + (custSort === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
     }).join("");
+    wrap.innerHTML =
+      '<button type="button" class="btn btn-ghost btn-sm" id="cust-filters-btn">Filters' +
+        (n ? ' <span class="cust-fbtn-cnt">' + n + "</span>" : "") + "</button>" +
+      '<select id="ad-cust-sort" class="cust-sort-sel" aria-label="Sort customers">' + opts + "</select>" +
+      '<span class="cust-res-count">' +
+        (visibleCount === custRows.length
+          ? visibleCount + (visibleCount === 1 ? " customer" : " customers")
+          : visibleCount + " of " + custRows.length + " customers") + "</span>";
+    $("cust-filters-btn").addEventListener("click", openCustFilterPanel);
+    $("ad-cust-sort").addEventListener("change", function () {
+      custSort = this.value;
+      renderCustomers();
+    });
+  }
+  function custSourceKey(d) {
+    var src = ((d && d.source) || "").trim();
+    return src || "__none__";
+  }
+  function custMatchesFilters(d) {
+    // Quick preset first (win-back / annual reuse the card predicates).
+    if (custFilters.quick === "winback" && !custIsWinBack(d)) return false;
+    if (custFilters.quick === "annual" && !custIsAnnualReady(d)) return false;
+    if (custFilters.quick === "never" && custLastMs(d)) return false;
+    if (custFilters.quick === "nojobs" && (d.totalJobs || 0) > 0) return false;
+    // Source: any checked = the customer's source must be among them.
+    if (custFilters.sources.length && custFilters.sources.indexOf(custSourceKey(d)) === -1) return false;
+    // Last service window, by whole days since lastServiceAt.
+    var days = custDaysSince(d);
+    if (custFilters.lastService === "w30" && (days == null || days > 30)) return false;
+    if (custFilters.lastService === "d31_60" && (days == null || days < 31 || days > 60)) return false;
+    if (custFilters.lastService === "d60plus" && (days == null || days <= 60)) return false;
+    if (custFilters.lastService === "never" && days != null) return false;
+    // Jobs buckets.
+    var jobs = d.totalJobs || 0;
+    if (custFilters.jobs === "0" && jobs !== 0) return false;
+    if (custFilters.jobs === "1" && jobs !== 1) return false;
+    if (custFilters.jobs === "2plus" && jobs < 2) return false;
+    // Annual contract status.
+    if (custFilters.annual !== "any" && (d.annualContract || "none") !== custFilters.annual) return false;
+    return true;
+  }
+  function custSortRows(rows) {
+    var arr = rows.slice();
+    if (custSort === "longest_waiting") {
+      // Follow-up gold first: never-serviced, then longest since service.
+      arr.sort(function (a, b) {
+        var am = custLastMs(a.d), bm = custLastMs(b.d);
+        if (!am && !bm) return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+        if (!am) return -1;
+        if (!bm) return 1;
+        return am - bm;
+      });
+    } else if (custSort === "name") {
+      arr.sort(function (a, b) { return String(a.d.name || "").localeCompare(String(b.d.name || "")); });
+    } else if (custSort === "most_jobs") {
+      arr.sort(function (a, b) {
+        return ((b.d.totalJobs || 0) - (a.d.totalJobs || 0)) || ((custLastMs(b.d) || 0) - (custLastMs(a.d) || 0));
+      });
+    } else if (custSort === "newest") {
+      arr.sort(function (a, b) { return tsMs(b.d.createdAt) - tsMs(a.d.createdAt); });
+    } else { // recent_service: newest service first, never-serviced last
+      arr.sort(function (a, b) {
+        var am = custLastMs(a.d), bm = custLastMs(b.d);
+        if (am && bm) return bm - am;
+        if (am) return -1;
+        if (bm) return 1;
+        return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+      });
+    }
+    return arr;
+  }
+  function syncCustFilterPanel() {
+    var panel = $("custFilterPanel");
+    if (!panel) return;
+    var setRadio = function (name, val) {
+      var inputs = panel.querySelectorAll('input[name="' + name + '"]');
+      for (var i = 0; i < inputs.length; i++) inputs[i].checked = inputs[i].value === val;
+    };
+    setRadio("cust-quick", custFilters.quick);
+    setRadio("cust-lastsvc", custFilters.lastService);
+    setRadio("cust-jobsf", custFilters.jobs);
+    setRadio("cust-annualf", custFilters.annual);
+    var boxes = panel.querySelectorAll("input[data-custsrc]");
+    for (var j = 0; j < boxes.length; j++) boxes[j].checked = custFilters.sources.indexOf(boxes[j].dataset.custsrc) !== -1;
+  }
+  function refreshCustFilterPanel() {
+    // Counts for the quick views + the dynamic source checkbox list,
+    // rebuilt from the loaded customers every time the panel opens.
+    var counts = { all: custRows.length, winback: 0, annual: 0, never: 0, nojobs: 0 };
+    var srcMap = {}, srcOrder = [];
+    custRows.forEach(function (it) {
+      var d = it.d;
+      if (custIsWinBack(d)) counts.winback++;
+      if (custIsAnnualReady(d)) counts.annual++;
+      if (!custLastMs(d)) counts.never++;
+      if (!((d.totalJobs || 0) > 0)) counts.nojobs++;
+      var key = custSourceKey(d);
+      if (!(key in srcMap)) { srcMap[key] = 0; srcOrder.push(key); }
+      srcMap[key]++;
+    });
+    var spans = document.querySelectorAll("[data-custqcnt]");
+    for (var i = 0; i < spans.length; i++) spans[i].textContent = counts[spans[i].dataset.custqcnt] != null ? counts[spans[i].dataset.custqcnt] : "";
+    var sl = $("cust-src-list");
+    if (sl) {
+      sl.innerHTML = srcOrder.length ? srcOrder.map(function (k) {
+        return '<label class="cfp-row"><input type="checkbox" data-custsrc="' + esc(k) + '"' +
+          (custFilters.sources.indexOf(k) !== -1 ? " checked" : "") +
+          '> <span class="cfp-lbl">' + esc(k === "__none__" ? "(No source)" : k) + '</span>' +
+          ' <span class="cfp-cnt">' + srcMap[k] + "</span></label>";
+      }).join("") : '<p class="cfp-empty">No sources yet.</p>';
+    }
+    syncCustFilterPanel();
+  }
+  function wireCustFilterPanel() {
+    var panel = $("custFilterPanel");
+    if (!panel || panel.dataset.wired) return;
+    panel.dataset.wired = "1";
+    panel.addEventListener("change", function (e) {
+      var t = e.target;
+      if (t.name === "cust-quick") custFilters.quick = t.value;
+      else if (t.name === "cust-lastsvc") custFilters.lastService = t.value;
+      else if (t.name === "cust-jobsf") custFilters.jobs = t.value;
+      else if (t.name === "cust-annualf") custFilters.annual = t.value;
+      else if (t.dataset && t.dataset.custsrc) {
+        var k = t.dataset.custsrc, i = custFilters.sources.indexOf(k);
+        if (t.checked && i === -1) custFilters.sources.push(k);
+        if (!t.checked && i !== -1) custFilters.sources.splice(i, 1);
+      } else return;
+      renderCustomers(); // filters apply live
+    });
+    $("custFilterClose").addEventListener("click", closeCustFilterPanel);
+    $("custFilterDone").addEventListener("click", closeCustFilterPanel);
+    $("custFilterBackdrop").addEventListener("click", closeCustFilterPanel);
+    $("custFilterClear").addEventListener("click", function () {
+      custFilters = { quick: "all", sources: [], lastService: "any", jobs: "any", annual: "any" };
+      refreshCustFilterPanel();
+      renderCustomers();
+    });
+  }
+  function openCustFilterPanel() {
+    wireCustFilterPanel();
+    refreshCustFilterPanel();
+    var p = $("custFilterPanel"), b = $("custFilterBackdrop");
+    if (p) p.classList.add("open");
+    if (b) b.classList.add("open");
+  }
+  function closeCustFilterPanel() {
+    var p = $("custFilterPanel"), b = $("custFilterBackdrop");
+    if (p) p.classList.remove("open");
+    if (b) b.classList.remove("open");
   }
 
   function renderCustomers() {
     var box = $("ad-cust-list");
     if (!box) return;
     renderCustStats();
-    renderCustFilterChips();
     if (!custRows.length) {
+      renderCustToolbar(0);
       box.innerHTML = '<p style="color:var(--faint)">No customers yet. Promote a lead with "Make customer" on the lead detail, or add one with the Add customer button.</p>';
       return;
     }
-    // Filter chips: never-serviced customers (no lastServiceAt) only ever
-    // match "All" — both other filters require 30+ days since a service.
-    var visible = custRows.filter(function (it) {
-      if (custFilter === "winback") return custIsWinBack(it.d);
-      if (custFilter === "annual") return custIsAnnualReady(it.d);
-      return true;
-    });
-    if (custFilter === "winback") {
-      // Longest-lapsed first so the stalest relationships get worked first.
-      visible = visible.slice().sort(function (a, b) {
-        return (custDaysSince(b.d) || 0) - (custDaysSince(a.d) || 0);
-      });
-    }
+    // Filter panel pipeline: quick preset + source / last-service /
+    // jobs / annual-contract buckets, then the chosen sort.
+    var visible = custSortRows(custRows.filter(function (it) { return custMatchesFilters(it.d); }));
+    renderCustToolbar(visible.length);
     box.innerHTML = "";
     if (!visible.length) {
       box.innerHTML = '<p style="color:var(--faint)">' +
-        (custFilter === "winback" ? "No win-back customers right now. Nobody is 30+ days past their last service without a signed annual contract."
-          : "No customers are annual-contract ready right now. Customers land here 30 days after a service with no contract on file.") + "</p>";
+        (custActiveFilterCount()
+          ? "No customers match the current filters. Open Filters and tap Clear all to see everyone."
+          : "No customers to show.") + "</p>";
       return;
     }
     visible.forEach(function (it) {
@@ -3793,8 +3954,6 @@
     var t = e.target, d = t.dataset;
     var hlActionEl = t.closest ? t.closest("[data-hlstagefilter],[data-hltempfilter],[data-hldetail],[data-hlstep],[data-hlpark],[data-hlrevive]") : null;
     if (hlActionEl) d = hlActionEl.dataset;
-    var custFilterEl = t.closest ? t.closest("[data-custfilter]") : null;
-    if (custFilterEl) d = custFilterEl.dataset;
     var woFilterEl = t.closest ? t.closest("[data-wofilter]") : null;
     if (woFilterEl) d = woFilterEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
@@ -3900,7 +4059,6 @@
     if (d.custemail) logActivity("Emailed customer");
     if (d.custedit) openCustomerForm(d.custedit);
     if (d.custdel) deleteCustomer(d.custdel);
-    if (d.custfilter) { custFilter = d.custfilter; renderCustomers(); }
     if (d.wofilter) { woFilter = d.wofilter; renderWorkOrders(); }
     if (d.hlmakecustomer) {
       var mkId = d.hlmakecustomer;
