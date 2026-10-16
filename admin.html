@@ -448,6 +448,24 @@
   .pg-light .hlq-manage-btn { color:#8a6d14; }
   .pg-light .hlq-manage-btn.danger { color:#b50909; }
   .hlq-source { color:var(--faint); font-size:.78rem; white-space:nowrap; }
+  .hlq-head-right { align-items:center; display:flex; flex:0 0 auto; gap:8px; }
+  .woq-open-btn { font-size:.74rem; font-weight:700; padding:5px 12px; }
+  .woq-detail { border-top:1px solid rgba(255,255,255,.08); margin-top:11px; padding-top:11px; }
+  .pg-light .woq-detail { border-top-color:#e5e2d8; }
+  .woq-drow { display:flex; gap:10px; font-size:.88rem; line-height:1.45; padding:2px 0; }
+  .woq-dlabel { color:var(--faint); flex:0 0 108px; font-size:.74rem; font-weight:700; letter-spacing:.04em; padding-top:2px; text-transform:uppercase; }
+  .pg-light .woq-dlabel { color:#55534a; }
+  .woq-dval { color:var(--text); min-width:0; overflow-wrap:anywhere; }
+  .pg-light .woq-dval { color:#141414; }
+  .woq-dblock { margin-top:10px; }
+  .woq-dblock h4 { color:var(--gold-bright); font-size:.76rem; letter-spacing:.05em; margin:0 0 5px; text-transform:uppercase; }
+  .pg-light .woq-dblock h4 { color:#8a6d14; }
+  .woq-dblock p { color:var(--text); font-size:.9rem; line-height:1.55; margin:0; overflow-wrap:anywhere; }
+  .pg-light .woq-dblock p { color:#3c3a33; }
+  .woq-thumbs img { height:74px; width:104px; }
+  .woq-vids a { color:var(--gold-bright); font-weight:700; }
+  .pg-light .woq-vids a { color:#8a6d14; }
+  .woq-dmeta { color:var(--faint); font-size:.78rem; margin:10px 0 0; }
   @media (max-width:640px) {
     .hlq-stepper { flex-wrap:wrap; overflow-x:visible; row-gap:5px; }
     .hlq-step-line { flex-basis:10px; }
@@ -997,7 +1015,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=38"></script>
+<script src="admin.js?v=39"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
