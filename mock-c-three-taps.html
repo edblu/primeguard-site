@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepto C · Tres toques — Portal del contratista PrimeGuard</title>
+<style>
+  /* ===== Golden Hour tokens (sampled from primeguard-site/vendor.css) ===== */
+  :root{
+    --bg:#f6ecd2; --bg-2:#fbf3da; --card:#ffffff;
+    --gold:#b98a1d; --gold-deep:#8a6d2a;
+    --gold-grad:linear-gradient(120deg,#ffdf7e,#f5c542 55%,#e0aa26);
+    --ink:#221a05; --muted:#7d7154; --faint:#8a7a58;
+    --line:rgba(120,90,10,.25); --line-soft:rgba(120,90,10,.14);
+    --sh:0 18px 44px rgba(120,90,10,.16);
+    --red:#b3352b;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ background:#ddd2b8; }
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); font-size:16px; line-height:1.4;
+    display:flex; justify-content:center;
+  }
+  .phone{
+    width:100%; max-width:420px; min-height:100dvh;
+    background:linear-gradient(180deg,var(--bg-2),var(--bg));
+    box-shadow:0 0 60px rgba(60,45,5,.25);
+    padding:0 16px 104px; position:relative;
+  }
+  /* ===== Header ===== */
+  .hdr{ display:flex; align-items:center; gap:10px; padding:14px 2px 6px; }
+  .hdr img.logo{ height:38px; width:auto; display:block; }
+  .hdr .sp{ flex:1 1 auto; }
+  .enchip{
+    flex:0 0 auto; font-size:.78rem; font-weight:800; letter-spacing:.06em;
+    border:1.5px solid var(--line); color:var(--gold-deep);
+    padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.7);
+  }
+  .bell{
+    flex:0 0 auto; position:relative; width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,.85); border:1px solid var(--line-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--ink);
+  }
+  .bell svg{ width:21px; height:21px; }
+  .bell .dot{ position:absolute; top:8px; right:9px; width:10px; height:10px; border-radius:50%; background:var(--red); border:2px solid #fff; }
+  .hola{ padding:10px 2px 4px; }
+  .hola h1{ font-size:1.9rem; font-weight:800; letter-spacing:-.02em; line-height:1.15; }
+  .hola p{ font-size:1rem; color:var(--muted); font-weight:600; margin-top:3px; }
+  /* ===== Giant tiles ===== */
+  .tile{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+    min-height:88px; border-radius:20px; padding:16px 18px; margin-top:14px;
+    font-family:inherit; color:var(--ink); cursor:pointer;
+  }
+  .tile .ic{
+    flex:0 0 52px; width:52px; height:52px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tile .ic svg{ width:27px; height:27px; }
+  .tile .tx{ flex:1 1 auto; min-width:0; }
+  .tile .tx strong{ display:block; font-size:1.35rem; font-weight:800; letter-spacing:-.01em; line-height:1.2; }
+  .tile .tx span{ display:block; font-size:.95rem; font-weight:600; margin-top:2px; }
+  .tile .end{ flex:0 0 auto; text-align:right; }
+  .cnt{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:40px; height:40px; padding:0 10px; border-radius:999px;
+    font-size:1.25rem; font-weight:800;
+  }
+  .tile .end small{ display:block; font-size:.75rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+  .tile .end .amt{ display:block; font-size:1.7rem; font-weight:800; line-height:1.1; }
+  .tile.gold{
+    background:var(--gold-grad); border:1px solid rgba(255,255,255,.5);
+    box-shadow:0 14px 30px rgba(185,138,29,.32);
+  }
+  .tile.gold .ic{ background:rgba(34,26,5,.14); color:var(--ink); }
+  .tile.gold .tx span{ color:#6d5c26; }
+  .tile.gold .cnt{ background:var(--ink); color:#ffe9a8; }
+  .tile.white{
+    background:rgba(255,255,255,.94); border:1px solid rgba(255,255,255,.95);
+    box-shadow:var(--sh);
+  }
+  .tile.white .ic{ background:#fdf3d3; color:var(--gold-deep); border:1px solid #ecd28a; }
+  .tile.white .tx span{ color:var(--muted); }
+  .tile.white .cnt{ background:#fdf3d3; color:var(--gold-deep); border:1px solid #ecd28a; }
+  .tile.white .end small{ color:var(--muted); }
+  /* ===== W-9 alert tile ===== */
+  .tile.alert{
+    background:#fdeceb; border:1.5px solid #e5a49d;
+    box-shadow:0 12px 26px rgba(179,53,43,.12);
+  }
+  .tile.alert .ic{ background:#f8d7d2; color:var(--red); }
+  .tile.alert .tx strong{ color:var(--red); font-size:1.25rem; }
+  .tile.alert .tx span{ color:#8c4a42; }
+  .tile.alert .chev{ flex:0 0 auto; color:var(--red); display:flex; }
+  .tile.alert .chev svg{ width:24px; height:24px; }
+  /* ===== Second-screen preview ===== */
+  .divider{ display:flex; align-items:center; gap:12px; margin:30px 2px 4px; }
+  .divider::before,.divider::after{ content:""; flex:1 1 auto; height:1px; background:var(--line); }
+  .divider span{ font-size:.85rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--gold-deep); text-align:center; }
+  .job{
+    background:var(--card); border:1px solid rgba(255,255,255,.95); border-radius:18px;
+    box-shadow:var(--sh); padding:16px; margin-top:14px;
+  }
+  .job .top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .job h3{ font-size:1.25rem; font-weight:800; line-height:1.2; letter-spacing:-.01em; }
+  .job .meta{ font-size:.98rem; font-weight:700; color:var(--gold-deep); margin-top:5px; }
+  .job .when{ font-size:.93rem; color:var(--muted); font-weight:600; margin-top:2px; }
+  .job .pay{ flex:0 0 auto; font-size:2.1rem; font-weight:800; line-height:1; letter-spacing:-.02em; }
+  .job .payq{ flex:0 0 auto; font-size:1.05rem; font-weight:800; color:var(--gold-deep); text-align:right; line-height:1.25; }
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-height:56px; border-radius:14px; border:none; cursor:pointer; width:100%;
+    font-size:1.1rem; font-weight:800; font-family:inherit; text-decoration:none;
+    padding:12px 18px; text-align:center; margin-top:14px;
+  }
+  .btn-gold{ background:var(--gold-grad); color:var(--ink); box-shadow:0 10px 24px rgba(185,138,29,.35); }
+  /* ===== Bottom tab bar ===== */
+  .tabs{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:420px; z-index:10;
+    background:rgba(255,255,255,.96); border-top:1px solid var(--line);
+    display:flex; padding:8px 6px calc(10px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px rgba(120,90,10,.12);
+  }
+  .tab{
+    flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:.72rem; font-weight:700; color:var(--muted); text-decoration:none; padding:4px 0 2px;
+  }
+  .tab svg{ width:23px; height:23px; }
+  .tab.active{ color:var(--gold-deep); }
+  .tab.active svg{ color:var(--gold); }
+  @media (max-width:360px){
+    .tile .tx strong{ font-size:1.22rem; }
+    .tile .end .amt{ font-size:1.5rem; }
+    .job .pay{ font-size:1.9rem; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Header -->
+  <header class="hdr">
+    <img class="logo" src="https://primeguardmia.com/assets/logo-transparent.png" alt="PrimeGuard">
+    <span class="sp"></span>
+    <span class="enchip">EN</span>
+    <span class="bell" aria-label="Avisos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="dot"></span>
+    </span>
+  </header>
+
+  <div class="hola">
+    <h1>Hola, Ángel</h1>
+    <p>Naturascape LLC · ¿Qué quieres hacer?</p>
+  </div>
+
+  <!-- Three giant tiles -->
+  <button class="tile gold" type="button">
+    <span class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+    </span>
+    <span class="tx">
+      <strong>Trabajos nuevos</strong>
+      <span>Léelos y acepta el que quieras</span>
+    </span>
+    <span class="end"><span class="cnt">2</span></span>
+  </button>
+
+  <button class="tile white" type="button">
+    <span class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </span>
+    <span class="tx">
+      <strong>Mis trabajos</strong>
+      <span>El próximo: sábado 17, 9:00 AM</span>
+    </span>
+    <span class="end"><span class="cnt">1</span></span>
+  </button>
+
+  <button class="tile white" type="button">
+    <span class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+    </span>
+    <span class="tx">
+      <strong>Mi dinero</strong>
+      <span>Este mes: $180</span>
+    </span>
+    <span class="end"><small>Por cobrar</small><span class="amt">$45</span></span>
+  </button>
+
+  <!-- W-9 alert tile -->
+  <button class="tile alert" type="button">
+    <span class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+    </span>
+    <span class="tx">
+      <strong>Falta tu W-9</strong>
+      <span>Toca para subirlo y que no se detengan tus pagos</span>
+    </span>
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+  </button>
+
+  <!-- Second screen preview -->
+  <div class="divider"><span>Al tocar “Trabajos nuevos”</span></div>
+
+  <article class="job">
+    <div class="top">
+      <div>
+        <h3>Lavado a presión</h3>
+        <p class="meta">Kendall</p>
+        <p class="when">La próxima semana · entrada y acera</p>
+      </div>
+      <span class="pay">$120</span>
+    </div>
+    <button class="btn btn-gold" type="button">Aceptar trabajo</button>
+  </article>
+
+  <article class="job">
+    <div class="top">
+      <div>
+        <h3>Limpieza de patio y escombros</h3>
+        <p class="meta">The Hammocks</p>
+        <p class="when">Fecha flexible · tú pones el precio</p>
+      </div>
+      <span class="payq">Dar<br>precio</span>
+    </div>
+    <button class="btn btn-gold" type="button">Dar mi precio</button>
+  </article>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <a class="tab active" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      Inicio
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Trabajos
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      Dinero
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      Más
+    </a>
+  </nav>
+
+</div>
+</body>
+</html>

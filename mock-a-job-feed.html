@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepto A · Trabajos — Portal del contratista PrimeGuard</title>
+<style>
+  /* ===== Golden Hour tokens (sampled from primeguard-site/vendor.css) ===== */
+  :root{
+    --bg:#f6ecd2; --bg-2:#fbf3da; --card:#ffffff;
+    --gold:#b98a1d; --gold-deep:#8a6d2a;
+    --gold-grad:linear-gradient(120deg,#ffdf7e,#f5c542 55%,#e0aa26);
+    --ink:#221a05; --muted:#7d7154; --faint:#8a7a58;
+    --line:rgba(120,90,10,.25); --line-soft:rgba(120,90,10,.14);
+    --sh:0 18px 44px rgba(120,90,10,.16);
+    --red:#b3352b;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ background:#ddd2b8; }
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); font-size:16px; line-height:1.4;
+    display:flex; justify-content:center;
+  }
+  /* ===== Phone column ===== */
+  .phone{
+    width:100%; max-width:420px; min-height:100dvh;
+    background:linear-gradient(180deg,var(--bg-2),var(--bg));
+    box-shadow:0 0 60px rgba(60,45,5,.25);
+    padding:0 16px 104px;
+    position:relative;
+  }
+  /* ===== Header ===== */
+  .hdr{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 2px 10px;
+  }
+  .hdr img.logo{ height:38px; width:auto; display:block; }
+  .hdr .who{ flex:1 1 auto; min-width:0; }
+  .hdr .who strong{ display:block; font-size:1.12rem; font-weight:800; letter-spacing:-.01em; }
+  .hdr .who span{ display:block; font-size:.82rem; color:var(--muted); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .enchip{
+    flex:0 0 auto; font-size:.78rem; font-weight:800; letter-spacing:.06em;
+    border:1.5px solid var(--line); color:var(--gold-deep);
+    padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.7);
+  }
+  .bell{
+    flex:0 0 auto; position:relative; width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,.85); border:1px solid var(--line-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--ink);
+  }
+  .bell svg{ width:21px; height:21px; }
+  .bell .dot{
+    position:absolute; top:8px; right:9px; width:10px; height:10px; border-radius:50%;
+    background:var(--red); border:2px solid #fff;
+  }
+  /* ===== Money chips ===== */
+  .chips{ display:flex; gap:8px; margin:6px 0 4px; }
+  .chip{
+    flex:1 1 0; background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.95);
+    border-radius:14px; box-shadow:0 8px 22px rgba(120,90,10,.10);
+    padding:10px 12px; display:flex; align-items:baseline; justify-content:space-between; gap:6px;
+  }
+  .chip small{ font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .chip strong{ font-size:1.3rem; font-weight:800; }
+  /* ===== W-9 alert strip ===== */
+  .alert{
+    margin-top:12px; background:#fdf3d3; border:1.5px solid #e0aa26; border-radius:16px;
+    padding:14px; display:flex; gap:12px; align-items:center;
+    box-shadow:0 10px 24px rgba(120,90,10,.12);
+  }
+  .alert .ic{
+    flex:0 0 44px; width:44px; height:44px; border-radius:12px; background:var(--gold-grad);
+    display:flex; align-items:center; justify-content:center; color:var(--ink);
+  }
+  .alert .ic svg{ width:24px; height:24px; }
+  .alert .tx{ flex:1 1 auto; min-width:0; }
+  .alert .tx strong{ display:block; font-size:1rem; font-weight:800; }
+  .alert .tx span{ display:block; font-size:.88rem; color:#6d5c26; margin-top:2px; }
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-height:54px; border-radius:14px; border:none; cursor:pointer;
+    font-size:1.05rem; font-weight:800; font-family:inherit; text-decoration:none;
+    padding:12px 18px; text-align:center;
+  }
+  .btn-gold{ background:var(--gold-grad); color:var(--ink); box-shadow:0 10px 24px rgba(185,138,29,.35); }
+  .btn-dark{ background:var(--ink); color:#ffe9a8; box-shadow:0 12px 26px rgba(34,26,5,.35); }
+  .alert .btn{ flex:0 0 auto; min-height:52px; padding:10px 16px; font-size:.98rem; }
+  /* ===== Section title ===== */
+  .sect{ margin:22px 2px 12px; display:flex; align-items:baseline; justify-content:space-between; }
+  .sect h2{ font-size:1.3rem; font-weight:800; letter-spacing:-.01em; }
+  .sect span{ font-size:.9rem; font-weight:700; color:var(--gold-deep); }
+  /* ===== Job cards ===== */
+  .job{
+    background:var(--card); border:1px solid rgba(255,255,255,.95); border-radius:20px;
+    box-shadow:var(--sh); overflow:hidden; margin-bottom:16px;
+  }
+  .job .photo{ position:relative; height:128px; }
+  .job .photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .job .photo.grad{ background:linear-gradient(120deg,#ffdf7e,#f5c542 55%,#e0aa26); display:flex; align-items:center; justify-content:center; }
+  .job .photo.grad svg{ width:52px; height:52px; color:rgba(34,26,5,.45); }
+  .badge{
+    position:absolute; top:10px; left:10px; background:var(--ink); color:#ffe9a8;
+    font-size:.75rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    padding:6px 11px; border-radius:999px; box-shadow:0 6px 16px rgba(34,26,5,.3);
+  }
+  .job .body{ padding:16px 16px 18px; }
+  .job h3{ font-size:1.35rem; font-weight:800; letter-spacing:-.01em; line-height:1.2; }
+  .meta{ display:flex; align-items:center; gap:7px; margin-top:7px; font-size:1rem; font-weight:700; color:var(--gold-deep); }
+  .meta svg{ width:17px; height:17px; flex:0 0 auto; }
+  .when{ font-size:.95rem; color:var(--muted); font-weight:600; margin-top:3px; }
+  .desc{ font-size:.98rem; color:#4c4225; margin-top:9px; }
+  .payrow{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+    margin-top:14px; padding-top:13px; border-top:1px solid var(--line-soft);
+  }
+  .payrow small{ display:block; font-size:.75rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+  .payrow .pay{ font-size:2.3rem; font-weight:800; line-height:1; letter-spacing:-.02em; }
+  .payrow .quote-note{ font-size:1.05rem; font-weight:800; }
+  .job .btn{ width:100%; min-height:56px; margin-top:14px; font-size:1.1rem; }
+  /* ===== Bottom tab bar ===== */
+  .tabs{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:420px; z-index:10;
+    background:rgba(255,255,255,.96); border-top:1px solid var(--line);
+    display:flex; padding:8px 6px calc(10px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px rgba(120,90,10,.12);
+  }
+  .tab{
+    flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:.72rem; font-weight:700; color:var(--muted); text-decoration:none; padding:4px 0 2px;
+  }
+  .tab svg{ width:23px; height:23px; }
+  .tab.active{ color:var(--gold-deep); }
+  .tab.active svg{ color:var(--gold); }
+  @media (max-width:360px){
+    .payrow .pay{ font-size:2.05rem; }
+    .alert{ flex-wrap:wrap; }
+    .alert .btn{ flex:1 1 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Header -->
+  <header class="hdr">
+    <img class="logo" src="https://primeguardmia.com/assets/logo-transparent.png" alt="PrimeGuard">
+    <div class="who">
+      <strong>Hola, Ángel</strong>
+      <span>Naturascape LLC</span>
+    </div>
+    <span class="enchip">EN</span>
+    <span class="bell" aria-label="Avisos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="dot"></span>
+    </span>
+  </header>
+
+  <!-- Money summary -->
+  <div class="chips">
+    <div class="chip"><small>Por cobrar</small><strong>$45</strong></div>
+    <div class="chip"><small>Este mes</small><strong>$180</strong></div>
+  </div>
+
+  <!-- W-9 alert -->
+  <div class="alert">
+    <span class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+    </span>
+    <div class="tx">
+      <strong>Te falta el W-9</strong>
+      <span>Súbelo para que no se detengan tus pagos.</span>
+    </div>
+    <button class="btn btn-dark" type="button">Subir W-9</button>
+  </div>
+
+  <!-- Feed -->
+  <div class="sect"><h2>Trabajos disponibles</h2><span>3 nuevos</span></div>
+
+  <!-- Job 1 -->
+  <article class="job">
+    <div class="photo">
+      <img src="https://primeguardmia.com/assets/hero-lawn-daylight.jpg" alt="Césped">
+      <span class="badge">Nuevo</span>
+    </div>
+    <div class="body">
+      <h3>Corte de césped</h3>
+      <p class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Richmond Heights
+      </p>
+      <p class="when">Sábado 17 · en la mañana</p>
+      <p class="desc">Césped cortado hace poco, corte ligero: corte, orillas y trim.</p>
+      <div class="payrow">
+        <div><small>Paga</small><span class="pay">$45</span></div>
+      </div>
+      <button class="btn btn-gold" type="button">Aceptar trabajo</button>
+    </div>
+  </article>
+
+  <!-- Job 2 -->
+  <article class="job">
+    <div class="photo">
+      <img src="https://primeguardmia.com/assets/hero-pw-daylight.jpg" alt="Lavado a presión">
+      <span class="badge">Nuevo</span>
+    </div>
+    <div class="body">
+      <h3>Lavado a presión</h3>
+      <p class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Kendall
+      </p>
+      <p class="when">La próxima semana</p>
+      <p class="desc">Entrada y acera completas (driveway + walkway).</p>
+      <div class="payrow">
+        <div><small>Paga</small><span class="pay">$120</span></div>
+      </div>
+      <button class="btn btn-gold" type="button">Aceptar trabajo</button>
+    </div>
+  </article>
+
+  <!-- Job 3 -->
+  <article class="job">
+    <div class="photo grad">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <span class="badge">Nuevo</span>
+    </div>
+    <div class="body">
+      <h3>Limpieza de patio y escombros</h3>
+      <p class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        The Hammocks
+      </p>
+      <p class="when">Fecha flexible</p>
+      <p class="desc">Retiro de escombros y limpieza completa del patio.</p>
+      <div class="payrow">
+        <div><small>Paga</small><span class="quote-note">Tú pones el precio</span></div>
+      </div>
+      <button class="btn btn-gold" type="button">Dar mi precio</button>
+    </div>
+  </article>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <a class="tab active" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Trabajos
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Mis trabajos
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      Mi dinero
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      Más
+    </a>
+  </nav>
+
+</div>
+</body>
+</html>

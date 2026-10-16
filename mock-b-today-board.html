@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepto B · Mi día — Portal del contratista PrimeGuard</title>
+<style>
+  /* ===== Golden Hour tokens (sampled from primeguard-site/vendor.css) ===== */
+  :root{
+    --bg:#f6ecd2; --bg-2:#fbf3da; --card:#ffffff;
+    --gold:#b98a1d; --gold-deep:#8a6d2a;
+    --gold-grad:linear-gradient(120deg,#ffdf7e,#f5c542 55%,#e0aa26);
+    --ink:#221a05; --muted:#7d7154; --faint:#8a7a58;
+    --line:rgba(120,90,10,.25); --line-soft:rgba(120,90,10,.14);
+    --sh:0 18px 44px rgba(120,90,10,.16);
+    --red:#b3352b;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ background:#ddd2b8; }
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); font-size:16px; line-height:1.4;
+    display:flex; justify-content:center;
+  }
+  .phone{
+    width:100%; max-width:420px; min-height:100dvh;
+    background:linear-gradient(180deg,var(--bg-2),var(--bg));
+    box-shadow:0 0 60px rgba(60,45,5,.25);
+    padding:0 16px 104px; position:relative;
+  }
+  /* ===== Header ===== */
+  .hdr{ display:flex; align-items:center; gap:10px; padding:14px 2px 10px; }
+  .hdr img.logo{ height:38px; width:auto; display:block; }
+  .hdr .who{ flex:1 1 auto; min-width:0; }
+  .hdr .who strong{ display:block; font-size:1.12rem; font-weight:800; letter-spacing:-.01em; }
+  .hdr .who span{ display:block; font-size:.82rem; color:var(--muted); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .enchip{
+    flex:0 0 auto; font-size:.78rem; font-weight:800; letter-spacing:.06em;
+    border:1.5px solid var(--line); color:var(--gold-deep);
+    padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.7);
+  }
+  .bell{
+    flex:0 0 auto; position:relative; width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,.85); border:1px solid var(--line-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--ink);
+  }
+  .bell svg{ width:21px; height:21px; }
+  .bell .dot{ position:absolute; top:8px; right:9px; width:10px; height:10px; border-radius:50%; background:var(--red); border:2px solid #fff; }
+  /* ===== Money strip ===== */
+  .money{ display:flex; gap:10px; margin-top:6px; }
+  .tile{
+    flex:1 1 0; background:var(--gold-grad); border-radius:18px; padding:14px 16px;
+    box-shadow:0 12px 26px rgba(185,138,29,.28); border:1px solid rgba(255,255,255,.5);
+  }
+  .tile.plain{ background:rgba(255,255,255,.92); border-color:rgba(255,255,255,.95); box-shadow:0 10px 24px rgba(120,90,10,.10); }
+  .tile small{ display:block; font-size:.78rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#6d5c26; }
+  .tile.plain small{ color:var(--muted); }
+  .tile strong{ display:block; font-size:2rem; font-weight:800; line-height:1.1; margin-top:2px; }
+  /* ===== Section title ===== */
+  .sect{ margin:24px 2px 12px; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .sect h2{ font-size:1.3rem; font-weight:800; letter-spacing:-.01em; }
+  .sect span{ font-size:.9rem; font-weight:700; color:var(--gold-deep); white-space:nowrap; }
+  /* ===== Hero job ===== */
+  .hero{
+    background:var(--card); border:1px solid rgba(255,255,255,.95); border-radius:20px;
+    box-shadow:var(--sh); overflow:hidden;
+  }
+  .hero .photo{ position:relative; height:140px; }
+  .hero .photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .badge{
+    position:absolute; top:10px; left:10px; background:var(--ink); color:#ffe9a8;
+    font-size:.75rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    padding:6px 11px; border-radius:999px; box-shadow:0 6px 16px rgba(34,26,5,.3);
+  }
+  .hero .body{ padding:16px 16px 18px; }
+  .hero h3{ font-size:1.5rem; font-weight:800; letter-spacing:-.01em; line-height:1.2; }
+  .bigwhen{ display:flex; align-items:center; gap:8px; margin-top:9px; font-size:1.12rem; font-weight:800; }
+  .bigwhen svg{ width:20px; height:20px; color:var(--gold-deep); flex:0 0 auto; }
+  .addr{ margin-top:8px; font-size:1rem; color:#4c4225; }
+  .addr strong{ color:var(--ink); }
+  .payrow{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+    margin-top:13px; padding-top:12px; border-top:1px solid var(--line-soft);
+  }
+  .payrow small{ display:block; font-size:.75rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+  .payrow .pay{ font-size:2.3rem; font-weight:800; line-height:1; letter-spacing:-.02em; }
+  .payrow .st{ font-size:.88rem; font-weight:700; color:var(--gold-deep); text-align:right; }
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    min-height:56px; border-radius:14px; cursor:pointer; width:100%;
+    font-size:1.08rem; font-weight:800; font-family:inherit; text-decoration:none;
+    padding:12px 18px; text-align:center;
+  }
+  .btn svg{ width:21px; height:21px; flex:0 0 auto; }
+  .btn-gold{ background:var(--gold-grad); color:var(--ink); border:none; box-shadow:0 10px 24px rgba(185,138,29,.35); }
+  .btn-outline{ background:#fff; color:var(--ink); border:1.5px solid var(--gold); box-shadow:0 8px 20px rgba(120,90,10,.10); }
+  .btn-dark{ background:var(--ink); color:#ffe9a8; border:none; box-shadow:0 12px 26px rgba(34,26,5,.35); }
+  .hero .btn{ margin-top:12px; }
+  .hero .btn:first-of-type{ margin-top:16px; }
+  /* ===== Available slim rows ===== */
+  .row{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.95); border-radius:16px;
+    box-shadow:0 10px 24px rgba(120,90,10,.10); padding:14px 16px; margin-bottom:10px;
+    font-family:inherit; color:var(--ink); cursor:pointer;
+  }
+  .row .tx{ flex:1 1 auto; min-width:0; }
+  .row .tx strong{ display:block; font-size:1.08rem; font-weight:800; }
+  .row .tx span{ display:block; font-size:.92rem; color:var(--muted); font-weight:600; margin-top:2px; }
+  .row .rt{ flex:0 0 auto; text-align:right; }
+  .row .rt .p{ display:block; font-size:1.45rem; font-weight:800; line-height:1.1; }
+  .row .rt .q{ display:block; font-size:.95rem; font-weight:800; color:var(--gold-deep); }
+  .row .chev{ flex:0 0 auto; color:var(--faint); display:flex; }
+  .row .chev svg{ width:22px; height:22px; }
+  /* ===== W-9 alert card ===== */
+  .alert{
+    margin-top:22px; background:#fdf3d3; border:1.5px solid #e0aa26; border-radius:18px;
+    padding:16px; box-shadow:0 10px 24px rgba(120,90,10,.12);
+  }
+  .alert .top{ display:flex; gap:12px; align-items:flex-start; }
+  .alert .ic{
+    flex:0 0 44px; width:44px; height:44px; border-radius:12px; background:var(--gold-grad);
+    display:flex; align-items:center; justify-content:center; color:var(--ink);
+  }
+  .alert .ic svg{ width:24px; height:24px; }
+  .alert strong{ display:block; font-size:1.05rem; font-weight:800; }
+  .alert p{ font-size:.92rem; color:#6d5c26; margin-top:3px; }
+  .alert .btn{ margin-top:13px; min-height:54px; }
+  /* ===== Bottom tab bar ===== */
+  .tabs{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:420px; z-index:10;
+    background:rgba(255,255,255,.96); border-top:1px solid var(--line);
+    display:flex; padding:8px 6px calc(10px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px rgba(120,90,10,.12);
+  }
+  .tab{
+    flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:.72rem; font-weight:700; color:var(--muted); text-decoration:none; padding:4px 0 2px;
+  }
+  .tab svg{ width:23px; height:23px; }
+  .tab.active{ color:var(--gold-deep); }
+  .tab.active svg{ color:var(--gold); }
+  @media (max-width:360px){
+    .payrow .pay{ font-size:2.05rem; }
+    .tile strong{ font-size:1.75rem; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Header -->
+  <header class="hdr">
+    <img class="logo" src="https://primeguardmia.com/assets/logo-transparent.png" alt="PrimeGuard">
+    <div class="who">
+      <strong>Hola, Ángel</strong>
+      <span>Naturascape LLC</span>
+    </div>
+    <span class="enchip">EN</span>
+    <span class="bell" aria-label="Avisos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="dot"></span>
+    </span>
+  </header>
+
+  <!-- Money strip -->
+  <div class="money">
+    <div class="tile"><small>Por cobrar</small><strong>$45</strong></div>
+    <div class="tile plain"><small>Este mes</small><strong>$180</strong></div>
+  </div>
+
+  <!-- Next job -->
+  <div class="sect"><h2>Tu próximo trabajo</h2><span>Aceptado</span></div>
+  <article class="hero">
+    <div class="photo">
+      <img src="https://primeguardmia.com/assets/hero-lawn-daylight.jpg" alt="Césped">
+      <span class="badge">Aceptado</span>
+    </div>
+    <div class="body">
+      <h3>Corte de césped</h3>
+      <p class="bigwhen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Sábado 17 · 9:00 AM
+      </p>
+      <p class="addr"><strong>Richmond Heights</strong> · 16302 SW 111 Ave, Miami, FL 33157<br>Césped cortado hace poco, corte ligero: corte, orillas y trim.</p>
+      <div class="payrow">
+        <div><small>Paga</small><span class="pay">$45</span></div>
+        <span class="st">Pago al terminar,<br>con las fotos</span>
+      </div>
+      <button class="btn btn-gold" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Cómo llegar
+      </button>
+      <button class="btn btn-outline" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Subir fotos
+      </button>
+      <button class="btn btn-dark" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Marcar terminado
+      </button>
+    </div>
+  </article>
+
+  <!-- Available -->
+  <div class="sect"><h2>Trabajos disponibles</h2><span>2 nuevos</span></div>
+
+  <button class="row" type="button">
+    <span class="tx">
+      <strong>Lavado a presión</strong>
+      <span>Kendall · la próxima semana</span>
+    </span>
+    <span class="rt"><span class="p">$120</span></span>
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+  </button>
+
+  <button class="row" type="button">
+    <span class="tx">
+      <strong>Limpieza de patio y escombros</strong>
+      <span>The Hammocks · fecha flexible</span>
+    </span>
+    <span class="rt"><span class="q">Dar precio</span></span>
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+  </button>
+
+  <!-- W-9 alert -->
+  <div class="alert">
+    <div class="top">
+      <span class="ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+      </span>
+      <div>
+        <strong>Te falta el W-9</strong>
+        <p>Súbelo para que no se detengan tus pagos.</p>
+      </div>
+    </div>
+    <button class="btn btn-dark" type="button">Subir W-9</button>
+  </div>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Trabajos
+    </a>
+    <a class="tab active" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Mis trabajos
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      Mi dinero
+    </a>
+    <a class="tab" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      Más
+    </a>
+  </nav>
+
+</div>
+</body>
+</html>
