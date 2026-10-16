@@ -643,3 +643,136 @@ section#contact::before{ background:none; }
   background:rgba(255,255,255,.8); border-color:rgba(201,162,75,.5); color:#8a6d2a;
 }
 #contact .plan-note button{ color:var(--gold-deep); }
+
+/* ---------- 13. Owner fixes (Oct 15 late): plans cards, bundle
+   builder, footer centering, header nav pill ---------- */
+
+/* 13a. PLANS PAGE CARDS — styles.css paints #plans .plan-card as
+   dark glass (ID specificity beat every earlier daylight rule)
+   while the text flipped to ink: dark on dark. Restate the whole
+   card light at the same ID scope (#plans / #bundles exist only
+   on plans.html, so this is plans-page only). */
+#plans .plan-card{
+  background:linear-gradient(165deg, rgba(255,255,255,.95), rgba(255,255,255,.84));
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:20px;
+  box-shadow:0 18px 44px rgba(120,90,10,.16), inset 0 1px 0 #fff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#plans .plan-card:hover{
+  border-color:rgba(217,171,43,.65);
+  box-shadow:0 26px 54px rgba(120,90,10,.22), inset 0 1px 0 #fff;
+}
+#plans .plan-card h3{ color:var(--ink); }
+#plans .plan-card .price{ color:#5c6a72; }
+#plans .plan-card .price strong{
+  background:linear-gradient(120deg,#b8860b,#d9ab2b 55%,#8a6d2a);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+#plans .plan-card .plan-desc{ color:#5c6a72; }
+#plans .plan-includes li{ color:#33424e; }
+#plans .plan-includes li::before{ color:#a87e14; }
+#bundles .bundle-card{
+  background:linear-gradient(165deg, rgba(255,255,255,.95), rgba(255,255,255,.84));
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:20px;
+  box-shadow:0 18px 44px rgba(120,90,10,.16), inset 0 1px 0 #fff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#bundles .bundle-card:hover{
+  border-color:rgba(217,171,43,.65);
+  box-shadow:0 26px 54px rgba(120,90,10,.22), inset 0 1px 0 #fff;
+}
+#bundles .bundle-card h3{ color:var(--ink); }
+#bundles .bundle-svcs{ color:#a87e14; }
+#bundles .bundle-card p:not(.bundle-svcs){ color:#5c6a72; }
+
+/* 13b. BUNDLE BUILDER — the size <select>s kept styles.css's
+   near-black background (.bb-item select outranked daylight's
+   global form rule) with ink text on top. Restate the builder
+   and every control inside it light. */
+#bundles .bundle-builder{
+  background:var(--glass); border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#bundles .bundle-builder h3{ color:var(--ink); }
+#bundles .bb-lead{ color:#5c6a72; }
+#bundles .bb-item{
+  background:rgba(255,255,255,.75);
+  border:1px solid rgba(16,28,38,.16);
+}
+#bundles .bb-item:has(input:checked){
+  border-color:rgba(217,171,43,.7);
+  background:linear-gradient(135deg, rgba(217,171,43,.16), rgba(255,255,255,.78));
+}
+#bundles .bb-item input[type="checkbox"]{ accent-color:#c9a227; }
+#bundles .bb-name{ color:var(--ink); }
+#bundles .bb-item select{
+  background:#ffffff; color:var(--ink);
+  border:1px solid rgba(16,28,38,.2); border-radius:10px;
+}
+#bundles .bb-item select:focus{
+  border-color:rgba(217,171,43,.8); outline:none;
+  box-shadow:0 0 0 3px rgba(217,171,43,.22);
+}
+#bundles .bb-from{ color:#a87e14; }
+#bundles .bb-total-row{ color:var(--ink); border-top-color:rgba(201,162,75,.4); }
+#bundles .bb-total-row strong{
+  background:linear-gradient(120deg,#b8860b,#d9ab2b 55%,#8a6d2a);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+#bundles .bb-note{ color:#6d7668; }
+
+/* 13c. FOOTER CENTERED — site-wide (the footer is shared):
+   every block centered, link row centered as a group. */
+footer.site-footer{ text-align:center; }
+footer.site-footer .footer-inner{
+  align-items:center; justify-content:center; text-align:center;
+}
+footer.site-footer .footer-brand{ justify-content:center; text-align:center; }
+footer.site-footer .footer-contact{ justify-items:center; text-align:center; }
+footer.site-footer .footer-links{
+  justify-content:center; text-align:center;
+  margin-left:auto; margin-right:auto;
+}
+footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-right:auto; }
+.footer-grid{ align-items:center; text-align:center; }
+.footer-grid .footer-links{ justify-content:center; text-align:center; }
+.footer-bottom{ text-align:center; }
+
+/* 13d. HEADER NAV — the daylight section-2 .main-nav glass panel
+   (background + border + shadow) was meant for the drawer but
+   paints a visible rectangle around the DESKTOP nav links too.
+   Strip the box on desktop only and make the links a touch
+   bigger and bolder. The ≤1024px drawer (#mainNav ID rules) is
+   untouched; the Book now button keeps its style. */
+@media (min-width:1025px){
+  .site-header .main-nav{
+    background:transparent; border:none; box-shadow:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .site-header .main-nav a:not(.btn){
+    font-size:1.05rem; font-weight:700; color:var(--ink);
+    opacity:1; letter-spacing:.01em;
+  }
+  .site-header .main-nav a:not(.btn):hover{
+    color:var(--gold-deep); opacity:1;
+    text-decoration:underline; text-decoration-color:rgba(201,162,75,.75);
+    text-decoration-thickness:2px; text-underline-offset:6px;
+  }
+  .site-header .main-nav a.active{ color:var(--gold-deep); }
+}
+
+/* ==== Section 13b: reviews cards — same dark-glass fix as plan cards ==== */
+#reviews .review-card{
+  background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.84));
+  border:1px solid rgba(120,90,10,.16); border-radius:20px;
+  box-shadow:0 18px 44px rgba(120,90,10,.14); color:#101c26;
+}
+#reviews .review-card:hover{ border-color:rgba(201,162,39,.6); }
+#reviews .review-card p, #reviews .review-card .review-text{ color:#33424e; }
+#reviews .review-card .review-name, #reviews .review-card strong{ color:#101c26; }
+#reviews .review-card .review-meta, #reviews .review-card small{ color:#5c6a72; }

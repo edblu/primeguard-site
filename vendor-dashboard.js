@@ -13,7 +13,9 @@
 
   var me = null;       // firebase user
   var vendor = null;    // vendors/{uid} data
-  var myEvals = [];     // quote requests I accepted (for quote form dropdown)
+  var myEvals = [];     // quote requests I accepted for evaluation (for quote form dropdown)
+  var openQRs = [];     // open quote requests visible to me (for quote form dropdown)
+  var myQuoted = {};    // workOrderId -> true, quote requests I already submitted a quote for
 
   var _yr = document.getElementById("vd-year");
   if (_yr) _yr.textContent = new Date().getFullYear();
@@ -162,18 +164,45 @@
   }
 
   // ---------- Work orders ----------
+  // Quote form dropdown: open quote requests + ones I accepted for evaluation,
+  // minus any I already quoted. Any open request can be quoted right from its card.
+  function buildQuoteSelect() {
+    var sel = $("q-workorder");
+    if (!sel) return;
+    var cur = sel.value;
+    var quotable = [], seenQ = {};
+    myEvals.concat(openQRs).forEach(function (w) {
+      if (seenQ[w.id] || myQuoted[w.id]) return;
+      seenQ[w.id] = true;
+      quotable.push(w);
+    });
+    sel.innerHTML = '<option value="">Select a quote request...</option>' + quotable.map(function (w) {
+      return '<option value="' + w.id + '">' + esc(w.title) + " - " + esc(w.area) + "</option>";
+    }).join("");
+    if (cur) sel.value = cur;
+  }
+
   function loadAll() {
+    db.collection("quotes").where("vendorId", "==", me.uid).get().then(function (qs) {
+      myQuoted = {};
+      qs.forEach(function (d) {
+        var q = d.data();
+        if (q.workOrderId) myQuoted[q.workOrderId] = true;
+      });
+    }).catch(function () { myQuoted = {}; }).then(function () {
     db.collection("work_orders").where("status", "==", "open").get().then(function (qs) {
       var jobs = [], qrs = [];
       qs.forEach(function (d) {
         var w = d.data(); w.id = d.id;
         if (w.kind === "quote_request") qrs.push(w); else jobs.push(w);
       });
+      openQRs = qrs;
       renderList($("list-qr"), qrs, "quote_request");
       renderList($("list-jobs"), jobs, "job");
       $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? " NEED EVALUATION" : " NEED EVALUATION");
       $("cnt-jobs").textContent = jobs.length + " AVAILABLE";
       $("st-open").textContent = jobs.length + qrs.length;
+      buildQuoteSelect();
     });
     db.collection("work_orders").where("vendorId", "==", me.uid).get().then(function (qs) {
       var active = [], done = [], earned = 0, pending = 0, pendingN = 0;
@@ -198,10 +227,8 @@
       $("st-pending-n").textContent = pendingN ? pendingN + " job(s) awaiting confirmation" : "Nothing awaiting confirmation";
       $("cnt-active").textContent = active.length + " IN PROGRESS";
       $("cnt-done").textContent = done.length + " JOBS";
-      var sel = $("q-workorder");
-      sel.innerHTML = '<option value="">Select a quote request...</option>' + myEvals.map(function (w) {
-        return '<option value="' + w.id + '">' + esc(w.title) + " - " + esc(w.area) + "</option>";
-      }).join("");
+      buildQuoteSelect();
+    });
     });
   }
 
@@ -230,7 +257,8 @@
     if (!arr.length) { box.innerHTML = '<div class="vempty">Nothing here right now. New jobs pop up here automatically.</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       var btn = kind === "quote_request"
-        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">Accept evaluation</button>'
+        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">Accept evaluation</button>' +
+          (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '" style="margin-left:8px">Give a quote</button>')
         : '<button class="btn btn-gold" data-accept-job="' + w.id + '">Accept job</button>';
       return '<div class="vjob"><div class="t">' + esc(w.category || w.kind) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" +

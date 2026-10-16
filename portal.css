@@ -1,258 +1,371 @@
 /* ============================================================
-   PrimeGuard customer portal — "Golden Hour" light redesign
-   (approved concept C, portal-mock-c). Loaded ONLY by
+   PrimeGuard customer portal — "Daylight Hologram" light skin
+   (approved concept: portal-daylight-mock.html). Loaded ONLY by
    account.html, AFTER its inline <style> block, so these rules
    win specificity ties against both styles.css and the inline
-   "Midnight Gold" block. Palette copied from the mock:
-   cream canvas, gold hero band, white cards, ink text.
+   "Midnight Gold" block. Palette copied from the approved mock
+   and the live Daylight site: cream canvas, photo hero cards
+   with white corner brackets + ring gauge, frosted glass text
+   panels, white cards, ink text, gold gradient CTAs.
    ============================================================ */
 
 :root {
-  --gh-ink: #221a05;
-  --gh-ink2: #4a3f22;
-  --gh-mut: #7d7154;
-  --gh-gold: #b98a1d;
-  --gh-golddeep: #7a5d10;
-  --gh-teal: #0e7c86;
-  --gh-sh: 0 18px 44px rgba(120, 90, 10, .16);
-  --gh-line: rgba(120, 90, 10, .28);
+  --dl-ink: #101c26;
+  --dl-ink2: #33424f;
+  --dl-body: #41505c;
+  --dl-mut: #7d7154;
+  --dl-gold: #b98a1d;
+  --dl-golddeep: #8a6d2a;
+  --dl-teal: #0e7c86;
+  --dl-sh: 0 14px 34px rgba(120, 90, 10, .10);
+  --dl-sh-hero: 0 30px 70px rgba(16, 28, 38, .25);
+  --dl-sh-panel: 0 18px 44px rgba(16, 28, 38, .22);
+  --dl-line: rgba(16, 28, 38, .18);
+  --dl-cardline: rgba(16, 28, 38, .06);
+  --dl-rowline: rgba(120, 90, 10, .13);
+  --dl-bracket: rgba(255, 255, 255, .95);
 }
 
 /* ---------- Canvas, base text, headings, links ---------- */
-.acct-page { background: linear-gradient(180deg, #fbf3da, #f6ecd2); }
+.acct-page { background: linear-gradient(180deg, #faf8f1 0%, #f3efe3 55%, #efece1 100%); }
 .acct-page main {
-  background: linear-gradient(180deg, #fbf3da, #f6ecd2);
-  color: var(--gh-ink2);
+  background: linear-gradient(180deg, #faf8f1 0%, #f3efe3 55%, #efece1 100%);
+  color: var(--dl-ink2);
 }
-.acct-page h1, .acct-page h2, .acct-page h3 { color: var(--gh-ink); }
-.acct-page a { color: #8a6d2a; }
+.acct-page h1, .acct-page h2, .acct-page h3 { color: var(--dl-ink); }
+.acct-page a { color: var(--dl-golddeep); }
 
 /* ---------- Site header / footer (this page only) ---------- */
 .acct-page .site-header {
   background: rgba(255, 255, 255, .86);
-  border-bottom: 1px solid rgba(120, 90, 10, .16);
+  border-bottom: 1px solid rgba(16, 28, 38, .08);
 }
 .acct-page .site-header.scrolled {
   background: rgba(255, 255, 255, .95);
-  box-shadow: 0 8px 32px rgba(120, 90, 10, .14);
+  box-shadow: 0 8px 32px rgba(120, 90, 10, .12);
 }
-.acct-page .brand-text { color: var(--gh-ink); }
-.acct-page .main-nav a:not(.btn) { color: var(--gh-ink2); }
-.acct-page .main-nav a:not(.btn):hover { color: var(--gh-golddeep); }
+.acct-page .brand-text { color: var(--dl-ink); }
+.acct-page .main-nav a:not(.btn) { color: var(--dl-ink2); }
+.acct-page .main-nav a:not(.btn):hover { color: var(--dl-golddeep); }
 
 .acct-page .site-footer {
-  background: linear-gradient(180deg, #f6f2e7, #efe9da);
-  border-top: 2px solid rgba(185, 138, 29, .45);
-  color: var(--gh-ink2);
+  background: linear-gradient(180deg, #f7f4ec, #efece1);
+  border-top: 2px solid rgba(201, 162, 39, .45);
+  color: var(--dl-ink2);
 }
-.acct-page .footer-brand p { color: var(--gh-ink); }
-.acct-page .footer-brand p span { color: var(--gh-mut); }
-.acct-page .footer-contact a { color: var(--gh-golddeep); }
-.acct-page .footer-contact span { color: var(--gh-mut); }
-.acct-page .footer-links a { color: var(--gh-ink2); }
-.acct-page .footer-links a:hover { color: var(--gh-golddeep); }
+.acct-page .footer-brand p { color: var(--dl-ink); }
+.acct-page .footer-brand p span { color: var(--dl-mut); }
+.acct-page .footer-contact a { color: var(--dl-golddeep); }
+.acct-page .footer-contact span { color: var(--dl-mut); }
+.acct-page .footer-links a { color: var(--dl-ink2); }
+.acct-page .footer-links a:hover { color: var(--dl-golddeep); }
 .acct-page .footer-copy { color: #96865f; }
 
-/* ---------- Buttons (mock: dark primary, white-glass ghost) ----------
-   !important on .btn-ghost is deliberate: three ghost buttons on this
-   page (#settingsOpenBtn, #propAdd, the seasonal button) carry inline
-   style="color:#ffd873;border-color:rgba(255,200,90,.4)" attributes
-   meant for the old dark theme — pale gold on cream is unreadable, and
-   the markup may not be edited. */
+/* ---------- Buttons ----------
+   .btn-gold is the gold-gradient CTA with ink text (approved
+   mock's referral button + the live Daylight site's primary).
+   Inside content cards and the site header, primary buttons are
+   the mock's dark ink with gold text; the referral card's Copy
+   button keeps the gold gradient (id selector wins back).
+   !important on .btn-ghost is deliberate: three ghost buttons on
+   this page (#settingsOpenBtn, #propAdd, the seasonal button)
+   carry inline style="color:#ffd873;border-color:rgba(255,200,
+   90,.4)" attributes meant for the old dark theme — pale gold on
+   cream is unreadable, and the markup may not be edited. */
 .acct-page .btn-gold {
-  background: var(--gh-ink);
-  color: #ffe9a8;
-  box-shadow: 0 12px 26px rgba(34, 26, 5, .35);
+  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  color: #221a05;
+  box-shadow: 0 10px 24px rgba(217, 171, 43, .4);
 }
 .acct-page .btn-gold:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(34, 26, 5, .4);
+  box-shadow: 0 14px 30px rgba(217, 171, 43, .5);
+}
+.acct-page .site-header .btn-gold,
+.acct-card .btn-gold {
+  background: var(--dl-ink);
+  color: #ffe9a8;
+  box-shadow: 0 12px 26px rgba(16, 28, 38, .3);
+}
+.acct-page .site-header .btn-gold:hover,
+.acct-card .btn-gold:hover {
+  box-shadow: 0 16px 32px rgba(16, 28, 38, .38);
+}
+#referral-body .btn-gold {
+  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  color: #221a05;
+  box-shadow: 0 10px 24px rgba(217, 171, 43, .4);
+}
+#referral-body .btn-gold:hover {
+  box-shadow: 0 14px 30px rgba(217, 171, 43, .5);
 }
 .acct-page .btn-ghost {
   background: rgba(255, 255, 255, .88);
-  border: 1px solid rgba(120, 90, 10, .25);
-  color: var(--gh-ink) !important;
-  border-color: rgba(120, 90, 10, .3) !important;
-  box-shadow: 0 8px 22px rgba(120, 90, 10, .12);
+  border: 1px solid rgba(16, 28, 38, .15);
+  color: var(--dl-ink) !important;
+  border-color: rgba(16, 28, 38, .22) !important;
+  box-shadow: 0 8px 22px rgba(120, 90, 10, .10);
 }
 .acct-page .btn-ghost:hover {
-  color: var(--gh-golddeep) !important;
+  color: var(--dl-golddeep) !important;
   border-color: rgba(185, 138, 29, .6) !important;
   transform: translateY(-2px);
 }
 
-/* ---------- Signed-out hero: gold band ---------- */
+/* ---------- Signed-out hero: daylight photo card ----------
+   Photo card with white corner brackets (::after, eight layered
+   linear-gradients: two 34px segments per corner, inset 16px)
+   and a white ring gauge (::before, top-right) — same hologram
+   furniture as the signed-in hero and the approved mock. The
+   text sits in a frosted glass panel (.container). */
 .account-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
-  border-radius: 26px;
-  box-shadow: var(--gh-sh);
+  background: url('assets/hero-home-daylight.jpg') center/cover no-repeat;
+  border-radius: 24px;
+  box-shadow: var(--dl-sh-hero);
   margin: 16px 12px 0;
   padding: 84px 0 56px;
+}
+.account-hero::before {
+  content: "";
+  position: absolute;
+  top: 26px; right: 30px;
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-right-color: #fff;
+  transform: rotate(24deg);
+  pointer-events: none;
 }
 .account-hero::after {
   content: "";
   position: absolute;
-  right: -70px; top: -70px;
-  width: 260px; height: 260px;
-  border-radius: 50%;
-  border: 34px solid rgba(255, 255, 255, .35);
+  inset: 0;
+  background:
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px top 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px top 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px top 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px top 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px bottom 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px bottom 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px bottom 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px bottom 16px / 3px 34px;
+  background-repeat: no-repeat;
   pointer-events: none;
 }
+.account-hero .container {
+  position: relative;
+  z-index: 2;
+  max-width: 620px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, .86);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 20px;
+  padding: 28px 30px;
+  box-shadow: var(--dl-sh-panel);
+}
 .account-hero .section-kicker {
-  background: rgba(255, 255, 255, .35);
-  border-color: rgba(255, 255, 255, .55);
-  color: var(--gh-golddeep);
+  background: rgba(14, 124, 134, .10);
+  border-color: rgba(14, 124, 134, .35);
+  color: var(--dl-teal);
 }
 .account-hero .grad-text {
   background: none;
-  -webkit-text-fill-color: var(--gh-ink);
-  color: var(--gh-ink);
+  -webkit-text-fill-color: var(--dl-ink);
+  color: var(--dl-ink);
 }
-.account-hero .section-lead { color: #6d5c26; }
+.account-hero .section-lead { color: var(--dl-body); }
 
 /* ---------- Auth forms / generic card ---------- */
 .acct-page .card {
   background: rgba(255, 255, 255, .92);
-  border: 1px solid rgba(255, 255, 255, .95);
+  border: 1px solid var(--dl-cardline);
   border-radius: 20px;
-  box-shadow: var(--gh-sh);
+  box-shadow: var(--dl-sh);
   padding: 26px;
-  color: var(--gh-ink2);
+  color: var(--dl-ink2);
 }
 .acct-page .auth-tabs {
   background: rgba(255, 255, 255, .7);
-  border: 1px solid rgba(120, 90, 10, .2);
+  border: 1px solid rgba(16, 28, 38, .12);
 }
 .acct-page .auth-tab {
   background: rgba(255, 255, 255, .6);
-  border-color: rgba(120, 90, 10, .3);
-  color: var(--gh-ink2);
+  border-color: rgba(16, 28, 38, .18);
+  color: var(--dl-ink2);
 }
 .acct-page .auth-tab.active {
-  background: var(--gh-ink);
+  background: var(--dl-ink);
   color: #ffe9a8;
   border-color: transparent;
 }
-.acct-page .auth-card label { color: var(--gh-ink2); }
+.acct-page .auth-card label { color: var(--dl-ink2); }
 .acct-page .auth-card input {
   background: #fff;
-  color: var(--gh-ink);
-  border: 1px solid var(--gh-line);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
 }
 .acct-page .auth-card input:focus {
-  border-color: var(--gh-gold);
+  border-color: var(--dl-gold);
   box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
 }
 .acct-page .form-error { color: #b3352b; }
 .acct-page .form-ok { color: #1e7a34; }
 
-/* ---------- Dashboard hero: gold band + white-ring motif ---------- */
+/* ---------- Dashboard hero: daylight photo card ----------
+   The inline ::after was a dark photo scrim; here it is fully
+   repurposed to draw the four white corner brackets (eight
+   layered linear-gradients, no scrim). ::before is the white
+   ring gauge at top-right. The greeting block (.acct-hero-
+   inner) is a frosted glass panel over the photo's lower-left;
+   the stats row keeps its negative bottom margin and still
+   overflows the hero's bottom edge. No overflow:hidden here,
+   so that overflow stays visible against the cream canvas. */
 .acct-hero {
-  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
-  border-radius: 26px;
-  box-shadow: var(--gh-sh);
-  overflow: hidden;
+  display: flow-root; /* BFC: the panel's top margin must not collapse out of the photo */
+  background: url('assets/hero-home-daylight.jpg') center/cover no-repeat;
+  border-radius: 24px;
+  box-shadow: var(--dl-sh-hero);
   margin: 10px 0 76px;
 }
-.acct-hero::after {
-  inset: auto;
-  right: -70px; top: -70px;
-  width: 260px; height: 260px;
+.acct-hero::before {
+  content: "";
+  position: absolute;
+  top: 26px; right: 30px;
+  z-index: 1;
+  width: 92px; height: 92px;
   border-radius: 50%;
-  border: 34px solid rgba(255, 255, 255, .35);
-  background: none;
+  border: 3px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-right-color: #fff;
+  transform: rotate(24deg);
+  pointer-events: none;
+}
+.acct-hero::after {
+  inset: 0;
+  background:
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px top 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px top 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px top 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px top 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px bottom 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) left 16px bottom 16px / 3px 34px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px bottom 16px / 34px 3px,
+    linear-gradient(var(--dl-bracket), var(--dl-bracket)) right 16px bottom 16px / 3px 34px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.acct-hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 620px;
+  margin: 104px auto 0 26px;
+  background: rgba(255, 255, 255, .86);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 20px;
+  padding: 26px 28px 34px;
+  box-shadow: var(--dl-sh-panel);
+  color: var(--dl-ink2);
 }
 .acct-kicker {
-  background: rgba(255, 255, 255, .55);
-  border-color: rgba(255, 255, 255, .65);
-  color: var(--gh-golddeep);
+  background: rgba(14, 124, 134, .10);
+  border-color: rgba(14, 124, 134, .35);
+  color: var(--dl-teal);
 }
-.acct-hero h1 { color: var(--gh-ink); text-shadow: none; }
+.acct-hero h1 { color: var(--dl-ink); text-shadow: none; }
 .acct-hero h1 .gold-text {
   background: none;
-  -webkit-text-fill-color: var(--gh-ink);
-  color: var(--gh-ink);
+  -webkit-text-fill-color: var(--dl-ink);
+  color: var(--dl-ink);
 }
-.acct-sub { color: #6d5c26; }
+.acct-sub { color: var(--dl-body); }
 
-/* Stat tiles: white cards (hex / round / pill shapes removed) */
+/* Stat tiles: plain white cards — every clip-path shape
+   (hex / round / pill) is killed, per the approved mock. */
 .acct-stats { margin: 26px 0 -56px; }
 .tile-wrap { filter: none; }
 .tile-wrap:hover { transform: translateY(-4px); filter: none; }
 .tile-hex, .tile-round, .tile-pill {
-  background: rgba(255, 255, 255, .92);
-  border: 1px solid rgba(255, 255, 255, .95);
-  border-radius: 18px;
+  clip-path: none !important;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--dl-cardline);
+  border-radius: 20px;
   padding: 0;
-  box-shadow: var(--gh-sh);
+  box-shadow: var(--dl-sh);
 }
-.acct-stat { background: transparent; color: var(--gh-ink2); padding: 18px 22px 16px; }
-.tile-hex .acct-stat { clip-path: none; padding: 18px 22px 16px; }
-.tile-round .acct-stat { border-radius: 18px; }
-.tile-pill .acct-stat { border-radius: 18px; }
-.acct-stat .t-ico { color: var(--gh-gold); text-shadow: none; }
-.acct-stat .v { color: var(--gh-ink); text-shadow: none; }
-.acct-stat .l { color: var(--gh-mut); }
+.acct-stat { background: transparent; color: var(--dl-ink2); padding: 18px 22px 16px; }
+.tile-hex .acct-stat { clip-path: none !important; padding: 18px 22px 16px; }
+.tile-round .acct-stat { border-radius: 20px; }
+.tile-pill .acct-stat { border-radius: 20px; }
+.acct-stat .t-ico { color: var(--dl-gold); text-shadow: none; }
+.acct-stat .v { color: var(--dl-ink); text-shadow: none; }
+.acct-stat .l { color: var(--dl-mut); }
 
-/* ---------- Promo banner: the one dark ink band ---------- */
+/* ---------- Promo banner: light referral-style card ----------
+   (Was the dark ink band in Golden Hour; the approved mock's
+   referral card is light — white card, gold-tinted border.) */
 .promo-banner {
   margin-top: 0;
-  background: linear-gradient(120deg, #221a05, #3a2d08);
-  border: 1px solid rgba(185, 138, 29, .5);
-  box-shadow: var(--gh-sh);
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(201, 162, 39, .35);
+  box-shadow: var(--dl-sh);
 }
 .promo-banner::after { background: none; }
-.promo-banner:hover { box-shadow: 0 24px 50px rgba(120, 90, 10, .28); }
-.promo-text strong { color: #ffe9a8; }
-.promo-text span { color: #d8c896; }
+.promo-banner:hover { box-shadow: 0 18px 40px rgba(120, 90, 10, .16); }
+.promo-text strong { color: var(--dl-ink); }
+.promo-text span { color: #5c5340; }
 /* .promo-cta keeps its gold-gradient pill from the inline block:
-   it reads correctly on the dark band. */
+   gold gradient + dark text reads correctly on the white card. */
 
 /* ---------- Dashboard cards, rows, chips ---------- */
 .acct-card {
   background: rgba(255, 255, 255, .92);
-  border: 1px solid rgba(255, 255, 255, .95);
+  border: 1px solid var(--dl-cardline);
   border-radius: 20px;
-  box-shadow: var(--gh-sh);
-  color: var(--gh-ink2);
+  box-shadow: var(--dl-sh);
+  color: var(--dl-ink2);
 }
-.acct-card h3 { color: var(--gh-ink); }
+.acct-card h3 { color: var(--dl-ink); }
 .acct-action {
-  border-color: rgba(185, 138, 29, .55);
-  box-shadow: var(--gh-sh), 0 0 0 1px rgba(185, 138, 29, .25);
+  border-color: rgba(201, 162, 39, .55);
+  box-shadow: var(--dl-sh), 0 0 0 1px rgba(201, 162, 39, .25);
 }
-.req-row { border-top-color: rgba(120, 90, 10, .13); border-bottom-color: rgba(120, 90, 10, .13); }
-.req-main strong { color: var(--gh-ink); }
-.req-main span { color: var(--gh-mut); }
-.pill-new { background: rgba(245, 197, 66, .4); color: var(--gh-golddeep); border-color: rgba(185, 138, 29, .5); }
-.pill-progress { background: rgba(14, 124, 134, .12); color: var(--gh-teal); border-color: rgba(14, 124, 134, .4); }
+.req-row { border-top-color: var(--dl-rowline); border-bottom-color: var(--dl-rowline); }
+.req-main strong { color: var(--dl-ink); }
+.req-main span { color: var(--dl-mut); }
+.pill-new { background: rgba(245, 197, 66, .35); color: #7a5d10; border-color: rgba(185, 138, 29, .5); }
+.pill-progress { background: rgba(14, 124, 134, .12); color: var(--dl-teal); border-color: rgba(14, 124, 134, .4); }
 .pill-done { background: rgba(30, 122, 52, .1); color: #1e7a34; border-color: rgba(30, 122, 52, .4); }
 .pill-cancel { background: rgba(179, 53, 43, .08); color: #b3352b; border-color: rgba(179, 53, 43, .4); }
 .req-edit {
   background: rgba(255, 255, 255, .6);
   border-color: rgba(185, 138, 29, .5);
-  color: var(--gh-golddeep);
+  color: var(--dl-golddeep);
 }
 .req-again {
   background: rgba(245, 197, 66, .18);
   border-color: rgba(185, 138, 29, .5);
-  color: var(--gh-golddeep);
+  color: var(--dl-golddeep);
 }
 .req-again:hover { background: rgba(245, 197, 66, .32); }
 .job-thumbs img { border-color: rgba(185, 138, 29, .4); }
-.acct-empty { color: var(--gh-mut); }
-.quote-card { border-top-color: rgba(120, 90, 10, .13); }
-.q-main strong { color: var(--gh-ink); }
-.q-det, .q-notes { color: var(--gh-mut); }
-.q-price { color: var(--gh-gold); text-shadow: none; }
+.acct-empty { color: var(--dl-mut); }
+.quote-card { border-top-color: var(--dl-rowline); }
+.q-main strong { color: var(--dl-ink); }
+.q-det, .q-notes { color: var(--dl-mut); }
+.q-price { color: var(--dl-gold); text-shadow: none; }
 .req-tl i { background: rgba(120, 90, 10, .16); }
 .req-tl i.on { box-shadow: 0 0 8px rgba(217, 171, 43, .4); }
-.req-tl span { color: var(--gh-mut); }
+.req-tl span { color: var(--dl-mut); }
 .tl-cancel { color: #b3352b; }
 .req-vids a {
-  color: var(--gh-golddeep);
+  color: var(--dl-golddeep);
   border-color: rgba(185, 138, 29, .5);
   background: rgba(245, 197, 66, .14);
 }
@@ -260,85 +373,87 @@
   background: rgba(255, 255, 255, .75);
   border-color: rgba(185, 138, 29, .35);
 }
-.req-media-panel label { color: var(--gh-ink2); }
+.req-media-panel label { color: var(--dl-ink2); }
 .req-media-panel input {
   background: #fff;
-  color: var(--gh-ink);
-  border: 1px solid var(--gh-line);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
 }
-.req-media-msg { color: var(--gh-golddeep); }
+.req-media-msg { color: var(--dl-golddeep); }
 
 /* Referrals / plan / properties / seasonal / badges */
 /* !important on the two paragraph rules: both paragraphs carry an
    inline style="color:#a89a7d" attribute from the dark theme. */
-#referral-body p, #plan-body p { color: var(--gh-mut) !important; }
+#referral-body p, #plan-body p { color: var(--dl-mut) !important; }
 .ref-code-row code {
-  color: var(--gh-golddeep);
+  color: var(--dl-golddeep);
   background: rgba(245, 197, 66, .16);
   border-color: rgba(185, 138, 29, .55);
 }
-.ref-stats strong { color: var(--gh-ink); }
-.ref-stats span { color: var(--gh-mut); }
-.plan-name { color: var(--gh-gold); }
-.plan-meta { color: var(--gh-mut); }
-.prop-row { border-top-color: rgba(120, 90, 10, .13); }
-.p-main strong { color: var(--gh-ink); }
-.p-main span { color: var(--gh-mut); }
+.ref-stats strong { color: var(--dl-ink); }
+.ref-stats span { color: var(--dl-mut); }
+.plan-name { color: var(--dl-gold); }
+.plan-meta { color: var(--dl-mut); }
+.prop-row { border-top-color: var(--dl-rowline); }
+.p-main strong { color: var(--dl-ink); }
+.p-main span { color: var(--dl-mut); }
 .prop-del { color: #a08d64; }
 .prop-del:hover { color: #b3352b; }
 .prop-add input {
   background: #fff;
-  color: var(--gh-ink);
-  border: 1px solid var(--gh-line);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
 }
-.prop-add input:focus { border-color: var(--gh-gold); }
-.pfaint { color: var(--gh-mut); }
-.season-tip { color: var(--gh-ink2); }
+.prop-add input:focus { border-color: var(--dl-gold); }
+.pfaint { color: var(--dl-mut); }
+.season-tip { color: var(--dl-ink2); }
 .gallery-strip img { border-color: rgba(185, 138, 29, .4); }
-.badge .bname { color: var(--gh-ink); }
-.badge.locked .bname { color: var(--gh-mut); }
+.badge .bname { color: var(--dl-ink); }
+.badge.locked .bname { color: var(--dl-mut); }
 .badge .bhint { color: #96865f; }
 .badge.locked .bhint { color: #a08d64; }
-.badge:not(.locked) .bhint { color: var(--gh-gold); }
+.badge:not(.locked) .bhint { color: var(--dl-gold); }
 
 /* ---------- Settings slide-over ---------- */
 .settings-panel {
   background: #fffdf8;
-  color: var(--gh-ink2);
+  color: var(--dl-ink2);
   border-left: 1px solid rgba(185, 138, 29, .4);
-  box-shadow: -24px 0 70px rgba(120, 90, 10, .25);
+  box-shadow: -24px 0 70px rgba(120, 90, 10, .22);
 }
-.settings-head h3 { color: var(--gh-ink); }
-.settings-close { color: var(--gh-mut); }
-.acct-settings label { color: var(--gh-ink2); }
+.settings-head h3 { color: var(--dl-ink); }
+.settings-close { color: var(--dl-mut); }
+.acct-settings label { color: var(--dl-ink2); }
 .acct-settings input {
   background: #fff;
-  color: var(--gh-ink);
-  border: 1px solid var(--gh-line);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
 }
 .acct-settings input:focus {
-  border-color: var(--gh-gold);
+  border-color: var(--dl-gold);
   box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
 }
-.settings-panel .acct-settings label { color: var(--gh-ink2); }
+.settings-panel .acct-settings label { color: var(--dl-ink2); }
 .settings-panel .acct-settings input {
   background: #fff;
-  color: var(--gh-ink);
-  border: 1px solid var(--gh-line);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
 }
 .settings-panel .acct-settings input:focus {
-  border-color: var(--gh-gold);
+  border-color: var(--dl-gold);
   box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
 }
 .acct-logout-row { border-top-color: rgba(120, 90, 10, .18); }
 
-/* ---------- Request wizard: harmonize dark caps with the ink band ---------- */
-.rw-head { background: linear-gradient(120deg, #221a05, #3a2d08); }
-.rw-dhero .cap { background: linear-gradient(120deg, #221a05, #3a2d08); }
+/* ---------- Request wizard: harmonize dark caps with the ink theme ---------- */
+.rw-head { background: linear-gradient(120deg, #101c26, #22384a); }
+.rw-dhero .cap { background: linear-gradient(120deg, #101c26, #22384a); }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 640px) {
   .acct-hero { margin-bottom: 66px; }
+  .acct-hero-inner { margin: 84px 14px 0; padding: 20px 18px 26px; }
+  .account-hero .container { margin: 0 14px; padding: 22px 20px; }
   .acct-stat { padding: 16px 8px 14px; }
   .tile-hex .acct-stat { padding: 16px 8px 14px; }
   .acct-stat .v { font-size: 1.5rem; }
