@@ -3024,8 +3024,10 @@
     if (propNotes) html += '<div class="woq-dblock"><h4>Property notes</h4><p>' + esc(propNotes).replace(/\n/g, "<br>") + "</p></div>";
     var photoUrls = (Array.isArray(w.photos) ? w.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
     if (photoUrls.length) {
+      // Photos open in the in-page lightbox (#pgLightbox), never as Drive
+      // links: Drive file pages bounce staff to a Google sign-in wall.
       html += '<div class="woq-dblock"><h4>Photos (' + photoUrls.length + ')</h4><div class="athumbs woq-thumbs">' +
-        photoUrls.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="work order photo"></a>'; }).join("") + "</div></div>";
+        photoUrls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>'; }).join("") + "</div></div>";
     }
     var vids = woVideoLinks(w);
     if (vids.length) {
@@ -3039,6 +3041,37 @@
     if (metaBits.length) html += '<p class="woq-dmeta">' + metaBits.join(" · ") + "</p>";
     html += "</div>";
     return html;
+  }
+  /* ----- Photo lightbox (#pgLightbox) ----- */
+  // Work order photos live on Drive as thumbnail URLs, which load fine as
+  // plain <img> sources (no Google session needed) — unlike Drive file
+  // pages. The lightbox therefore shows the thumbnail URL itself, just at
+  // a bigger size, inside the admin page: no navigation, no new tab.
+  function woPhotoBigUrl(u) {
+    var s = String(u || "");
+    var fileMatch = s.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+    if (fileMatch) return "https://drive.google.com/thumbnail?id=" + fileMatch[1] + "&sz=w1600";
+    if (/drive\.google\.com\/thumbnail\?/i.test(s)) {
+      if (/[?&]sz=/i.test(s)) return s.replace(/([?&]sz=)[^&]*/i, "$1w1600");
+      return s + "&sz=w1600";
+    }
+    return s;
+  }
+  function openPhotoLightbox(bigUrl, origUrl) {
+    var ov = $("pgLightbox"), img = $("pgLightboxImg");
+    if (!ov || !img) return;
+    img.onerror = function () {
+      img.onerror = null;
+      if (origUrl && img.getAttribute("src") !== origUrl) img.src = origUrl;
+    };
+    img.src = bigUrl || origUrl || "";
+    ov.classList.remove("hidden");
+  }
+  function closePhotoLightbox() {
+    var ov = $("pgLightbox"), img = $("pgLightboxImg");
+    if (!ov) return;
+    ov.classList.add("hidden");
+    if (img) { img.onerror = null; img.removeAttribute("src"); }
   }
   function renderWorkOrders() {
     var box = $("ad-wo-list");
@@ -4018,6 +4051,8 @@
     if (woFilterEl) d = woFilterEl.dataset;
     var woOpenEl = t.closest ? t.closest("[data-woopen]") : null;
     if (woOpenEl) d = woOpenEl.dataset;
+    var woPhotoEl = t.closest ? t.closest("[data-wophoto]") : null;
+    if (woPhotoEl) d = woPhotoEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
     if (d.wodone) {
@@ -4041,6 +4076,8 @@
     if (d.woprevlang) { woPrevLang = d.woprevlang; renderWoPrev(); }
     if (d.woprevconfirm) confirmWoSend(woPrevEl || t);
     if (d.woprevcancel) closeWoSendPreview();
+    if (d.wophoto) openPhotoLightbox(d.wophoto, d.wophotoorig);
+    if (t.closest && t.closest("#pgLightbox")) closePhotoLightbox();
     if (t.id === "woPrevClose" || t.id === "woPrevModal") closeWoSendPreview();
     if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
     if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
@@ -4187,7 +4224,9 @@
       !$("taskFormModal").classList.contains("hidden") || !$("taskDateModal").classList.contains("hidden") ||
       !$("cqModal").classList.contains("hidden") ||
       !$("woPrevModal").classList.contains("hidden") ||
+      !$("pgLightbox").classList.contains("hidden") ||
       !$("cal2Modal").classList.contains("hidden");
+    if (!$("pgLightbox").classList.contains("hidden")) closePhotoLightbox();
     if (!$("woPrevModal").classList.contains("hidden")) closeWoSendPreview();
     if (!$("cqModal").classList.contains("hidden")) closeCustomerQuoteBuilder();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
