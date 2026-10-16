@@ -213,6 +213,19 @@
     }).join("") + "</div>";
   }
 
+  function videoLinks(w) {
+    var vids = [];
+    if (Array.isArray(w.videos)) vids = vids.concat(w.videos);
+    if (w.videoLink) vids.push(w.videoLink);
+    vids = vids.filter(function (u, i) {
+      return typeof u === "string" && /^https?:\/\//i.test(u) && vids.indexOf(u) === i;
+    });
+    if (!vids.length) return "";
+    return '<div class="vvids">' + vids.map(function (u) {
+      return '<a href="' + esc(u) + '" target="_blank" rel="noopener">▶ Watch video</a>';
+    }).join("") + "</div>";
+  }
+
   function renderList(box, arr, kind) {
     if (!arr.length) { box.innerHTML = '<div class="vempty">Nothing here right now. New jobs pop up here automatically.</div>'; return; }
     box.innerHTML = arr.map(function (w) {
@@ -221,7 +234,7 @@
         : '<button class="btn btn-gold" data-accept-job="' + w.id + '">Accept job</button>';
       return '<div class="vjob"><div class="t">' + esc(w.category || w.kind) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" +
-        photoThumbs(w) +
+        photoThumbs(w) + videoLinks(w) +
         '<div class="meta"><strong>' + esc(w.area || "") + "</strong> &nbsp;·&nbsp; Pay: <strong>" + esc(w.pay || "per job") + "</strong></div>" +
         btn + "</div>";
     }).join("");
@@ -242,10 +255,11 @@
                 step(w.status === "review" || w.status === "done", "After photos uploaded - then payment is released");
       }
       return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
-        "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) +
+        "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) + videoLinks(w) +
         '<ul class="vsteps">' + steps + "</ul>" +
         '<button class="btn btn-gold" data-upload="' + w.id + '">Upload photos</button> ' +
         (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '" style="margin-left:8px">Mark complete</button>' : "") +
+        (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '" style="margin-left:8px">Give a quote</button>' : "") +
         '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
         "</div>";
     }).join("");
@@ -289,6 +303,16 @@
     if (t.dataset.upload) {
       var inp = document.getElementById("up-" + t.dataset.upload);
       if (inp) inp.click();
+    }
+    if (t.dataset.giveQuote) {
+      var qsel = $("q-workorder");
+      if (qsel) qsel.value = t.dataset.giveQuote;
+      var qform = $("vd-quoteform");
+      if (qform) qform.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () {
+        var qp = $("q-price");
+        if (qp) qp.focus({ preventScroll: true });
+      }, 500);
     }
   });
 

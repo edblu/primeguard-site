@@ -405,11 +405,11 @@
     <button id="pgNavClose" type="button" aria-label="Close menu">&times;</button>
   </div>
   <div class="pg-nav-sec">Navigate</div>
-  <button class="pg-nav-item" type="button" data-atab="work">Work orders</button>
   <button class="pg-nav-item" type="button" data-atab="hotleads">Hot Leads <span class="cnt-b" id="pg-nav-b-hotleads" style="display:none">0</span></button>
+  <button class="pg-nav-item" type="button" data-atab="work">Work orders</button>
   <button class="pg-nav-item" type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="vendors">Vendors <span class="cnt-b" id="pg-nav-b-vendors">0</span></button>
-  <button class="pg-nav-item" type="button" data-atab="followups">Follow-ups <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
+  <button class="pg-nav-item" type="button" data-atab="followups">Tasks <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="calendar">Calendar</button>
   <button class="pg-nav-item" type="button" data-atab="team">Acquisition managers</button>
   <button class="pg-nav-item" type="button" data-atab="activity" id="pg-nav-activity">Staff activity</button>
@@ -613,7 +613,7 @@
 
   <div id="atab-followups" class="hidden">
   <section class="asec" style="padding-bottom:60px">
-    <h2>Follow-ups</h2>
+    <h2>Tasks</h2>
     <div class="acard">
       <p class="sub">Open follow-ups from vendor calls, vendor notes, and work-order notes. Overdue and due-today items come first.</p>
       <div id="ad-fu-list"><p style="color:var(--faint)">Loading…</p></div>
@@ -770,7 +770,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=27"></script>
+<script src="admin.js?v=28"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];

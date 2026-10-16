@@ -812,7 +812,7 @@
         (d.convertedWorkOrderId
           ? '<p><strong>Quote request:</strong> converted' + (convMs ? " " + esc(fullDate(convMs)) : "") + '</p>' +
             '<div class="sr-actions"><button class="mini" type="button" data-hlviewwo="' + id + '">Open work order</button></div>'
-          : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to quote request</button></div>') +
+          : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to work order</button></div>') +
         "</div>" +
         '<div class="sr-card"><h4>Calls & notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
@@ -873,12 +873,14 @@
     }).finally(function () { btn.disabled = false; });
   }
 
-  /* ----- Convert a lead into a vendor quote request ----- */
+  /* ----- Convert a lead into a work order ----- */
   // Creates a work_orders doc with kind "quote_request" through the exact
   // same doc shape the work-order create form saves (see the ad-woform
   // submit handler), carrying the lead's photos (same hosted URL strings),
-  // details, media links and contact info. vendorNotifyPending flags the
-  // new work order for the background vendor-notification watch.
+  // videos (from the lead's mediaLinks), details and contact info.
+  // vendorNotifyPending stays false at convert time: notifying vendors is
+  // now a separate, explicit "Send to vendors" step on the work order
+  // (see woSendHtml / sendWorkOrderToVendors below).
   function gotoWorkOrders() {
     var btn = document.querySelector('#pgNavDrawer [data-atab="work"]');
     if (btn) btn.click();
@@ -901,9 +903,9 @@
     // "broadcast" plus one option per non-archived vendor (value = vendor id).
     var assignHtml = $("wo-assign") ? $("wo-assign").innerHTML
       : '<option value="broadcast">All vendors (broadcast)</option>';
-    $("hlConvertBody").innerHTML = '<h3 id="hlConvertTitle">Convert to quote request</h3>' +
-      '<p class="sr-faint" style="margin-top:6px">Creates a quote request for ' + esc(d.name || "this lead") +
-      ' with everything saved on the lead attached: photos, media links, contact info and notes. It goes live on the vendor portal right away and is flagged for vendor notification.</p>' +
+    $("hlConvertBody").innerHTML = '<h3 id="hlConvertTitle">Convert to work order</h3>' +
+      '<p class="sr-faint" style="margin-top:6px">Creates a work order for ' + esc(d.name || "this lead") +
+      ' with everything saved on the lead attached: photos, media links, contact info and notes. Vendors are not notified yet: sending it out is a separate step on the work order when you are ready.</p>' +
       '<form id="hlConvertForm" class="aform" style="margin-top:10px">' +
       '<label>Title<input type="text" id="hl-cv-title" required value="' + esc((d.name || "Lead") + " - " + (d.service || "Service")) + '"></label>' +
       '<div class="row2"><label>Category<select id="hl-cv-category">' + catOpts + "</select></label>" +
@@ -915,7 +917,7 @@
       (photos.length ? '<label>Photos from the lead (' + photos.length + ')</label><div class="athumbs">' +
         photos.map(function (u) { return '<img src="' + esc(u) + '" alt="lead photo">'; }).join("") + "</div>" : "") +
       '<p class="aerr hidden" id="hl-cv-err"></p>' +
-      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="hl-cv-save">Create quote request</button></div>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="hl-cv-save">Create work order</button></div>' +
       "</form>";
     $("hlConvertModal").classList.remove("hidden");
     document.body.style.overflow = "hidden";
@@ -954,10 +956,11 @@
       vendorBusiness: null,
       status: "open",
       photos: (Array.isArray(d.photos) ? d.photos : []).slice(),
+      videos: (Array.isArray(d.mediaLinks) ? d.mediaLinks : []).slice(),
       address: $("hl-cv-address").value.trim(),
       sourceLeadId: leadId,
       sourceLeadName: leadName,
-      vendorNotifyPending: true,
+      vendorNotifyPending: false,
       vendorNotifyTarget: assignVal === "broadcast" ? "broadcast" : assignVal,
       createdBy: me ? me.email : "",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -974,10 +977,10 @@
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }).then(function () {
-      logActivity("Converted hot lead " + leadName + " to quote request");
-      $("hlConvertBody").innerHTML = '<h3>Quote request created ✓</h3>' +
-        '<p style="margin-top:8px">The quote request for ' + esc(leadName) +
-        ' is live on the vendor portal with the lead photos and details attached, and flagged for vendor notification. The lead is now at the Quoted stage with the full history kept.</p>' +
+      logActivity("Converted hot lead " + leadName + " to work order");
+      $("hlConvertBody").innerHTML = '<h3>Work order created ✓</h3>' +
+        '<p style="margin-top:8px">The work order for ' + esc(leadName) +
+        ' is ready with the lead photos and details attached. Vendors have not been notified yet: open the work order and use "Send to vendors" when it is ready to go out. The lead is now at the Quoted stage with the full history kept.</p>' +
         '<div class="sr-actions" style="margin-top:14px">' +
         '<button class="btn btn-gold btn-sm" type="button" id="hl-cv-view">Open work orders</button>' +
         '<button class="btn btn-ghost btn-sm" type="button" id="hl-cv-done">Done</button></div>';
@@ -997,7 +1000,7 @@
       err.classList.remove("hidden");
     }).finally(function () {
       var b = $("hl-cv-save");
-      if (b) { b.disabled = false; b.textContent = "Create quote request"; }
+      if (b) { b.disabled = false; b.textContent = "Create work order"; }
     });
   }
 
@@ -1082,6 +1085,7 @@
         '<p class="sr-meta">' + pill(w.status) + " <span>" + esc(w.area || "") + " · " + esc(w.vendorBusiness || "broadcast") + "</span></p>" +
         ((w.area || w.address) ? pgJobToolsHtml(woToolsEntity) : "") +
         (w.details ? '<div class="sr-card"><h4>Job details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        (w.kind === "quote_request" ? '<div class="sr-card"><h4>Send to vendors</h4><p class="sr-faint" style="margin-bottom:8px">Sends this work order out for vendor pricing (the background watch emails and pushes the vendor). Converting the lead did not send it.</p>' + woSendHtml(id, w) + "</div>" : "") +
         '<div class="sr-card"><h4>Notes & updates</h4>' +
         '<div class="note-form"><label>New note<textarea id="wonText" rows="3" placeholder="What happened, what is next…"></textarea></label>' +
         '<label>Follow-up date (optional)<input type="date" id="wonFollow"></label></div>' +
@@ -1947,9 +1951,50 @@
           ' <button class="mini" data-calwo="' + d.id + '">Add to calendar</button>' +
           (w.status !== "done" ? ' <button class="mini" data-wodone="' + d.id + '">Done</button>' : "") +
           ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>' +
-          ' <button class="mini" data-woedit="' + d.id + '">Edit</button>';
+          ' <button class="mini" data-woedit="' + d.id + '">Edit</button>' +
+          woSendHtml(d.id, w);
         box.appendChild(row);
       });
+    });
+  }
+
+  /* ----- Send a quote-request work order to vendors (explicit step) ----- */
+  // Convert no longer notifies vendors. For kind "quote_request" work
+  // orders, staff pick a target here and press Send: the doc is flagged
+  // vendorNotifyPending and the background watch emails/pushes the
+  // vendor(s). vendorNotifiedAt (stamped by the watch once delivered)
+  // flips the control to its "Sent to vendors ✓" + Resend state. The
+  // target list comes from woVendorCache, filled by loadVendorOptions().
+  function woSendHtml(id, w) {
+    if (!w || w.kind !== "quote_request") return "";
+    var cur = w.vendorNotifyTarget || (w.broadcast === false && w.vendorId ? w.vendorId : "broadcast");
+    var opts = '<option value="broadcast"' + (cur === "broadcast" ? " selected" : "") + ">All approved vendors</option>";
+    (woVendorCache || []).forEach(function (v) {
+      opts += '<option value="' + v.id + '"' + (cur === v.id ? " selected" : "") + ">" + esc(v.business) + "</option>";
+    });
+    var sentMs = tsMs(w.vendorNotifiedAt);
+    var state = "";
+    if (sentMs) state = ' <span class="sr-faint">Sent to vendors ✓ ' + esc(new Date(sentMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</span>";
+    else if (w.vendorNotifyPending) state = ' <span class="sr-faint">Send queued…</span>';
+    return ' <span class="wo-send"><select data-wosendsel="' + id + '">' + opts + "</select>" +
+      ' <button class="mini" type="button" data-wosend="' + id + '">' + (sentMs ? "Resend" : "Send to vendors") + "</button>" + state + "</span>";
+  }
+  function sendWorkOrderToVendors(id, btn) {
+    var wrap = btn && btn.closest ? btn.closest(".wo-send") : null;
+    var sel = wrap ? wrap.querySelector("select") : null;
+    var target = sel ? sel.value : "broadcast";
+    if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+    db.collection("work_orders").doc(id).update({
+      vendorNotifyPending: true,
+      vendorNotifyTarget: target,
+      vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      logActivity("Sent a work order to vendors for pricing");
+      loadWorkOrders();
+      if (woNoteId === id) openWorkOrderNotes(id);
+    }).catch(function (e) {
+      if (btn) { btn.disabled = false; btn.textContent = "Send to vendors"; }
+      alert("Could not send: " + (e.message || e));
     });
   }
 
@@ -2018,17 +2063,22 @@
     });
   }
 
+  var woVendorCache = [];
   function loadVendorOptions() {
     db.collection("vendors").get().then(function (qs) {
       var sel = $("wo-assign");
       sel.innerHTML = '<option value="broadcast">All vendors (broadcast)</option>';
+      woVendorCache = [];
       qs.forEach(function (d) {
         var v = d.data();
         if (v.status === "archived") return;
+        var st = v.status || (v.verified ? "approved" : "pending");
+        if (st === "approved") woVendorCache.push({ id: d.id, business: v.business || v.name || "Vendor" });
         var o = document.createElement("option");
         o.value = d.id; o.textContent = (v.business || v.name) + " - " + (v.areas || []).join(", ");
         sel.appendChild(o);
       });
+      loadWorkOrders(); // refresh rows so the Send-to-vendors selects get vendor names
     });
   }
 
@@ -2243,6 +2293,7 @@
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
+    if (d.wosend) sendWorkOrderToVendors(d.wosend, t);
     if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
     if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
     if (d.fudone) {
