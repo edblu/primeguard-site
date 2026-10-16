@@ -1115,8 +1115,9 @@
   // submit handler), carrying the lead's photos (same hosted URL strings),
   // videos (from the lead's mediaLinks), details and contact info.
   // vendorNotifyPending stays false at convert time: notifying vendors is
-  // now a separate, explicit "Send to vendors" step on the work order
-  // (see woSendHtml / sendWorkOrderToVendors below).
+  // now a separate, explicit step on the work order — staff pick a target
+  // and review an exact preview before anything is queued (see woSendHtml
+  // / openWoSendPreview below).
   function gotoWorkOrders() {
     var btn = document.querySelector('#pgNavDrawer [data-atab="work"]');
     if (btn) btn.click();
@@ -2848,40 +2849,219 @@
 
   /* ----- Send a quote-request work order to vendors (explicit step) ----- */
   // Convert no longer notifies vendors. For kind "quote_request" work
-  // orders, staff pick a target here and press Send: the doc is flagged
-  // vendorNotifyPending and the background watch emails/pushes the
-  // vendor(s). vendorNotifiedAt (stamped by the watch once delivered)
-  // flips the control to its "Sent to vendors ✓" + Resend state. The
-  // target list comes from woVendorCache, filled by loadVendorOptions().
+  // orders, staff pick a target and press "Preview & send": a preview
+  // modal shows exactly what the vendor(s) will receive (recipients,
+  // the email in English and Spanish, the phone push, and the portal
+  // card) and NOTHING is written until staff confirm there. Confirming
+  // flags the doc vendorNotifyPending and the background watch emails/
+  // pushes the vendor(s), honoring vendorNotifyLang ("auto" = each
+  // vendor's own language). vendorNotifiedAt (stamped by the watch once
+  // delivered) flips the control to its "Sent to vendors ✓" state.
+  // Individual targets may be ANY approved or pending vendor (Edwin,
+  // 2026-10-16); broadcast still means approved vendors only — that
+  // semantics lives in the watch and does not change here. The target
+  // list comes from woVendorCache, filled by loadVendorOptions().
   function woSendHtml(id, w) {
     if (!w || w.kind !== "quote_request") return "";
     var cur = w.vendorNotifyTarget || (w.broadcast === false && w.vendorId ? w.vendorId : "broadcast");
-    var opts = '<option value="broadcast"' + (cur === "broadcast" ? " selected" : "") + ">All approved vendors</option>";
+    var opts = '<option value="broadcast"' + (cur === "broadcast" ? " selected" : "") + ">All approved vendors (broadcast)</option>";
     (woVendorCache || []).forEach(function (v) {
-      opts += '<option value="' + v.id + '"' + (cur === v.id ? " selected" : "") + ">" + esc(v.business) + "</option>";
+      var label = v.business + (v.name && v.name !== v.business ? " — " + v.name : "") + (v.status !== "approved" ? " (pending)" : "");
+      opts += '<option value="' + v.id + '"' + (cur === v.id ? " selected" : "") + ">" + esc(label) + "</option>";
     });
     var sentMs = tsMs(w.vendorNotifiedAt);
     var state = "";
     if (sentMs) state = ' <span class="sr-faint">Sent to vendors ✓ ' + esc(new Date(sentMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</span>";
     else if (w.vendorNotifyPending) state = ' <span class="sr-faint">Send queued…</span>';
     return ' <span class="wo-send"><select data-wosendsel="' + id + '">' + opts + "</select>" +
-      ' <button class="mini" type="button" data-wosend="' + id + '">' + (sentMs ? "Resend" : "Send to vendors") + "</button>" + state + "</span>";
+      ' <button class="mini" type="button" data-wosend="' + id + '">' + (sentMs ? "Preview & resend" : "Preview & send") + "</button>" + state + "</span>";
   }
-  function sendWorkOrderToVendors(id, btn) {
+
+  /* ----- Send preview modal (#woPrevModal) ----- */
+  var woPrevCtx = null; // { id, w, target } while the preview is open
+  var woPrevLang = "auto"; // "auto" | "en" | "es"
+
+  function woPrevVendorById(id) {
+    for (var i = 0; i < woVendorCache.length; i++) if (woVendorCache[i].id === id) return woVendorCache[i];
+    return null;
+  }
+  function woPrevFirstName(v) {
+    var n = String((v && v.name) || "").trim();
+    if (n) return n.split(/\s+/)[0];
+    var b = String((v && v.business) || "").trim();
+    return b ? b.split(/\s+/)[0] : "";
+  }
+  // The actual recipient list the watch will deliver to: broadcast =
+  // every approved vendor with an email; single target = that vendor.
+  function woPrevRecipients() {
+    if (!woPrevCtx) return [];
+    if (woPrevCtx.target === "broadcast") {
+      return woVendorCache.filter(function (v) { return v.status === "approved" && v.email; });
+    }
+    var v = woPrevVendorById(woPrevCtx.target);
+    return v ? [v] : [];
+  }
+  // The email body, line for line the way the vendor-reply-watch sends
+  // it. Empty WO fields drop their line; the photo line only appears
+  // when photos exist.
+  function woPrevEmailBody(lang, firstName, w) {
+    var photos = Array.isArray(w.photos) ? w.photos.length : 0;
+    var lines = [];
+    if (lang === "es") {
+      lines.push(firstName ? "Hola " + firstName + "," : "Hola,");
+      lines.push("");
+      lines.push("Tienes una nueva solicitud de cotización en tu portal de PrimeGuard.");
+      if (w.title) lines.push("Trabajo: " + w.title);
+      if (w.category) lines.push("Categoría: " + w.category);
+      if (w.area) lines.push("Área: " + w.area);
+      if (photos) lines.push(photos + " foto(s) adjunta(s)");
+      lines.push("");
+      lines.push("Todos los detalles, las fotos y la dirección están en el portal. Revísalo y manda tu precio ahí:");
+      lines.push("https://primeguardmia.com/vendor-dashboard.html");
+      lines.push("");
+      lines.push("Instala la app desde esa misma página ('Get the app') para que los próximos trabajos te lleguen como notificación al teléfono.");
+    } else {
+      lines.push(firstName ? "Hi " + firstName + "," : "Hi there,");
+      lines.push("");
+      lines.push("A new quote request is waiting in your PrimeGuard vendor portal.");
+      if (w.title) lines.push("Job: " + w.title);
+      if (w.category) lines.push("Category: " + w.category);
+      if (w.area) lines.push("Area: " + w.area);
+      if (photos) lines.push(photos + " photo(s) attached");
+      lines.push("");
+      lines.push("Full details, photos, and the address are in the portal. Please review it and submit your price there:");
+      lines.push("https://primeguardmia.com/vendor-dashboard.html");
+      lines.push("");
+      lines.push("Install the app from that same page ('Get the app') so future job alerts reach you as phone notifications.");
+    }
+    lines.push("");
+    lines.push("Edwin Lora, President | PrimeGuard Preservation LLC");
+    lines.push("(305) 788-2639");
+    lines.push("primeguardllc.elora@pgpbiz.com");
+    lines.push("https://primeguardmia.com");
+    return lines.join("\n");
+  }
+  function woPrevPushText(lang, w) {
+    var head = (w.title || "Work order") + (w.area ? (lang === "es" ? " en " : " in ") + w.area : "");
+    return lang === "es"
+      ? head + ". Entra a tu portal para revisarlo y mandar tu precio."
+      : head + ". Open your portal to review it and submit your price.";
+  }
+  function woPrevPortalHtml(w) {
+    var photoUrls = (Array.isArray(w.photos) ? w.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var photoCount = Array.isArray(w.photos) ? w.photos.length : 0;
+    var vids = woVideoLinks(w).length;
+    var thumbs = photoUrls.length
+      ? '<div class="woprev-thumbs">' + photoUrls.slice(0, 3).map(function (u) { return '<img src="' + esc(u) + '" alt="job photo" loading="lazy">'; }).join("") + "</div>"
+      : (photoCount ? '<p class="sr-faint">' + photoCount + " photo(s)</p>" : "");
+    return '<div class="woprev-portal">' +
+      '<p class="woprev-pcat">' + esc(w.category || "Quote request") + "</p>" +
+      '<h4 class="woprev-ptitle">' + esc(w.title || "Work order") + "</h4>" +
+      (w.details ? '<p class="woprev-pdetails">' + esc(hlExcerpt(w.details)) + "</p>" : "") +
+      thumbs +
+      (vids ? '<p class="sr-faint">Videos: ' + vids + "</p>" : "") +
+      ((w.area || w.address) ? '<p class="woprev-pmeta">' + (w.area ? "<strong>" + esc(w.area) + "</strong>" : "") + (w.area && w.address ? " · " : "") + (w.address ? esc(w.address) : "") + "</p>" : "") +
+      '<button type="button" class="btn btn-gold btn-sm" disabled>Give a quote</button></div>';
+  }
+  function renderWoPrev() {
+    if (!woPrevCtx) return;
+    var w = woPrevCtx.w;
+    var recips = woPrevRecipients();
+    var firstName = recips.length ? woPrevFirstName(recips[0]) : "";
+    var lang = woPrevLang;
+    // Recipients block
+    var recipHtml;
+    if (woPrevCtx.target === "broadcast") {
+      recipHtml = recips.length
+        ? recips.map(function (v) {
+            return '<div class="woprev-recip"><strong>' + esc(v.business) + '</strong> <span class="sr-faint">' + esc(v.email) + "</span></div>";
+          }).join("")
+        : '<p class="sr-faint">No approved vendors with an email on file. Approved vendors will still see this job in their portal.</p>';
+    } else {
+      var tv = woPrevVendorById(woPrevCtx.target);
+      recipHtml = tv
+        ? '<div class="woprev-recip"><strong>' + esc(tv.business) + '</strong> <span class="sr-faint">' + esc(tv.email || "no email on file") + " · " + esc(tv.status) + "</span></div>" +
+          (tv.email ? "" : '<p class="sr-faint" style="margin-top:6px">No email on file: they will not get the email, but the job shows in their portal.</p>')
+        : '<p class="sr-faint">That vendor could not be found in the vendor list.</p>';
+    }
+    // Language segmented control
+    var segBtn = function (val, label) {
+      return '<button type="button" class="hl-chip' + (lang === val ? " active" : "") + '" data-woprevlang="' + val + '">' + label + "</button>";
+    };
+    // Email + push blocks follow the language control: Auto stacks both
+    // versions; an explicit pick shows only that one.
+    var mailBlock = function (l) {
+      return '<div class="sr-card woprev-sec"><h4>' + (l === "es" ? "The email (Español)" : "The email (English)") + "</h4>" +
+        '<p class="woprev-subj">Subject: New quote request in your portal - PrimeGuard</p>' +
+        '<div class="woprev-mail">' + esc(woPrevEmailBody(l, firstName, w)) + "</div></div>";
+    };
+    var pushLine = function (l) {
+      return '<p class="woprev-pushline"><strong>New quote request - PrimeGuard</strong><br>' + esc(woPrevPushText(l, w)) + "</p>";
+    };
+    var langs = lang === "auto" ? ["en", "es"] : [lang];
+    $("woPrevBody").innerHTML =
+      '<h3 id="woPrevTitle">Send to vendors: preview</h3>' +
+      '<p class="sr-faint" style="margin-top:6px">Review exactly what goes out. Nothing is sent until you confirm below.</p>' +
+      '<div class="sr-card woprev-sec"><h4>Who receives it</h4>' + recipHtml +
+        '<p class="sr-faint" style="margin-top:8px">Channels: Email + portal alert.<br>Push to their phone if they turned notifications on in the app.</p></div>' +
+      '<div class="woprev-langrow"><span class="sr-faint">Send language:</span>' +
+        segBtn("auto", "Auto (vendor's language)") + segBtn("en", "English") + segBtn("es", "Español") + "</div>" +
+      (lang === "auto" ? '<p class="sr-faint" style="margin-top:8px">Sent in the vendor\'s language: each vendor receives the version in their language, with their own first name.</p>' : "") +
+      langs.map(mailBlock).join("") +
+      '<div class="sr-card woprev-sec"><h4>Phone push notification</h4>' + langs.map(pushLine).join("") + "</div>" +
+      '<div class="sr-card woprev-sec"><h4>What they\'ll see in their portal</h4>' + woPrevPortalHtml(w) + "</div>" +
+      '<div class="sr-actions" style="margin-top:16px">' +
+        '<button class="btn btn-ghost btn-sm" type="button" data-woprevcancel>Cancel</button>' +
+        '<button class="btn btn-gold btn-sm" type="button" data-woprevconfirm>Send to vendor(s)</button></div>';
+  }
+  function openWoSendPreview(id, btn) {
     var wrap = btn && btn.closest ? btn.closest(".wo-send") : null;
     var sel = wrap ? wrap.querySelector("select") : null;
     var target = sel ? sel.value : "broadcast";
+    var begin = function (w) {
+      if (!w) { alert("That work order could not be loaded."); return; }
+      woPrevCtx = { id: id, w: w, target: target };
+      woPrevLang = "auto";
+      renderWoPrev();
+      $("woPrevModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    };
+    var loadWo = function () {
+      var local = null;
+      woOrders.forEach(function (it) { if (it.id === id) local = it.d; });
+      if (local) { begin(local); return; }
+      db.collection("work_orders").doc(id).get().then(function (snap) {
+        begin(snap.exists ? snap.data() : null);
+      }).catch(function () { begin(null); });
+    };
+    // The recipients block needs the vendor cache; fill it first if the
+    // Vendors tab data has not loaded yet.
+    if (woVendorCache.length) loadWo();
+    else db.collection("vendors").get().then(function (qs) { woCacheVendors(qs); loadWo(); }).catch(loadWo);
+  }
+  function closeWoSendPreview() {
+    $("woPrevModal").classList.add("hidden");
+    if ($("woNoteModal").classList.contains("hidden") && $("cqModal").classList.contains("hidden")) {
+      document.body.style.overflow = "";
+    }
+    woPrevCtx = null;
+  }
+  function confirmWoSend(btn) {
+    if (!woPrevCtx) return;
+    var ctx = woPrevCtx;
     if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
-    db.collection("work_orders").doc(id).update({
+    db.collection("work_orders").doc(ctx.id).update({
       vendorNotifyPending: true,
-      vendorNotifyTarget: target,
-      vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
+      vendorNotifyTarget: ctx.target,
+      vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      vendorNotifyLang: woPrevLang
     }).then(function () {
       logActivity("Sent a work order to vendors for pricing");
+      closeWoSendPreview();
       loadWorkOrders();
-      if (woNoteId === id) openWorkOrderNotes(id);
+      if (woNoteId === ctx.id) openWorkOrderNotes(ctx.id);
     }).catch(function (e) {
-      if (btn) { btn.disabled = false; btn.textContent = "Send to vendors"; }
+      if (btn) { btn.disabled = false; btn.textContent = "Send to vendor(s)"; }
       alert("Could not send: " + (e.message || e));
     });
   }
@@ -3295,20 +3475,35 @@
   }
 
   var woVendorCache = [];
+  // The send-target cache: EVERY approved or pending vendor (archived
+  // and rejected stay out), with the fields the send preview needs.
+  function woCacheVendors(qs) {
+    woVendorCache = [];
+    qs.forEach(function (d) {
+      var v = d.data();
+      var st = vStatus(v);
+      if (st !== "approved" && st !== "pending") return;
+      woVendorCache.push({
+        id: d.id,
+        business: v.business || v.name || "Vendor",
+        name: v.name || "",
+        email: v.email || "",
+        status: st
+      });
+    });
+  }
   function loadVendorOptions() {
     db.collection("vendors").get().then(function (qs) {
       var sel = $("wo-assign");
       sel.innerHTML = '<option value="broadcast">All vendors (broadcast)</option>';
-      woVendorCache = [];
       qs.forEach(function (d) {
         var v = d.data();
         if (v.status === "archived") return;
-        var st = v.status || (v.verified ? "approved" : "pending");
-        if (st === "approved") woVendorCache.push({ id: d.id, business: v.business || v.name || "Vendor" });
         var o = document.createElement("option");
         o.value = d.id; o.textContent = (v.business || v.name) + " - " + (v.areas || []).join(", ");
         sel.appendChild(o);
       });
+      woCacheVendors(qs);
       loadWorkOrders(); // refresh rows so the Send-to-vendors selects get vendor names
     });
   }
@@ -3524,6 +3719,8 @@
     if (custFilterEl) d = custFilterEl.dataset;
     var woFilterEl = t.closest ? t.closest("[data-wofilter]") : null;
     if (woFilterEl) d = woFilterEl.dataset;
+    var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
+    if (woPrevEl) d = woPrevEl.dataset;
     if (d.wodone) {
       logActivity("Marked a work order done");
       var woRef = db.collection("work_orders").doc(d.wodone);
@@ -3539,7 +3736,11 @@
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
-    if (d.wosend) sendWorkOrderToVendors(d.wosend, t);
+    if (d.wosend) openWoSendPreview(d.wosend, t);
+    if (d.woprevlang) { woPrevLang = d.woprevlang; renderWoPrev(); }
+    if (d.woprevconfirm) confirmWoSend(woPrevEl || t);
+    if (d.woprevcancel) closeWoSendPreview();
+    if (t.id === "woPrevClose" || t.id === "woPrevModal") closeWoSendPreview();
     if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
     if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
     if (d.fudone) {
@@ -3684,7 +3885,9 @@
       !$("custModal").classList.contains("hidden") || !$("custFormModal").classList.contains("hidden") ||
       !$("taskFormModal").classList.contains("hidden") || !$("taskDateModal").classList.contains("hidden") ||
       !$("cqModal").classList.contains("hidden") ||
+      !$("woPrevModal").classList.contains("hidden") ||
       !$("cal2Modal").classList.contains("hidden");
+    if (!$("woPrevModal").classList.contains("hidden")) closeWoSendPreview();
     if (!$("cqModal").classList.contains("hidden")) closeCustomerQuoteBuilder();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();

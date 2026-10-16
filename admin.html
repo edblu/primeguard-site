@@ -352,6 +352,23 @@
   .woq-send select { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:999px; color:var(--text); font-family:inherit; font-size:.8rem; padding:7px 10px; }
   .pg-light .woq-send { border-top-color:#e5e2d8; }
   .pg-light .woq-send select { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
+  .woprev-sec { margin-top:12px; }
+  .woprev-mail { white-space:pre-wrap; word-break:break-word; font-size:.88rem; line-height:1.55; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.09); border-radius:10px; padding:12px 14px; margin-top:8px; }
+  .pg-light .woprev-mail { background:#ffffff; border-color:#e5e2d8; }
+  .woprev-subj { font-weight:700; font-size:.9rem; margin-top:10px; }
+  .woprev-recip { padding:5px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:.9rem; }
+  .woprev-recip:last-child { border-bottom:none; }
+  .pg-light .woprev-recip { border-bottom-color:#eee9db; }
+  .woprev-langrow { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .woprev-pushline { background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.09); border-radius:10px; padding:10px 12px; font-size:.88rem; margin-top:8px; }
+  .pg-light .woprev-pushline { background:#ffffff; border-color:#e5e2d8; }
+  .woprev-portal { border:1px dashed rgba(201,162,75,.45); border-radius:12px; padding:12px 14px; margin-top:8px; }
+  .woprev-pcat { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-bright); font-weight:700; }
+  .woprev-ptitle { margin:4px 0 6px; font-size:1.02rem; }
+  .woprev-pdetails { font-size:.9rem; }
+  .woprev-thumbs { display:flex; gap:6px; margin:8px 0; }
+  .woprev-thumbs img { width:64px; height:64px; object-fit:cover; border-radius:8px; }
+  .woprev-pmeta { font-size:.88rem; margin:8px 0 10px; }
   .hlq-card { background:#151517; border:1px solid rgba(201,162,75,.16); border-left:5px solid #6b7c93; border-radius:14px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25); }
   .hlq-temp-hot { border-left-color:#d8542e; }
   .hlq-temp-warm { border-left-color:#d9a92c; }
@@ -672,6 +689,14 @@
     </div>
   </div>
 
+  <!-- Send-to-vendors preview modal (after the notes/builder modals so it stacks on top) -->
+  <div class="modal-overlay hidden" id="woPrevModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="woPrevTitle">
+      <button class="modal-close" id="woPrevClose" aria-label="Close">×</button>
+      <div id="woPrevBody"></div>
+    </div>
+  </div>
+
   <div id="atab-hotleads" class="hidden">
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -890,7 +915,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=32"></script>
+<script src="admin.js?v=33"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
