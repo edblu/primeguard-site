@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
 <link rel="stylesheet" href="vendor.css?v=4">
-<link rel="stylesheet" href="vendor-dash.css?v=3">
+<link rel="stylesheet" href="vendor-dash.css?v=4">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
@@ -74,6 +74,14 @@
       <li>Forgot your password? Tap <strong>Forgot password?</strong> under the Log in button and we'll email you a reset link.</li>
     </ol>
   </div>
+</div>
+
+<!-- Profile loading state: shown only while the vendor profile fetch
+     resolves after sign-in, so the dashboard (and its fixed burger)
+     never flashes before we know which panel applies. -->
+<div class="vwrap hidden" id="vd-loading">
+  <img src="assets/logo-transparent.png" alt="PrimeGuard">
+  <p>Cargando tu panel…</p>
 </div>
 
 <!-- Dashboard -->
@@ -304,7 +312,6 @@
     </div>
     <nav class="vfooter-links" aria-label="Footer">
       <a href="index.html">Main site</a>
-      <a href="vendor-register.html">Join as a vendor</a>
       <a href="index.html#services">Services</a>
       <a href="index.html#contact">Contact</a>
       <a href="#" class="pg-get-app">📲 Get the app</a>
@@ -319,7 +326,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=11"></script>
+<script src="vendor-dashboard.js?v=12"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

@@ -164,19 +164,26 @@
 
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); return; }
-    hide($("vd-loginwrap")); hide($("vd-noprofile")); show($("vd-dash")); show($("vd-topbar"));
+    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); hide($("vd-loading")); return; }
+    // Signed in: hide the login, but keep the dashboard (and its fixed
+    // burger) hidden until the profile result is known — showing it here
+    // and hiding it again for no-profile accounts was the hamburger
+    // flash on refresh. #vd-loading covers the wait instead.
+    hide($("vd-loginwrap")); hide($("vd-noprofile")); hide($("vd-dash")); hide($("vd-topbar"));
+    show($("vd-loading"));
     db.collection("vendors").doc(user.uid).get().then(function (snap) {
+      hide($("vd-loading"));
       if (!snap.exists) {
         // Signed in but no vendor profile: explain it on a friendly panel
         // instead of silently bouncing to the register page (the old
         // redirect read as "it logs me in, then kicks me out").
-        hide($("vd-dash")); hide($("vd-topbar"));
+        // (vd-dash / vd-topbar were never shown, so nothing to hide.)
         $("vd-noprofile-email").textContent = user.email || "your account";
         show($("vd-noprofile"));
         return;
       }
       vendor = snap.data();
+      show($("vd-dash")); show($("vd-topbar"));
       renderHeader();
       renderProfile();
       renderDocs();
@@ -186,7 +193,7 @@
     }).catch(function () {
       // Profile load failed: stay on this page, back to the login view
       // with a friendly message. Never bounce.
-      hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile"));
+      hide($("vd-loading")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile"));
       show($("vd-loginwrap"));
       var errEl = $("vd-login-error");
       errEl.textContent = "We hit a snag loading your vendor profile. Check your connection and try refreshing the page.";
