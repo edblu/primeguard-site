@@ -250,3 +250,15 @@ body { background: linear-gradient(180deg, #fbf3da, #f6ecd2); }
 @media (display-mode: standalone){
   .pg-app-card{ display:none; }
 }
+
+/* ---------- Register form readability patch (labels inherited a pale
+   dark-theme color on the new white card) ---------- */
+#vendor-register-form label{ color:#4a3f22; }
+#vendor-register-form input,#vendor-register-form select,#vendor-register-form textarea{
+  background:#ffffff; color:#101c26; border:1px solid rgba(23,34,43,.22);
+}
+#vendor-register-form input:focus,#vendor-register-form select:focus,#vendor-register-form textarea:focus{
+  border-color:rgba(217,171,43,.8); box-shadow:0 0 0 3px rgba(217,171,43,.22); outline:none;
+}
+#vendor-register-form .form-error{ color:#b3352b; }
+#vendor-register-form .form-ok{ color:#1d7a3a; }
