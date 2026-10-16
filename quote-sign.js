@@ -3,9 +3,13 @@
 // from their email, reviews the quote, picks full payment or a 20% deposit,
 // and signs by typing their full legal name. No account is needed; Firestore
 // rules allow a single-doc public get and a tightly constrained sign update
-// (status "sent" -> "signed", signing fields only). Payment itself is NOT
-// collected here: staff send a secure Stripe link for the amount due, which
-// is what the success copy promises.
+// (status "sent" -> "signed", signing fields only).
+// Payment: after signing, the page offers a "Pay now" button that asks the
+// Apps Script backend for a Stripe Checkout session. The backend recomputes
+// the amount from the signed Firestore quote (never from the browser) and
+// returns the checkout URL. If online payment is not configured or the call
+// fails, the page falls back to promising an emailed payment link, so the
+// customer is never dead-ended.
 (function () {
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
   var $ = function (id) { return document.getElementById(id); };
@@ -33,8 +37,15 @@
     catch (e) { return ""; }
   }
 
-  var id = "";
-  try { id = new URLSearchParams(window.location.search).get("id") || ""; } catch (e) {}
+  var id = "", paidParam = "";
+  try {
+    var qsParams = new URLSearchParams(window.location.search);
+    id = qsParams.get("id") || "";
+    paidParam = qsParams.get("paid") || "";
+  } catch (e) {}
+
+  // Same Apps Script exec the rest of the site posts to (config.js).
+  var payEndpoint = (window.SITE_CONFIG && (window.SITE_CONFIG.leadEndpoint || window.SITE_CONFIG.photoEndpoint)) || "";
 
   function message(html) {
     hide($("qs-loading")); hide($("qs-main")); hide($("qs-signed"));
@@ -57,7 +68,7 @@
     hide($("qs-loading"));
     if (!snap.exists) { notFound(); return; }
     quote = snap.data() || {};
-    if (quote.status === "signed") { renderSigned(quote); return; }
+    if (quote.status === "signed") { renderSigned(quote, paidParam); return; }
     if (quote.status !== "sent") { notFound(); return; }
     if (quote.expiresAt && String(quote.expiresAt) < todayKey()) {
       message('<h1 class="qs-title">This quote has expired</h1>' +
@@ -69,6 +80,74 @@
     message('<h1 class="qs-title">Something went wrong</h1>' +
       '<p class="qs-meta">We could not load this quote. Call us at (786) 422-9674 and we will sort it out.</p>');
   });
+
+  // ---- Payment panel (Stripe Checkout via the Apps Script) ----
+  // The stored payChoice is "full" or "deposit20"; the backend
+  // accepts "full" / "deposit" and re-verifies everything itself.
+  function choiceOf(q) {
+    var c = String((q && q.payChoice) || "").toLowerCase();
+    return (c === "deposit20" || c === "deposit") ? "deposit" : "full";
+  }
+  function dueOf(q) {
+    var total = Number(q.total) || 0;
+    var dep = choiceOf(q) === "deposit";
+    var due = dep ? (Number(q.amountDueNow) || Math.round(total * 0.2)) : total;
+    return { total: total, due: due, dep: dep, balance: Math.round((total - due) * 100) / 100 };
+  }
+
+  function payPanelHtml(q, paidReturn) {
+    if (paidReturn === "1") {
+      return '<div class="qs-pay qs-pay-done">' +
+        '<h2 class="qs-h2" style="margin-top:0">Payment received. Thank you!</h2>' +
+        '<p class="qs-meta">We will confirm your start date shortly. Your receipt was emailed by our payment processor.</p></div>';
+    }
+    var d = dueOf(q);
+    var retry = paidReturn === "0"
+      ? '<p class="qs-meta">No charge was made. You can try again whenever you are ready.</p>' : "";
+    var amountLine = d.dep
+      ? '<strong>' + esc(money(d.due)) + ' due today.</strong> The ' + esc(money(d.balance)) + ' balance is due when the job is done.'
+      : '<strong>' + esc(money(d.due)) + ' due today.</strong> One payment, and we schedule your job right away.';
+    return '<div class="qs-pay">' +
+      '<h2 class="qs-h2" style="margin-top:0">One last step: secure your spot</h2>' +
+      retry +
+      '<p class="qs-meta">' + amountLine + '</p>' +
+      '<button type="button" class="btn btn-gold btn-lg qs-pay-btn" id="qs-pay-btn">Pay ' + esc(money(d.due)) + ' now</button>' +
+      '<p class="qs-meta hidden" id="qs-pay-fallback" style="margin-top:12px"></p>' +
+      '</div>';
+  }
+
+  function payFallback(due) {
+    var f = $("qs-pay-fallback");
+    if (!f) return;
+    f.innerHTML = "Online payment is not available right this moment. We will email your secure payment link for <strong>" +
+      esc(money(due)) + "</strong> and confirm your start date.";
+    show(f);
+  }
+
+  function wirePay(q) {
+    var btn = $("qs-pay-btn");
+    if (!btn) return;
+    var d = dueOf(q);
+    btn.addEventListener("click", function () {
+      if (!payEndpoint) { payFallback(d.due); return; }
+      btn.disabled = true;
+      btn.textContent = "Opening secure checkout...";
+      fetch(payEndpoint, {
+        method: "POST", mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ type: "stripe-checkout", quoteId: id, payChoice: d.dep ? "deposit" : "full" })
+      }).then(function (r) { return r.json(); }).then(function (out) {
+        if (out && out.ok && out.url) { window.location.href = out.url; return; }
+        btn.disabled = false;
+        btn.textContent = "Pay " + money(d.due) + " now";
+        payFallback(d.due);
+      }).catch(function () {
+        btn.disabled = false;
+        btn.textContent = "Pay " + money(d.due) + " now";
+        payFallback(d.due);
+      });
+    });
+  }
 
   function renderForm(q) {
     var total = Number(q.total) || 0;
@@ -130,12 +209,15 @@
         amountDueNow: amountDueNow
       }).then(function () {
         hide($("qs-main"));
+        q.payChoice = choice;
+        q.amountDueNow = amountDueNow;
         var s = $("qs-signed");
         s.innerHTML = '<div class="qs-ok-ico">✓</div>' +
           '<h1 class="qs-title">You\'re signed.</h1>' +
-          '<p class="qs-meta">Thanks, ' + esc(signedName.split(/\s+/)[0]) + '. Next: we\'ll send your secure payment link for <strong>' +
-          esc(money(amountDueNow)) + '</strong> and confirm your start date.</p>';
+          '<p class="qs-meta">Thanks, ' + esc(signedName.split(/\s+/)[0]) + '. Your quote is accepted and saved.</p>' +
+          payPanelHtml(q, "");
         show(s);
+        wirePay(q);
       }).catch(function () {
         btn.disabled = false; btn.textContent = "Sign quote";
         err.textContent = "We could not save your signature. Check your connection and try again, or call us at (786) 422-9674.";
@@ -144,19 +226,19 @@
     });
   }
 
-  function renderSigned(q) {
-    var total = Number(q.total) || 0;
-    var dueNow = q.payChoice === "deposit20"
-      ? (Number(q.amountDueNow) || Math.round(total * 0.2))
-      : total;
+  function renderSigned(q, paidReturn) {
+    var d = dueOf(q);
     var when = fmtTs(q.signedAt);
     var s = $("qs-signed");
     s.innerHTML = '<div class="qs-ok-ico">✓</div>' +
       '<h1 class="qs-title">This quote is signed</h1>' +
       '<p class="qs-meta">Signed by <strong>' + esc(q.signedName || "") + "</strong>" + (when ? " on " + esc(when) : "") + ".</p>" +
-      '<p class="qs-meta">Total: <strong>' + esc(money(total)) + "</strong> · " +
-      (q.payChoice === "deposit20" ? "20% deposit" : "Full payment") + " · " + esc(money(dueNow)) + " due now.</p>" +
-      '<p class="qs-meta">Next: we send your secure payment link and confirm your start date. Questions? Call us at (786) 422-9674.</p>';
+      '<p class="qs-meta">Total: <strong>' + esc(money(d.total)) + "</strong> · " +
+      (d.dep ? "20% deposit" : "Full payment") +
+      (paidReturn === "1" ? "" : " · " + esc(money(d.due)) + " due now") + ".</p>" +
+      payPanelHtml(q, paidReturn) +
+      '<p class="qs-help" style="text-align:left">Questions? Call us at (786) 422-9674.</p>';
     show(s);
+    if (paidReturn !== "1") wirePay(q);
   }
 })();
