@@ -1,0 +1,252 @@
+/* ============================================================
+   PrimeGuard vendor surfaces — "Golden Hour" light redesign
+   (approved concept C, portal-mock-c). Loaded ONLY by
+   vendor-dashboard.html and vendor-register.html, AFTER their
+   inline <style> blocks.
+
+   Strategy: the vendor inline styles lean on styles.css theme
+   variables, so this sheet first redefines those variables to
+   the Golden Hour palette (flipping every var-driven rule on
+   these two pages), then restyles the hardcoded pieces.
+   The register page's video hero is protected at the bottom:
+   it inherits the (now ink) --text, so its colors are pinned
+   back to light-on-video values. The video, scrim, headline,
+   perks and steps markup/styles are otherwise untouched.
+   ============================================================ */
+
+:root {
+  --bg: #f6ecd2;
+  --bg-2: #fbf3da;
+  --card: #ffffff;
+  --gold: #b98a1d;
+  --gold-bright: #b98a1d;
+  --gold-deep: #8a6d2a;
+  --text: #221a05;
+  --muted: #7d7154;
+  --faint: #8a7a58;
+  --line: rgba(120, 90, 10, .25);
+  --line-soft: rgba(120, 90, 10, .14);
+  --gh-sh: 0 18px 44px rgba(120, 90, 10, .16);
+}
+
+body { background: linear-gradient(180deg, #fbf3da, #f6ecd2); }
+
+/* ---------- Buttons (mock: dark primary, white-glass ghost) ---------- */
+.btn-gold {
+  background: #221a05;
+  color: #ffe9a8;
+  box-shadow: 0 12px 26px rgba(34, 26, 5, .35);
+}
+.btn-gold:hover { box-shadow: 0 16px 32px rgba(34, 26, 5, .4); }
+.btn-ghost {
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(120, 90, 10, .25);
+  color: #221a05;
+  box-shadow: 0 8px 22px rgba(120, 90, 10, .12);
+}
+.btn-ghost:hover { border-color: rgba(185, 138, 29, .6); color: #7a5d10; }
+
+.form-error { color: #b3352b; }
+
+/* ---------- Generic card (login form / register form base) ---------- */
+.card {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 20px;
+  box-shadow: var(--gh-sh);
+  padding: 26px;
+}
+
+/* ---------- Site header (vendor-register.html) ---------- */
+.site-header {
+  background: rgba(255, 255, 255, .86);
+  border-bottom: 1px solid rgba(120, 90, 10, .16);
+}
+.site-header.scrolled {
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 8px 32px rgba(120, 90, 10, .14);
+}
+
+/* ================= VENDOR DASHBOARD ================= */
+
+/* Hero: photo + dark scrim replaced by the gold band + ring */
+.vhero {
+  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  border: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: var(--gh-sh);
+}
+.vhero::before { background: radial-gradient(640px 220px at 18% 0%, rgba(255, 255, 255, .35), transparent 70%); }
+.vhero::after {
+  content: "";
+  position: absolute;
+  right: -70px; top: -70px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  border: 34px solid rgba(255, 255, 255, .35);
+  pointer-events: none;
+}
+.vkicker { color: #7a5d10; }
+.vhero h1 { color: #221a05; }
+.vhero .gold-text {
+  background: none;
+  -webkit-text-fill-color: #221a05;
+  color: #221a05;
+}
+.vhero .vsub { color: #6d5c26; }
+.vhero .vsub a { color: #7a5d10; text-decoration: underline; }
+
+/* Stat blocks: white cards */
+.vstat {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: var(--gh-sh);
+}
+.vstat::after { background: linear-gradient(90deg, transparent, rgba(185, 138, 29, .55), transparent); }
+
+/* Section headings */
+.vsec h2 { color: #221a05; }
+.vsec .cnt { color: #b98a1d; }
+
+/* Job / quote-request cards: white */
+.vjob {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: var(--gh-sh);
+}
+.vjob h3 { color: #221a05; }
+.vthumbs img { border-color: rgba(185, 138, 29, .35); }
+.vempty {
+  background: rgba(255, 255, 255, .6);
+  border-color: rgba(120, 90, 10, .3);
+  color: #7d7154;
+}
+
+/* Forms */
+.vform label { color: #4a3f22; }
+.vform input, .vform textarea, .vform select {
+  background: #fff;
+  color: #221a05;
+  border: 1px solid rgba(120, 90, 10, .3);
+}
+.vform input:focus, .vform textarea:focus, .vform select:focus {
+  outline: none;
+  border-color: #b98a1d;
+  box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
+}
+.verr { color: #b3352b; }
+.vok { color: #0e7c86; }
+
+/* Completed-work rows + profile fields */
+.vhrow {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: 0 10px 26px rgba(120, 90, 10, .1);
+}
+.vhrow .info strong { color: #221a05; }
+.vfield {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+}
+.vfield strong { color: #221a05; }
+
+/* Footer */
+.vfooter { border-top: 1px solid rgba(120, 90, 10, .18); }
+.vfooter-brand p { color: #221a05; }
+
+/* ================= VENDOR REGISTER =================
+   Everything from here down styles content BELOW/AROUND the
+   video hero. The hero block itself (.vr-hero, video, scrim,
+   sound button, headline, perks, steps) is intentionally NOT
+   restyled — see the protection rules at the very bottom. */
+
+/* "Why" cards: white */
+.vr-why-card {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: var(--gh-sh);
+}
+.vr-why-card p { color: #7d7154; }
+
+/* Signup form card: white (photo background removed) */
+.vr-form-card {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(185, 138, 29, .35);
+  box-shadow: var(--gh-sh);
+}
+.auth-card input {
+  background: #fff;
+  color: #221a05;
+  border: 1px solid rgba(120, 90, 10, .3);
+}
+.auth-card input:focus {
+  border-color: #b98a1d;
+  box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
+}
+
+/* Multi-select dropdown: white */
+.msel-btn {
+  background: #fff;
+  color: #221a05;
+  border: 1px solid rgba(120, 90, 10, .3);
+}
+.msel-btn.has-sel { border-color: rgba(185, 138, 29, .6); }
+.msel-panel {
+  background: #fff;
+  border: 1px solid rgba(185, 138, 29, .45);
+  box-shadow: var(--gh-sh);
+}
+.msel-panel label:hover { background: rgba(245, 197, 66, .16); }
+.msel-chips span {
+  background: rgba(245, 197, 66, .2);
+  border-color: rgba(185, 138, 29, .5);
+  color: #7a5d10;
+}
+
+/* The crew-size and insurance <select> elements carry inline
+   style="background:#141417;color:var(--text)" attributes from the
+   dark theme; !important is required to lift them onto white. */
+#vr-crewsize, #vr-insured {
+  background: #fff !important;
+  color: #221a05 !important;
+  border-color: rgba(120, 90, 10, .3) !important;
+}
+/* The "- you have 7 days" call-out inside the form carries an
+   inline pale-gold color meant for the dark card. */
+#vendor-register-form strong { color: #7a5d10 !important; }
+
+/* ---------- Video-hero protection ----------
+   The hero's text inherits --text (now ink) and several hero
+   elements take var-driven colors. Pin them back to the exact
+   light-on-video values the hero shipped with, so the hero
+   looks and reads exactly as before. The video, scrim
+   (.vr-hero::before), sound button, headline gradient <em>,
+   perk and step styling are not touched by any rule here. */
+.vr-hero { color: #f4f1e8; }
+.vr-hero h1 { color: #f4f1e8; }
+.vr-hero .section-lead { color: #a9a49a; }
+.vr-hero .section-kicker { color: #e8c96a; }
+
+/* ---------- Vendor app promo card (install the VENDOR app from the
+   dashboard; hides itself when already running as the installed app) ---------- */
+.pg-app-card{
+  display:flex; align-items:center; gap:16px;
+  background:linear-gradient(120deg,#ffdf7e,#f5c542 55%,#e0aa26);
+  border-radius:20px; padding:18px 20px; margin:18px 0 4px;
+  box-shadow:0 18px 44px rgba(120,90,10,.16);
+}
+.pg-app-ico{ width:54px; height:54px; border-radius:14px; box-shadow:0 8px 20px rgba(120,90,10,.35); }
+.pg-app-txt h3{ font-family:Sora,Inter,sans-serif; font-weight:800; color:#221a05; font-size:1.08rem; margin:0 0 3px; }
+.pg-app-txt p{ color:#6d5c26; font-size:.92rem; margin:0; max-width:52ch; }
+.pg-app-btn{
+  margin-left:auto; white-space:nowrap; cursor:pointer;
+  background:#221a05; color:#ffe9a8; border:none; font-weight:700;
+  padding:12px 20px; border-radius:999px;
+  box-shadow:0 12px 26px rgba(34,26,5,.35);
+}
+@media (max-width:640px){
+  .pg-app-card{ flex-wrap:wrap; }
+  .pg-app-btn{ margin-left:0; }
+}
+@media (display-mode: standalone){
+  .pg-app-card{ display:none; }
+}

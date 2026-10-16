@@ -1,0 +1,346 @@
+/* ============================================================
+   PrimeGuard customer portal — "Golden Hour" light redesign
+   (approved concept C, portal-mock-c). Loaded ONLY by
+   account.html, AFTER its inline <style> block, so these rules
+   win specificity ties against both styles.css and the inline
+   "Midnight Gold" block. Palette copied from the mock:
+   cream canvas, gold hero band, white cards, ink text.
+   ============================================================ */
+
+:root {
+  --gh-ink: #221a05;
+  --gh-ink2: #4a3f22;
+  --gh-mut: #7d7154;
+  --gh-gold: #b98a1d;
+  --gh-golddeep: #7a5d10;
+  --gh-teal: #0e7c86;
+  --gh-sh: 0 18px 44px rgba(120, 90, 10, .16);
+  --gh-line: rgba(120, 90, 10, .28);
+}
+
+/* ---------- Canvas, base text, headings, links ---------- */
+.acct-page { background: linear-gradient(180deg, #fbf3da, #f6ecd2); }
+.acct-page main {
+  background: linear-gradient(180deg, #fbf3da, #f6ecd2);
+  color: var(--gh-ink2);
+}
+.acct-page h1, .acct-page h2, .acct-page h3 { color: var(--gh-ink); }
+.acct-page a { color: #8a6d2a; }
+
+/* ---------- Site header / footer (this page only) ---------- */
+.acct-page .site-header {
+  background: rgba(255, 255, 255, .86);
+  border-bottom: 1px solid rgba(120, 90, 10, .16);
+}
+.acct-page .site-header.scrolled {
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 8px 32px rgba(120, 90, 10, .14);
+}
+.acct-page .brand-text { color: var(--gh-ink); }
+.acct-page .main-nav a:not(.btn) { color: var(--gh-ink2); }
+.acct-page .main-nav a:not(.btn):hover { color: var(--gh-golddeep); }
+
+.acct-page .site-footer {
+  background: linear-gradient(180deg, #f6f2e7, #efe9da);
+  border-top: 2px solid rgba(185, 138, 29, .45);
+  color: var(--gh-ink2);
+}
+.acct-page .footer-brand p { color: var(--gh-ink); }
+.acct-page .footer-brand p span { color: var(--gh-mut); }
+.acct-page .footer-contact a { color: var(--gh-golddeep); }
+.acct-page .footer-contact span { color: var(--gh-mut); }
+.acct-page .footer-links a { color: var(--gh-ink2); }
+.acct-page .footer-links a:hover { color: var(--gh-golddeep); }
+.acct-page .footer-copy { color: #96865f; }
+
+/* ---------- Buttons (mock: dark primary, white-glass ghost) ----------
+   !important on .btn-ghost is deliberate: three ghost buttons on this
+   page (#settingsOpenBtn, #propAdd, the seasonal button) carry inline
+   style="color:#ffd873;border-color:rgba(255,200,90,.4)" attributes
+   meant for the old dark theme — pale gold on cream is unreadable, and
+   the markup may not be edited. */
+.acct-page .btn-gold {
+  background: var(--gh-ink);
+  color: #ffe9a8;
+  box-shadow: 0 12px 26px rgba(34, 26, 5, .35);
+}
+.acct-page .btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(34, 26, 5, .4);
+}
+.acct-page .btn-ghost {
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(120, 90, 10, .25);
+  color: var(--gh-ink) !important;
+  border-color: rgba(120, 90, 10, .3) !important;
+  box-shadow: 0 8px 22px rgba(120, 90, 10, .12);
+}
+.acct-page .btn-ghost:hover {
+  color: var(--gh-golddeep) !important;
+  border-color: rgba(185, 138, 29, .6) !important;
+  transform: translateY(-2px);
+}
+
+/* ---------- Signed-out hero: gold band ---------- */
+.account-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  border-radius: 26px;
+  box-shadow: var(--gh-sh);
+  margin: 16px 12px 0;
+  padding: 84px 0 56px;
+}
+.account-hero::after {
+  content: "";
+  position: absolute;
+  right: -70px; top: -70px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  border: 34px solid rgba(255, 255, 255, .35);
+  pointer-events: none;
+}
+.account-hero .section-kicker {
+  background: rgba(255, 255, 255, .35);
+  border-color: rgba(255, 255, 255, .55);
+  color: var(--gh-golddeep);
+}
+.account-hero .grad-text {
+  background: none;
+  -webkit-text-fill-color: var(--gh-ink);
+  color: var(--gh-ink);
+}
+.account-hero .section-lead { color: #6d5c26; }
+
+/* ---------- Auth forms / generic card ---------- */
+.acct-page .card {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 20px;
+  box-shadow: var(--gh-sh);
+  padding: 26px;
+  color: var(--gh-ink2);
+}
+.acct-page .auth-tabs {
+  background: rgba(255, 255, 255, .7);
+  border: 1px solid rgba(120, 90, 10, .2);
+}
+.acct-page .auth-tab {
+  background: rgba(255, 255, 255, .6);
+  border-color: rgba(120, 90, 10, .3);
+  color: var(--gh-ink2);
+}
+.acct-page .auth-tab.active {
+  background: var(--gh-ink);
+  color: #ffe9a8;
+  border-color: transparent;
+}
+.acct-page .auth-card label { color: var(--gh-ink2); }
+.acct-page .auth-card input {
+  background: #fff;
+  color: var(--gh-ink);
+  border: 1px solid var(--gh-line);
+}
+.acct-page .auth-card input:focus {
+  border-color: var(--gh-gold);
+  box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
+}
+.acct-page .form-error { color: #b3352b; }
+.acct-page .form-ok { color: #1e7a34; }
+
+/* ---------- Dashboard hero: gold band + white-ring motif ---------- */
+.acct-hero {
+  background: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  border-radius: 26px;
+  box-shadow: var(--gh-sh);
+  overflow: hidden;
+  margin: 10px 0 76px;
+}
+.acct-hero::after {
+  inset: auto;
+  right: -70px; top: -70px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  border: 34px solid rgba(255, 255, 255, .35);
+  background: none;
+}
+.acct-kicker {
+  background: rgba(255, 255, 255, .55);
+  border-color: rgba(255, 255, 255, .65);
+  color: var(--gh-golddeep);
+}
+.acct-hero h1 { color: var(--gh-ink); text-shadow: none; }
+.acct-hero h1 .gold-text {
+  background: none;
+  -webkit-text-fill-color: var(--gh-ink);
+  color: var(--gh-ink);
+}
+.acct-sub { color: #6d5c26; }
+
+/* Stat tiles: white cards (hex / round / pill shapes removed) */
+.acct-stats { margin: 26px 0 -56px; }
+.tile-wrap { filter: none; }
+.tile-wrap:hover { transform: translateY(-4px); filter: none; }
+.tile-hex, .tile-round, .tile-pill {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 18px;
+  padding: 0;
+  box-shadow: var(--gh-sh);
+}
+.acct-stat { background: transparent; color: var(--gh-ink2); padding: 18px 22px 16px; }
+.tile-hex .acct-stat { clip-path: none; padding: 18px 22px 16px; }
+.tile-round .acct-stat { border-radius: 18px; }
+.tile-pill .acct-stat { border-radius: 18px; }
+.acct-stat .t-ico { color: var(--gh-gold); text-shadow: none; }
+.acct-stat .v { color: var(--gh-ink); text-shadow: none; }
+.acct-stat .l { color: var(--gh-mut); }
+
+/* ---------- Promo banner: the one dark ink band ---------- */
+.promo-banner {
+  margin-top: 0;
+  background: linear-gradient(120deg, #221a05, #3a2d08);
+  border: 1px solid rgba(185, 138, 29, .5);
+  box-shadow: var(--gh-sh);
+}
+.promo-banner::after { background: none; }
+.promo-banner:hover { box-shadow: 0 24px 50px rgba(120, 90, 10, .28); }
+.promo-text strong { color: #ffe9a8; }
+.promo-text span { color: #d8c896; }
+/* .promo-cta keeps its gold-gradient pill from the inline block:
+   it reads correctly on the dark band. */
+
+/* ---------- Dashboard cards, rows, chips ---------- */
+.acct-card {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 20px;
+  box-shadow: var(--gh-sh);
+  color: var(--gh-ink2);
+}
+.acct-card h3 { color: var(--gh-ink); }
+.acct-action {
+  border-color: rgba(185, 138, 29, .55);
+  box-shadow: var(--gh-sh), 0 0 0 1px rgba(185, 138, 29, .25);
+}
+.req-row { border-top-color: rgba(120, 90, 10, .13); border-bottom-color: rgba(120, 90, 10, .13); }
+.req-main strong { color: var(--gh-ink); }
+.req-main span { color: var(--gh-mut); }
+.pill-new { background: rgba(245, 197, 66, .4); color: var(--gh-golddeep); border-color: rgba(185, 138, 29, .5); }
+.pill-progress { background: rgba(14, 124, 134, .12); color: var(--gh-teal); border-color: rgba(14, 124, 134, .4); }
+.pill-done { background: rgba(30, 122, 52, .1); color: #1e7a34; border-color: rgba(30, 122, 52, .4); }
+.pill-cancel { background: rgba(179, 53, 43, .08); color: #b3352b; border-color: rgba(179, 53, 43, .4); }
+.req-edit {
+  background: rgba(255, 255, 255, .6);
+  border-color: rgba(185, 138, 29, .5);
+  color: var(--gh-golddeep);
+}
+.req-again {
+  background: rgba(245, 197, 66, .18);
+  border-color: rgba(185, 138, 29, .5);
+  color: var(--gh-golddeep);
+}
+.req-again:hover { background: rgba(245, 197, 66, .32); }
+.job-thumbs img { border-color: rgba(185, 138, 29, .4); }
+.acct-empty { color: var(--gh-mut); }
+.quote-card { border-top-color: rgba(120, 90, 10, .13); }
+.q-main strong { color: var(--gh-ink); }
+.q-det, .q-notes { color: var(--gh-mut); }
+.q-price { color: var(--gh-gold); text-shadow: none; }
+.req-tl i { background: rgba(120, 90, 10, .16); }
+.req-tl i.on { box-shadow: 0 0 8px rgba(217, 171, 43, .4); }
+.req-tl span { color: var(--gh-mut); }
+.tl-cancel { color: #b3352b; }
+.req-vids a {
+  color: var(--gh-golddeep);
+  border-color: rgba(185, 138, 29, .5);
+  background: rgba(245, 197, 66, .14);
+}
+.req-media-panel {
+  background: rgba(255, 255, 255, .75);
+  border-color: rgba(185, 138, 29, .35);
+}
+.req-media-panel label { color: var(--gh-ink2); }
+.req-media-panel input {
+  background: #fff;
+  color: var(--gh-ink);
+  border: 1px solid var(--gh-line);
+}
+.req-media-msg { color: var(--gh-golddeep); }
+
+/* Referrals / plan / properties / seasonal / badges */
+/* !important on the two paragraph rules: both paragraphs carry an
+   inline style="color:#a89a7d" attribute from the dark theme. */
+#referral-body p, #plan-body p { color: var(--gh-mut) !important; }
+.ref-code-row code {
+  color: var(--gh-golddeep);
+  background: rgba(245, 197, 66, .16);
+  border-color: rgba(185, 138, 29, .55);
+}
+.ref-stats strong { color: var(--gh-ink); }
+.ref-stats span { color: var(--gh-mut); }
+.plan-name { color: var(--gh-gold); }
+.plan-meta { color: var(--gh-mut); }
+.prop-row { border-top-color: rgba(120, 90, 10, .13); }
+.p-main strong { color: var(--gh-ink); }
+.p-main span { color: var(--gh-mut); }
+.prop-del { color: #a08d64; }
+.prop-del:hover { color: #b3352b; }
+.prop-add input {
+  background: #fff;
+  color: var(--gh-ink);
+  border: 1px solid var(--gh-line);
+}
+.prop-add input:focus { border-color: var(--gh-gold); }
+.pfaint { color: var(--gh-mut); }
+.season-tip { color: var(--gh-ink2); }
+.gallery-strip img { border-color: rgba(185, 138, 29, .4); }
+.badge .bname { color: var(--gh-ink); }
+.badge.locked .bname { color: var(--gh-mut); }
+.badge .bhint { color: #96865f; }
+.badge.locked .bhint { color: #a08d64; }
+.badge:not(.locked) .bhint { color: var(--gh-gold); }
+
+/* ---------- Settings slide-over ---------- */
+.settings-panel {
+  background: #fffdf8;
+  color: var(--gh-ink2);
+  border-left: 1px solid rgba(185, 138, 29, .4);
+  box-shadow: -24px 0 70px rgba(120, 90, 10, .25);
+}
+.settings-head h3 { color: var(--gh-ink); }
+.settings-close { color: var(--gh-mut); }
+.acct-settings label { color: var(--gh-ink2); }
+.acct-settings input {
+  background: #fff;
+  color: var(--gh-ink);
+  border: 1px solid var(--gh-line);
+}
+.acct-settings input:focus {
+  border-color: var(--gh-gold);
+  box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
+}
+.settings-panel .acct-settings label { color: var(--gh-ink2); }
+.settings-panel .acct-settings input {
+  background: #fff;
+  color: var(--gh-ink);
+  border: 1px solid var(--gh-line);
+}
+.settings-panel .acct-settings input:focus {
+  border-color: var(--gh-gold);
+  box-shadow: 0 0 0 3px rgba(217, 171, 43, .22);
+}
+.acct-logout-row { border-top-color: rgba(120, 90, 10, .18); }
+
+/* ---------- Request wizard: harmonize dark caps with the ink band ---------- */
+.rw-head { background: linear-gradient(120deg, #221a05, #3a2d08); }
+.rw-dhero .cap { background: linear-gradient(120deg, #221a05, #3a2d08); }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 640px) {
+  .acct-hero { margin-bottom: 66px; }
+  .acct-stat { padding: 16px 8px 14px; }
+  .tile-hex .acct-stat { padding: 16px 8px 14px; }
+  .acct-stat .v { font-size: 1.5rem; }
+  .acct-stat .l { font-size: .68rem; }
+}
