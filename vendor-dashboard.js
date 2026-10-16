@@ -9,6 +9,36 @@
   var $ = function (id) { return document.getElementById(id); };
   function show(el) { el.classList.remove("hidden"); }
   function hide(el) { el.classList.add("hidden"); }
+
+  // Friendly auth errors: never show raw Firebase text to users.
+  function friendlyAuthError(err) {
+    var code = (err && err.code) || "";
+    var map = {
+      "auth/invalid-credential": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/wrong-password": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/user-not-found": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/email-already-in-use": "That email already has an account. Try logging in instead.",
+      "auth/weak-password": "Password needs at least 6 characters.",
+      "auth/too-many-requests": "Too many attempts. Wait a minute and try again, or reset your password.",
+      "auth/network-request-failed": "Connection problem. Check your internet and try again."
+    };
+    if (map[code]) return map[code];
+    var msg = (err && err.message) || "Something went wrong. Please try again.";
+    msg = msg.replace(/^Firebase:\s*/i, "").replace(/\s*\(auth\/[a-z0-9-]+\)\.?$/i, "").trim();
+    return msg || "Something went wrong. Please try again.";
+  }
+
+  // Busy state so a submit click never looks dead.
+  function setBusy(btn, busy, label) {
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+      btn.disabled = true; btn.textContent = label;
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.label) btn.textContent = btn.dataset.label;
+    }
+  }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
   var me = null;       // firebase user
@@ -25,10 +55,14 @@
     e.preventDefault();
     var errEl = $("vd-login-error");
     hide(errEl);
+    var btn = e.target.querySelector('button[type="submit"]');
+    setBusy(btn, true, "Signing in...");
     auth.signInWithEmailAndPassword($("vd-login-email").value.trim(), $("vd-login-password").value.trim())
-      .catch(function (err) { errEl.textContent = err.message; show(errEl); });
+      .then(function () { setBusy(btn, false); })
+      .catch(function (err) { setBusy(btn, false); errEl.textContent = friendlyAuthError(err); show(errEl); });
   });
   $("vd-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
+  $("vd-noprofile-logout").addEventListener("click", function () { auth.signOut(); });
 
   $("vd-google").addEventListener("click", function () {
     var errEl = $("vd-login-error"); hide(errEl);
@@ -39,7 +73,7 @@
           err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-window-closed")) {
         auth.signInWithRedirect(provider);
       } else {
-        errEl.textContent = err.message; show(errEl);
+        errEl.textContent = friendlyAuthError(err); show(errEl);
       }
     });
   });
@@ -52,15 +86,23 @@
     auth.sendPasswordResetEmail(email).then(function () {
       $("vd-reset-ok").textContent = "Reset link sent to " + email + ".";
       show($("vd-reset-ok"));
-    }).catch(function (err) { errEl.textContent = err.message; show(errEl); });
+    }).catch(function (err) { errEl.textContent = friendlyAuthError(err); show(errEl); });
   });
 
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); return; }
-    hide($("vd-loginwrap")); show($("vd-dash")); show($("vd-topbar"));
+    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); return; }
+    hide($("vd-loginwrap")); hide($("vd-noprofile")); show($("vd-dash")); show($("vd-topbar"));
     db.collection("vendors").doc(user.uid).get().then(function (snap) {
-      if (!snap.exists) { window.location.href = "vendor-register.html"; return; }
+      if (!snap.exists) {
+        // Signed in but no vendor profile: explain it on a friendly panel
+        // instead of silently bouncing to the register page (the old
+        // redirect read as "it logs me in, then kicks me out").
+        hide($("vd-dash")); hide($("vd-topbar"));
+        $("vd-noprofile-email").textContent = user.email || "your account";
+        show($("vd-noprofile"));
+        return;
+      }
       vendor = snap.data();
       renderHeader();
       renderProfile();
@@ -68,6 +110,14 @@
       renderAgreements();
       renderW9();
       loadAll();
+    }).catch(function () {
+      // Profile load failed: stay on this page, back to the login view
+      // with a friendly message. Never bounce.
+      hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile"));
+      show($("vd-loginwrap"));
+      var errEl = $("vd-login-error");
+      errEl.textContent = "We hit a snag loading your vendor profile. Check your connection and try refreshing the page.";
+      show(errEl);
     });
   });
 

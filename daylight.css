@@ -776,3 +776,27 @@ footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-rig
 #reviews .review-card p, #reviews .review-card .review-text{ color:#33424e; }
 #reviews .review-card .review-name, #reviews .review-card strong{ color:#101c26; }
 #reviews .review-card .review-meta, #reviews .review-card small{ color:#5c6a72; }
+
+/* ---------- 14. Owner fixes (Oct 15 night): featured pricing tile,
+   ivory badge headline, quote explainer strip ---------- */
+/* Featured plan tile: styles.css .cx-plan.hot carries a dark gradient
+   background (specificity 0,2,0) that beat the light .cx-plan glass,
+   while Daylight text colors are ink — the tile read black-on-black.
+   Light warm background instead; the gold border + glow stay, so the
+   tile still reads as the featured plan. */
+.cx-plan.hot{
+  background:linear-gradient(160deg,#fffdf6,#fbeec4);
+  border-color:rgba(217,171,43,.8);
+  box-shadow:0 14px 30px rgba(217,171,43,.25), inset 0 1px 0 #fff;
+}
+.cx-plan .cx-per{ color:#7a6a45; }
+.cx-plan:not(.hot) a{ color:#8a6d2a; border-color:rgba(138,109,42,.55); }
+/* .cx-plan.hot a keeps its styles.css gold gradient + dark text. */
+/* Ivory badge: Daylight makes the badge white glass, but the badge
+   headline <strong> carries an inline color:#fff — white on white.
+   Force ink so the headline reads. */
+.cx-ivory-badge strong{ color:var(--ink) !important; }
+/* Quote page "How your quote works" strip (cards reuse .cx-step). */
+.section.qhow{ padding:64px 0 0; }
+.qhow h2{ color:var(--ink); }
+.qhow .cx-steps{ margin-top:22px; }

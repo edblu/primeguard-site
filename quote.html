@@ -6,7 +6,7 @@
 <title>Get an Instant Quote | PrimeGuard Preservation</title>
 <meta name="description" content="Answer a few quick questions and get your instant ballpark quote. We confirm your exact price before anything is scheduled.">
 <link rel="stylesheet" href="styles.css?v=26">
-<link rel="stylesheet" href="daylight.css?v=4">
+<link rel="stylesheet" href="daylight.css?v=5">
 <link rel="icon" type="image/png" href="assets/primeguard-logo-gold-badge.png">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -114,11 +114,29 @@
 </header>
 
 <main>
-  <section class="quote-hero" style="background-image: url('assets/quote-bg.jpg')">
+  <section class="dl-hero">
     <div class="wrap">
-      <p class="section-kicker">Instant quote</p>
-      <h1 class="grad-text">What will it cost?</h1>
-      <p class="section-lead">Tell us what you need. Answer a few quick questions, get your ballpark in seconds. We confirm your exact quote before anything is scheduled.</p>
+      <div class="dl-frame">
+        <img class="dl-hero-img" src="assets/quote-bg.jpg" alt="Modern Miami home at dusk with a landscaped yard">
+        <span class="dl-corner tl"></span><span class="dl-corner tr"></span><span class="dl-corner bl"></span><span class="dl-corner br"></span>
+      </div>
+      <div class="dl-panel">
+        <span class="cx-tag">Instant quote</span>
+        <h1>What will it cost?</h1>
+        <p>Tell us what you need. Answer a few quick questions, get your ballpark in seconds. We confirm your exact quote before anything is scheduled.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section qhow">
+    <div class="wrap">
+      <span class="cx-tag">Before you start</span>
+      <h2>How your quote works</h2>
+      <div class="cx-steps">
+        <div class="cx-step"><h3>Tell us the job</h3><p>Pick every service you need in step 1 and add photos or a short video. The more we see, the tighter your price.</p></div>
+        <div class="cx-step"><h3>We confirm your exact price</h3><p>A real person reviews your request and locks in your quote before anything is scheduled. The price we confirm is the price you pay.</p></div>
+        <div class="cx-step"><h3>You approve, we handle it</h3><p>A vetted local crew does the work, with before-and-after photos. You pay per job completed, never before.</p></div>
+      </div>
     </div>
   </section>
 
@@ -213,7 +231,7 @@
       <p class="section-kicker">How it works</p>
       <h2>From request to done.</h2>
       <div class="qhiw-steps">
-        <div class="qhiw-step"><span class="qhiw-num">1</span><div><strong>You tell us what you need</strong><p>Pick a service, answer a few questions, add photos.</p></div></div>
+        <div class="qhiw-step"><span class="qhiw-num">1</span><div><strong>You tell us what you need</strong><p>Pick one or more services, answer a few questions, add photos.</p></div></div>
         <div class="qhiw-step"><span class="qhiw-num">2</span><div><strong>We review it</strong><p>We price it on the spot when we can.</p></div></div>
         <div class="qhiw-step"><span class="qhiw-num">3</span><div><strong>Pro evaluates, if needed</strong><p>Free visit when photos aren't enough.</p></div></div>
         <div class="qhiw-step"><span class="qhiw-num">4</span><div><strong>You get the final quote</strong><p>Confirmed before anything starts. No surprises.</p></div></div>
@@ -257,7 +275,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=17"></script>
-<script src="quote.js?v=4"></script>
+<script src="quote.js?v=5"></script>
 <script src="human-chat.js"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

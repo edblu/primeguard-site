@@ -199,7 +199,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -375,42 +375,266 @@
     return db.collection("item_notes").add(data);
   }
 
+  /* ---------- Tasks page: note follow-ups + standalone tasks, one queue ---------- */
+  // Follow-ups still live on item_notes (followUpOn date + followUpDone flag;
+  // completion writes completedAt/completedByEmail — see the data-fudone
+  // handler below, unchanged). Standalone tasks are their own docs in the
+  // `tasks` collection. Both merge here into one date-sorted queue:
+  // Overdue, Today, Upcoming, then a Done section. The function keeps its
+  // historical name (loadFollowUps) because every note-save flow calls it.
+  var tkDateCtx = null; // { source: "note" | "task", id: string } for the date-editor modal
+
+  function tkShiftKey(key, days) {
+    if (!key) return key;
+    var p = key.split("-");
+    if (p.length !== 3) return key;
+    return localDateKey(new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + days));
+  }
+  function tkDueMeta(key, today) {
+    if (!key || key === today) return { label: "Today", cls: "p-pend", group: 1 };
+    if (key < today) {
+      var days = Math.max(1, Math.round((Date.parse(today) - Date.parse(key)) / 86400000));
+      return { label: days + "d overdue", cls: "p-rev", group: 0 };
+    }
+    return { label: fmtFollowDate(key), cls: "p-acc", group: 2 };
+  }
+  function tkWhen(ms) {
+    return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+  }
+  function tkNoteDetail(n) {
+    var detail = n.kind === "call" ? "Call · " + outcomeLabel(n.outcome) : "Note";
+    if (n.text) detail += " · " + n.text;
+    return detail;
+  }
+
   function loadFollowUps() {
     var box = $("ad-fu-list");
     if (!box) return;
-    db.collection("item_notes").where("followUpDone", "==", false).limit(100).get().then(function (qs) {
-      var items = [];
-      qs.forEach(function (d) {
+    var today = localDateKey(new Date());
+    var statsBox = $("ad-task-stats");
+    var emptySnap = { forEach: function () {}, empty: true };
+    // Standalone tasks and the done-notes read are best-effort: if either
+    // collection is not readable yet, the queue still shows open follow-ups.
+    var pNotesDone = db.collection("item_notes").where("followUpDone", "==", true).limit(100).get()
+      .catch(function () { return emptySnap; });
+    var pTasks = db.collection("tasks").limit(200).get()
+      .catch(function () { return emptySnap; });
+    var pNotesOpen = db.collection("item_notes").where("followUpDone", "==", false).limit(200).get();
+    Promise.all([pNotesOpen, pNotesDone, pTasks]).then(function (res) {
+      var open = [], done = [];
+      res[0].forEach(function (d) {
         var n = d.data();
-        if (n.followUpOn) items.push({ id: d.id, n: n });
+        if (!n.followUpOn) return;
+        open.push({ src: "note", id: d.id, due: n.followUpOn, text: tkNoteDetail(n),
+          entityType: n.entityType, entityId: n.entityId, entityLabel: n.entityLabel || "Item",
+          by: n.createdByEmail || "", createdMs: tsMs(n.createdAt), assignee: "", doneMs: 0 });
       });
-      items.sort(function (a, b) {
-        if (a.n.followUpOn !== b.n.followUpOn) return a.n.followUpOn < b.n.followUpOn ? -1 : 1;
-        return tsMs(a.n.createdAt) - tsMs(b.n.createdAt);
+      res[1].forEach(function (d) {
+        var n = d.data();
+        done.push({ src: "note", id: d.id, due: n.followUpOn, text: tkNoteDetail(n),
+          entityType: n.entityType, entityId: n.entityId, entityLabel: n.entityLabel || "Item",
+          by: n.completedByEmail || n.createdByEmail || "", createdMs: tsMs(n.createdAt), assignee: "",
+          doneMs: tsMs(n.completedAt) });
       });
-      var today = localDateKey(new Date());
-      var due = 0;
-      items.forEach(function (it) { if (it.n.followUpOn <= today) due++; });
-      var mb = $("pg-nav-b-followups"); if (mb) mb.textContent = due;
-      if (!items.length) { box.innerHTML = '<p style="color:var(--faint)">No open follow-ups. When a note or call gets a follow-up date, it will show up here.</p>'; return; }
+      res[2].forEach(function (d) {
+        var t = d.data();
+        var item = { src: "task", id: d.id, due: t.dueDate || today, text: t.details || "",
+          entityType: t.entityType || null, entityId: t.entityId || null,
+          entityLabel: t.title || "Task", by: t.createdBy || "", createdMs: tsMs(t.createdAt),
+          assignee: t.assigneeEmail || "", doneMs: tsMs(t.doneAt) };
+        if (t.done) done.push(item); else open.push(item);
+      });
+      open.sort(function (a, b) {
+        if (a.due !== b.due) return a.due < b.due ? -1 : 1;
+        return a.createdMs - b.createdMs;
+      });
+      done.sort(function (a, b) { return b.doneMs - a.doneMs; });
+      // Header stats + drawer badge (open overdue + due today).
+      var nOver = 0, nToday = 0, nUp = 0;
+      open.forEach(function (it) {
+        var g = tkDueMeta(it.due, today).group;
+        if (g === 0) nOver++; else if (g === 1) nToday++; else nUp++;
+      });
+      var weekAgo = Date.now() - 7 * 86400000;
+      var nWeek = done.filter(function (it) { return it.doneMs && it.doneMs >= weekAgo; }).length;
+      var mb = $("pg-nav-b-followups"); if (mb) mb.textContent = nOver + nToday;
+      if (statsBox) {
+        statsBox.innerHTML = '<section class="astats">' +
+          '<div class="astat"><div class="l">Overdue</div><div class="v">' + nOver + "</div></div>" +
+          '<div class="astat"><div class="l">Due today</div><div class="v">' + nToday + "</div></div>" +
+          '<div class="astat"><div class="l">Upcoming</div><div class="v">' + nUp + "</div></div>" +
+          '<div class="astat"><div class="l">Done this week</div><div class="v">' + nWeek + "</div></div></section>";
+      }
+      if (!open.length && !done.length) {
+        box.innerHTML = '<p style="color:var(--faint)">No tasks yet. Add a follow-up date to any note or call, or create a standalone task with the New task button.</p>';
+        return;
+      }
       box.innerHTML = "";
-      items.forEach(function (it) {
-        var n = it.n;
-        var state = n.followUpOn < today ? "Overdue" : (n.followUpOn === today ? "Due today" : "Upcoming");
-        var cls = n.followUpOn < today ? "p-rev" : (n.followUpOn === today ? "p-pend" : "p-acc");
-        var detail = n.kind === "call" ? "Call · " + outcomeLabel(n.outcome) : "Note";
-        if (n.text) detail += " · " + n.text;
-        var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(n.entityLabel || "Item") + "</strong><small>" +
-          esc(detail) + "<br>Set by " + esc(n.createdByEmail || "") + "</small></div>" +
-          '<span class="pill ' + cls + '">' + state + " · " + esc(fmtFollowDate(n.followUpOn)) + "</span>" +
-          ' <button class="mini" data-fuopen="' + esc(n.entityType) + "|" + esc(n.entityId) + '">Open</button>' +
-          ' <button class="mini" data-fudone="' + it.id + '">Done</button>';
-        box.appendChild(row);
+      if (!open.length) {
+        box.innerHTML = '<p style="color:var(--faint)">Nothing open. Everything is done — nice work.</p>';
+      }
+      [[0, "Overdue", "overdue"], [1, "Today", ""], [2, "Upcoming", ""]].forEach(function (g) {
+        var items = open.filter(function (it) { return tkDueMeta(it.due, today).group === g[0]; });
+        if (!items.length) return;
+        var h = document.createElement("div");
+        h.className = "tk-group-h" + (g[2] ? " " + g[2] : "");
+        h.textContent = g[1];
+        box.appendChild(h);
+        items.forEach(function (it) { box.appendChild(tkRow(it, today, false)); });
       });
+      if (done.length) {
+        var dh = document.createElement("div");
+        dh.className = "tk-group-h";
+        dh.textContent = "Done";
+        box.appendChild(dh);
+        done.slice(0, 20).forEach(function (it) { box.appendChild(tkRow(it, today, true)); });
+      }
     }).catch(function () {
-      box.innerHTML = '<p style="color:var(--faint)">Follow-ups could not load yet. The database rules update may still need to be published.</p>';
+      box.innerHTML = '<p style="color:var(--faint)">Tasks could not load yet. The database rules update may still need to be published.</p>';
     });
+  }
+
+  function tkRow(it, today, isDone) {
+    var meta = tkDueMeta(it.due, today);
+    var sub = [];
+    if (it.text) sub.push(esc(it.text));
+    if (it.assignee) sub.push("Assigned: " + esc(it.assignee));
+    if (isDone) {
+      sub.push("Done" + (it.doneMs ? " " + esc(tkWhen(it.doneMs)) : "") + (it.by ? " · by " + esc(it.by) : ""));
+    } else if (it.by) {
+      sub.push("Set by " + esc(it.by) + (it.createdMs ? " · " + esc(tkWhen(it.createdMs)) : ""));
+    }
+    var html = '<div class="grow"><strong>' + esc(it.entityLabel) + "</strong>" +
+      (sub.length ? "<small>" + sub.join("<br>") + "</small>" : "") + "</div>";
+    if (isDone) {
+      html += '<span class="pill p-done">Done' + (it.doneMs ? " · " + esc(tkWhen(it.doneMs)) : "") + "</span>";
+    } else {
+      html += '<span class="pill ' + meta.cls + '">' + esc(meta.label) + "</span>";
+    }
+    // For tasks the entity label shown is the task title; the linked record
+    // rides in entityName when it differs, shown via the Open button target.
+    if (it.entityType && it.entityId) {
+      html += ' <button class="mini" data-fuopen="' + esc(it.entityType) + "|" + esc(it.entityId) + '">Open</button>';
+    }
+    if (isDone) {
+      html += it.src === "note"
+        ? ' <button class="mini" data-fuundo="' + it.id + '">Undo</button>'
+        : ' <button class="mini" data-taskundo="' + it.id + '">Undo</button>';
+    } else if (it.src === "note") {
+      html += ' <button class="mini" data-fudone="' + it.id + '">✓ Done</button>' +
+        ' <button class="mini" data-fusnooze="' + it.id + '">Snooze +1d</button>' +
+        ' <button class="mini" data-fueditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>';
+    } else {
+      html += ' <button class="mini" data-taskdone="' + it.id + '">✓ Done</button>' +
+        ' <button class="mini" data-tasksnooze="' + it.id + '">Snooze +1d</button>' +
+        ' <button class="mini" data-taskeditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>';
+    }
+    var row = document.createElement("div");
+    row.className = "arow";
+    row.innerHTML = html;
+    return row;
+  }
+
+  /* ----- New standalone task (optionally linked to an entity) ----- */
+  function openTaskForm(prefill) {
+    prefill = prefill || {};
+    var etOpts = [["", "No link"], ["vendor", "Vendor"], ["work_order", "Work order"], ["hot_lead", "Hot lead"], ["customer", "Customer"]]
+      .map(function (o) {
+        return '<option value="' + o[0] + '"' + ((prefill.entityType || "") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+      }).join("");
+    $("taskFormBody").innerHTML = '<h3 id="taskFormTitle">New task</h3>' +
+      '<form id="taskForm" class="aform" style="margin-top:10px">' +
+      '<label>Title<input type="text" id="tk-f-title" required placeholder="Call the customer about the annual plan"></label>' +
+      '<label>Details<textarea id="tk-f-details" rows="3" placeholder="Anything the person doing this needs to know…"></textarea></label>' +
+      '<div class="row2"><label>Due date<input type="date" id="tk-f-due" value="' + esc(prefill.dueDate || localDateKey(new Date())) + '"></label>' +
+      '<label>Assignee (email, optional)<input type="text" id="tk-f-assignee" placeholder="name@pgpbiz.com" value="' + esc(prefill.assigneeEmail || "") + '"></label></div>' +
+      '<div class="row2"><label>Linked to<select id="tk-f-etype">' + etOpts + "</select></label>" +
+      '<label>Linked record name<input type="text" id="tk-f-ename" placeholder="Customer, vendor, or job name" value="' + esc(prefill.entityName || "") + '"></label></div>' +
+      '<input type="hidden" id="tk-f-eid" value="' + esc(prefill.entityId || "") + '">' +
+      '<p class="aerr hidden" id="tk-f-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="tk-f-save">Create task</button></div>' +
+      "</form>";
+    $("taskFormModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    $("taskForm").addEventListener("submit", saveTaskForm);
+    var tt = $("tk-f-title");
+    if (tt) tt.focus();
+  }
+  function closeTaskForm() {
+    $("taskFormModal").classList.add("hidden");
+    if ($("custModal").classList.contains("hidden") && $("hlNoteModal").classList.contains("hidden")) {
+      document.body.style.overflow = "";
+    }
+  }
+  function saveTaskForm(e) {
+    e.preventDefault();
+    var err = $("tk-f-err"); err.classList.add("hidden");
+    var title = $("tk-f-title").value.trim();
+    if (!title) { err.textContent = "Title is required."; err.classList.remove("hidden"); return; }
+    var eid = $("tk-f-eid").value.trim() || null;
+    var btn = $("tk-f-save"); btn.disabled = true;
+    db.collection("tasks").add({
+      title: title,
+      details: $("tk-f-details").value.trim(),
+      dueDate: $("tk-f-due").value || localDateKey(new Date()),
+      assigneeEmail: $("tk-f-assignee").value.trim(),
+      entityType: eid ? ($("tk-f-etype").value || null) : null,
+      entityId: eid,
+      entityName: $("tk-f-ename").value.trim(),
+      done: false,
+      createdBy: me ? me.email : "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      doneAt: null
+    }).then(function () {
+      logActivity("Created a task: " + title);
+      closeTaskForm();
+      loadFollowUps();
+    }).catch(function (e2) {
+      err.textContent = "Could not save: " + (e2.message || e2);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+  var tkAddBtn = $("tk-add");
+  if (tkAddBtn) tkAddBtn.addEventListener("click", function () { openTaskForm(null); });
+
+  /* ----- Shared due-date editor (note follow-ups + standalone tasks) ----- */
+  function openTaskDateModal(source, id, key) {
+    tkDateCtx = { source: source, id: id };
+    $("taskDateBody").innerHTML = '<h3 id="taskDateTitle">Edit due date</h3>' +
+      '<form id="taskDateForm" class="aform" style="margin-top:10px">' +
+      '<label>Due date<input type="date" id="tk-d-date" value="' + esc(key || "") + '"></label>' +
+      '<p class="aerr hidden" id="tk-d-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="tk-d-save">Save date</button></div>' +
+      "</form>";
+    $("taskDateModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    $("taskDateForm").addEventListener("submit", saveTaskDate);
+  }
+  function closeTaskDateModal() {
+    $("taskDateModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    tkDateCtx = null;
+  }
+  function saveTaskDate(e) {
+    e.preventDefault();
+    if (!tkDateCtx) return;
+    var err = $("tk-d-err"); err.classList.add("hidden");
+    var key = $("tk-d-date").value;
+    if (!key) { err.textContent = "Pick a date."; err.classList.remove("hidden"); return; }
+    var ctx = tkDateCtx;
+    var upd = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    var ref;
+    if (ctx.source === "note") { upd.followUpOn = key; ref = db.collection("item_notes").doc(ctx.id); }
+    else { upd.dueDate = key; ref = db.collection("tasks").doc(ctx.id); }
+    var btn = $("tk-d-save"); btn.disabled = true;
+    ref.update(upd).then(function () {
+      logActivity("Changed a task due date");
+      closeTaskDateModal();
+      loadFollowUps();
+    }).catch(function (e2) {
+      err.textContent = "Could not save: " + (e2.message || e2);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
   }
 
   /* ---------- Hot leads pipeline + notification bell ---------- */
@@ -622,6 +846,12 @@
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
       logActivity("hot_lead_stage");
+      // Booked / done leads become CRM customers automatically (once —
+      // makeCustomerFromLead no-ops when the lead already has customerId),
+      // so the CRM's last-service tracking starts from real pipeline wins.
+      if (stage === "booked" || stage === "done") {
+        return makeCustomerFromLead(id).catch(function () {}).then(function () { loadHotLeads(); });
+      }
       loadHotLeads();
     }).catch(function (e) { alert("Could not move lead: " + (e.message || e)); loadHotLeads(); });
   }
@@ -813,6 +1043,10 @@
           ? '<p><strong>Quote request:</strong> converted' + (convMs ? " " + esc(fullDate(convMs)) : "") + '</p>' +
             '<div class="sr-actions"><button class="mini" type="button" data-hlviewwo="' + id + '">Open work order</button></div>'
           : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to work order</button></div>') +
+        (d.customerId
+          ? '<p style="margin-top:8px"><strong>Customer:</strong> CRM record on file</p>' +
+            '<div class="sr-actions"><button class="mini" type="button" data-hlviewcustomer="' + esc(d.customerId) + '">Open customer record</button></div>'
+          : '<div class="sr-actions" style="margin-top:8px"><button class="mini" type="button" data-hlmakecustomer="' + id + '">Make customer</button></div>') +
         "</div>" +
         '<div class="sr-card"><h4>Calls & notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
@@ -1070,6 +1304,414 @@
       setBellOpen(false);
       loadHotLeads();
     }).catch(function () {});
+  }
+
+  /* ---------- CRM: customers ---------- */
+  // One record per real customer, promoted from hot leads (button on the
+  // lead, or automatically when a lead is booked/done) or added by hand.
+  // lastServiceAt is the field the team works from: it drives the card's
+  // big "Last service" line and the days-since chip behind the
+  // annual-contract push. Notes reuse the item_notes plumbing with
+  // entityType "customer". NOTE: this is the staff CRM collection; the
+  // portal's per-user docs live in the same collection keyed by uid and
+  // are never listed here (they carry no name/createdBy CRM shape and the
+  // list query below only renders docs the CRM created — see leadId /
+  // createdBy fields — plus any staff-added records).
+  var custRows = []; // cached { id, d } rows from the last loadCustomers()
+  var custId = null, custData = null, custOutcome = "";
+  var custEditId = null;
+
+  function custLastMs(d) { return tsMs(d && d.lastServiceAt); }
+  function custDaysSince(d) {
+    var ms = custLastMs(d);
+    return ms ? Math.floor((Date.now() - ms) / 86400000) : null;
+  }
+  function custContactLine(d) {
+    if (!d) return "";
+    if (d.contact) return d.contact;
+    return [d.phone || "", d.email || ""].filter(Boolean).join(" · ");
+  }
+  function custRowData(id) {
+    for (var i = 0; i < custRows.length; i++) if (custRows[i].id === id) return custRows[i].d;
+    return null;
+  }
+
+  function loadCustomers() {
+    var box = $("ad-cust-list");
+    if (!box) return;
+    db.collection("customers").limit(200).get().then(function (qs) {
+      custRows = [];
+      qs.forEach(function (doc) {
+        var d = doc.data();
+        // CRM records only: portal profile docs (keyed by uid, no CRM
+        // fields) are skipped so the list stays a clean customer book.
+        if (!d || (!d.name && !d.leadId && !d.createdBy)) return;
+        custRows.push({ id: doc.id, d: d });
+      });
+      // Most recently serviced first; never-serviced at the bottom.
+      custRows.sort(function (a, b) {
+        var am = custLastMs(a.d), bm = custLastMs(b.d);
+        if (am && bm) return bm - am;
+        if (am) return -1;
+        if (bm) return 1;
+        return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+      });
+      renderCustomers();
+    }).catch(function () {
+      box.innerHTML = '<p style="color:var(--faint)">Customers could not load yet. The database rules update may still need to be published.</p>';
+    });
+  }
+
+  function renderCustomers() {
+    var box = $("ad-cust-list");
+    if (!box) return;
+    if (!custRows.length) {
+      box.innerHTML = '<p style="color:var(--faint)">No customers yet. Promote a lead with "Make customer" on the lead detail, or add one with the Add customer button.</p>';
+      return;
+    }
+    box.innerHTML = "";
+    custRows.forEach(function (it) {
+      var d = it.d;
+      var lastMs = custLastMs(d);
+      var days = custDaysSince(d);
+      var contract = d.annualContract || "none";
+      var lastLine = lastMs
+        ? "Last service: " + new Date(lastMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) + (d.lastServiceLabel ? " · " + d.lastServiceLabel : "")
+        : "No service yet";
+      var chips = [];
+      chips.push('<span class="pill p-acc">' + (d.totalJobs || 0) + " jobs</span>");
+      if (days != null) {
+        var dcls = days >= 60 ? "p-rev" : (days >= 30 ? "p-pend" : "p-done");
+        chips.push('<span class="pill ' + dcls + '">' + days + "d ago</span>");
+      }
+      if (d.totalSpent != null) chips.push('<span class="pill p-done">$' + esc(d.totalSpent) + " spent</span>");
+      if (contract === "signed") chips.push('<span class="pill p-done">Annual contract ✓</span>');
+      else if (contract === "offered") chips.push('<span class="pill p-pend">Annual contract offered</span>');
+      else if (days != null && days >= 30) chips.push('<span class="pill p-pend">Ready for annual-contract follow-up</span>');
+      var contactLine = [custContactLine(d), d.address || ""].filter(Boolean).join(" · ");
+      var row = document.createElement("article");
+      row.className = "hlq-card";
+      row.style.borderLeftColor = "#c9a227";
+      row.innerHTML =
+        '<div class="hlq-head"><button type="button" class="hlq-name" data-custdetail="' + it.id + '">' + esc(d.name || "Customer") + "</button>" +
+          '<div class="cust-lastsvc' + (lastMs ? "" : " none") + '">' + esc(lastLine) + "</div></div>" +
+        (contactLine ? '<div class="hlq-service">' + esc(contactLine) + "</div>" : "") +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">' + chips.join("") + "</div>" +
+        '<div class="hlq-actions">' +
+          '<button type="button" class="mini hlq-action hlq-action-primary" data-custnotes="' + it.id + '">Notes</button>' +
+          '<button type="button" class="mini hlq-action" data-custtask="' + it.id + '">Task</button>' +
+          (d.email ? '<a class="mini hlq-action" href="mailto:' + esc(d.email) + '" data-custemail="' + it.id + '">Email</a>' : "") +
+          '<button type="button" class="mini hlq-action hlq-action-ghost" data-custedit="' + it.id + '">Edit</button>' +
+        "</div>" +
+        '<div class="hlq-foot"><span class="hlq-source">' + esc(d.source || "") + "</span>" +
+          '<span class="hlq-manage">' + (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-custdel="' + it.id + '">Delete</button>' : "") + "</span></div>";
+      box.appendChild(row);
+    });
+  }
+
+  /* ----- Add / edit customer ----- */
+  function openCustomerForm(id) {
+    custEditId = id || null;
+    var d = id ? (custRowData(id) || {}) : {};
+    var contractOpts = [["none", "None"], ["offered", "Offered"], ["signed", "Signed"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + ((d.annualContract || "none") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("");
+    $("custFormBody").innerHTML = '<h3 id="custFormTitle">' + (id ? "Edit customer" : "Add customer") + "</h3>" +
+      '<form id="custForm" class="aform" style="margin-top:10px">' +
+      '<label>Name<input type="text" id="cu-f-name" required placeholder="Customer name" value="' + esc(d.name || "") + '"></label>' +
+      '<div class="row2"><label>Phone<input type="text" id="cu-f-phone" placeholder="(305) 555-0123" value="' + esc(d.phone || "") + '"></label>' +
+      '<label>Email<input type="email" id="cu-f-email" placeholder="name@email.com" value="' + esc(d.email || "") + '"></label></div>' +
+      '<label>Contact (display)<input type="text" id="cu-f-contact" placeholder="Phone · email as shown on the card" value="' + esc(d.contact || "") + '"></label>' +
+      '<label>Address<input type="text" id="cu-f-address" placeholder="123 Main St, Miami, FL 33101" value="' + esc(d.address || "") + '"></label>' +
+      '<div class="row2"><label>Source<input type="text" id="cu-f-source" placeholder="Hot lead, Referral, Website…" value="' + esc(d.source || "") + '"></label>' +
+      '<label>Annual contract<select id="cu-f-contract">' + contractOpts + "</select></label></div>" +
+      '<label>Notes<textarea id="cu-f-notes" rows="3" placeholder="Gate codes, preferences, anything the crew should know…">' + esc(d.notes || "") + "</textarea></label>" +
+      '<p class="aerr hidden" id="cu-f-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="cu-f-save">' + (id ? "Save changes" : "Add customer") + "</button></div>" +
+      "</form>";
+    $("custFormModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    $("custForm").addEventListener("submit", saveCustomerForm);
+  }
+  function closeCustomerForm() {
+    $("custFormModal").classList.add("hidden");
+    if ($("custModal").classList.contains("hidden")) document.body.style.overflow = "";
+    custEditId = null;
+  }
+  function saveCustomerForm(e) {
+    e.preventDefault();
+    var err = $("cu-f-err"); err.classList.add("hidden");
+    var name = $("cu-f-name").value.trim();
+    if (!name) { err.textContent = "Name is required."; err.classList.remove("hidden"); return; }
+    var phone = $("cu-f-phone").value.trim(), email = $("cu-f-email").value.trim();
+    var contact = $("cu-f-contact").value.trim() || [phone, email].filter(Boolean).join(" · ");
+    var fields = {
+      name: name, phone: phone, email: email, contact: contact,
+      address: $("cu-f-address").value.trim(),
+      source: $("cu-f-source").value.trim(),
+      annualContract: $("cu-f-contract").value,
+      notes: $("cu-f-notes").value.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    var btn = $("cu-f-save"); btn.disabled = true;
+    var p;
+    if (custEditId) {
+      p = db.collection("customers").doc(custEditId).update(fields).then(function () {
+        logActivity("Edited customer: " + name);
+      });
+    } else {
+      fields.lastServiceAt = null;
+      fields.lastServiceLabel = "";
+      fields.totalJobs = 0;
+      fields.totalSpent = null;
+      fields.leadId = null;
+      fields.createdBy = me ? me.email : "";
+      fields.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      p = db.collection("customers").add(fields).then(function () {
+        logActivity("Added customer: " + name);
+      });
+    }
+    p.then(function () {
+      var reopen = custId;
+      closeCustomerForm();
+      loadCustomers();
+      if (reopen) openCustomer(reopen);
+    }).catch(function (e2) {
+      err.textContent = "Could not save: " + (e2.message || e2);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+  var custAddBtn = $("cust-add");
+  if (custAddBtn) custAddBtn.addEventListener("click", function () { openCustomerForm(null); });
+
+  function deleteCustomer(id) {
+    if (!isAdmin) return;
+    var d = custRowData(id);
+    var name = (d && d.name) || "this customer";
+    if (!confirm("Delete customer " + name + "? This cannot be undone.")) return;
+    db.collection("customers").doc(id).delete().then(function () {
+      logActivity("Deleted customer: " + name);
+      loadCustomers();
+    }).catch(function (e) { alert("Could not delete customer: " + (e.message || e)); });
+  }
+
+  /* ----- Promote a hot lead into a CRM customer (idempotent) ----- */
+  function makeCustomerFromLead(leadId) {
+    var d = hlLeadData(leadId);
+    if (!d) return Promise.resolve(null);
+    if (d.customerId) return Promise.resolve(d.customerId);
+    var contact = d.contact || "";
+    var email = "", phone = "";
+    if (/@/.test(contact)) email = contact; else if (contact) phone = contact;
+    var fields = {
+      name: d.name || "Customer", contact: contact, email: email, phone: phone,
+      address: d.address || "", source: "Hot lead", notes: d.notes || "",
+      lastServiceAt: null, lastServiceLabel: "", totalJobs: 0, totalSpent: null,
+      leadId: leadId, annualContract: "none",
+      createdBy: me ? me.email : "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    return db.collection("customers").add(fields).then(function (ref) {
+      return db.collection("hot_leads").doc(leadId).update({
+        customerId: ref.id,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        logActivity("Created customer record from hot lead: " + fields.name);
+        for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === leadId) hlLeads[i].d.customerId = ref.id;
+        loadCustomers();
+        return ref.id;
+      });
+    });
+  }
+
+  /* ----- Completing a work order stamps the linked customer ----- */
+  // Linkage: work_orders.customerId when present, else the customer whose
+  // leadId matches the work order's sourceLeadId (the convert path).
+  function custServicedFromWorkOrder(w) {
+    if (!w) return Promise.resolve();
+    function apply(ref, cd) {
+      return ref.update({
+        lastServiceAt: firebase.firestore.Timestamp.fromDate(new Date()),
+        lastServiceLabel: w.category || w.title || "Service visit",
+        totalJobs: (cd.totalJobs || 0) + 1,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    if (w.customerId) {
+      var ref = db.collection("customers").doc(w.customerId);
+      return ref.get().then(function (s) { if (s.exists) return apply(ref, s.data()); }).catch(function () {});
+    }
+    if (w.sourceLeadId) {
+      return db.collection("customers").where("leadId", "==", w.sourceLeadId).limit(1).get()
+        .then(function (qs) {
+          if (qs.empty) return;
+          var doc = qs.docs[0];
+          return apply(doc.ref, doc.data());
+        }).catch(function () {});
+    }
+    return Promise.resolve();
+  }
+
+  /* ----- Customer detail: service history, log service, calls & notes ----- */
+  function openCustomer(id) {
+    db.collection("customers").doc(id).get().then(function (snap) {
+      if (!snap.exists) return;
+      var d = snap.data();
+      custId = id; custData = d; custOutcome = "";
+      var lastMs = custLastMs(d);
+      var days = custDaysSince(d);
+      var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
+      var contractOpts = [["none", "None"], ["offered", "Offered"], ["signed", "Signed"]].map(function (o) {
+        return '<option value="' + o[0] + '"' + ((d.annualContract || "none") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+      }).join("");
+      var selStyle = 'style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit;color-scheme:dark"';
+      var h = '<h3 id="custTitle">' + esc(d.name || "Customer") + "</h3>" +
+        '<p class="sr-meta">' + (d.source ? '<span class="pill p-acc">' + esc(d.source) + "</span>" : "") +
+        "<span>" + esc([custContactLine(d), d.address || ""].filter(Boolean).join(" · ")) + "</span></p>" +
+        '<div class="sr-card"><h4>Service</h4>' +
+        '<div class="cust-lastsvc big">' + (lastMs ? "Last service: " + esc(fullDate(lastMs)) + (d.lastServiceLabel ? " · " + esc(d.lastServiceLabel) : "") : "No service yet") + "</div>" +
+        '<p style="margin-top:8px"><strong>Jobs:</strong> ' + (d.totalJobs || 0) +
+        (d.totalSpent != null ? " · <strong>Total spent:</strong> $" + esc(d.totalSpent) : "") +
+        (days != null ? " · <strong>Last visit:</strong> " + days + "d ago" : "") + "</p>" +
+        '<label style="display:block;margin-top:12px;font-size:.85rem;color:var(--muted)">Annual contract<select id="cust-annual" ' + selStyle + ">" + contractOpts + "</select></label>" +
+        "</div>" +
+        '<div class="sr-card"><h4>Log a completed service</h4>' +
+        '<p class="sr-faint">Until jobs close out on their own, log each finished visit here: it stamps the last-service date the whole team works from.</p>' +
+        '<div class="note-form"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+        '<label>Date<input type="date" id="cust-svc-date" value="' + localDateKey(new Date()) + '"></label>' +
+        '<label>Service<input type="text" id="cust-svc-label" placeholder="Lawn care visit" style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit"></label></div></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="cust-svc-btn" type="button">Log service</button></div>' +
+        '<p class="aerr hidden" id="cust-svc-err" style="margin-top:10px"></p></div>' +
+        '<div class="sr-card"><h4>Service history</h4><div id="cust-history"><p class="sr-faint">Loading…</p></div></div>' +
+        (d.notes ? '<div class="sr-card"><h4>Customer notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        '<div class="sr-card"><h4>Calls & notes</h4>' +
+        '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
+        '<div class="outcome-grid" id="custOutcomes">' +
+        CALL_OUTCOMES.map(function (o) {
+          return '<button type="button" class="outcome-btn" data-custoutcome="' + o[0] + '">' + o[1] + "</button>";
+        }).join("") + "</div>" +
+        '<div class="note-form"><label>Notes<textarea id="cnText" rows="3" placeholder="What happened on the call, what they said, what is next…"></textarea></label>' +
+        '<label>Follow-up date (optional)<input type="date" id="cnFollow"></label></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="cnSave" type="button">Save call / note</button>' +
+        '<button class="btn btn-ghost btn-sm" id="cust-task-btn" type="button">Create task</button></div>' +
+        '<p class="aok hidden" id="cnOk" style="margin-top:10px">Saved.</p>' +
+        '<p class="aerr hidden" id="cnErr" style="margin-top:10px"></p>' +
+        '<div class="sr-comments" id="cnNotes" style="margin-top:14px"></div></div>';
+      var box = $("custBody");
+      box.innerHTML = h;
+      box.querySelectorAll("[data-custoutcome]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          custOutcome = custOutcome === b.getAttribute("data-custoutcome") ? "" : b.getAttribute("data-custoutcome");
+          box.querySelectorAll("[data-custoutcome]").forEach(function (x) {
+            x.classList.toggle("active", x.getAttribute("data-custoutcome") === custOutcome);
+          });
+        });
+      });
+      $("cust-annual").addEventListener("change", function () {
+        var val = this.value;
+        db.collection("customers").doc(id).update({
+          annualContract: val,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          logActivity("Set annual contract (" + val + ") for customer " + (d.name || ""));
+          loadCustomers();
+        }).catch(function (e) { alert("Could not save: " + (e.message || e)); });
+      });
+      $("cust-svc-btn").addEventListener("click", logCustomerService);
+      $("cnSave").addEventListener("click", saveCustomerNote);
+      $("cust-task-btn").addEventListener("click", function () {
+        openTaskForm({ entityType: "customer", entityId: id, entityName: d.name || "Customer" });
+      });
+      $("custModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      loadItemNotes("customer", id, $("cnNotes"));
+      loadCustomerHistory(id, d);
+    });
+  }
+  function closeCustomer() {
+    $("custModal").classList.add("hidden");
+    document.body.style.overflow = "";
+    custId = null; custData = null; custOutcome = "";
+  }
+  function loadCustomerHistory(id, d) {
+    var box = $("cust-history");
+    if (!box) return;
+    var found = {};
+    function collect(qs) { qs.forEach(function (doc) { found[doc.id] = doc.data(); }); }
+    var ps = [];
+    if (d.leadId) {
+      ps.push(db.collection("work_orders").where("sourceLeadId", "==", d.leadId).limit(50).get().then(collect).catch(function () {}));
+    }
+    ps.push(db.collection("work_orders").where("customerId", "==", id).limit(50).get().then(collect).catch(function () {}));
+    Promise.all(ps).then(function () {
+      var ids = Object.keys(found);
+      if (!ids.length) {
+        box.innerHTML = '<p class="sr-faint">No linked work orders yet. Jobs converted from this customer\'s lead will show up here.</p>';
+        return;
+      }
+      ids.sort(function (a, b) { return tsMs(found[b].createdAt) - tsMs(found[a].createdAt); });
+      box.innerHTML = ids.map(function (wid) {
+        var w = found[wid];
+        var whenMs = tsMs(w.createdAt);
+        return '<div class="sr-comment"><strong>' + esc(w.title || "Work order") + "</strong><span>" +
+          esc(String(w.status || "").replace(/_/g, " ")) +
+          (whenMs ? " · " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) : "") +
+          (w.vendorBusiness ? " · " + esc(w.vendorBusiness) : "") + "</span>" +
+          (w.details ? "<p>" + esc(hlExcerpt(w.details)) + "</p>" : "") + "</div>";
+      }).join("");
+    });
+  }
+  function logCustomerService() {
+    if (!custId) return;
+    var err = $("cust-svc-err"); err.classList.add("hidden");
+    var key = $("cust-svc-date").value || localDateKey(new Date());
+    var label = $("cust-svc-label").value.trim() || "Service visit";
+    var d = custData || {};
+    var btn = $("cust-svc-btn"); btn.disabled = true;
+    db.collection("customers").doc(custId).update({
+      lastServiceAt: firebase.firestore.Timestamp.fromDate(new Date(key + "T12:00:00")),
+      lastServiceLabel: label,
+      totalJobs: (d.totalJobs || 0) + 1,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      return saveItemNote({
+        entityType: "customer", entityId: custId, entityLabel: d.name || "Customer",
+        kind: "note", outcome: "", text: "Service logged: " + label + " on " + fmtFollowDate(key),
+        followUpOn: null
+      });
+    }).then(function () {
+      logActivity("Logged a service for customer " + (d.name || ""));
+      loadCustomers();
+      openCustomer(custId);
+    }).catch(function (e) {
+      err.textContent = "Could not log: " + (e.message || e);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
+  }
+  function saveCustomerNote() {
+    if (!custId) return;
+    var text = $("cnText").value.trim();
+    var err = $("cnErr"); err.classList.add("hidden");
+    if (!custOutcome && !text) { err.textContent = "Pick a call outcome or write a note first."; err.classList.remove("hidden"); return; }
+    var btn = $("cnSave"); btn.disabled = true;
+    var label = (custData && custData.name) || "Customer";
+    saveItemNote({
+      entityType: "customer", entityId: custId, entityLabel: label,
+      kind: custOutcome ? "call" : "note", outcome: custOutcome, text: text,
+      followUpOn: $("cnFollow").value || null
+    }).then(function () {
+      logActivity((custOutcome ? "Logged a call (" + outcomeLabel(custOutcome) + ") with customer " : "Added a note on customer ") + label);
+      $("cnOk").classList.remove("hidden");
+      $("cnText").value = ""; $("cnFollow").value = "";
+      custOutcome = "";
+      document.querySelectorAll("[data-custoutcome]").forEach(function (x) { x.classList.remove("active"); });
+      loadItemNotes("customer", custId, $("cnNotes"));
+      loadFollowUps();
+    }).catch(function (e) {
+      err.textContent = "Could not save: " + (e.message || e);
+      err.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; });
   }
 
   /* ---------- Work order notes modal ---------- */
@@ -2289,7 +2931,18 @@
     var t = e.target, d = t.dataset;
     var hlActionEl = t.closest ? t.closest("[data-hlstagefilter],[data-hltempfilter],[data-hldetail],[data-hlstep],[data-hlpark],[data-hlrevive]") : null;
     if (hlActionEl) d = hlActionEl.dataset;
-    if (d.wodone) { logActivity("Marked a work order done"); db.collection("work_orders").doc(d.wodone).update({ status: "done" }).then(loadAll); }
+    if (d.wodone) {
+      logActivity("Marked a work order done");
+      var woRef = db.collection("work_orders").doc(d.wodone);
+      woRef.get().then(function (snap) {
+        var w = snap.exists ? snap.data() : null;
+        return woRef.update({ status: "done" }).then(function () { return w; });
+      }).then(function (w) {
+        // Completing a job also stamps the linked CRM customer (via the
+        // source lead or a direct customerId) so last-service stays current.
+        return custServicedFromWorkOrder(w);
+      }).then(function () { loadAll(); }, function () { loadAll(); });
+    }
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
@@ -2308,6 +2961,7 @@
         if (woNoteId) loadItemNotes("work_order", woNoteId, $("wonNotes"));
         if (vdId) loadItemNotes("vendor", vdId, $("vdNotes"));
         if (hlNoteId) loadItemNotes("hot_lead", hlNoteId, $("hlnNotes"));
+        if (custId) loadItemNotes("customer", custId, $("cnNotes"));
       }).catch(function () {});
     }
     if (d.fuopen) {
@@ -2315,7 +2969,79 @@
       if (fp[0] === "vendor") openVendor(fp[1]);
       else if (fp[0] === "work_order") openWorkOrderNotes(fp[1]);
       else if (fp[0] === "hot_lead") openHotLeadNotes(fp[1]);
+      else if (fp[0] === "customer") openCustomer(fp[1]);
     }
+    if (d.fusnooze) {
+      var nref = db.collection("item_notes").doc(d.fusnooze);
+      nref.get().then(function (s) {
+        if (!s.exists || !s.data().followUpOn) return;
+        return nref.update({
+          followUpOn: tkShiftKey(s.data().followUpOn, 1),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }).then(function () { logActivity("Snoozed a follow-up by a day"); loadFollowUps(); }).catch(function () {});
+    }
+    if (d.fuundo) {
+      db.collection("item_notes").doc(d.fuundo).update({
+        followUpDone: false,
+        completedAt: firebase.firestore.FieldValue.delete(),
+        completedByEmail: firebase.firestore.FieldValue.delete(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () { logActivity("Reopened a follow-up"); loadFollowUps(); }).catch(function () {});
+    }
+    if (d.fueditdate) { var fep = d.fueditdate.split("|"); openTaskDateModal("note", fep[0], fep[1]); }
+    if (d.taskdone) {
+      db.collection("tasks").doc(d.taskdone).update({
+        done: true,
+        doneAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () { logActivity("Completed a task"); loadFollowUps(); }).catch(function () {});
+    }
+    if (d.tasksnooze) {
+      var tref = db.collection("tasks").doc(d.tasksnooze);
+      tref.get().then(function (s) {
+        if (!s.exists) return;
+        return tref.update({
+          dueDate: tkShiftKey(s.data().dueDate || localDateKey(new Date()), 1),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }).then(function () { logActivity("Snoozed a task by a day"); loadFollowUps(); }).catch(function () {});
+    }
+    if (d.taskundo) {
+      db.collection("tasks").doc(d.taskundo).update({
+        done: false,
+        doneAt: firebase.firestore.FieldValue.delete(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () { logActivity("Reopened a task"); loadFollowUps(); }).catch(function () {});
+    }
+    if (d.taskeditdate) { var tep = d.taskeditdate.split("|"); openTaskDateModal("task", tep[0], tep[1]); }
+    if (t.id === "taskFormClose" || t.id === "taskFormModal") closeTaskForm();
+    if (t.id === "taskDateClose" || t.id === "taskDateModal") closeTaskDateModal();
+    if (d.custdetail) openCustomer(d.custdetail);
+    if (d.custnotes) openCustomer(d.custnotes);
+    if (d.custtask) {
+      var ctd = custRowData(d.custtask);
+      openTaskForm({ entityType: "customer", entityId: d.custtask, entityName: (ctd && ctd.name) || "Customer" });
+    }
+    if (d.custemail) logActivity("Emailed customer");
+    if (d.custedit) openCustomerForm(d.custedit);
+    if (d.custdel) deleteCustomer(d.custdel);
+    if (d.hlmakecustomer) {
+      var mkId = d.hlmakecustomer;
+      makeCustomerFromLead(mkId).then(function () {
+        loadHotLeads();
+        if (hlNoteId === mkId) openHotLeadNotes(mkId);
+      }).catch(function (e) { alert("Could not create customer: " + (e.message || e)); });
+    }
+    if (d.hlviewcustomer) {
+      var cvId = d.hlviewcustomer;
+      closeHotLeadNotes();
+      var custNavBtn = document.querySelector('#pgNavDrawer [data-atab="customers"]');
+      if (custNavBtn) custNavBtn.click();
+      openCustomer(cvId);
+    }
+    if (t.id === "custClose" || t.id === "custModal") closeCustomer();
+    if (t.id === "custFormClose" || t.id === "custFormModal") closeCustomerForm();
     if (d.hlstagefilter) { hlStageFilter = d.hlstagefilter; renderHotLeads(); }
     if (d.hltempfilter) { hlTempFilter = d.hltempfilter; renderHotLeads(); }
     if (d.hldetail) openHotLeadNotes(d.hldetail);
@@ -2358,12 +3084,18 @@
     var modalOpen = !$("vdModal").classList.contains("hidden") ||
       !$("woNoteModal").classList.contains("hidden") || !$("hlNoteModal").classList.contains("hidden") ||
       !$("hlFormModal").classList.contains("hidden") || !$("hlConvertModal").classList.contains("hidden") ||
+      !$("custModal").classList.contains("hidden") || !$("custFormModal").classList.contains("hidden") ||
+      !$("taskFormModal").classList.contains("hidden") || !$("taskDateModal").classList.contains("hidden") ||
       !$("cal2Modal").classList.contains("hidden");
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
     if (!$("hlConvertModal").classList.contains("hidden")) closeHotLeadConvert();
     if (!$("hlNoteModal").classList.contains("hidden")) closeHotLeadNotes();
     if (!$("hlFormModal").classList.contains("hidden")) closeHotLeadForm();
+    if (!$("taskDateModal").classList.contains("hidden")) closeTaskDateModal();
+    if (!$("taskFormModal").classList.contains("hidden")) closeTaskForm();
+    if (!$("custFormModal").classList.contains("hidden")) closeCustomerForm();
+    if (!$("custModal").classList.contains("hidden")) closeCustomer();
     if (bellIsOpen()) setBellOpen(false);
     if (!modalOpen && navOpen) setNavOpen(false);
   });

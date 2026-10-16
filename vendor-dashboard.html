@@ -103,7 +103,7 @@
     .vjobs { grid-template-columns:1fr; }
   }
 </style>
-<link rel="stylesheet" href="vendor.css?v=3">
+<link rel="stylesheet" href="vendor.css?v=4">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
@@ -120,6 +120,19 @@
 
 <!-- Login gate -->
 <div class="vwrap" id="vd-loginwrap">
+  <div class="login-banner" style="background-image:url('assets/careers-crew.jpg');margin-top:26px">
+    <div class="login-banner-panel">
+      <img class="login-banner-logo" src="assets/logo-transparent.png" alt="PrimeGuard Preservation LLC logo">
+      <div>
+        <h2>Vendor portal</h2>
+        <p>Your jobs, your quotes, your pay — per job completed.</p>
+      </div>
+    </div>
+  </div>
+  <div class="role-toggle" aria-label="Choose your portal">
+    <a class="role-btn" href="account.html">I'm a customer</a>
+    <a class="role-btn active" href="vendor-dashboard.html" aria-current="page">I'm a vendor</a>
+  </div>
   <section class="vhero" style="text-align:center">
     <p class="vkicker">Vendor portal</p>
     <h1>Log in</h1>
@@ -136,6 +149,15 @@
       <p class="vok hidden" id="vd-reset-ok" style="font-size:13px;text-align:center"></p>
     </form>
   </section>
+  <div class="login-help">
+    <h3>How to log in</h3>
+    <ol>
+      <li>Pick <strong>Customer</strong> or <strong>Vendor</strong> above — vendors land here; customers use the customer side.</li>
+      <li>Use the same email and password you registered with, or tap <strong>Continue with Google</strong>.</li>
+      <li>New vendor? <a href="vendor-register.html">Register your crew</a> first, then come back and log in.</li>
+      <li>Forgot your password? Tap <strong>Forgot password?</strong> under the Log in button and we'll email you a reset link.</li>
+    </ol>
+  </div>
 </div>
 
 <!-- Dashboard -->
@@ -257,16 +279,30 @@
   </section>
 </div>
 
+<!-- Signed in, but no vendor profile yet (friendly panel, no bounce) -->
+<div class="vwrap hidden" id="vd-noprofile">
+  <section class="vhero" style="text-align:center">
+    <p class="vkicker">Vendor portal</p>
+    <h1>You're signed in</h1>
+    <p class="vsub">You're signed in as <strong id="vd-noprofile-email">your account</strong>, but this account doesn't have a vendor profile yet — that's why there's no vendor dashboard to show. If you run a crew, register it and we'll get you set up. If you're a customer, your portal is on the customer side.</p>
+  </section>
+  <section style="max-width:440px;margin:0 auto;padding:10px 0 60px;text-align:center">
+    <a class="btn btn-gold" href="vendor-register.html" style="display:block;margin-bottom:10px">Register your crew</a>
+    <a class="btn btn-ghost" href="account.html" style="display:block;width:100%;margin-bottom:10px">Go to the customer portal</a>
+    <button class="btn btn-ghost" type="button" id="vd-noprofile-logout" style="width:100%">Log out</button>
+  </section>
+</div>
+
 <footer class="vfooter">
   <div class="vwrap vfooter-inner">
     <div class="vfooter-brand">
-      <img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation LLC logo">
+      <img src="assets/logo-transparent.png" alt="PrimeGuard Preservation LLC logo">
       <p>PrimeGuard Preservation LLC<br><span>Miami-Dade County, FL</span></p>
     </div>
     <div class="vfooter-contact">
       <a href="tel:+17864229674">(786) 422-9674</a>
       <a href="mailto:primeguardllc.office@pgpbiz.com">primeguardllc.office@pgpbiz.com</a>
-      <span>Mon-Fri, 8:00 AM - 5:00 PM · Sat, 8:00 AM - 12:00 PM</span>
+      <span>Mon-Fri, 8:00&nbsp;AM - 5:00&nbsp;PM · Sat, 8:00&nbsp;AM - 12:00&nbsp;PM</span>
     </div>
     <nav class="vfooter-links" aria-label="Footer">
       <a href="index.html">Main site</a>
@@ -285,7 +321,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=5"></script>
+<script src="vendor-dashboard.js?v=6"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

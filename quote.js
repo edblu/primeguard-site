@@ -33,7 +33,18 @@
   };
   var ORDER = ["lawn-care", "pressure-washing", "junk-removal", "make-ready-cleaning", "handyman"];
 
-  var svcKey = null, q1i = 1, q2i = 0, q3i = 2, shownPrice = 0, answered = false;
+  var svcKey = null, svcKeys = [], q1i = 1, q2i = 0, q3i = 2, shownPrice = 0, answered = false;
+
+  // Multi-select: svcKeys holds every selected service key in click order.
+  // svcKey stays the primary (first selected) service: it alone drives the
+  // step-2 questions and the ballpark price. Display/submit order follows
+  // the grid (ORDER), not click order.
+  function selectedKeys() {
+    return ORDER.filter(function (k) { return svcKeys.indexOf(k) !== -1; });
+  }
+  function selectedNames() {
+    return selectedKeys().map(function (k) { return QUOTE_SVCS[k].name; });
+  }
 
   var cfg = (window.SITE_CONFIG || {});
   var leadEndpoint = cfg.leadEndpoint || "";
@@ -85,7 +96,7 @@
       $("quotePrice").textContent = "$" + c.from;
       shownPrice = c.from;
       $("quoteUnit").textContent = "starting at · ballpark";
-      [[ "Service", c.name ]].forEach(function (row) {
+      [[ "Service", selectedNames().join(", ") ]].forEach(function (row) {
         var d = el("div"), a = el("span", null, row[0]), b = el("b", null, row[1]);
         d.appendChild(a); d.appendChild(b); lines.appendChild(d);
       });
@@ -93,7 +104,7 @@
     }
     animatePrice(price());
     $("quoteUnit").textContent = c.unit + " · ballpark";
-    [[ "Service", c.name ],
+    [[ "Service", selectedNames().join(", ") ],
      [ c.q1.label, c.q1.opts[q1i] ],
      [ c.q2.label, c.q2.opts[q2i][0] ],
      [ c.q3.label, c.q3.opts[q3i] ]].forEach(function (row) {
@@ -125,24 +136,53 @@
     bd.appendChild(el("strong", null, c.name));
     bd.appendChild(el("em", null, "from $" + c.from));
     b.appendChild(img); b.appendChild(bd);
-    b.addEventListener("click", function () { selectService(key, false); });
+    b.addEventListener("click", function () { toggleService(key); });
     grid.appendChild(b);
   });
 
-  function selectService(key, advance) {
-    svcKey = key; q1i = 1; q2i = 0; q3i = 2; answered = false;
+  function syncSvcCards() {
     grid.querySelectorAll(".qsvc").forEach(function (x) {
-      x.classList.toggle("sel", x.getAttribute("data-svc") === key);
+      var on = svcKeys.indexOf(x.getAttribute("data-svc")) !== -1;
+      x.classList.toggle("sel", on);
+      x.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    renderQuestions();
-    renderEstimate();
     var nx = document.getElementById("qstep1Next");
-    if (nx) nx.disabled = false;
+    if (nx) nx.disabled = !svcKeys.length;
+  }
+
+  // Point the step-2 questions at a new primary service (or clear them when
+  // nothing is selected). Question answers reset, same as a fresh pick.
+  function setPrimary(key) {
+    svcKey = key; q1i = 1; q2i = 0; q3i = 2; answered = false;
+    if (svcKey) { renderQuestions(); }
+    else { var w = $("qQuestions"); if (w) w.innerHTML = ""; }
+  }
+
+  function toggleService(key) {
+    var i = svcKeys.indexOf(key);
+    if (i !== -1) {
+      svcKeys.splice(i, 1);
+      if (svcKey === key) setPrimary(svcKeys.length ? svcKeys[0] : null);
+    } else {
+      svcKeys.push(key);
+      if (!svcKey) setPrimary(key);
+    }
+    syncSvcCards();
+    renderEstimate();
+  }
+
+  // Preselect path (?service=): make sure the service is selected, treat it
+  // as the primary, and optionally jump straight to step 2.
+  function selectService(key, advance) {
+    if (svcKeys.indexOf(key) === -1) svcKeys.push(key);
+    setPrimary(key);
+    syncSvcCards();
+    renderEstimate();
     if (advance) goStep(2);
   }
 
   document.getElementById("qstep1Next").addEventListener("click", function () {
-    if (svcKey) goStep(2);
+    if (svcKeys.length) goStep(2);
   });
 
   /* ---------- Step 2: questions ---------- */
@@ -327,6 +367,9 @@
       c.q2.label + " " + c.q2.opts[q2i][0] + "; " + c.q3.label + " " + c.q3.opts[q3i];
     var jobDesc = ($("qDetailText").value || "").trim();
     if (jobDesc) detail += "; Customer notes: " + jobDesc;
+    var otherNames = selectedKeys().filter(function (k) { return k !== svcKey; })
+      .map(function (k) { return QUOTE_SVCS[k].name; });
+    if (otherNames.length) detail += "; Also requested: " + otherNames.join(", ");
     var photos = $("qPhotos").files;
     var vids = $("qVideos").files;
     if ((photos && photos.length) || (vids && vids.length)) btn.textContent = "Uploading...";
@@ -338,12 +381,13 @@
       if (videoLink) detail += "; Video link: " + videoLink;
       var payload = {
         type: "quote-request", status: "new", ref: ref,
-        service: c.name, estimate: p, unit: c.unit, details: detail,
+        service: selectedNames().join(", "), services: selectedNames(),
+        estimate: p, unit: c.unit, details: detail,
         name: name, phone: phone, email: f.email.value.trim(),
         address: address, date: f.date.value, referrer: f.referrer.value.trim(),
         notes: f.notes.value.trim(),
         videos: vres.urls, videoLink: videoLink,
-        message: "Instant estimate: $" + p + " " + c.unit + " (" + c.name + " - " + detail + ")." +
+        message: "Instant estimate: $" + p + " " + c.unit + " (" + selectedNames().join(", ") + " - " + detail + ")." +
           (f.notes.value.trim() ? " Notes: " + f.notes.value.trim() : ""),
         source: "quote-page", page: location.pathname,
         uid: currentUser ? currentUser.uid : null
@@ -352,7 +396,8 @@
         fbDb.collection("service_requests").add({
           uid: currentUser ? currentUser.uid : null,
           name: name, phone: phone, email: payload.email,
-          service: "Quote request " + ref + " - " + c.name,
+          service: "Quote request " + ref + " - " + selectedNames().join(", "),
+          services: selectedNames(),
           message: payload.message, status: "new",
           photos: photoUrls,
           videos: vres.urls, videoLink: videoLink,

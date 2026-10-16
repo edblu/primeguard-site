@@ -69,16 +69,65 @@
   var yr = $("acct-year");
   if (yr) yr.textContent = new Date().getFullYear();
 
+  // Friendly auth errors: never show raw Firebase text to users.
+  function friendlyAuthError(err) {
+    var code = (err && err.code) || "";
+    var map = {
+      "auth/invalid-credential": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/wrong-password": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/user-not-found": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
+      "auth/email-already-in-use": "That email already has an account. Try logging in instead.",
+      "auth/weak-password": "Password needs at least 6 characters.",
+      "auth/too-many-requests": "Too many attempts. Wait a minute and try again, or reset your password.",
+      "auth/network-request-failed": "Connection problem. Check your internet and try again."
+    };
+    if (map[code]) return map[code];
+    var msg = (err && err.message) || "Something went wrong. Please try again.";
+    msg = msg.replace(/^Firebase:\s*/i, "").replace(/\s*\(auth\/[a-z0-9-]+\)\.?$/i, "").trim();
+    return msg || "Something went wrong. Please try again.";
+  }
+
   function authError(err, elId) {
-    var el = $(elId); el.textContent = err.message || "Something went wrong. Please try again.";
+    var el = $(elId); el.textContent = friendlyAuthError(err);
     show(el);
+  }
+
+  // Busy state so a submit click never looks dead.
+  function setBusy(btn, busy, label) {
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+      btn.disabled = true; btn.textContent = label;
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.label) btn.textContent = btn.dataset.label;
+    }
   }
 
   // Email/password login
   $("form-login").addEventListener("submit", function (e) {
-    e.preventDefault(); hide($("login-error"));
+    e.preventDefault(); hide($("login-error")); hide($("login-reset-ok"));
+    var btn = e.target.querySelector('button[type="submit"]');
+    setBusy(btn, true, "Signing in...");
     auth.signInWithEmailAndPassword($("login-email").value.trim(), $("login-password").value.trim())
-      .catch(function (err) { authError(err, "login-error"); });
+      .then(function () { setBusy(btn, false); })
+      .catch(function (err) { setBusy(btn, false); authError(err, "login-error"); });
+  });
+
+  // Forgot password (mirrors the vendor dashboard pattern)
+  $("login-forgot").addEventListener("click", function (e) {
+    e.preventDefault(); hide($("login-error")); hide($("login-reset-ok"));
+    var email = $("login-email").value.trim();
+    if (!email) {
+      var el = $("login-error");
+      el.textContent = "Type your email above first, then tap Forgot password.";
+      show(el); return;
+    }
+    auth.sendPasswordResetEmail(email).then(function () {
+      var ok = $("login-reset-ok");
+      ok.textContent = "Reset link sent to " + email + ".";
+      show(ok);
+    }).catch(function (err) { authError(err, "login-error"); });
   });
 
   // Email/password signup
@@ -88,12 +137,15 @@
     var email = $("signup-email").value.trim();
     var phone = $("signup-phone").value.trim();
     var pw = $("signup-password").value;
+    var btn = e.target.querySelector('button[type="submit"]');
+    setBusy(btn, true, "Creating account...");
     auth.createUserWithEmailAndPassword(email, pw).then(function (cred) {
       return db.collection("customers").doc(cred.user.uid).set({
         name: name, email: email, phone: phone, address: "",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-    }).catch(function (err) { authError(err, "signup-error"); });
+    }).then(function () { setBusy(btn, false); })
+      .catch(function (err) { setBusy(btn, false); authError(err, "signup-error"); });
   });
 
   // Google sign-in (shared, mobile-safe)

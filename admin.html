@@ -392,6 +392,18 @@
     .hlq-foot { flex-wrap:wrap; }
     .hlq-source { margin-left:auto; }
   }
+
+  /* ---------- Tasks page + CRM customers (Wave 2) ---------- */
+  #ad-cust-list { display:flex; flex-direction:column; gap:10px; }
+  .tk-group-h { font-size:.78rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:20px 0 2px; }
+  .tk-group-h.overdue { color:#ff9d9d; }
+  .pg-light .tk-group-h.overdue { color:#b50909; }
+  .cust-lastsvc { font-size:1.08rem; font-weight:800; color:var(--gold-bright); white-space:nowrap; }
+  .cust-lastsvc.none { color:var(--faint); font-size:.95rem; }
+  .cust-lastsvc.big { font-size:1.3rem; white-space:normal; }
+  .pg-light .cust-lastsvc { color:#8a6d14; }
+  .pg-light .cust-lastsvc.none { color:#8a8f98; }
+  a.mini { text-decoration:none; display:inline-block; }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
@@ -410,6 +422,7 @@
   <button class="pg-nav-item" type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="vendors">Vendors <span class="cnt-b" id="pg-nav-b-vendors">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="followups">Tasks <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
+  <button class="pg-nav-item" type="button" data-atab="customers">Customers</button>
   <button class="pg-nav-item" type="button" data-atab="calendar">Calendar</button>
   <button class="pg-nav-item" type="button" data-atab="team">Acquisition managers</button>
   <button class="pg-nav-item" type="button" data-atab="activity" id="pg-nav-activity">Staff activity</button>
@@ -605,6 +618,38 @@
     </div>
   </div>
 
+  <!-- New standalone task modal -->
+  <div class="modal-overlay hidden" id="taskFormModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="taskFormTitle">
+      <button class="modal-close" id="taskFormClose" aria-label="Close">×</button>
+      <div id="taskFormBody"></div>
+    </div>
+  </div>
+
+  <!-- Shared due-date editor modal (note follow-ups + tasks) -->
+  <div class="modal-overlay hidden" id="taskDateModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="taskDateTitle">
+      <button class="modal-close" id="taskDateClose" aria-label="Close">×</button>
+      <div id="taskDateBody"></div>
+    </div>
+  </div>
+
+  <!-- Customer add / edit modal -->
+  <div class="modal-overlay hidden" id="custFormModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="custFormTitle">
+      <button class="modal-close" id="custFormClose" aria-label="Close">×</button>
+      <div id="custFormBody"></div>
+    </div>
+  </div>
+
+  <!-- Customer detail modal (service history, log service, calls & notes) -->
+  <div class="modal-overlay hidden" id="custModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="custTitle">
+      <button class="modal-close" id="custClose" aria-label="Close">×</button>
+      <div id="custBody"></div>
+    </div>
+  </div>
+
   <div id="atab-hotleads" class="hidden">
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -646,11 +691,25 @@
 
   <div id="atab-followups" class="hidden">
   <section class="asec" style="padding-bottom:60px">
-    <h2>Tasks</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <h2 style="margin:0">Tasks</h2>
+      <button class="btn btn-gold btn-sm" type="button" id="tk-add">New task</button>
+    </div>
+    <div id="ad-task-stats"></div>
     <div class="acard">
-      <p class="sub">Open follow-ups from vendor calls, vendor notes, and work-order notes. Overdue and due-today items come first.</p>
+      <p class="sub">Follow-ups from vendor calls, notes, and work orders, plus standalone tasks. Overdue first, then due today, then upcoming.</p>
       <div id="ad-fu-list"><p style="color:var(--faint)">Loading…</p></div>
     </div>
+  </section>
+  </div>
+
+  <div id="atab-customers" class="hidden">
+  <section class="asec">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <h2 style="margin:0">Customers</h2>
+      <button class="btn btn-gold btn-sm" type="button" id="cust-add">Add customer</button>
+    </div>
+    <div class="acard"><div id="ad-cust-list"><p style="color:var(--faint)">Loading…</p></div></div>
   </section>
   </div>
 
@@ -803,10 +862,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=28"></script>
+<script src="admin.js?v=29"></script>
 <script>
 (function () {
-  var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
+  var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
