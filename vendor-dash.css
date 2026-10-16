@@ -62,6 +62,10 @@
 .vd-ph-br.br2 { bottom: 12px; right: 12px; border-bottom: 3px solid #f5c542; border-right: 3px solid #f5c542; border-bottom-right-radius: 9px; }
 .vd-ph-logochip {
   position: absolute; top: 20px; left: 20px; z-index: 4;
+  /* Clearance for the fixed round burger at the viewport's top-left:
+     at scroll position 0 the chip starts ~56px further right so the
+     two never overlap. */
+  margin-left: 56px;
   background: rgba(255, 255, 255, .14);
   -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px);
   border: 1px solid rgba(255, 255, 255, .38); border-radius: 12px;
@@ -369,6 +373,112 @@
 .vd-tab svg { width: 23px; height: 23px; }
 .vd-tab.active { color: var(--gold-deep); }
 .vd-tab.active svg { color: var(--gold); }
+
+/* ---------- Left slide-over menu (burger + drawer) ----------
+   Burger: fixed round frosted button, top-left (Edwin's standing
+   nav pattern). Drawer: warm cream Golden Hour panel sliding from
+   the left over a dim backdrop. Both live inside #vd-dash, so they
+   render only while the dashboard is shown. */
+.vd-burger {
+  position: fixed; top: 14px; left: 14px; z-index: 70;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .55);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .7);
+  box-shadow: 0 8px 22px rgba(120, 90, 10, .25);
+  color: var(--text); cursor: pointer; padding: 0;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.vd-burger svg { width: 22px; height: 22px; }
+.vd-burger:active { transform: scale(.94); }
+.vd-drawer-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(34, 26, 5, .45);
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s ease;
+}
+.vd-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+.vd-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 90;
+  width: min(320px, 88vw);
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #fffdf4, #faf3dd);
+  border-right: 1px solid rgba(185, 138, 29, .35);
+  box-shadow: 24px 0 48px rgba(34, 26, 5, .25);
+  transform: translateX(-105%);
+  transition: transform .28s ease;
+  overflow-y: auto;
+}
+.vd-drawer.open { transform: translateX(0); }
+.vd-drawer-head {
+  background: var(--vd-gold-grad);
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: 0 10px 24px rgba(185, 138, 29, .25);
+}
+.vd-drawer-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.vd-drawer-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255, 255, 255, .5);
+  border: 1px solid rgba(255, 255, 255, .75);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 800; color: #221a05;
+  box-shadow: 0 8px 18px rgba(120, 90, 10, .3);
+}
+.vd-drawer-x {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .6);
+  color: #221a05; cursor: pointer; padding: 0;
+}
+.vd-drawer-x svg { width: 17px; height: 17px; }
+.vd-drawer-biz {
+  display: block; margin-top: 12px;
+  font-size: 1.12rem; font-weight: 800; letter-spacing: -.01em; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vd-drawer-status { display: block; margin-top: 2px; font-size: .85rem; font-weight: 700; color: rgba(34, 26, 5, .75); }
+.vd-drawer-status:empty { display: none; }
+.vd-drawer-nav { flex: 1 1 auto; padding: 12px 10px 6px; display: flex; flex-direction: column; }
+.vd-drawer-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 12px; border-radius: 12px;
+  font-size: .98rem; font-weight: 700; color: var(--text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.vd-drawer-link:active { background: rgba(245, 197, 66, .18); }
+.vd-drawer-link.active { background: rgba(245, 197, 66, .2); border-left-color: var(--gold); color: var(--gold-deep); }
+.vd-drawer-badge {
+  margin-left: auto; min-width: 24px; height: 24px; padding: 0 7px;
+  border-radius: 999px; background: var(--vd-gold-grad);
+  border: 1px solid rgba(255, 255, 255, .6);
+  color: #221a05; font-size: .78rem; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px rgba(185, 138, 29, .3);
+}
+.vd-drawer-dot {
+  margin-left: auto; width: 10px; height: 10px; border-radius: 50%; flex: none;
+  background: var(--vd-gold-grad);
+  border: 1px solid rgba(185, 138, 29, .6);
+  box-shadow: 0 0 0 3px rgba(245, 197, 66, .3);
+}
+.vd-drawer-group {
+  margin: 16px 12px 4px;
+  font-size: .7rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.vd-drawer-foot { padding: 14px; border-top: 1px solid var(--line-soft); }
+.vd-drawer-logout {
+  width: 100%; min-height: 50px; border-radius: 14px; cursor: pointer;
+  background: var(--text); color: #ffe9a8; border: none;
+  font-size: 1rem; font-weight: 800; font-family: inherit;
+  box-shadow: 0 10px 22px rgba(34, 26, 5, .3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vd-burger, .vd-drawer, .vd-drawer-backdrop { transition: none; }
+}
 
 /* ---------- Footer ---------- */
 .vfooter { margin-top: 44px; border-top: 1px solid rgba(120, 90, 10, .18); padding: 40px 0 110px; }
