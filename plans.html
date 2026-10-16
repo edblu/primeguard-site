@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Plans &amp; Bundles. PrimeGuard Preservation LLC</title>
-<meta name="description" content="PrimeGuard service plans and bundles in Miami-Dade: Lawn Care from $90/mo, Pressure Washing $149/visit, Home Maintenance $65/mo. Bundle services and save.">
+<meta name="description" content="PrimeGuard service plans and bundles in Miami-Dade: Lawn Care from $80/mo, Pressure Washing $149/visit, Home Maintenance $59/mo. Bundle services and save.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PrimeGuard Preservation LLC">
 <meta property="og:title" content="Plans & Bundles. PrimeGuard Preservation LLC">
@@ -19,6 +19,22 @@
 <link rel="stylesheet" href="daylight.css?v=5">
 <style>
   .careers-hero { background: linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.55) 45%, rgba(120,85,15,0.55) 100%), url("assets/hero-plans.jpg") center 35% / cover no-repeat; }
+  /* Pricing sweep (2026-10-15): savings display on plan cards + bundle summary */
+  .plan-tag { position:absolute; top:14px; right:14px; background:linear-gradient(180deg,#ffd968,#d9ab2b); color:#171205; font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:999px; }
+  #plans .plan-card .price .plan-was { color:#8b968e; font-size:1rem; font-weight:600; margin-left:2px; }
+  .plan-per { color:#5c6a72; font-size:.9rem; margin-top:2px; }
+  .plan-save { color:#8a6d2a; font-weight:700; font-size:.92rem; margin-top:6px; }
+  .plan-members { color:#6d7668; font-size:.85rem; margin-top:10px; }
+  .bb-line { display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; color:#33424e; }
+  .bb-line strong { color:#101c26; }
+  .bb-disc-row { color:#8a6d2a; font-weight:600; }
+  .bb-disc-row strong { color:#8a6d2a; }
+  .bb-save { color:#8a6d2a; font-weight:800; font-size:1.05rem; margin-top:8px; }
+  .bb-nudge { color:#0e7c86; font-size:.9rem; font-weight:600; margin-top:4px; }
+  .bb-combo { margin:0 0 6px; }
+  .bb-combo span { background:rgba(217,171,43,.18); color:#8a6d2a; border:1px solid rgba(217,171,43,.55); font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
+  .order-disc { color:#8a6d2a; font-weight:600; }
+  .order-save { color:#8a6d2a; font-weight:800; margin-top:8px; }
 </style>
 </head>
 <body>
@@ -86,9 +102,12 @@
     <p class="section-lead reveal" data-i18n="plans_lead">Recurring care at a locked-in rate. No contracts. Cancel anytime.</p>
     <div class="plans-grid reveal" id="plansGrid">
 
-      <article class="plan-card" data-plan-idx="0">
+      <article class="plan-card popular" data-plan-idx="0">
+        <span class="plan-tag" data-i18n="plan_tag_popular">Most popular</span>
         <h3 data-i18n="plan_name_1">Lawn Care Plan</h3>
-        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="0">$90/mo</strong></p>
+        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="0">$80/mo</strong> <s class="plan-was">$90</s></p>
+        <p class="plan-per" data-i18n="plan_per_visit_1">$40 per visit</p>
+        <p class="plan-save" data-i18n="plan_save_1">You save $10/mo</p>
         <p class="plan-desc" data-i18n="plan_desc_1">Biweekly mowing, edging &amp; cleanup. Weekly service available.</p>
         <ul class="plan-includes">
           <li data-i18n="plan_inc_1a">Mowing &amp; edging every two weeks</li>
@@ -97,11 +116,13 @@
           <li data-i18n="plan_inc_1d">Cancel anytime</li>
         </ul>
         <button type="button" class="btn btn-gold plan-choose" data-plan-choose="0"><span data-i18n="plan_choose">Choose plan</span></button>
+        <p class="plan-members" data-i18n="plan_members">Plan members save on every visit. Cancel anytime.</p>
       </article>
 
       <article class="plan-card" data-plan-idx="1">
         <h3 data-i18n="plan_name_2">Pressure Washing Plan</h3>
         <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="1">$149/visit</strong></p>
+        <p class="plan-save" data-i18n="plan_save_2">You save $20 vs one-time ($169)</p>
         <p class="plan-desc" data-i18n="plan_desc_2">Full driveway + walkway wash, auto-scheduled every 3 months.</p>
         <ul class="plan-includes">
           <li data-i18n="plan_inc_2a">Driveway &amp; walkway wash</li>
@@ -114,7 +135,8 @@
 
       <article class="plan-card" data-plan-idx="2">
         <h3 data-i18n="plan_name_3">Home Maintenance Plan</h3>
-        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="2">$65/mo</strong></p>
+        <p class="price"><span data-i18n="from">from</span> <strong data-plan-price="2">$59/mo</strong> <s class="plan-was">$65</s></p>
+        <p class="plan-save" data-i18n="plan_save_3">You save $6/mo</p>
         <p class="plan-desc" data-i18n="plan_desc_3">Monthly handyman checkup visit for punch-list items.</p>
         <ul class="plan-includes">
           <li data-i18n="plan_inc_3a">Monthly handyman visit</li>
@@ -123,6 +145,7 @@
           <li data-i18n="plan_inc_3d">Cancel anytime</li>
         </ul>
         <button type="button" class="btn btn-gold plan-choose" data-plan-choose="2"><span data-i18n="plan_choose">Choose plan</span></button>
+        <p class="plan-members" data-i18n="plan_members">Plan members save on every visit. Cancel anytime.</p>
       </article>
 
     </div>
@@ -212,9 +235,22 @@
           <em class="bb-from">$65+</em>
         </label>
       </div>
-      <div class="bb-total-row">
-        <span data-i18n="bb_total">Estimated total</span>
-        <strong id="bbTotal">$0</strong>
+      <div class="bb-summary">
+        <p class="bb-combo" id="bbCombo" hidden><span data-i18n="bb_combo_tag">Most-booked combo</span></p>
+        <div class="bb-line">
+          <span data-i18n="bb_subtotal">Subtotal</span>
+          <strong id="bbSubtotal">$0</strong>
+        </div>
+        <div class="bb-line bb-disc-row" id="bbDiscRow" hidden>
+          <span id="bbDiscLabel">Bundle discount</span>
+          <strong id="bbDiscAmt">-$0</strong>
+        </div>
+        <div class="bb-total-row">
+          <span data-i18n="bb_total">Estimated total</span>
+          <strong id="bbTotal">$0</strong>
+        </div>
+        <p class="bb-save" id="bbSave" hidden></p>
+        <p class="bb-nudge" id="bbNudge" hidden></p>
       </div>
       <button type="button" class="btn btn-gold btn-lg" id="bbContinue" disabled data-i18n="bb_continue">Continue</button>
       <p class="bb-note" data-i18n="bb_note">Final quote confirmed before we start. No surprises.</p>
@@ -263,7 +299,10 @@
     </div>
     <div class="modal-body">
       <div class="order-lines" id="orderLines"></div>
+      <div class="order-line order-sub"><span data-i18n="bb_subtotal">Subtotal</span><span id="orderSubtotal">$0</span></div>
+      <div class="order-line order-disc" id="orderDiscRow" hidden><span id="orderDiscLabel">Bundle discount</span><span id="orderDiscAmt">-$0</span></div>
       <div class="order-total-row"><span data-i18n="bb_total">Estimated total</span><strong id="orderTotal">$0</strong></div>
+      <p class="order-save" id="orderSave" hidden></p>
       <form id="orderForm" novalidate>
         <label><span data-i18n="form_name">Full name</span>
           <input type="text" name="name" required autocomplete="name" placeholder="Your name" data-i18n-ph="ph_name">
@@ -349,8 +388,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="config.js?v=17"></script>
-<script src="site.js?v=33"></script>
+<script src="config.js?v=18"></script>
+<script src="site.js?v=34"></script>
 <script src="human-chat.js"></script>
 </body>
 </html>

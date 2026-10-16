@@ -187,6 +187,18 @@
       bb_lead: "Pick the services you need. Your price updates live. No phone call needed.",
       bb_total: "Estimated total", bb_continue: "Continue",
       bb_note: "Final quote confirmed before we start. No surprises.",
+      plan_tag_popular: "Most popular",
+      plan_per_visit_1: "$40 per visit",
+      plan_save_1: "You save $10/mo",
+      plan_save_2: "You save $20 vs one-time ($169)",
+      plan_save_3: "You save $6/mo",
+      plan_members: "Plan members save on every visit. Cancel anytime.",
+      bb_subtotal: "Subtotal",
+      bb_discount: "Bundle discount",
+      bb_you_save: "You save",
+      bb_best_value: "Best value",
+      bb_combo_tag: "Most-booked combo",
+      bb_unlock15: "Add 1 more service to unlock 15% off",
       ord_kicker: "Almost done", ord_title: "Your order",
       ord_date: "Preferred date",
       ord_notes_ph: "Anything we should know?",
@@ -429,6 +441,18 @@
       bb_lead: "Elija los servicios que necesita. Su precio se actualiza en vivo. Sin llamadas.",
       bb_total: "Total estimado", bb_continue: "Continuar",
       bb_note: "Precio final confirmado antes de empezar. Sin sorpresas.",
+      plan_tag_popular: "El más popular",
+      plan_per_visit_1: "$40 por visita",
+      plan_save_1: "Ahorras $10/mes",
+      plan_save_2: "Ahorras $20 vs el precio único ($169)",
+      plan_save_3: "Ahorras $6/mes",
+      plan_members: "Los miembros del plan ahorran en cada visita. Cancela cuando quieras.",
+      bb_subtotal: "Subtotal",
+      bb_discount: "Descuento del paquete",
+      bb_you_save: "Ahorras",
+      bb_best_value: "Mejor valor",
+      bb_combo_tag: "La combinación más pedida",
+      bb_unlock15: "Agrega 1 servicio más para desbloquear el 15% de descuento",
       ord_kicker: "Casi listo", ord_title: "Su pedido",
       ord_date: "Fecha preferida",
       ord_notes_ph: "¿Algo que debamos saber?",
@@ -1537,12 +1561,48 @@
       });
       return out;
     }
+    // Bundle discount (Edwin, 2026-10-15): 2 services = 10% off the
+    // subtotal, 3+ = 15% off. Item prices stay the advertised ones.
+    function discountPctFor(count) {
+      return count >= 3 ? 15 : count === 2 ? 10 : 0;
+    }
     function render() {
       var sel = selected();
-      var total = sel.reduce(function (a, b) { return a + b.price; }, 0);
+      var subtotal = sel.reduce(function (a, b) { return a + b.price; }, 0);
+      var pct = discountPctFor(sel.length);
+      var discount = Math.round(subtotal * pct / 100);
+      var total = subtotal - discount;
       totalEl.textContent = "$" + total;
       contBtn.disabled = !sel.length;
-      return { sel: sel, total: total };
+      var subEl = document.getElementById("bbSubtotal");
+      if (subEl) subEl.textContent = "$" + subtotal;
+      var discRow = document.getElementById("bbDiscRow");
+      if (discRow) {
+        discRow.hidden = !(pct > 0);
+        if (pct > 0) {
+          document.getElementById("bbDiscLabel").textContent = t("bb_discount") + " (" + pct + "%)";
+          document.getElementById("bbDiscAmt").textContent = "-$" + discount;
+        }
+      }
+      var saveEl = document.getElementById("bbSave");
+      if (saveEl) {
+        saveEl.hidden = !(discount > 0);
+        if (discount > 0) {
+          saveEl.textContent = t("bb_you_save") + " $" + discount +
+            (sel.length >= 3 ? " · " + t("bb_best_value") : "");
+        }
+      }
+      var nudgeEl = document.getElementById("bbNudge");
+      if (nudgeEl) {
+        nudgeEl.hidden = sel.length !== 2;
+        if (sel.length === 2) nudgeEl.textContent = t("bb_unlock15");
+      }
+      var comboEl = document.getElementById("bbCombo");
+      if (comboEl) {
+        var keys = sel.map(function (i) { return i.key; });
+        comboEl.hidden = !(keys.indexOf("lawn") >= 0 && keys.indexOf("pressure") >= 0);
+      }
+      return { sel: sel, subtotal: subtotal, discountPct: pct, discountAmount: discount, total: total };
     }
     items.forEach(function (label) {
       label.querySelectorAll("input, select").forEach(function (el) {
@@ -1560,7 +1620,7 @@
     var success = document.getElementById("orderSuccess");
     var errEl = document.getElementById("orderFormError");
     var refCode = document.getElementById("orderRefCode");
-    var current = { sel: [], total: 0 };
+    var current = { sel: [], subtotal: 0, discountPct: 0, discountAmount: 0, total: 0 };
     function openOrder() {
       if (!modal) return;
       current = render();
@@ -1574,6 +1634,24 @@
         orderLines.appendChild(div);
       });
       orderTotal.textContent = "$" + current.total;
+      var oSub = document.getElementById("orderSubtotal");
+      if (oSub) oSub.textContent = "$" + current.subtotal;
+      var oDiscRow = document.getElementById("orderDiscRow");
+      if (oDiscRow) {
+        oDiscRow.hidden = !(current.discountPct > 0);
+        if (current.discountPct > 0) {
+          document.getElementById("orderDiscLabel").textContent = t("bb_discount") + " (" + current.discountPct + "%)";
+          document.getElementById("orderDiscAmt").textContent = "-$" + current.discountAmount;
+        }
+      }
+      var oSave = document.getElementById("orderSave");
+      if (oSave) {
+        oSave.hidden = !(current.discountAmount > 0);
+        if (current.discountAmount > 0) {
+          oSave.textContent = t("bb_you_save") + " $" + current.discountAmount +
+            (current.sel.length >= 3 ? " · " + t("bb_best_value") : "");
+        }
+      }
       orderSummaryLine.textContent = current.sel.map(function (i) { return i.name; }).join(" + ");
       form.hidden = false; success.hidden = true; errEl.hidden = true;
       modal.hidden = false;
@@ -1599,6 +1677,7 @@
       var ticket = {
         type: "ticket-order", status: "new", ref: ref,
         items: current.sel, total: current.total,
+        subtotal: current.subtotal, discountPct: current.discountPct, discountAmount: current.discountAmount,
         name: name, phone: phone, email: form.email.value.trim(),
         address: address, date: form.date.value.trim(), notes: form.notes.value.trim(),
         source: "bundle-builder", page: location.pathname,
@@ -1611,6 +1690,8 @@
           name: name, phone: phone, email: ticket.email,
           service: "Bundle order " + ref,
           message: current.sel.map(function (i) { return i.name + " $" + i.price; }).join("; ") +
+            " | Subtotal $" + current.subtotal +
+            (current.discountAmount > 0 ? " | Bundle discount " + current.discountPct + "% -$" + current.discountAmount : "") +
             " | Total $" + current.total + (ticket.notes ? " | Notes: " + ticket.notes : ""),
           status: "new", source: "bundle-builder", ref: ref,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
