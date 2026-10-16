@@ -213,6 +213,12 @@
     try { return ts && ts.toDate ? ts.toDate().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""; }
     catch (e) { return ""; }
   }
+  function fmtDateKey(key) {
+    if (!key) return "";
+    var p = String(key).split("-");
+    if (p.length !== 3) return String(key);
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
   function tsMillis(ts) {
     try {
       if (!ts) return 0;
@@ -266,7 +272,7 @@
         $("dashboard-greeting").textContent = daypart();
         $("dashboard-name").textContent = (user.displayName || "there").split(" ")[0];
       });
-      loadRequests(user.uid); loadJobs(user.uid); loadExtras(user);
+      loadRequests(user.uid); loadJobs(user.uid); loadExtras(user); loadCustomerQuotes(user);
     } else {
       show(authForms); show($("account-hero-static")); hide(dashboard);
       checkStaffEntry(null);
@@ -434,6 +440,45 @@
       .update({ status: status, decidedAt: firebase.firestore.FieldValue.serverTimestamp() })
       .then(function () { loadRequests(u.uid); })
       .catch(function () { alert("Couldn't update that quote. Please call us at (786) 422-9674."); });
+  }
+
+  // "Your quotes": the formal customer quotes staff built from a vendor
+  // quote (customer_quotes collection), matched by the email the quote was
+  // addressed to. Separate from the request quotes above. Any failure
+  // (rules, network) hides the section silently.
+  function loadCustomerQuotes(u) {
+    var sec = $("custQuotesSection"), box = $("cust-quotes-list");
+    if (!sec || !box || !u || !u.email) return;
+    db.collection("customer_quotes").where("customerEmail", "==", String(u.email).toLowerCase()).limit(25).get()
+      .then(function (qs) {
+        var docs = [];
+        qs.forEach(function (doc) { docs.push(doc); });
+        docs.sort(function (a, b) { return tsMillis(b.data().createdAt) - tsMillis(a.data().createdAt); });
+        if (!docs.length) { hide(sec); return; }
+        show(sec);
+        $("custQuoteCount").textContent = docs.length + (docs.length === 1 ? " quote" : " quotes");
+        box.innerHTML = "";
+        docs.forEach(function (doc) {
+          var d = doc.data();
+          var signed = d.status === "signed";
+          var el = document.createElement("div"); el.className = "quote-card";
+          el.innerHTML =
+            '<div class="q-main"><strong></strong><span class="q-det"></span></div>' +
+            '<div class="q-side"><div class="q-price"></div>' +
+            (signed
+              ? '<span class="pill pill-done">Signed ✓</span>'
+              : '<span class="pill pill-new">Awaiting your signature</span>' +
+                '<div class="q-btns"><a class="btn btn-gold btn-sm" href="quote-sign.html?id=' + doc.id + '">Review &amp; sign</a></div>') +
+            "</div>";
+          el.querySelector("strong").textContent = d.service || "PrimeGuard quote";
+          el.querySelector(".q-det").textContent = signed
+            ? "Signed " + fmtDate(d.signedAt) + (d.payChoice === "deposit20" ? " · 20% deposit" : " · Full payment")
+            : "Valid until " + fmtDateKey(d.expiresAt);
+          el.querySelector(".q-price").textContent = "$" + (Number(d.total) || 0).toLocaleString();
+          box.appendChild(el);
+        });
+      })
+      .catch(function () { hide(sec); });
   }
 
   // One-tap reorder: opens the request window with a service preselected.

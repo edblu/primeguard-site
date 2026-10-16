@@ -365,6 +365,13 @@
         </div>
 
         <div class="container">
+          <section class="acct-card hidden" id="custQuotesSection">
+            <div class="acct-card-head"><h3>Your quotes</h3><span class="pill pill-new" id="custQuoteCount"></span></div>
+            <div id="cust-quotes-list"></div>
+          </section>
+        </div>
+
+        <div class="container">
           <div class="acct-grid">
             <div class="acct-card">
               <div class="acct-card-head">
@@ -572,7 +579,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=12"></script>
+<script src="account.js?v=13"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

@@ -224,8 +224,8 @@
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .hl-photo-badge { font-size:.72rem; background:rgba(120,180,255,.14); color:#a9c8ff; border-radius:999px; padding:4px 10px; font-weight:700; white-space:nowrap; }
   .pg-light .hl-photo-badge { background:#d9e8f6; color:#0b4778; }
-  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody { padding: 20px 18px 24px; } }
+  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody { padding: 20px 18px 24px; } }
 
   /* ============================================================
      BOOKS RESKIN (admin v23) — PrimeGuard Books design language
@@ -664,6 +664,14 @@
     </div>
   </div>
 
+  <!-- Customer quote builder modal (vendor quote -> customer quote) -->
+  <div class="modal-overlay hidden" id="cqModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="cqTitle">
+      <button class="modal-close" id="cqClose" aria-label="Close">×</button>
+      <div id="cqBody"></div>
+    </div>
+  </div>
+
   <div id="atab-hotleads" class="hidden">
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -679,6 +687,10 @@
   <section class="asec">
     <h2>Quotes to review</h2>
     <div class="acard"><div id="ad-quote-list"></div></div>
+  </section>
+  <section class="asec">
+    <h2>Signed customer quotes</h2>
+    <div class="acard"><div id="ad-cq-signed-list"><p style="color:var(--faint)">No signed customer quotes yet.</p></div></div>
   </section>
   </div>
 
@@ -878,7 +890,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=31"></script>
+<script src="admin.js?v=32"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];

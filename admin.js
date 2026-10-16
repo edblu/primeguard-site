@@ -2887,6 +2887,7 @@
   }
 
   function loadQuotes() {
+    loadCustomerQuotes();
     db.collection("quotes").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
       var box = $("ad-quote-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No quotes submitted yet.</p>'; return; }
@@ -2896,10 +2897,352 @@
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " - " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + (q.quotePdfUrl ? ' · <a href="' + esc(q.quotePdfUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View quote PDF</a>' : "") + "</small></div>" +
           pill(q.status) +
-          (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini" data-calquote="' + d.id + '">Add to calendar</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "");
+          (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini" data-calquote="' + d.id + '">Add to calendar</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "") +
+          ' <button class="mini" data-cqbuild="' + d.id + '">Build customer quote</button>' +
+          (q.customerQuoteId ? ' <span class="sr-faint">Customer quote built ✓</span>' : "");
         box.appendChild(row);
       });
     });
+  }
+
+  /* ----- Customer quotes: staff build them from a vendor quote ----- */
+  // Pipeline step 7 of Edwin's flow: vendor quote lands in Quotes to
+  // review -> staff build the CUSTOMER quote (vendor price + margin) ->
+  // the customer signs on quote-sign.html (full payment or 20% deposit)
+  // -> signed quotes list here, portal history for the customer, and a
+  // "Collect payment" task on the Tasks page. Saving also schedules the
+  // day-3 / day-7 follow-up tasks; a signature closes them automatically
+  // (see cqHandleSigned). The customer NEVER sees the vendor amount.
+  var cqCtx = null; // { quoteId, quote, vendorAmount } while the builder is open
+
+  function cqMoney(n) {
+    var v = Math.round((Number(n) || 0) * 100) / 100;
+    return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2));
+  }
+  function cqParseEmail(contact) {
+    var m = String(contact || "").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    return m ? m[0].toLowerCase() : "";
+  }
+
+  function openCustomerQuoteBuilder(quoteId) {
+    cqCtx = null;
+    $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="sr-faint" style="margin-top:10px">Loading the vendor quote…</p>';
+    $("cqModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    db.collection("quotes").doc(quoteId).get().then(function (qsnap) {
+      if (!qsnap.exists) {
+        $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="aerr" style="margin-top:10px">That vendor quote could not be found.</p>';
+        return;
+      }
+      var q = qsnap.data();
+      var woP = q.workOrderId
+        ? db.collection("work_orders").doc(q.workOrderId).get().then(function (s) { return s.exists ? s.data() : null; }).catch(function () { return null; })
+        : Promise.resolve(null);
+      woP.then(function (wo) {
+        var leadP = wo && wo.sourceLeadId
+          ? db.collection("hot_leads").doc(wo.sourceLeadId).get().then(function (s) { return s.exists ? s.data() : null; }).catch(function () { return null; })
+          : Promise.resolve(null);
+        var custP = wo && wo.sourceLeadId
+          ? db.collection("customers").where("leadId", "==", wo.sourceLeadId).limit(1).get().then(function (s) { return s.empty ? null : s.docs[0].data(); }).catch(function () { return null; })
+          : Promise.resolve(null);
+        Promise.all([leadP, custP]).then(function (res) {
+          renderCustomerQuoteBuilder(quoteId, q, wo, res[0], res[1]);
+        });
+      });
+    }).catch(function (e) {
+      $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="aerr" style="margin-top:10px">Could not load: ' + esc(e.message || e) + "</p>";
+    });
+  }
+  function closeCustomerQuoteBuilder() {
+    $("cqModal").classList.add("hidden");
+    if ($("custModal").classList.contains("hidden") && $("hlNoteModal").classList.contains("hidden")) {
+      document.body.style.overflow = "";
+    }
+    cqCtx = null;
+  }
+
+  function cqItemRowHtml(label, amount) {
+    return '<div class="cq-item" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+      '<input type="text" class="cq-item-label" placeholder="What is included" value="' + esc(label || "") + '" style="flex:1;min-width:0">' +
+      '<input type="number" class="cq-item-amount" min="0" step="0.01" inputmode="decimal" placeholder="0" value="' + (amount != null && amount !== "" ? esc(amount) : "") + '" style="width:130px;flex:none">' +
+      '<button type="button" class="mini danger" data-cq-remove aria-label="Remove line item">×</button></div>';
+  }
+
+  function renderCustomerQuoteBuilder(quoteId, q, wo, lead, cust) {
+    var vendorAmount = Math.round((parseFloat(q.price) || 0) * 100) / 100;
+    cqCtx = { quoteId: quoteId, quote: q, vendorAmount: vendorAmount };
+    var name = woCustomerName(wo) || (lead && lead.name) || (cust && cust.name) || "";
+    var contact = (lead && lead.contact) || (cust && (cust.contact || [cust.phone, cust.email].filter(Boolean).join(" · "))) || "";
+    var address = (wo && wo.address) || (lead && lead.address) || (cust && cust.address) || "";
+    var service = (wo && (wo.category || wo.title)) || (lead && lead.service) || "";
+    var firstLabel = (wo && (wo.category || wo.title)) || service || "";
+    $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3>' +
+      '<p class="sr-faint" style="margin-bottom:14px">Vendor quote from ' + esc(q.vendorBusiness || "vendor") + ": <strong>" + esc(cqMoney(vendorAmount)) + "</strong>" +
+      (q.duration ? " · " + esc(q.duration) : "") + ". Set the customer price below. The customer never sees the vendor number.</p>" +
+      '<form id="cqForm" class="aform">' +
+      '<div class="row2"><label>Customer name<input type="text" id="cq-name" value="' + esc(name) + '" required></label>' +
+      '<label>Contact (phone · email)<input type="text" id="cq-contact" value="' + esc(contact) + '"></label></div>' +
+      '<div class="row2"><label>Service address<input type="text" id="cq-address" value="' + esc(address) + '"></label>' +
+      '<label>Service<input type="text" id="cq-service" value="' + esc(service) + '"></label></div>' +
+      '<label style="margin-bottom:6px">Line items (what the customer sees)</label>' +
+      '<div id="cq-items">' + cqItemRowHtml(firstLabel, vendorAmount) + "</div>" +
+      '<button type="button" class="mini" id="cq-add-item">Add line</button>' +
+      '<div id="cq-math" style="margin:16px 0;padding:14px 16px;border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:.95rem"></div>' +
+      '<div class="row2"><label>Quote valid for<select id="cq-expiry"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></label>' +
+      '<label>Notes for the customer (optional)<input type="text" id="cq-notes" placeholder="Terms line shown on the quote"></label></div>' +
+      '<p class="aerr hidden" id="cq-err"></p>' +
+      '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="cq-save">Create customer quote</button></div>' +
+      "</form>";
+    $("cqForm").addEventListener("submit", saveCustomerQuote);
+    $("cq-add-item").addEventListener("click", function () {
+      var div = document.createElement("div");
+      div.innerHTML = cqItemRowHtml("", "");
+      var row = div.firstChild;
+      $("cq-items").appendChild(row);
+      var lbl = row.querySelector(".cq-item-label");
+      if (lbl) lbl.focus();
+      cqRecalc();
+    });
+    $("cq-items").addEventListener("input", cqRecalc);
+    $("cq-items").addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("[data-cq-remove]") : null;
+      if (!b) return;
+      var row = b.closest(".cq-item");
+      if (!row) return;
+      if ($("cq-items").querySelectorAll(".cq-item").length > 1) row.remove();
+      else { row.querySelector(".cq-item-label").value = ""; row.querySelector(".cq-item-amount").value = ""; }
+      cqRecalc();
+    });
+    cqRecalc();
+  }
+
+  function cqItemsTotal() {
+    var total = 0;
+    Array.prototype.forEach.call(document.querySelectorAll("#cq-items .cq-item"), function (row) {
+      total += parseFloat(row.querySelector(".cq-item-amount").value) || 0;
+    });
+    return Math.round(total * 100) / 100;
+  }
+  function cqRecalc() {
+    var box = $("cq-math");
+    if (!box || !cqCtx) return;
+    var total = cqItemsTotal();
+    var vendor = cqCtx.vendorAmount || 0;
+    var margin = Math.round((total - vendor) * 100) / 100;
+    var pct = total > 0 ? Math.round((margin / total) * 100) : 0;
+    var warn = total < vendor;
+    box.innerHTML = "Vendor quote <strong>" + esc(cqMoney(vendor)) + "</strong> · Your margin <strong" +
+      (warn ? ' style="color:#ff9d9d"' : "") + ">" + esc(cqMoney(margin)) + " (" + pct + "%)</strong> · Customer total <strong>" + esc(cqMoney(total)) + "</strong>" +
+      (warn ? '<div style="color:#ff9d9d;margin-top:6px;font-size:.88rem">Warning: the customer total is below the vendor quote. PrimeGuard would lose money on this job.</div>' : "");
+  }
+
+  /* Create a tasks doc unless a matching one already exists. Dedupes on
+     entityId + exact title; openOnly=true skips only when an OPEN task
+     matches (follow-ups), false skips on any match (one-time notices).
+     Resolves true when the task exists or was created, false on error. */
+  function cqAddTaskOnce(title, details, dueKey, entityId, entityName, createdBy, openOnly) {
+    return db.collection("tasks").where("entityId", "==", entityId).limit(50).get()
+      .then(function (qs) {
+        var dupe = false;
+        qs.forEach(function (doc) {
+          var t = doc.data();
+          if (!t || t.title !== title) return;
+          if (openOnly && t.done) return;
+          dupe = true;
+        });
+        if (dupe) return true;
+        return db.collection("tasks").add({
+          title: title,
+          details: details,
+          dueDate: dueKey,
+          assigneeEmail: "",
+          entityType: "customer_quote",
+          entityId: entityId,
+          entityName: entityName || "",
+          done: false,
+          createdBy: createdBy || "",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          doneAt: null
+        }).then(function () { return true; });
+      })
+      .catch(function () { return false; });
+  }
+
+  function cqCreateFollowUps(cqId, docData, todayKey) {
+    var name = docData.customerName || "Customer";
+    var total = cqMoney(docData.total);
+    var sent = fmtFollowDate(todayKey);
+    var exp = fmtFollowDate(docData.expiresAt);
+    var d1 = "Day 2-3 follow-up on the " + total + " quote sent " + sent + ". Call or message, answer questions, note the reply on the customer record. Stop follow-ups if they reply or sign.";
+    var d2 = "Final follow-up on the " + total + " quote sent " + sent + ". It expires " + exp + ". One last check-in: answer any questions and note the reply on the customer record. If they do not reply, let the quote expire and note the lead as cold.";
+    return Promise.all([
+      cqAddTaskOnce("Quote follow-up: " + name, d1, tkShiftKey(todayKey, 3), cqId, name, docData.createdBy, true),
+      cqAddTaskOnce("Quote follow-up #2: " + name, d2, tkShiftKey(todayKey, 7), cqId, name, docData.createdBy, true)
+    ]).catch(function () {});
+  }
+
+  function saveCustomerQuote(e) {
+    e.preventDefault();
+    if (!cqCtx) return;
+    var err = $("cq-err"); err.classList.add("hidden");
+    function fail(msg) { err.textContent = msg; err.classList.remove("hidden"); }
+    var name = $("cq-name").value.trim();
+    if (!name) { fail("Customer name is required."); return; }
+    var items = [];
+    Array.prototype.forEach.call(document.querySelectorAll("#cq-items .cq-item"), function (row) {
+      var label = row.querySelector(".cq-item-label").value.trim();
+      var amount = Math.round((parseFloat(row.querySelector(".cq-item-amount").value) || 0) * 100) / 100;
+      if (label || amount) items.push({ label: label || "Service", amount: amount });
+    });
+    var total = Math.round(items.reduce(function (s, it) { return s + it.amount; }, 0) * 100) / 100;
+    if (!items.length || total <= 0) { fail("Add at least one line item with an amount."); return; }
+    var contact = $("cq-contact").value.trim();
+    var days = parseInt($("cq-expiry").value, 10) || 14;
+    var todayKey = localDateKey(new Date());
+    var docData = {
+      vendorQuoteId: cqCtx.quoteId,
+      workOrderId: cqCtx.quote.workOrderId || null,
+      vendorId: cqCtx.quote.vendorId || null,
+      vendorAmount: cqCtx.vendorAmount,
+      items: items,
+      total: total,
+      customerName: name,
+      customerContact: contact,
+      customerEmail: cqParseEmail(contact),
+      address: $("cq-address").value.trim(),
+      service: $("cq-service").value.trim(),
+      notes: $("cq-notes").value.trim(),
+      status: "sent",
+      createdBy: me ? me.email : "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: tkShiftKey(todayKey, days),
+      signedName: null,
+      signedAt: null,
+      payChoice: null,
+      notifiedSigned: false
+    };
+    var btn = $("cq-save"); btn.disabled = true; btn.textContent = "Creating…";
+    db.collection("customer_quotes").add(docData).then(function (ref) {
+      var newId = ref.id;
+      var patch = db.collection("quotes").doc(cqCtx.quoteId).update({ customerQuoteId: newId }).catch(function () {});
+      var fus = cqCreateFollowUps(newId, docData, todayKey);
+      return Promise.all([patch, fus]).then(function () { return newId; });
+    }).then(function (newId) {
+      logActivity("Built a customer quote for " + name);
+      showCustomerQuoteShare(newId, docData);
+      loadQuotes();
+    }).catch(function (e2) {
+      fail("Could not save: " + (e2.message || e2));
+    }).finally(function () {
+      var b2 = $("cq-save");
+      if (b2) { b2.disabled = false; b2.textContent = "Create customer quote"; }
+    });
+  }
+
+  function showCustomerQuoteShare(newId, docData) {
+    var link = "https://primeguardmia.com/quote-sign.html?id=" + newId;
+    var first = String(docData.customerName || "there").trim().split(/\s+/)[0] || "there";
+    var subject = "Your PrimeGuard quote";
+    var body = "Hi " + first + ",\n\n" +
+      "Your PrimeGuard quote is ready: " + (docData.service || "your service") + " for " + cqMoney(docData.total) +
+      ", valid until " + fmtFollowDate(docData.expiresAt) + ".\n\n" +
+      "Review and sign here: " + link + "\n\n" +
+      "You can pay in full, or put 20% down to schedule and pay the rest when the job is done.\n\n" +
+      "Questions? Call us at (786) 422-9674.\n\n" +
+      "PrimeGuard Preservation LLC";
+    var mailto = "mailto:" + encodeURIComponent(docData.customerEmail || "") +
+      "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    $("cqBody").innerHTML = '<h3 id="cqTitle">Customer quote ready ✓</h3>' +
+      '<p style="margin-top:8px">' + esc(docData.customerName) + " · " + esc(cqMoney(docData.total)) + " · valid until " + esc(fmtFollowDate(docData.expiresAt)) + "</p>" +
+      '<label style="display:block;margin-top:14px;font-size:.85rem;color:var(--muted)">Sign link<input type="text" id="cq-link" readonly value="' + esc(link) + '" style="margin-top:6px;width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.92rem;font-family:inherit"></label>' +
+      '<div class="sr-actions" style="margin-top:14px">' +
+      '<button class="btn btn-gold btn-sm" type="button" id="cq-copy">Copy link</button>' +
+      '<a class="btn btn-ghost btn-sm" href="' + esc(mailto) + '">Email to customer</a>' +
+      '<button class="btn btn-ghost btn-sm" type="button" id="cq-done">Done</button></div>' +
+      '<p class="sr-faint" style="margin-top:12px">Two follow-up tasks are on the Tasks page (day 3 and day 7). They close themselves if the customer signs.</p>';
+    var copyBtn = $("cq-copy");
+    copyBtn.addEventListener("click", function () {
+      var inp = $("cq-link");
+      function done() { copyBtn.textContent = "Copied ✓"; setTimeout(function () { copyBtn.textContent = "Copy link"; }, 2000); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inp.value).then(done).catch(function () {
+          inp.select(); try { document.execCommand("copy"); } catch (e) {} done();
+        });
+      } else { inp.select(); try { document.execCommand("copy"); } catch (e) {} done(); }
+    });
+    $("cq-done").addEventListener("click", closeCustomerQuoteBuilder);
+  }
+
+  /* ----- Signed customer quotes: list + signature side effects ----- */
+  // Runs inside loadQuotes. Everything here is best-effort: failures are
+  // swallowed so the vendor quote review flow is never disturbed (and so
+  // the section stays quiet until the customer_quotes rules publish).
+  function loadCustomerQuotes() {
+    var box = $("ad-cq-signed-list");
+    db.collection("customer_quotes").orderBy("createdAt", "desc").limit(50).get()
+      .then(function (qs) {
+        var signed = [];
+        qs.forEach(function (d) {
+          var q = d.data();
+          if (q && q.status === "signed") signed.push({ id: d.id, q: q });
+        });
+        if (box) {
+          if (!signed.length) {
+            box.innerHTML = '<p style="color:var(--faint)">No signed customer quotes yet.</p>';
+          } else {
+            box.innerHTML = "";
+            signed.forEach(function (it) {
+              var q = it.q;
+              var sdMs = tsMs(q.signedAt);
+              var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+              var row = document.createElement("div"); row.className = "arow";
+              row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + "</strong><small>" +
+                esc(q.service || "") + (sd ? " · signed " + esc(sd) : "") + " · " + (q.payChoice === "deposit20" ? "20% deposit" : "Full payment") +
+                (q.signedName ? " · signed by " + esc(q.signedName) : "") + "</small></div>" +
+                '<span class="pill p-done">Signed</span>';
+              box.appendChild(row);
+            });
+          }
+        }
+        signed.forEach(function (it) { cqHandleSigned(it.id, it.q); });
+      })
+      .catch(function () {});
+  }
+
+  function cqHandleSigned(cqId, q) {
+    try {
+      if (!cqId || !q) return;
+      // A signed quote closes its own follow-up sequence.
+      db.collection("tasks").where("entityId", "==", cqId).limit(50).get()
+        .then(function (qs) {
+          qs.forEach(function (doc) {
+            var t = doc.data();
+            if (t && !t.done && typeof t.title === "string" && t.title.indexOf("Quote follow-up") === 0) {
+              doc.ref.update({
+                done: true,
+                doneAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }).catch(function () {});
+            }
+          });
+        })
+        .catch(function () {});
+      if (q.notifiedSigned) return;
+      var total = Number(q.total) || 0;
+      var dueNow = q.payChoice === "deposit20"
+        ? (Number(q.amountDueNow) || Math.round(total * 0.2))
+        : total;
+      var choiceLabel = q.payChoice === "deposit20" ? "20% deposit" : "Full payment";
+      var title = "Collect payment: " + (q.customerName || "Customer") + " — " + cqMoney(dueNow) + " (" + choiceLabel + ")";
+      var details = (q.customerName || "The customer") + " signed the " + cqMoney(total) + " quote and chose " +
+        (q.payChoice === "deposit20" ? "the 20% deposit" : "full payment") + ". Amount to collect now: " + cqMoney(dueNow) +
+        ". Send the secure Stripe payment link for that amount, confirm the payment landed, then schedule the job and send the work order to the vendor.";
+      cqAddTaskOnce(title, details, localDateKey(new Date()), cqId, q.customerName || "", "System (quote signed)", false)
+        .then(function (ok) {
+          if (ok) return db.collection("customer_quotes").doc(cqId).update({ notifiedSigned: true });
+        })
+        .catch(function () {});
+    } catch (e) {}
   }
 
   function loadVendors() {
@@ -3267,6 +3610,7 @@
     if (d.taskeditdate) { var tep = d.taskeditdate.split("|"); openTaskDateModal("task", tep[0], tep[1]); }
     if (t.id === "taskFormClose" || t.id === "taskFormModal") closeTaskForm();
     if (t.id === "taskDateClose" || t.id === "taskDateModal") closeTaskDateModal();
+    if (t.id === "cqClose" || t.id === "cqModal") closeCustomerQuoteBuilder();
     if (d.custdetail) openCustomer(d.custdetail);
     if (d.custnotes) openCustomer(d.custnotes);
     if (d.custtask) {
@@ -3325,6 +3669,7 @@
       }).then(function () { logActivity("Approved a quote"); loadAll(); });
     }
     if (d.qno) { logActivity("Declined a quote"); db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll); }
+    if (d.cqbuild) openCustomerQuoteBuilder(d.cqbuild);
     if (d.vopen) openVendor(d.vopen);
     if (d.vrestore) restoreVendor(d.vrestore);
     if (d.staffdel && confirm("Remove this team member?")) { logActivity("Removed a team member"); db.collection("staff").doc(d.staffdel).delete().then(loadTeam); }
@@ -3338,7 +3683,9 @@
       !$("hlFormModal").classList.contains("hidden") || !$("hlConvertModal").classList.contains("hidden") ||
       !$("custModal").classList.contains("hidden") || !$("custFormModal").classList.contains("hidden") ||
       !$("taskFormModal").classList.contains("hidden") || !$("taskDateModal").classList.contains("hidden") ||
+      !$("cqModal").classList.contains("hidden") ||
       !$("cal2Modal").classList.contains("hidden");
+    if (!$("cqModal").classList.contains("hidden")) closeCustomerQuoteBuilder();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
     if (!$("hlConvertModal").classList.contains("hidden")) closeHotLeadConvert();
