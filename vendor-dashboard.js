@@ -165,6 +165,18 @@
   // ---------- Documents reminder (W-9 / insurance) ----------
   function renderDocs() {
     var v = vendor, sec = $("vd-docs-sec"), list = $("vd-docs-list");
+    // Quiet COI line in the Documentos area (upload itself lives in the
+    // alert section below, same as before).
+    var coiLine = $("vd-coi-line");
+    if (coiLine) {
+      if (v.insured === "yes" && v.coiStatus === "received") {
+        coiLine.innerHTML = "<strong>Certificado de seguro (COI): recibido ✓</strong> — en archivo con la oficina.";
+        coiLine.classList.remove("hidden");
+      } else {
+        coiLine.innerHTML = "";
+        coiLine.classList.add("hidden");
+      }
+    }
     var needW9 = v.w9Status !== "received";
     var needCoi = v.insured === "yes" && v.coiStatus !== "received";
     if (!needW9 && !needCoi) { sec.classList.add("hidden"); return; }
@@ -233,6 +245,8 @@
     var statusEl = $("va-status"), form = $("va-form");
     if (!statusEl || !form || !vendor) return;
     var ag = vendor.agreements || {};
+    var agSec = $("vd-agreements");
+    if (agSec) agSec.classList.toggle("vd-doc-done", ag.version === AGREEMENTS_VERSION);
     if (ag.version === AGREEMENTS_VERSION) {
       hide(form);
       var when = fmtDate(ag.signedAt, true);
@@ -303,6 +317,8 @@
     var el = $("vd-w9-status");
     if (!el || !vendor) return;
     var st = String(vendor.w9Status || "pending").toLowerCase();
+    var w9Sec = $("vd-w9-sec");
+    if (w9Sec) w9Sec.classList.toggle("vd-doc-done", st === "received" || st === "approved" || st === "submitted");
     if (st === "received" || st === "approved") {
       el.innerHTML = '<strong style="color:var(--gold-bright)">W-9: received ✓</strong> <span style="color:var(--muted)">— on file with the office.</span>';
     } else if (st === "submitted") {
@@ -311,6 +327,147 @@
       var due = fmtDate(vendor.w9Due, false);
       el.innerHTML = '<strong style="color:#f5d67b">W-9: pending' + (due ? " — due " + esc(due) : "") + '</strong> <span style="color:var(--muted)">— download the blank form below, fill it in, and upload it in the "Documents needed" section above.</span>';
     }
+  }
+
+  // ---------- "My Day" helpers (money strip + next-job hero) ----------
+  // Presentation only: these read fields the page already loads; no new
+  // queries, no new writes, no invented figures.
+  function parseDate(x) {
+    if (!x) return null;
+    if (typeof x.toDate === "function") { try { return x.toDate(); } catch (e) { return null; } }
+    if (x instanceof Date) return isNaN(x.getTime()) ? null : x;
+    if (typeof x === "object" && typeof x.seconds === "number") return new Date(x.seconds * 1000);
+    if (typeof x === "string" || typeof x === "number") {
+      var d = new Date(x);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  }
+
+  function fmtDateEs(d) {
+    try { return d.toLocaleDateString("es-US", { weekday: "short", month: "short", day: "numeric" }); }
+    catch (e) { return fmtDate(d); }
+  }
+
+  // Pay exactly as the office wrote it ("$45" or "45"); "" when unset.
+  function fmtPay(w) {
+    var raw = String((w && (w.payAgreed || w.pay)) || "").trim();
+    if (!raw) return "";
+    return raw.indexOf("$") >= 0 ? raw : "$" + raw;
+  }
+
+  function heroPhoto(w) {
+    if (w.photos && w.photos.length) return w.photos[0];
+    var s = ((w.category || "") + " " + (w.title || "")).toLowerCase();
+    if (/lawn|césped|cesped|grass|mow|yard|jardín|jardin/.test(s)) return "assets/hero-lawn-daylight.jpg";
+    if (/pressure|lavado|washing/.test(s)) return "assets/hero-pw-daylight.jpg";
+    if (/junk|escombro|haul|debris|basura/.test(s)) return "assets/hero-junk-daylight.jpg";
+    if (/handyman|repair|repar|plumb|electric/.test(s)) return "assets/hero-handyman-daylight.jpg";
+    if (/make.?ready|paint|pintura|clean/.test(s)) return "assets/hero-makeready-daylight.jpg";
+    return "assets/careers-crew.jpg";
+  }
+
+  var WO_DATE_FIELDS = ["scheduledFor", "scheduledDate", "serviceDate", "appointmentDate", "date", "when", "requestedWhen", "timing", "schedule", "preferredTime"];
+  function jobWhen(w) {
+    for (var i = 0; i < WO_DATE_FIELDS.length; i++) {
+      var val = w[WO_DATE_FIELDS[i]];
+      if (val === null || val === undefined || val === "") continue;
+      if (typeof val === "string") {
+        if (val.indexOf(":") >= 0) return val; // carries its own time text
+        var d = parseDate(val);
+        if (d) return fmtDateEs(d);
+        return val;
+      }
+      var dd = parseDate(val);
+      if (dd) return fmtDateEs(dd);
+    }
+    var acc = parseDate(w.acceptedAt);
+    if (acc) return "Aceptado el " + fmtDateEs(acc);
+    return "";
+  }
+
+  function statusLabelEs(w) {
+    if (!w) return "";
+    if (w.status === "accepted") return "Aceptado";
+    if (w.status === "evaluation_accepted") return "Evaluación aceptada";
+    return String(w.status || "").replace(/_/g, " ");
+  }
+
+  // Next job to work: not the ones already finished (status "review" is
+  // vendor-complete, waiting on the office). Earliest scheduled date when
+  // the work order carries one; otherwise the most recently accepted.
+  function pickHero(active) {
+    var cands = active.filter(function (w) { return w.status !== "review"; });
+    if (!cands.length) return null;
+    function sched(w) {
+      for (var i = 0; i < WO_DATE_FIELDS.length; i++) {
+        var d = parseDate(w[WO_DATE_FIELDS[i]]);
+        if (d) return d.getTime();
+      }
+      return null;
+    }
+    cands.sort(function (a, b) {
+      var sa = sched(a), sb = sched(b);
+      if (sa !== null && sb !== null) return sa - sb;
+      if (sa !== null) return -1;
+      if (sb !== null) return 1;
+      var aa = (parseDate(a.acceptedAt) || parseDate(a.createdAt) || new Date(0)).getTime();
+      var ab = (parseDate(b.acceptedAt) || parseDate(b.createdAt) || new Date(0)).getTime();
+      return ab - aa;
+    });
+    return cands[0];
+  }
+
+  var SVG_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+  var SVG_NAV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>';
+  var SVG_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  var SVG_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function renderHero(w) {
+    var box = $("vd-hero");
+    if (!box) return;
+    var cnt = $("vd-hero-cnt");
+    if (cnt) cnt.textContent = w ? statusLabelEs(w) : "";
+    if (!w) {
+      box.innerHTML = '<div class="vd-hero vd-hero-empty"><div class="vd-hero-body">' +
+        "<h3>Sin trabajos aceptados todavía</h3>" +
+        '<p class="vd-addr">Cuando aceptes un trabajo, aquí verás la dirección, el horario y los botones para llegar, subir las fotos y marcarlo terminado. Revisa los trabajos disponibles abajo.</p>' +
+        "</div></div>";
+      return;
+    }
+    var dest = w.address || (w.area ? w.area + ", Miami, FL" : "");
+    var mapsBtn = dest
+      ? '<a class="vd-btn vd-btn-gold" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '">' + SVG_NAV + "Cómo llegar</a>"
+      : "";
+    // Third action mirrors what this job kind already allows in the
+    // active list — no new writes are invented here.
+    var third;
+    if (w.kind !== "quote_request") {
+      third = '<button class="vd-btn vd-btn-dark" type="button" data-complete="' + w.id + '">' + SVG_CHECK + "Marcar terminado</button>";
+    } else if (!w.quoteSubmitted) {
+      third = '<button class="vd-btn vd-btn-dark" type="button" data-give-quote="' + w.id + '">Dar mi precio</button>';
+    } else {
+      third = '<button class="vd-btn vd-btn-outline" type="button" disabled>Precio enviado ✓</button>';
+    }
+    var pay = fmtPay(w);
+    var payHtml = pay
+      ? '<div><small>Paga</small><span class="vd-pay">' + esc(pay) + '</span></div><span class="vd-paynote">Pago al terminar,<br>con las fotos</span>'
+      : '<div><small>Paga</small><span class="vd-pay vd-pay-tqp">Tú pones el precio</span></div>';
+    var when = jobWhen(w);
+    box.innerHTML = '<article class="vd-hero">' +
+      '<div class="vd-hero-photo"><img src="' + esc(heroPhoto(w)) + '" alt="">' +
+      '<span class="vd-badge">' + esc(statusLabelEs(w)) + "</span></div>" +
+      '<div class="vd-hero-body"><h3>' + esc(w.title) + "</h3>" +
+      (when ? '<p class="vd-bigwhen">' + SVG_CLOCK + esc(when) + "</p>" : "") +
+      '<p class="vd-addr">' + (w.area ? "<strong>" + esc(w.area) + "</strong>" : "") +
+        (w.address ? " · " + esc(w.address) : "") +
+        (w.details ? "<br>" + esc(w.details) : "") + "</p>" +
+      '<div class="vd-payrow">' + payHtml + "</div>" +
+      mapsBtn +
+      '<button class="vd-btn vd-btn-outline" type="button" data-upload="' + w.id + '">' + SVG_CAM + "Subir fotos</button>" +
+      third +
+      '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
+      "</div></article>";
   }
 
   // ---------- Work orders ----------
@@ -338,10 +495,10 @@
     return st === "archived" || st === "rejected";
   }
   function renderInactivePanel() {
-    ["list-qr", "list-jobs", "list-active", "list-done"].forEach(function (id) {
+    ["list-qr", "list-jobs", "list-active", "list-done", "vd-hero"].forEach(function (id) {
       var el = $(id); if (el) el.innerHTML = "";
     });
-    ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done"].forEach(function (id) {
+    ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done", "vd-hero-cnt"].forEach(function (id) {
       var el = $(id); if (el) el.textContent = "";
     });
     openQRs = [];
@@ -392,8 +549,8 @@
       openQRs = qrs;
       renderList($("list-qr"), qrs, "quote_request");
       renderList($("list-jobs"), jobs, "job");
-      $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? " NEED EVALUATION" : " NEED EVALUATION");
-      $("cnt-jobs").textContent = jobs.length + " AVAILABLE";
+      $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? " NUEVA" : " NUEVAS");
+      $("cnt-jobs").textContent = jobs.length + " DISPONIBLES";
       $("st-open").textContent = jobs.length + qrs.length;
       buildQuoteSelect();
     });
@@ -412,14 +569,32 @@
           if (w.kind === "quote_request" && w.status === "evaluation_accepted") myEvals.push(w);
         }
       });
-      renderActive(active);
+      // Este mes (money strip): pay from jobs I completed — status
+      // "review" (I marked it complete) or "done" (office closed it) —
+      // whose completedAt falls in the current calendar month. Jobs
+      // without a parseable completedAt are excluded here only; jobs
+      // without pay count as 0, exactly like the totals below.
+      var nowD = new Date(), mSum = 0, mCount = 0;
+      active.concat(done).forEach(function (w) {
+        if (w.status !== "review" && w.status !== "done") return;
+        var cd = parseDate(w.completedAt);
+        if (cd && cd.getFullYear() === nowD.getFullYear() && cd.getMonth() === nowD.getMonth()) {
+          mSum += parseFloat(w.payAgreed || w.pay || 0) || 0;
+          mCount++;
+        }
+      });
+      var mEl = $("st-month"); if (mEl) mEl.textContent = "$" + mSum.toLocaleString();
+      var mnEl = $("st-month-n"); if (mnEl) mnEl.textContent = mCount ? mCount + (mCount === 1 ? " trabajo terminado" : " trabajos terminados") : "";
+      var heroJob = pickHero(active);
+      renderHero(heroJob);
+      renderActive(active, heroJob ? heroJob.id : null);
       renderDone(done);
       $("st-done").textContent = done.length;
       $("st-earned").textContent = "$" + earned.toLocaleString();
       $("st-pending").textContent = "$" + pending.toLocaleString();
-      $("st-pending-n").textContent = pendingN ? pendingN + " job(s) awaiting confirmation" : "Nothing awaiting confirmation";
-      $("cnt-active").textContent = active.length + " IN PROGRESS";
-      $("cnt-done").textContent = done.length + " JOBS";
+      $("st-pending-n").textContent = pendingN ? pendingN + " trabajo(s) esperando confirmación" : "Nada esperando confirmación";
+      $("cnt-active").textContent = active.length + " EN CURSO";
+      $("cnt-done").textContent = done.length + " TRABAJOS";
       buildQuoteSelect();
     });
     });
@@ -447,41 +622,50 @@
   }
 
   function renderList(box, arr, kind) {
-    if (!arr.length) { box.innerHTML = '<div class="vempty">Nothing here right now. New jobs pop up here automatically.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">Nada por aquí ahora. Los trabajos nuevos aparecen aquí automáticamente.</div>'; return; }
     box.innerHTML = arr.map(function (w) {
+      // Same actions the portal has always had (data-* hooks unchanged):
+      // quote requests -> accept evaluation / give a quote; direct jobs
+      // -> accept job. Labels are Spanish-first in the My Day skin.
       var btn = kind === "quote_request"
-        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">Accept evaluation</button>' +
-          (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '" style="margin-left:8px">Give a quote</button>')
-        : '<button class="btn btn-gold" data-accept-job="' + w.id + '">Accept job</button>';
+        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">Aceptar evaluación</button>' +
+          (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '">Dar mi precio</button>')
+        : '<button class="btn btn-gold" data-accept-job="' + w.id + '">Aceptar trabajo</button>';
+      var pay = fmtPay(w);
+      var payHtml = pay
+        ? '<div class="vd-payline"><small>Paga</small><strong>' + esc(pay) + "</strong></div>"
+        : '<div class="vd-payline"><span class="vd-tqp">Tú pones el precio</span></div>';
       return '<div class="vjob"><div class="t">' + esc(w.category || w.kind) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" +
         photoThumbs(w) + videoLinks(w) +
-        '<div class="meta"><strong>' + esc(w.area || "") + "</strong> &nbsp;·&nbsp; Pay: <strong>" + esc(w.pay || "per job") + "</strong></div>" +
-        btn + "</div>";
+        '<div class="meta"><strong>' + esc(w.area || "") + "</strong></div>" +
+        payHtml + btn + "</div>";
     }).join("");
   }
 
-  function renderActive(arr) {
+  function renderActive(arr, heroId) {
     var box = $("list-active");
-    if (!arr.length) { box.innerHTML = '<div class="vempty">No active work. Accept a job above to get started.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">Sin trabajo activo. Acepta un trabajo arriba para empezar.</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       var steps;
       if (w.kind === "quote_request") {
-        steps = step(w.status !== "open", "Evaluation visit scheduled") +
-                step(w.quoteSubmitted, "Quote submitted");
+        steps = step(w.status !== "open", "Visita de evaluación aceptada") +
+                step(w.quoteSubmitted, "Precio enviado");
       } else {
-        steps = step(true, "Work order received") +
-                step((w.beforePhotos || []).length > 0, "Before photos uploaded") +
-                step(false, "Work completed") +
-                step(w.status === "review" || w.status === "done", "After photos uploaded - then payment is released");
+        steps = step(true, "Orden de trabajo recibida") +
+                step((w.beforePhotos || []).length > 0, "Fotos de antes subidas") +
+                step(false, "Trabajo terminado") +
+                step(w.status === "review" || w.status === "done", "Fotos de después subidas — se libera el pago");
       }
       return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) + videoLinks(w) +
         '<ul class="vsteps">' + steps + "</ul>" +
-        '<button class="btn btn-gold" data-upload="' + w.id + '">Upload photos</button> ' +
-        (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '" style="margin-left:8px">Mark complete</button>' : "") +
-        (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '" style="margin-left:8px">Give a quote</button>' : "") +
-        '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
+        '<button class="btn btn-gold" data-upload="' + w.id + '">Subir fotos</button>' +
+        (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">Marcar terminado</button>' : "") +
+        (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">Dar mi precio</button>' : "") +
+        // The hero card carries this job's one file input; skip the
+        // duplicate here so #up-{id} exists exactly once per job.
+        (w.id === heroId ? "" : '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">') +
         "</div>";
     }).join("");
   }
@@ -492,10 +676,10 @@
 
   function renderDone(arr) {
     var box = $("list-done");
-    if (!arr.length) { box.innerHTML = '<div class="vempty">No completed jobs yet.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">Todavía no terminas trabajos.</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       return '<div class="vhrow"><div class="info"><strong>' + esc(w.title) + '</strong><span>' + esc(w.area || "") + " · " + esc(w.completedAt || "") + "</span></div>" +
-        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>Paid per job</small></div></div>";
+        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>Pagado por trabajo</small></div></div>";
     }).join("");
   }
 
@@ -628,4 +812,40 @@
       loadAll();
     }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = "Submit quote"; });
   });
+
+  // ---------- Bottom tab bar: scroll-spy (presentation only) ----------
+  // The tabs themselves are plain anchors; this only moves the gold
+  // "active" state to the tab whose section is on screen.
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".vd-tab"));
+    if (!tabs.length) return;
+    var map = [
+      ["sec-dinero", "#sec-dinero"],
+      ["sec-proximo", "#sec-mistrabajos"],
+      ["vd-docs-sec", "#sec-disponibles"],
+      ["sec-disponibles", "#sec-disponibles"],
+      ["sec-jobs", "#sec-disponibles"],
+      ["sec-mistrabajos", "#sec-mistrabajos"],
+      ["sec-cotizar", "#sec-disponibles"],
+      ["sec-done", "#sec-mistrabajos"],
+      ["sec-mas", "#sec-mas"]
+    ];
+    var ticking = false;
+    function update() {
+      ticking = false;
+      var dash = $("vd-dash");
+      if (!dash || dash.classList.contains("hidden")) return;
+      var current = "#sec-mistrabajos";
+      for (var i = 0; i < map.length; i++) {
+        var el = document.getElementById(map[i][0]);
+        if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= 160) current = map[i][1];
+      }
+      tabs.forEach(function (t) {
+        t.classList.toggle("active", t.getAttribute("href") === current);
+      });
+    }
+    window.addEventListener("scroll", function () {
+      if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+    }, { passive: true });
+  })();
 })();

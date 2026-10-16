@@ -15,107 +15,21 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
-<style>
-  .vwrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
-  .vtop { display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid rgba(255,255,255,.07); }
-  .vbrand { font-weight:800; font-size:1.05rem; }
-  .vbrand span { color: var(--gold); }
-  .vtag { font-size:.7rem; text-transform:uppercase; letter-spacing:.2em; color:var(--gold); border:1px solid var(--line); border-radius:999px; padding:5px 14px; }
-  .vright { margin-left:auto; display:flex; align-items:center; gap:14px; }
-  .vavatar { width:38px; height:38px; border-radius:50%; background:radial-gradient(circle at 30% 25%, var(--gold-bright), var(--gold-deep)); display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1405; }
-  .vhero { padding:36px 0 6px; }
-  .vkicker { text-transform:uppercase; letter-spacing:.24em; font-size:.72rem; color:var(--gold); font-weight:600; margin-bottom:8px; }
-  .vhero h1 { font-size:clamp(1.7rem,4vw,2.4rem); font-weight:800; }
-  .vsub { color:var(--muted); margin:6px auto 0; max-width:640px; }
-  .vstats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin:26px 0 6px; }
-  .vstat { border-radius:18px; padding:22px; background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,0) 55%),linear-gradient(180deg,#141417,#0c0c0e); border:1px solid rgba(255,255,255,.07); box-shadow:0 18px 44px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); position:relative; overflow:hidden; }
-  .vstat::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; background:linear-gradient(90deg,transparent,rgba(201,162,75,.6),transparent); }
-  .vstat .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.16em; color:var(--muted); margin-bottom:6px; }
-  .vstat .v { font-size:1.9rem; font-weight:800; }
-  .vstat .n { font-size:.8rem; color:var(--faint); margin-top:4px; }
-  .vsec { padding:30px 0 4px; }
-  .vsec h2 { font-size:1.3rem; margin-bottom:4px; }
-  .vsec .cnt { font-size:.78rem; color:var(--gold); letter-spacing:.1em; margin-bottom:16px; display:block; }
-  .vjobs { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
-  .vjob { border-radius:18px; padding:24px; position:relative; overflow:hidden; background:linear-gradient(170deg,rgba(201,162,75,.07),rgba(201,162,75,0) 45%),linear-gradient(180deg,#131316,#0b0b0d); border:1px solid var(--line); box-shadow:0 16px 40px rgba(0,0,0,.5); }
-  .vjob::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep)); }
-  .vjob .t { font-size:.7rem; text-transform:uppercase; letter-spacing:.18em; color:var(--gold); margin-bottom:8px; }
-  .vjob h3 { font-size:1.1rem; margin-bottom:6px; }
-  .vjob p { color:var(--muted); font-size:.9rem; margin-bottom:12px; }
-  .vjob .meta { font-size:.82rem; color:var(--faint); margin-bottom:16px; }
-  .vjob .meta strong { color:var(--text); }
-  .vthumbs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-  .vthumbs img { width:90px; height:64px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.1); }
-  .vempty { color:var(--faint); font-size:.92rem; padding:18px; border:1px dashed rgba(255,255,255,.14); border-radius:14px; }
-  .vsteps { list-style:none; margin:14px 0; display:flex; flex-direction:column; gap:10px; }
-  .vsteps li { display:flex; align-items:center; gap:12px; font-size:.93rem; }
-  .vdot { width:28px; height:28px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; }
-  .sdone .vdot { background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep)); color:#1a1405; }
-  .stodo .vdot { border:1px dashed rgba(201,162,75,.5); color:var(--gold); }
-  .stodo { color:var(--muted); }
-  .vform label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:12px; }
-  .vform input, .vform textarea, .vform select { margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:1rem; font-family:inherit; }
-  .vform .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .vhist { display:flex; flex-direction:column; gap:12px; }
-  .vhrow { display:flex; align-items:center; gap:16px; border-radius:14px; padding:14px 18px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); }
-  .vhrow .info { flex:1; } .vhrow .info strong { display:block; font-size:.93rem; } .vhrow .info span { font-size:.8rem; color:var(--faint); }
-  .vpaid { color:var(--gold-bright); font-weight:700; font-size:.88rem; white-space:nowrap; }
-  .vpaid small { display:block; color:var(--faint); font-weight:400; font-size:.72rem; }
-  .vgrid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
-  .vfield { border-radius:12px; padding:14px 16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); }
-  .vfield span { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; color:var(--faint); margin-bottom:4px; }
-  .vfield strong { font-size:.95rem; font-weight:600; }
-  .verr { color:#ff9d9d; font-size:.9rem; margin:10px 0; }
-  .vok { color:var(--gold-bright); font-size:.9rem; margin:10px 0; }
-  /* Hero glow + background picture */
-  .vhero { position:relative; border-radius:22px; overflow:hidden; padding:44px 28px 30px; margin-top:18px;
-    background:linear-gradient(180deg, rgba(8,8,10,.62), rgba(8,8,10,.88)), url("assets/careers-crew.jpg") center/cover;
-    border:1px solid rgba(255,255,255,.08); box-shadow:0 22px 55px rgba(0,0,0,.55); }
-  .vhero::before { content:""; position:absolute; inset:0; background:radial-gradient(640px 220px at 18% 0%, rgba(201,162,75,.16), transparent 70%); pointer-events:none; }
-  .vhero > * { position:relative; }
-  /* Footer */
-  .vfooter { margin-top:44px; border-top:1px solid rgba(255,255,255,.07); padding:40px 0 110px; }
-  .vfooter-inner { display:grid; gap:26px; }
-  .vfooter-brand { display:flex; gap:14px; align-items:center; }
-  .vfooter-brand img { width:54px; height:54px; }
-  .vfooter-brand p { font-weight:700; margin:0; }
-  .vfooter-brand span { color:var(--faint); font-weight:400; font-size:.85rem; }
-  .vfooter-contact { display:flex; flex-direction:column; gap:6px; }
-  .vfooter-contact a { color:var(--gold-bright); font-weight:600; }
-  .vfooter-contact span { color:var(--faint); font-size:.85rem; }
-  .vfooter-links { display:flex; flex-wrap:wrap; gap:8px 22px; align-content:flex-start; }
-  .vfooter-links a { color:var(--muted); font-size:.9rem; }
-  .vfooter-note { color:var(--faint); font-size:.85rem; max-width:600px; margin:0; }
-  .vfooter-copy { color:var(--faint); font-size:.8rem; margin:0; }
-  @media (min-width:760px) {
-    .vfooter-inner { grid-template-columns:1.2fr 1fr 1fr; }
-    .vfooter-note, .vfooter-copy { grid-column:1 / -1; }
-  }
-  /* Responsive */
-  @media (max-width:600px) {
-    .vtop { flex-wrap:wrap; row-gap:10px; }
-    .vright { margin-left:0; width:100%; justify-content:space-between; }
-    .vstats { grid-template-columns:1fr 1fr; gap:12px; }
-    .vstat { padding:16px; }
-    .vstat .v { font-size:1.45rem; }
-    .vform .row2 { grid-template-columns:1fr; }
-    .vjob { padding:20px; }
-    .vjobs { grid-template-columns:1fr; }
-  }
-</style>
 <link rel="stylesheet" href="vendor.css?v=4">
+<link rel="stylesheet" href="vendor-dash.css?v=1">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
-  <div class="vtop">
-    <div class="vbrand">PrimeGuard <span>Preservation</span></div>
-    <div class="vtag">Vendor Portal</div>
-    <div class="vright">
-      <div class="vavatar" id="vd-avatar">V</div>
-      <div><strong id="vd-biz" style="font-size:.9rem">Vendor</strong><br><span id="vd-area" style="font-size:.75rem;color:var(--faint)"></span></div>
-      <a href="#" id="vd-logout" style="color:var(--muted);font-size:.85rem">Log out</a>
+  <header class="vd-hdr">
+    <img class="vd-hdr-logo" src="assets/logo-transparent.png" alt="PrimeGuard">
+    <div class="vd-hdr-who">
+      <strong>Hola, <span id="vd-hello">there</span></strong>
+      <span id="vd-biz">Vendor</span>
+      <span id="vd-area"></span>
     </div>
-  </div>
+    <div class="vavatar" id="vd-avatar">V</div>
+    <a href="#" id="vd-logout" class="vd-hdr-logout">Log out</a>
+  </header>
 </div>
 
 <!-- Login gate -->
@@ -162,102 +76,63 @@
 
 <!-- Dashboard -->
 <div class="vwrap hidden" id="vd-dash">
-  <section class="vhero">
-    <p class="vkicker">Vendor dashboard</p>
-    <h1>Hello, <span class="gold-text" id="vd-hello">there</span></h1>
-    <p class="vsub">Your work, your earnings, and your profile. Accept a job, follow the work order, upload before and after photos, and get paid per job completed.</p>
-  </section>
 
-  <section class="pg-app-card">
-    <img class="pg-app-ico" src="assets/icon-192.png" alt="">
-    <div class="pg-app-txt">
-      <h3>Get the PrimeGuard Vendor app</h3>
-      <p>Job alerts the second a quote request comes in. Your jobs, photos, and work orders in one place. Send your price right from the truck.</p>
+  <!-- Mi dinero: money strip + mini stats -->
+  <section class="vsec" id="sec-dinero" style="padding-top:10px">
+    <div class="vd-money">
+      <div class="vd-tile"><small>Por cobrar</small><strong id="st-pending">$0</strong><span class="vd-tile-n" id="st-pending-n"></span></div>
+      <div class="vd-tile plain"><small>Este mes</small><strong id="st-month">$0</strong><span class="vd-tile-n" id="st-month-n"></span></div>
     </div>
-    <button class="btn pg-app-btn pg-get-app" type="button">Install the app</button>
+    <div class="vd-ministats">
+      <div class="vd-mini"><span class="vd-mini-l">Trabajos terminados</span><strong id="st-done">0</strong><span class="vd-mini-n" id="st-done-n"></span></div>
+      <div class="vd-mini"><span class="vd-mini-l">Ganado</span><strong id="st-earned">$0</strong></div>
+      <div class="vd-mini"><span class="vd-mini-l">Oportunidades abiertas</span><strong id="st-open">0</strong></div>
+    </div>
   </section>
 
-  <section class="vsec" id="vd-agreements" style="padding-top:22px">
-    <h2>Agreements</h2>
-    <div id="va-status"></div>
-    <form id="va-form" class="vform hidden" style="max-width:720px">
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">
-        <div style="flex:1;min-width:220px"><strong>Non-Circumvention, Non-Solicitation and Confidentiality Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
-        <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-NDA-NonCircumvention.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
-      </div>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">
-        <div style="flex:1;min-width:220px"><strong>Independent Contractor Services Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
-        <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-Independent-Contractor-Agreement.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
-      </div>
-      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-nda" style="width:auto;margin-top:3px"> <span>I have read and agree to the Non-Circumvention, Non-Solicitation and Confidentiality Agreement</span></label>
-      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-ica" style="width:auto;margin-top:3px"> <span>I have read and agree to the Independent Contractor Services Agreement</span></label>
-      <label>Full legal name (your electronic signature)<input type="text" id="va-name" autocomplete="name" placeholder="Your full legal name"></label>
-      <button class="btn btn-gold" type="submit" id="va-sign" disabled>Sign agreements</button>
-    </form>
-    <p class="verr hidden" id="va-error"></p>
-    <p class="vok hidden" id="va-ok"></p>
+  <!-- Tu próximo trabajo: next accepted job hero -->
+  <section class="vsec" id="sec-proximo">
+    <div class="vd-sect"><h2>Tu próximo trabajo</h2><span class="cnt" id="vd-hero-cnt"></span></div>
+    <div id="vd-hero"></div>
   </section>
 
-  <section class="vstats">
-    <div class="vstat"><div class="l">Jobs completed</div><div class="v" id="st-done">0</div><div class="n" id="st-done-n"></div></div>
-    <div class="vstat"><div class="l">Earned</div><div class="v gold-text" id="st-earned">$0</div><div class="n">Paid per job completed</div></div>
-    <div class="vstat"><div class="l">Pending payment</div><div class="v" id="st-pending">$0</div><div class="n" id="st-pending-n"></div></div>
-    <div class="vstat"><div class="l">Open opportunities</div><div class="v" id="st-open">0</div><div class="n">Jobs + quote requests</div></div>
-  </section>
-
-  <div style="margin:2px 0 20px">
-    <button class="btn btn-ghost" type="button" id="pgPushBtnVendor">🔔 Turn on job alerts</button>
-    <p style="color:var(--muted);font-size:.85rem;margin-top:8px">Get a buzz on this phone when a new job or quote request comes in.</p>
-  </div>
-
-  <section class="vsec hidden" id="vd-docs-sec" style="border:1px solid rgba(212,168,67,.45);background:linear-gradient(160deg,rgba(212,168,67,.1),rgba(212,168,67,.02))">
-    <h2>📋 Documents needed</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px" id="vd-docs-sub">Upload these so you can keep receiving paid jobs.</p>
+  <!-- Documents needed: upload alert, only when action is required -->
+  <section class="vsec hidden" id="vd-docs-sec">
+    <h2>Documentos necesarios</h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px" id="vd-docs-sub">Sube estos documentos para seguir recibiendo trabajos pagados.</p>
     <div id="vd-docs-list"></div>
   </section>
 
-  <section class="vsec" id="vd-w9-sec">
-    <h2>Tax documents</h2>
-    <div class="vjob" style="max-width:720px">
-      <div class="t">Form W-9</div>
-      <h3>IRS Form W-9</h3>
-      <p>Every vendor must submit a completed IRS Form W-9 within 7 days of registration. Payment can be held until it's in.</p>
-      <p id="vd-w9-status" style="margin-bottom:14px"></p>
-      <a class="btn btn-ghost" href="https://primeguardmia.com/assets/w9-form.pdf" target="_blank" rel="noopener" download>Download blank W-9 (fillable PDF)</a>
-      <p style="font-size:.82rem;color:var(--muted);margin:12px 0 0">Already filled yours out? Upload it in the "Documents needed" section above and the office will mark it received.</p>
-    </div>
-  </section>
-
-  <section class="vsec">
-    <h2>Quote requests</h2><span class="cnt" id="cnt-qr"></span>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">PrimeGuard posts the job details and photos. Review them, accept the evaluation visit, then submit your quote.</p>
+  <section class="vsec" id="sec-disponibles">
+    <div class="vd-sect"><h2>Trabajos disponibles</h2><span class="cnt" id="cnt-qr"></span></div>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">PrimeGuard publica los detalles y las fotos del trabajo. Revísalos, acepta la visita de evaluación y envía tu precio.</p>
     <div class="vjobs" id="list-qr"></div>
   </section>
 
-  <section class="vsec">
-    <h2>Available jobs</h2><span class="cnt" id="cnt-jobs"></span>
+  <section class="vsec" id="sec-jobs">
+    <div class="vd-sect"><h2>Trabajos directos</h2><span class="cnt" id="cnt-jobs"></span></div>
     <div class="vjobs" id="list-jobs"></div>
   </section>
 
-  <section class="vsec">
-    <h2>My active work</h2><span class="cnt" id="cnt-active"></span>
+  <section class="vsec" id="sec-mistrabajos">
+    <div class="vd-sect"><h2>Mis trabajos</h2><span class="cnt" id="cnt-active"></span></div>
     <div class="vjobs" id="list-active"></div>
   </section>
 
-  <section class="vsec">
-    <h2>Submit your quote</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin:2px 0 12px">Price the job from the photos, videos and notes on the work order.</p>
+  <section class="vsec" id="sec-cotizar">
+    <div class="vd-sect"><h2>Enviar mi precio</h2></div>
+    <p style="color:var(--muted);font-size:.9rem;margin:2px 0 12px">Cotiza el trabajo con las fotos, los videos y las notas de la orden de trabajo.</p>
     <div class="vjob" style="max-width:720px">
       <form id="vd-quoteform" class="vform">
-        <label>Which quote request is this for?
+        <label>¿Para qué solicitud es este precio?
           <select id="q-workorder"><option value="">Select a quote request...</option></select>
         </label>
         <div class="row2">
-          <label>Your price ($)<input type="text" id="q-price" placeholder="450" required></label>
-          <label>How long will it take<input type="text" id="q-duration" placeholder="1 day"></label>
+          <label>Tu precio ($)<input type="text" id="q-price" placeholder="450" required></label>
+          <label>¿Cuánto tiempo toma?<input type="text" id="q-duration" placeholder="1 day"></label>
         </div>
-        <label>Quote details<textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..."></textarea></label>
-        <label>Attach your formal quote <span style="color:var(--muted);font-weight:400">(optional)</span>
+        <label>Detalles del precio<textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..."></textarea></label>
+        <label>Adjunta tu cotización formal <span style="color:var(--muted);font-weight:400">(optional)</span>
           <input type="file" id="q-pdf" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px">
         </label>
         <p style="font-size:.82rem;color:var(--muted);margin:-6px 0 12px">Got a branded quote with your logo? Attach it here. It makes your bid look professional and helps you win the job.</p>
@@ -268,15 +143,94 @@
     </div>
   </section>
 
-  <section class="vsec">
-    <h2>Completed work</h2><span class="cnt" id="cnt-done"></span>
+  <section class="vsec" id="sec-done">
+    <div class="vd-sect"><h2>Trabajos terminados</h2><span class="cnt" id="cnt-done"></span></div>
     <div class="vhist" id="list-done"></div>
   </section>
 
-  <section class="vsec" style="padding-bottom:20px">
-    <h2>My profile</h2><span class="cnt" id="cnt-verified"></span>
+  <!-- Más: documents, alerts, app, profile -->
+  <section class="vsec" id="sec-mas" style="padding-bottom:20px">
+    <div class="vd-sect"><h2>Más</h2></div>
+
+    <h3 class="vd-subhead" style="margin-top:6px">Documentos</h3>
+    <div id="vd-w9-sec">
+      <div class="vd-doccard">
+        <div class="t">Form W-9</div>
+        <h4>IRS Form W-9</h4>
+        <p id="vd-w9-status" style="margin-bottom:14px"></p>
+        <div class="vd-w9-extra">
+          <p style="margin-bottom:12px">Every vendor must submit a completed IRS Form W-9 within 7 days of registration. Payment can be held until it's in.</p>
+          <a class="btn btn-ghost" href="https://primeguardmia.com/assets/w9-form.pdf" target="_blank" rel="noopener" download>Download blank W-9 (fillable PDF)</a>
+          <p class="vd-fine">Already filled yours out? Upload it in the "Documents needed" section above and the office will mark it received.</p>
+        </div>
+      </div>
+      <p id="vd-coi-line" class="vd-docline hidden"></p>
+    </div>
+
+    <div id="vd-agreements">
+      <h3 class="vd-subhead">Acuerdos</h3>
+      <div id="va-status"></div>
+      <form id="va-form" class="vform hidden" style="max-width:720px">
+        <div class="vd-docrow">
+          <div style="flex:1;min-width:220px"><strong>Non-Circumvention, Non-Solicitation and Confidentiality Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
+          <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-NDA-NonCircumvention.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
+        </div>
+        <div class="vd-docrow">
+          <div style="flex:1;min-width:220px"><strong>Independent Contractor Services Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
+          <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-Independent-Contractor-Agreement.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
+        </div>
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-nda" style="width:auto;margin-top:3px"> <span>I have read and agree to the Non-Circumvention, Non-Solicitation and Confidentiality Agreement</span></label>
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-ica" style="width:auto;margin-top:3px"> <span>I have read and agree to the Independent Contractor Services Agreement</span></label>
+        <label>Full legal name (your electronic signature)<input type="text" id="va-name" autocomplete="name" placeholder="Your full legal name"></label>
+        <button class="btn btn-gold" type="submit" id="va-sign" disabled>Sign agreements</button>
+      </form>
+      <p class="verr hidden" id="va-error"></p>
+      <p class="vok hidden" id="va-ok"></p>
+    </div>
+
+    <h3 class="vd-subhead">Avisos</h3>
+    <div class="vd-masrow">
+      <div class="vd-masrow-tx">
+        <strong>Avisos de trabajos</strong>
+        <span>Te avisamos en este teléfono cuando entre un trabajo nuevo o una solicitud de precio.</span>
+      </div>
+      <button class="btn btn-gold" type="button" id="pgPushBtnVendor">🔔 Activar avisos</button>
+    </div>
+
+    <section class="pg-app-card">
+      <img class="pg-app-ico" src="assets/icon-192.png" alt="">
+      <div class="pg-app-txt">
+        <h3>Get the PrimeGuard Vendor app</h3>
+        <p>Job alerts the second a quote request comes in. Your jobs, photos, and work orders in one place. Send your price right from the truck.</p>
+      </div>
+      <button class="btn pg-app-btn pg-get-app" type="button">Install the app</button>
+    </section>
+
+    <div class="vd-sect" style="margin-top:22px"><h3 class="vd-subhead" style="margin:0">Mi perfil</h3><span class="cnt" id="cnt-verified"></span></div>
     <div class="vgrid2" id="vd-profile"></div>
   </section>
+
+  <!-- Bottom tab bar: anchor navigation (Mock B) -->
+  <nav class="vd-tabs" aria-label="Vendor dashboard">
+    <div class="vd-tabs-in">
+      <a class="vd-tab" href="#sec-disponibles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        Trabajos
+      </a>
+      <a class="vd-tab active" href="#sec-mistrabajos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Mis trabajos
+      </a>
+      <a class="vd-tab" href="#sec-dinero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        Mi dinero
+      </a>
+      <a class="vd-tab" href="#sec-mas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        Más
+      </a>
+    </div>
+  </nav>
 </div>
 
 <!-- Signed in, but no vendor profile yet (friendly panel, no bounce) -->
@@ -321,7 +275,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=7"></script>
+<script src="vendor-dashboard.js?v=8"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

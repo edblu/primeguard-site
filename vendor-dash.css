@@ -1,0 +1,302 @@
+/* ============================================================
+   PrimeGuard vendor DASHBOARD — "Concept B · My Day" skin.
+   Loaded ONLY by vendor-dashboard.html, AFTER vendor.css.
+   Design system copied from the approved mock
+   (vendor-portal-mocks/mock-b-today-board.html): Golden Hour
+   tokens, money tiles on top, next-job hero card, slim section
+   headers, fixed bottom tab bar. New classes are vd- prefixed
+   so nothing here collides with styles.css / vendor.css.
+   Legacy dashboard classes (.vjob, .vsteps, .vform, .vhrow,
+   .vfield...) are re-skinned, not renamed, so every existing
+   render function keeps working untouched.
+   ============================================================ */
+
+:root {
+  --vd-gold-grad: linear-gradient(120deg, #ffdf7e, #f5c542 55%, #e0aa26);
+  --vd-sh: 0 18px 44px rgba(120, 90, 10, .16);
+  --vd-sh-sm: 0 10px 24px rgba(120, 90, 10, .10);
+  --vd-alert-bg: #fdf3d3;
+  --vd-alert-line: #e0aa26;
+}
+
+/* ---------- Layout wrappers ---------- */
+.vwrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+.vwrap#vd-topbar, .vwrap#vd-dash { max-width: 780px; }
+#vd-dash section[id], #vd-dash div[id] { scroll-margin-top: 14px; }
+
+/* ---------- Header (mock .hdr) ---------- */
+.vd-hdr { display: flex; align-items: center; gap: 10px; padding: 14px 2px 10px; }
+.vd-hdr-logo { height: 38px; width: auto; display: block; }
+.vd-hdr-who { flex: 1 1 auto; min-width: 0; }
+.vd-hdr-who strong { display: block; font-size: 1.12rem; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
+.vd-hdr-who span { display: block; font-size: .82rem; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vd-hdr-who span:empty { display: none; }
+.vavatar {
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 30% 25%, #f5c542, #b98a1d);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: #221a05;
+}
+.vd-hdr-logout { font-size: .85rem; font-weight: 700; color: var(--gold-deep); text-decoration: none; white-space: nowrap; }
+
+/* ---------- Login / no-profile hero (photo band kept from the
+   unified-login build; vendor.css paints it gold) ---------- */
+.vhero {
+  position: relative; border-radius: 22px; overflow: hidden;
+  padding: 44px 28px 30px; margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, .5); box-shadow: var(--vd-sh);
+}
+.vkicker { text-transform: uppercase; letter-spacing: .24em; font-size: .72rem; font-weight: 600; margin-bottom: 8px; }
+.vhero h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; }
+.vsub { margin: 6px auto 0; max-width: 640px; }
+
+/* ---------- Section headers (mock .sect) ---------- */
+.vsec { padding: 26px 0 4px; }
+.vsec h2 { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; margin-bottom: 4px; }
+.vsec .cnt { font-size: .78rem; letter-spacing: .1em; margin-bottom: 16px; display: block; }
+.vd-sect { margin: 0 2px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vd-sect h2 { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; margin: 0; }
+.vd-sect .cnt { font-size: .9rem; font-weight: 700; color: var(--gold-deep); white-space: nowrap; margin: 0; display: inline; letter-spacing: 0; }
+.vd-subhead { font-size: 1.05rem; font-weight: 800; margin: 22px 0 10px; }
+
+/* ---------- Money strip (mock .money / .tile) ---------- */
+.vd-money { display: flex; gap: 10px; margin-top: 6px; }
+.vd-tile {
+  flex: 1 1 0; background: var(--vd-gold-grad); border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 12px 26px rgba(185, 138, 29, .28); border: 1px solid rgba(255, 255, 255, .5);
+  min-width: 0;
+}
+.vd-tile.plain { background: rgba(255, 255, 255, .92); border-color: rgba(255, 255, 255, .95); box-shadow: var(--vd-sh-sm); }
+.vd-tile small { display: block; font-size: .78rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #6d5c26; }
+.vd-tile.plain small { color: var(--muted); }
+.vd-tile strong { display: block; font-size: 2rem; font-weight: 800; line-height: 1.1; margin-top: 2px; color: var(--text); }
+.vd-tile-n { display: block; font-size: .78rem; font-weight: 600; color: #6d5c26; margin-top: 2px; }
+.vd-tile-n:empty { display: none; }
+.vd-ministats { display: flex; gap: 10px; margin-top: 10px; }
+.vd-mini {
+  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95); border-radius: 16px;
+  padding: 12px 14px; box-shadow: var(--vd-sh-sm);
+}
+.vd-mini-l { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+.vd-mini strong { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+.vd-mini-n { display: block; font-size: .72rem; color: var(--faint); }
+.vd-mini-n:empty { display: none; }
+
+/* ---------- Next-job hero (mock .hero) ---------- */
+.vd-hero {
+  background: var(--card); border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 20px; box-shadow: var(--vd-sh); overflow: hidden;
+}
+.vd-hero-photo { position: relative; height: 150px; }
+.vd-hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vd-badge {
+  position: absolute; top: 10px; left: 10px; background: var(--text); color: #ffe9a8;
+  font-size: .75rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+  padding: 6px 11px; border-radius: 999px; box-shadow: 0 6px 16px rgba(34, 26, 5, .3);
+}
+.vd-hero-body { padding: 16px 16px 18px; }
+.vd-hero-body h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; color: var(--text); }
+.vd-bigwhen { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 1.12rem; font-weight: 800; color: var(--text); }
+.vd-bigwhen svg { width: 20px; height: 20px; color: var(--gold-deep); flex: 0 0 auto; }
+.vd-addr { margin-top: 8px; font-size: 1rem; color: #4c4225; }
+.vd-addr strong { color: var(--text); }
+.vd-payrow {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+}
+.vd-payrow small { display: block; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.vd-pay { font-size: 2.3rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; color: var(--text); }
+.vd-pay-tqp { font-size: 1.25rem; line-height: 1.25; }
+.vd-paynote { font-size: .88rem; font-weight: 700; color: var(--gold-deep); text-align: right; }
+.vd-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 56px; border-radius: 14px; cursor: pointer; width: 100%;
+  font-size: 1.08rem; font-weight: 800; font-family: inherit; text-decoration: none;
+  padding: 12px 18px; text-align: center; margin-top: 12px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.vd-btn svg { width: 21px; height: 21px; flex: 0 0 auto; }
+.vd-btn-gold { background: var(--vd-gold-grad); color: var(--text); border: none; box-shadow: 0 10px 24px rgba(185, 138, 29, .35); }
+.vd-btn-outline { background: #fff; color: var(--text); border: 1.5px solid var(--gold); box-shadow: var(--vd-sh-sm); }
+.vd-btn-dark { background: var(--text); color: #ffe9a8; border: none; box-shadow: 0 12px 26px rgba(34, 26, 5, .35); }
+.vd-btn[disabled] { opacity: .75; cursor: default; }
+.vd-hero .vd-btn:first-of-type { margin-top: 16px; }
+.vd-hero-empty .vd-hero-body { padding: 20px 18px; }
+.vd-hero-empty h3 { font-size: 1.25rem; }
+
+/* ---------- Job cards (legacy .vjob, re-skinned) ---------- */
+.vjobs { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.vjob {
+  border-radius: 20px; padding: 20px; position: relative; overflow: hidden;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .95); box-shadow: var(--vd-sh);
+}
+.vjob::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, #f5c542, #b98a1d);
+}
+.vjob .t { font-size: .7rem; text-transform: uppercase; letter-spacing: .18em; color: var(--gold-deep); font-weight: 800; margin-bottom: 8px; }
+.vjob h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: 6px; color: var(--text); }
+.vjob p { color: var(--muted); font-size: .92rem; margin-bottom: 12px; }
+.vjob .meta { font-size: .9rem; color: var(--faint); margin-bottom: 6px; }
+.vjob .meta strong { color: var(--text); }
+#vd-dash .vjob .btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; margin: 10px 0 0; min-height: 52px; border-radius: 14px;
+  font-size: 1rem;
+}
+.vd-payline { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 6px; }
+.vd-payline small { font-size: .72rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.vd-payline strong { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1; }
+.vd-tqp { font-size: 1.05rem; font-weight: 800; color: var(--gold-deep); }
+.vthumbs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.vthumbs img { width: 90px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(185, 138, 29, .35); }
+.vvids { margin-bottom: 12px; }
+.vvids a { color: var(--gold-deep); font-weight: 700; font-size: .9rem; margin-right: 14px; }
+.vempty {
+  font-size: .92rem; padding: 18px; border-radius: 14px;
+  border: 1px dashed rgba(120, 90, 10, .3);
+  background: rgba(255, 255, 255, .6); color: var(--muted);
+}
+
+/* Steps inside active-work cards */
+.vsteps { list-style: none; margin: 14px 0; display: flex; flex-direction: column; gap: 10px; }
+.vsteps li { display: flex; align-items: center; gap: 12px; font-size: .93rem; }
+.vdot {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700;
+}
+.sdone .vdot { background: var(--vd-gold-grad); color: var(--text); }
+.stodo .vdot { border: 1px dashed rgba(185, 138, 29, .5); color: var(--gold-deep); }
+.stodo { color: var(--muted); }
+
+/* ---------- Forms (layout; colors come from vendor.css) ---------- */
+.vform label { display: block; font-size: .85rem; margin-bottom: 12px; }
+.vform input, .vform textarea, .vform select {
+  margin-top: 6px; width: 100%; padding: 12px 14px; border-radius: 10px;
+  font-size: 1rem; font-family: inherit;
+}
+.vform .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.verr { font-size: .9rem; margin: 10px 0; }
+.vok { font-size: .9rem; margin: 10px 0; }
+
+/* ---------- Completed rows + profile fields ---------- */
+.vhist { display: flex; flex-direction: column; gap: 12px; }
+.vhrow {
+  display: flex; align-items: center; gap: 16px; border-radius: 14px; padding: 14px 18px;
+  background: rgba(255, 255, 255, .92); border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: var(--vd-sh-sm);
+}
+.vhrow .info { flex: 1; min-width: 0; }
+.vhrow .info strong { display: block; font-size: .93rem; color: var(--text); }
+.vhrow .info span { font-size: .8rem; color: var(--faint); }
+.vpaid { color: var(--gold-deep); font-weight: 700; font-size: .95rem; white-space: nowrap; text-align: right; }
+.vpaid small { display: block; color: var(--faint); font-weight: 400; font-size: .72rem; }
+.vgrid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.vfield {
+  border-radius: 12px; padding: 14px 16px;
+  background: rgba(255, 255, 255, .92); border: 1px solid rgba(255, 255, 255, .95);
+}
+.vfield span { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .14em; color: var(--faint); margin-bottom: 4px; }
+.vfield strong { font-size: .95rem; font-weight: 600; color: var(--text); }
+
+/* ---------- Status banner (renderProfile paints it inline with
+   dark-theme colors; pin readable Golden Hour values) ---------- */
+#vd-status-banner { color: #7a5d10 !important; background: rgba(245, 197, 66, .16) !important; border-color: rgba(185, 138, 29, .5) !important; }
+
+/* ---------- Documents alert (action needed) ---------- */
+#vd-docs-sec.vsec {
+  margin-top: 22px; padding: 18px;
+  background: var(--vd-alert-bg); border: 1.5px solid var(--vd-alert-line);
+  border-radius: 18px; box-shadow: var(--vd-sh-sm);
+}
+#vd-docs-sec h2 { margin-bottom: 4px; }
+#vd-docs-list > div {
+  background: #fff !important;
+  border: 1px solid var(--line-soft) !important;
+  border-radius: 12px;
+}
+#vd-docs-list input[type="file"] { font-size: .85rem; max-width: 100%; }
+
+/* ---------- "Más": document cards, quiet when done ---------- */
+.vd-doccard {
+  background: rgba(255, 255, 255, .92); border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 18px; padding: 18px; box-shadow: var(--vd-sh);
+}
+.vd-doccard .t { font-size: .7rem; text-transform: uppercase; letter-spacing: .18em; color: var(--gold-deep); font-weight: 800; margin-bottom: 8px; }
+.vd-doccard h4 { font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; color: var(--text); }
+.vd-doccard p { color: var(--muted); font-size: .9rem; }
+.vd-fine { font-size: .82rem; color: var(--muted); margin-top: 12px; }
+#vd-w9-sec:not(.vd-doc-done) .vd-doccard { background: var(--vd-alert-bg); border: 1.5px solid var(--vd-alert-line); }
+#vd-w9-sec.vd-doc-done .vd-doccard { background: rgba(255, 255, 255, .65); box-shadow: var(--vd-sh-sm); }
+#vd-w9-sec.vd-doc-done .vd-w9-extra { display: none; }
+#vd-agreements:not(.vd-doc-done) {
+  background: var(--vd-alert-bg); border: 1.5px solid var(--vd-alert-line);
+  border-radius: 18px; padding: 18px; margin-top: 22px;
+}
+.vd-docrow {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 12px; padding: 12px 14px;
+  border: 1px solid var(--line-soft); border-radius: 12px; background: #fff;
+}
+.vd-docline { margin-top: 12px; font-size: .92rem; color: var(--muted); }
+.vd-docline strong { color: var(--gold-deep); }
+
+/* ---------- "Más": simple rows (push, etc.) ---------- */
+.vd-masrow {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: rgba(255, 255, 255, .92); border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 18px; padding: 16px 18px; box-shadow: var(--vd-sh-sm);
+}
+.vd-masrow-tx { flex: 1; min-width: 220px; }
+.vd-masrow-tx strong { display: block; font-size: 1rem; color: var(--text); }
+.vd-masrow-tx span { font-size: .88rem; color: var(--muted); }
+
+/* ---------- Bottom tab bar (mock .tabs) ---------- */
+.vd-tabs {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+  background: rgba(255, 255, 255, .96); border-top: 1px solid var(--line);
+  box-shadow: 0 -10px 30px rgba(120, 90, 10, .12);
+  display: flex; justify-content: center;
+}
+.vd-tabs-in { display: flex; width: 100%; max-width: 780px; padding: 8px 6px calc(10px + env(safe-area-inset-bottom)); }
+.vd-tab {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: .72rem; font-weight: 700; color: var(--muted); text-decoration: none; padding: 4px 0 2px;
+}
+.vd-tab svg { width: 23px; height: 23px; }
+.vd-tab.active { color: var(--gold-deep); }
+.vd-tab.active svg { color: var(--gold); }
+
+/* ---------- Footer ---------- */
+.vfooter { margin-top: 44px; border-top: 1px solid rgba(120, 90, 10, .18); padding: 40px 0 110px; }
+.vfooter-inner { display: grid; gap: 26px; }
+.vfooter-brand { display: flex; gap: 14px; align-items: center; }
+.vfooter-brand img { width: 54px; height: 54px; }
+.vfooter-brand p { font-weight: 700; margin: 0; color: var(--text); }
+.vfooter-brand span { color: var(--faint); font-weight: 400; font-size: .85rem; }
+.vfooter-contact { display: flex; flex-direction: column; gap: 6px; }
+.vfooter-contact a { color: var(--gold-deep); font-weight: 600; }
+.vfooter-contact span { color: var(--faint); font-size: .85rem; }
+.vfooter-links { display: flex; flex-wrap: wrap; gap: 8px 22px; align-content: flex-start; }
+.vfooter-links a { color: var(--muted); font-size: .9rem; }
+.vfooter-note { color: var(--faint); font-size: .85rem; max-width: 600px; margin: 0; }
+.vfooter-copy { color: var(--faint); font-size: .8rem; margin: 0; }
+@media (min-width: 760px) {
+  .vfooter-inner { grid-template-columns: 1.2fr 1fr 1fr; }
+  .vfooter-note, .vfooter-copy { grid-column: 1 / -1; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+  .vwrap { padding: 0 16px; }
+  .vform .row2 { grid-template-columns: 1fr; }
+  .vd-tile strong { font-size: 1.7rem; }
+  .vd-pay { font-size: 2.05rem; }
+  .vd-pay-tqp { font-size: 1.15rem; }
+  .vd-mini { padding: 10px 12px; }
+  .vd-mini strong { font-size: 1.1rem; }
+  .vd-hero-body h3 { font-size: 1.3rem; }
+}
