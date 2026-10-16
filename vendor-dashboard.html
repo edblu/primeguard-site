@@ -155,6 +155,27 @@
     <button class="btn pg-app-btn pg-get-app" type="button">Install the app</button>
   </section>
 
+  <section class="vsec" id="vd-agreements" style="padding-top:22px">
+    <h2>Agreements</h2>
+    <div id="va-status"></div>
+    <form id="va-form" class="vform hidden" style="max-width:720px">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">
+        <div style="flex:1;min-width:220px"><strong>Non-Circumvention, Non-Solicitation and Confidentiality Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
+        <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-NDA-NonCircumvention.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">
+        <div style="flex:1;min-width:220px"><strong>Independent Contractor Services Agreement</strong><div style="font-size:.85rem;color:var(--muted)">PDF document</div></div>
+        <a class="btn btn-ghost" href="https://primeguardmia.com/assets/PrimeGuard-Independent-Contractor-Agreement.pdf" target="_blank" rel="noopener" style="padding:10px 18px;font-size:.9rem">View</a>
+      </div>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-nda" style="width:auto;margin-top:3px"> <span>I have read and agree to the Non-Circumvention, Non-Solicitation and Confidentiality Agreement</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="va-ica" style="width:auto;margin-top:3px"> <span>I have read and agree to the Independent Contractor Services Agreement</span></label>
+      <label>Full legal name (your electronic signature)<input type="text" id="va-name" autocomplete="name" placeholder="Your full legal name"></label>
+      <button class="btn btn-gold" type="submit" id="va-sign" disabled>Sign agreements</button>
+    </form>
+    <p class="verr hidden" id="va-error"></p>
+    <p class="vok hidden" id="va-ok"></p>
+  </section>
+
   <section class="vstats">
     <div class="vstat"><div class="l">Jobs completed</div><div class="v" id="st-done">0</div><div class="n" id="st-done-n"></div></div>
     <div class="vstat"><div class="l">Earned</div><div class="v gold-text" id="st-earned">$0</div><div class="n">Paid per job completed</div></div>
@@ -171,6 +192,18 @@
     <h2>📋 Documents needed</h2>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px" id="vd-docs-sub">Upload these so you can keep receiving paid jobs.</p>
     <div id="vd-docs-list"></div>
+  </section>
+
+  <section class="vsec" id="vd-w9-sec">
+    <h2>Tax documents</h2>
+    <div class="vjob" style="max-width:720px">
+      <div class="t">Form W-9</div>
+      <h3>IRS Form W-9</h3>
+      <p>Every vendor must submit a completed IRS Form W-9 within 7 days of registration. Payment can be held until it's in.</p>
+      <p id="vd-w9-status" style="margin-bottom:14px"></p>
+      <a class="btn btn-ghost" href="https://primeguardmia.com/assets/w9-form.pdf" target="_blank" rel="noopener" download>Download blank W-9 (fillable PDF)</a>
+      <p style="font-size:.82rem;color:var(--muted);margin:12px 0 0">Already filled yours out? Upload it in the "Documents needed" section above and the office will mark it received.</p>
+    </div>
   </section>
 
   <section class="vsec">
@@ -252,7 +285,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=4"></script>
+<script src="vendor-dashboard.js?v=5"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

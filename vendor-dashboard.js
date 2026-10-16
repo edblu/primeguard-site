@@ -65,6 +65,8 @@
       renderHeader();
       renderProfile();
       renderDocs();
+      renderAgreements();
+      renderW9();
       loadAll();
     });
   });
@@ -156,11 +158,109 @@
       }).then(function () {
         return db.collection("vendors").doc(me.uid).get();
       }).then(function (snap) {
-        vendor = snap.data(); renderDocs();
+        vendor = snap.data(); renderDocs(); renderW9();
         alert("Document received. Thank you.");
       }).catch(function () { alert("Upload failed. Please try again."); });
     };
     fr.readAsDataURL(f);
+  }
+
+  // ---------- Agreements (re-sign updated versions) ----------
+  var AGREEMENTS_VERSION = "2026-10-15";
+  var NDA_URL = "https://primeguardmia.com/assets/PrimeGuard-NDA-NonCircumvention.pdf";
+  var ICA_URL = "https://primeguardmia.com/assets/PrimeGuard-Independent-Contractor-Agreement.pdf";
+
+  function fmtDate(x, withYear) {
+    if (!x) return "";
+    var d = (x && typeof x.toDate === "function") ? x.toDate() : new Date(x);
+    if (!d || isNaN(d.getTime())) return "";
+    var opts = { month: "short", day: "numeric" };
+    if (withYear) opts.year = "numeric";
+    return d.toLocaleDateString("en-US", opts);
+  }
+
+  function renderAgreements() {
+    var statusEl = $("va-status"), form = $("va-form");
+    if (!statusEl || !form || !vendor) return;
+    var ag = vendor.agreements || {};
+    if (ag.version === AGREEMENTS_VERSION) {
+      hide(form);
+      var when = fmtDate(ag.signedAt, true);
+      statusEl.innerHTML =
+        '<p style="font-size:.95rem;margin-bottom:10px"><strong style="color:var(--gold-bright)">Agreements signed ✓</strong> — ' +
+        esc(ag.signedName || "") + (when ? ", " + esc(when) : "") + "</p>" +
+        '<p style="font-size:.9rem;color:var(--muted)">On file: ' +
+        '<a href="' + NDA_URL + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">Non-Circumvention, Non-Solicitation and Confidentiality Agreement</a> · ' +
+        '<a href="' + ICA_URL + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">Independent Contractor Services Agreement</a></p>';
+      return;
+    }
+    statusEl.innerHTML =
+      '<h3 style="font-size:1.05rem;margin-bottom:6px">Updated agreements — please re-sign</h3>' +
+      '<p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">We updated our vendor agreements. Please read the new versions below, check both boxes, and sign with your full legal name. It takes about a minute.</p>';
+    var nameEl = $("va-name");
+    if (nameEl && !nameEl.value) nameEl.value = ag.signedName || vendor.name || "";
+    show(form);
+    vaValidate();
+  }
+
+  function vaValidate() {
+    var btn = $("va-sign");
+    if (!btn) return;
+    var name = ($("va-name").value || "").trim();
+    var twoWords = name.split(/\s+/).filter(Boolean).length >= 2;
+    btn.disabled = !($("va-nda").checked && $("va-ica").checked && twoWords);
+  }
+
+  ["va-nda", "va-ica"].forEach(function (id) {
+    var el = $(id);
+    if (el) el.addEventListener("change", vaValidate);
+  });
+  if ($("va-name")) $("va-name").addEventListener("input", vaValidate);
+
+  $("va-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var errEl = $("va-error"), okEl = $("va-ok");
+    hide(errEl); hide(okEl);
+    var old = (vendor && vendor.agreements) || {};
+    var btn = $("va-sign");
+    btn.disabled = true; btn.textContent = "Signing...";
+    db.collection("vendors").doc(me.uid).update({
+      agreements: {
+        nda: true,
+        contractorAgreement: true,
+        signedName: $("va-name").value.trim(),
+        signedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        version: AGREEMENTS_VERSION,
+        previousSignedAt: old.signedAt || null
+      }
+    }).then(function () {
+      return db.collection("vendors").doc(me.uid).get();
+    }).then(function (snap) {
+      vendor = snap.data();
+      renderAgreements();
+      okEl.textContent = "Thank you — your updated agreements are signed and on file.";
+      show(okEl);
+    }).catch(function (err) {
+      errEl.textContent = "Something went wrong saving your signature: " + (err.message || err) + " Please try again.";
+      show(errEl);
+      btn.disabled = false; btn.textContent = "Sign agreements";
+      vaValidate();
+    });
+  });
+
+  // ---------- W-9 status (upload lives in Documents needed above) ----------
+  function renderW9() {
+    var el = $("vd-w9-status");
+    if (!el || !vendor) return;
+    var st = String(vendor.w9Status || "pending").toLowerCase();
+    if (st === "received" || st === "approved") {
+      el.innerHTML = '<strong style="color:var(--gold-bright)">W-9: received ✓</strong> <span style="color:var(--muted)">— on file with the office.</span>';
+    } else if (st === "submitted") {
+      el.innerHTML = '<strong style="color:var(--gold-bright)">W-9: submitted ✓</strong> <span style="color:var(--muted)">— received, on file with the office.</span>';
+    } else {
+      var due = fmtDate(vendor.w9Due, false);
+      el.innerHTML = '<strong style="color:#f5d67b">W-9: pending' + (due ? " — due " + esc(due) : "") + '</strong> <span style="color:var(--muted)">— download the blank form below, fill it in, and upload it in the "Documents needed" section above.</span>';
+    }
   }
 
   // ---------- Work orders ----------

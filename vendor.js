@@ -171,7 +171,8 @@
           nda: ndaAgreed,
           contractorAgreement: contractAgreed,
           signedName: signature,
-          signedAt: new Date().toISOString()
+          signedAt: new Date().toISOString(),
+          version: "2026-10-15"
         },
         verified: false,
         status: "pending",
