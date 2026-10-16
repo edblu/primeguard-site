@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal concept A — Daylight</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#101c26;--ink2:#33424e;--mut:#55645c;--gold:#c9a227;--gold2:#f5c542;--teal:#0e7c86;--glass:rgba(255,255,255,.86);--gb:rgba(255,255,255,.95);--sh:0 18px 44px rgba(23,34,43,.13)}
+*{margin:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;color:var(--ink2)}
+body{background:linear-gradient(180deg,#faf8f1,#f0ebdd);min-height:100vh}
+.wrap{max-width:1020px;margin:0 auto;padding:26px 22px 54px}
+header{display:flex;align-items:center;gap:12px;padding:6px 0 22px}
+header img{width:44px;height:44px;border-radius:50%}
+header .brand{font-family:Sora;font-weight:800;font-size:1.15rem;color:var(--ink)}
+header .brand small{display:block;font-family:Inter;font-weight:600;font-size:.62rem;letter-spacing:.28em;color:var(--gold)}
+header .me{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--glass);border:1px solid var(--gb);border-radius:999px;padding:6px 14px 6px 7px;box-shadow:var(--sh);font-weight:600;color:var(--ink)}
+header .me i{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ffe9a8,#d9ab2b);display:grid;place-items:center;font-style:normal;font-family:Sora;font-weight:800;color:#171205}
+.kicker{color:var(--teal);font-weight:700;letter-spacing:.22em;font-size:.7rem;text-transform:uppercase}
+h1{font-family:Sora;font-weight:800;font-size:2.3rem;color:var(--ink);margin:6px 0 4px}
+.sub{color:var(--mut);margin-bottom:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.btn{border:1px solid rgba(23,34,43,.14);background:var(--glass);padding:11px 18px;border-radius:999px;font-weight:600;cursor:pointer;box-shadow:0 8px 22px rgba(23,34,43,.08)}
+.btn.gold{background:linear-gradient(135deg,#ffd873,#d9ab2b);border:none;color:#171205;box-shadow:0 12px 26px rgba(217,171,43,.4)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--glass);border:1px solid var(--gb);border-radius:18px;padding:18px;box-shadow:var(--sh)}
+.stat b{font-family:Sora;font-size:1.7rem;color:var(--ink);display:block}
+.stat span{color:var(--mut);font-size:.85rem}
+.card{background:var(--glass);border:1px solid var(--gb);border-radius:20px;box-shadow:var(--sh);padding:20px;margin-bottom:16px}
+.card h3{font-family:Sora;color:var(--ink);font-size:1.05rem;margin-bottom:12px}
+.req{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(23,34,43,.08)}
+.req:first-of-type{border-top:none}
+.req .ic{width:42px;height:42px;border-radius:12px;background:rgba(201,162,75,.16);display:grid;place-items:center;font-size:1.1rem}
+.req b{color:var(--ink)} .req p{color:var(--mut);font-size:.86rem}
+.chip{margin-left:auto;font-size:.74rem;font-weight:700;padding:6px 11px;border-radius:999px;background:rgba(217,171,43,.18);color:#8a6d2a;white-space:nowrap}
+.chip.teal{background:rgba(14,124,134,.13);color:var(--teal)}
+.band{background:linear-gradient(120deg,rgba(255,232,160,.65),rgba(255,255,255,.85));border:1px solid rgba(201,162,75,.45);border-radius:20px;padding:20px;box-shadow:var(--sh)}
+.band b{font-family:Sora;color:var(--ink);font-size:1.05rem} .band p{color:var(--mut);font-size:.9rem;margin-top:3px}
+</style></head><body><div class="wrap">
+<header><img src="https://primeguardmia.com/assets/icon-192.png" alt=""><div class="brand">PrimeGuard<small>PRESERVATION LLC</small></div><div class="me"><i>E</i>Edwin</div></header>
+<p class="kicker">Customer portal</p>
+<h1>Good evening, Edwin</h1>
+<p class="sub">Everything about your property care, in one place.</p>
+<div class="row"><button class="btn gold">Book a service</button><button class="btn">🔔 Turn on notifications</button><button class="btn">⚙ Settings</button><button class="btn">Admin dashboard</button></div>
+<div class="stats"><div class="stat"><b>2</b><span>Active requests</span></div><div class="stat"><b>5</b><span>Jobs completed</span></div><div class="stat"><b>2026</b><span>Member since</span></div></div>
+<div class="card"><h3>My requests</h3>
+<div class="req"><div class="ic">🌿</div><div><b>Lawn care, biweekly</b><p>Next visit: Saturday morning · Crew assigned</p></div><span class="chip">In progress</span></div>
+<div class="req"><div class="ic">💦</div><div><b>Pressure washing, driveway</b><p>Estimate sent · Tap to approve</p></div><span class="chip teal">Quote ready</span></div>
+</div>
+<div class="card"><h3>Job history</h3>
+<div class="req"><div class="ic">✂️</div><div><b>Lawn care + cleanup</b><p>Oct 10 · Before/after photos added</p></div><span class="chip teal">Done</span></div>
+</div>
+<div class="band"><b>Give $20, get $20</b><p>Share your referral code with a neighbor. You both save on the next visit.</p></div>
+</div></body></html>
