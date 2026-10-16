@@ -39,6 +39,106 @@
 }
 .vd-hdr-logout { font-size: .85rem; font-weight: 700; color: var(--gold-deep); text-decoration: none; white-space: nowrap; }
 
+/* ---------- Photo hero header (Concept A · Photo Hero, picked
+   2026-10-16; replaces the plain .vd-hdr row inside #vd-topbar.
+   Classes copied from vendor-portal-mocks/header-a-photo-hero.html
+   with the vd-ph- prefix) ---------- */
+.vd-ph {
+  position: relative; height: 232px; border-radius: 22px; overflow: hidden;
+  margin-top: 16px;
+  background: url("assets/careers-crew.jpg") center 30% / cover no-repeat;
+  box-shadow: var(--vd-sh);
+  border: 1px solid rgba(255, 255, 255, .5);
+}
+.vd-ph::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20, 14, 2, .05) 34%, rgba(20, 14, 2, .52) 66%, rgba(20, 14, 2, .86));
+}
+/* gold corner brackets (Daylight hero style) */
+.vd-ph-br { position: absolute; width: 26px; height: 26px; z-index: 3; pointer-events: none; }
+.vd-ph-br.tl { top: 12px; left: 12px; border-top: 3px solid #f5c542; border-left: 3px solid #f5c542; border-top-left-radius: 9px; }
+.vd-ph-br.tr { top: 12px; right: 12px; border-top: 3px solid #f5c542; border-right: 3px solid #f5c542; border-top-right-radius: 9px; }
+.vd-ph-br.bl { bottom: 12px; left: 12px; border-bottom: 3px solid #f5c542; border-left: 3px solid #f5c542; border-bottom-left-radius: 9px; }
+.vd-ph-br.br2 { bottom: 12px; right: 12px; border-bottom: 3px solid #f5c542; border-right: 3px solid #f5c542; border-bottom-right-radius: 9px; }
+.vd-ph-logochip {
+  position: absolute; top: 20px; left: 20px; z-index: 4;
+  background: rgba(255, 255, 255, .14);
+  -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px);
+  border: 1px solid rgba(255, 255, 255, .38); border-radius: 12px;
+  padding: 7px 11px; display: flex; align-items: center;
+  box-shadow: 0 6px 18px rgba(20, 14, 2, .25);
+}
+.vd-ph-logochip img { height: 26px; width: auto; display: block; }
+.vd-ph-logout {
+  position: absolute; top: 20px; right: 20px; z-index: 4;
+  background: rgba(255, 255, 255, .14);
+  -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px);
+  border: 1px solid rgba(255, 255, 255, .38); border-radius: 999px;
+  padding: 8px 15px; color: #fff8e6; font-size: .85rem; font-weight: 700;
+  text-decoration: none; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(20, 14, 2, .25);
+}
+.vd-ph-body { position: absolute; left: 20px; right: 20px; bottom: 17px; z-index: 4; }
+.vd-ph-kicker {
+  font-size: .7rem; font-weight: 800; letter-spacing: .24em; text-transform: uppercase;
+  color: #ffd968; margin-bottom: 6px; text-shadow: 0 1px 8px rgba(20, 14, 2, .5);
+}
+.vd-ph-greet {
+  font-size: 2.15rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.05;
+  color: #fff; text-shadow: 0 2px 14px rgba(20, 14, 2, .45); margin: 0;
+}
+.vd-ph-sub {
+  margin-top: 6px; font-size: .96rem; font-weight: 600;
+  color: rgba(255, 248, 230, .95); text-shadow: 0 1px 8px rgba(20, 14, 2, .55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vd-ph-sub #vd-area:not(:empty)::before { content: " · "; }
+.vd-ph-pill {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 11px;
+  background: var(--vd-gold-grad);
+  color: #221a05; font-size: .78rem; font-weight: 800;
+  padding: 6px 13px; border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(20, 14, 2, .35);
+}
+.vd-ph-pill:empty { display: none; }
+.vd-ph-pill-frost {
+  background: rgba(255, 255, 255, .16); color: #fff8e6;
+  border: 1px solid rgba(255, 255, 255, .45);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(20, 14, 2, .3);
+}
+
+/* ---------- App promo (Concept A · gold banner; sits directly
+   under the money strip) ---------- */
+.vd-promo {
+  margin-top: 14px; border-radius: 18px; padding: 16px;
+  background: var(--vd-gold-grad);
+  border: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: 0 14px 32px rgba(185, 138, 29, .32);
+}
+.vd-promo-row { display: flex; align-items: center; gap: 13px; }
+.vd-promo-ico {
+  flex: none; width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255, 255, 255, .38);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, .65);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 18px rgba(120, 90, 10, .25);
+}
+.vd-promo-ico img { width: 40px; height: 40px; border-radius: 11px; display: block; }
+.vd-promo-txt { flex: 1 1 auto; min-width: 0; }
+.vd-promo-txt strong { display: block; font-size: 1.06rem; font-weight: 800; color: var(--text); line-height: 1.2; }
+.vd-promo-txt span { display: block; font-size: .86rem; font-weight: 600; color: rgba(34, 26, 5, .78); margin-top: 2px; line-height: 1.35; }
+.vd-promo-btn {
+  margin-top: 14px; min-height: 52px; width: 100%;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: #221a05; color: #ffe9a8;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  font-size: .98rem; font-weight: 800; letter-spacing: .01em; font-family: inherit;
+  box-shadow: 0 12px 26px rgba(34, 26, 5, .35);
+}
+.vd-promo-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+
 /* ---------- Login / no-profile hero (photo band kept from the
    unified-login build; vendor.css paints it gold) ---------- */
 .vhero {
