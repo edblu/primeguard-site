@@ -831,6 +831,7 @@
         hlStepperHtml(it.id, d) +
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-hlnotes="' + it.id + '">Notes</button>' +
+          '<button type="button" class="mini hlq-action hlq-action-ghost" data-taskfor="hot_lead|' + it.id + '">Task</button>' +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-callead="' + it.id + '">Calendar</button>' +
           (d.convertedWorkOrderId
             ? '<button type="button" class="mini hlq-action hlq-action-ghost" disabled>Converted ✓</button>'
@@ -3123,6 +3124,7 @@
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-wonotes="' + it.id + '">Notes</button>' +
+          '<button type="button" class="mini hlq-action hlq-action-ghost" data-taskfor="work_order|' + it.id + '">Task</button>' +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-calwo="' + it.id + '">Add to calendar</button>' +
           (w.status !== "done" ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-wodone="' + it.id + '">Done</button>' : "") +
         "</div>" +
@@ -4055,6 +4057,14 @@
     if (woPhotoEl) d = woPhotoEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
+    var taskForEl = t.closest ? t.closest("[data-taskfor]") : null;
+    if (taskForEl) d = taskForEl.dataset;
+    if (d.taskfor) {
+      var tp = String(d.taskfor).split("|"), tName = "";
+      if (tp[0] === "hot_lead") { var lr = hlLeads.find(function (x) { return x.id === tp[1]; }); if (lr && lr.d) tName = lr.d.name || ""; }
+      if (tp[0] === "work_order") { var wr = woOrders.find(function (x) { return x.id === tp[1]; }); var wd = wr ? (wr.d || wr) : null; if (wd) tName = wd.customerName || wd.title || ""; }
+      openTaskForm({ entityType: tp[0], entityId: tp[1], entityName: tName });
+    }
     if (d.wodone) {
       logActivity("Marked a work order done");
       var woRef = db.collection("work_orders").doc(d.wodone);
