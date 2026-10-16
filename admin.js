@@ -16,7 +16,6 @@
   var me = null, isAdmin = false, isStaff = false, myRole = "acquisition";
   var pendingPhotos = []; // dataURLs selected in the WO form
   var editingId = null; // work order id being edited, or null for create mode
-  var woSourceRequestId = null; // service_requests id the WO form was prefilled from (conversion)
 
   function setSelect(sel, val) {
     // ensure the value exists as an option (older orders may have custom text)
@@ -98,7 +97,6 @@
 
   function resetWoForm() {
     editingId = null;
-    woSourceRequestId = null;
     $("ad-woform").reset();
     $("wo-preview").innerHTML = ""; pendingPhotos = [];
     $("wo-form-title").textContent = "Create work order";
@@ -112,8 +110,7 @@
       if (!snap.exists) return;
       var w = snap.data();
       editingId = id;
-      woSourceRequestId = null;
-      $("wo-title").value = w.title || "";
+        $("wo-title").value = w.title || "";
       $("wo-kind").value = w.kind || "job";
       setSelect($("wo-category"), w.category || "");
       setSelect($("wo-area"), w.area || "");
@@ -202,7 +199,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadServiceRequests(); loadReferrals(); loadActivity(); loadFollowUps(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -1695,59 +1692,6 @@
     });
   }
 
-  function loadServiceRequests() {
-    db.collection("service_requests").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
-      var box = $("ad-sr-list");
-      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No customer requests yet.</p>'; return; }
-      box.innerHTML = "";
-      var shown = 0;
-      qs.forEach(function (d) {
-        var r = d.data();
-        if (r.status === "converted") return; // already turned into a work order
-        shown++;
-        var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(r.service || "Service request") +
-          (r.frequency ? " - " + esc(r.frequency) : "") + "</strong><small>" +
-          esc(r.name || "") + (r.phone ? " · " + esc(r.phone) : "") +
-          (r.message ? " · " + esc(r.message) : "") + "</small></div>" +
-          pill(r.status) +
-          ' <button class="mini" data-sropen="' + d.id + '">Open</button>' +
-          ' <button class="mini" data-calsr="' + d.id + '">Add to calendar</button>' +
-          ' <button class="mini danger" data-srdel="' + d.id + '">Delete</button>';
-        box.appendChild(row);
-      });
-      if (!shown) box.innerHTML = '<p style="color:var(--faint)">No customer requests yet.</p>';
-    }).catch(function () {
-      $("ad-sr-list").innerHTML = '<p style="color:var(--faint)">Couldn\'t load requests.</p>';
-    });
-  }
-
-  /* ---------- Request detail modal ---------- */
-  var srId = null, srData = null;
-  var SR_STATUSES = ["new", "reviewing", "quoted", "scheduled", "in_progress", "done", "cancelled"];
-
-  function srDate(r) {
-    try {
-      var t = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : (r.createdAt ? new Date(r.createdAt) : null);
-      return t ? t.toLocaleString() : "";
-    } catch (e) { return ""; }
-  }
-
-  function openRequest(id) {
-    db.collection("service_requests").doc(id).get().then(function (snap) {
-      if (!snap.exists) return;
-      srId = id; srData = snap.data();
-      renderRequestModal();
-      $("srModal").classList.remove("hidden");
-      document.body.style.overflow = "hidden";
-    });
-  }
-  function closeRequest() {
-    $("srModal").classList.add("hidden");
-    document.body.style.overflow = "";
-    srId = null; srData = null;
-  }
-
   // ---------- Vendor review ----------
   var vdId = null, vdData = null, vdOutcome = "";
   function vStatus(v) { return v.status || (v.verified ? "approved" : "pending"); }
@@ -1974,137 +1918,6 @@
     renderArchivedVendors();
   });
 
-  function renderRequestModal() {
-    var r = srData, box = $("srBody");
-    var photos = Array.isArray(r.photos) ? r.photos : [];
-    var videos = Array.isArray(r.videos) ? r.videos : [];
-    var comments = Array.isArray(r.comments) ? r.comments : [];
-    var h = '<h3 id="srTitle">' + esc(r.service || "Service request") +
-      (r.frequency ? " - " + esc(r.frequency) : "") + '</h3>' +
-      '<p class="sr-meta">' + pill(r.status) + ' <span>' + esc(srDate(r)) + '</span>' +
-      (r.source ? ' <span>· via ' + esc(r.source) + '</span>' : '') + '</p>' +
-      '<div class="sr-grid">' +
-      '<div class="sr-card"><h4>Customer</h4>' +
-      '<p><strong>' + esc(r.name || "-") + '</strong></p>' +
-      (r.phone ? '<p>📞 <a href="tel:' + esc(r.phone.replace(/\D/g, "")) + '">' + esc(r.phone) + '</a></p>' : '') +
-      (r.email ? '<p>✉️ <a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a></p>' : '') +
-      (r.address ? '<p>📍 ' + esc(r.address) + '</p>' : '') +
-      (r.uid ? '' : '<p class="sr-guest">Guest request (no account)</p>') +
-      '</div>' +
-      '<div class="sr-card"><h4>Request details</h4>' +
-      '<p><strong>Service:</strong> ' + esc(r.service || "-") + '</p>' +
-      '<p><strong>Frequency:</strong> ' + esc(r.frequency || "-") + '</p>' +
-      (r.message ? '<p><strong>Details:</strong><br>' + esc(r.message).replace(/\n/g, "<br>") + '</p>' : '<p class="sr-faint">No details provided.</p>') +
-      '</div></div>';
-    if (photos.length) {
-      h += '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
-        photos.map(function (u) {
-          return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="request photo" loading="lazy"></a>';
-        }).join("") + '</div></div>';
-    }
-    if (videos.length || r.videoLink) {
-      // Mirrors the lead media-links guard: only http(s) values become
-      // anchors; anything else renders as plain text.
-      var vids = videos.map(function (u, i) {
-        return /^https?:\/\//i.test(u)
-          ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">🎬 Video ' + (i + 1) + "</a>"
-          : "🎬 Video " + (i + 1) + ": " + esc(u);
-      });
-      if (r.videoLink) {
-        vids.push(/^https?:\/\//i.test(r.videoLink)
-          ? '<a href="' + esc(r.videoLink) + '" target="_blank" rel="noopener">🎬 Customer\'s video link</a>'
-          : "🎬 Customer's video link: " + esc(r.videoLink));
-      }
-      h += '<div class="sr-card"><h4>Videos (' + vids.length + ')</h4><p>' + vids.join("<br>") + "</p></div>";
-    }
-    h += '<div class="sr-card"><h4>Evaluation</h4>' +
-      '<div class="sr-row"><label>Status<br><select id="srStatus">' +
-      SR_STATUSES.map(function (s) {
-        var label = s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
-        return '<option value="' + s + '"' + ((r.status || "new") === s ? " selected" : "") + '>' + label + '</option>';
-      }).join("") + '</select></label>' +
-      '<button class="btn btn-gold btn-sm" id="srSaveStatus" type="button">Save status</button></div>' +
-      '<label>Internal notes<br><textarea id="srNotes" rows="3" placeholder="Notes only the team sees…">' + esc(r.adminNotes || "") + '</textarea></label>' +
-      '<button class="btn btn-ghost btn-sm" id="srSaveNotes" type="button" style="margin-top:8px">Save notes</button>' +
-      '<p class="aok hidden" id="srSaved">Saved.</p></div>';
-    h += '<div class="sr-card"><h4>Comments</h4><div class="sr-comments">' +
-      (comments.length ? comments.map(function (c) {
-        var when = "";
-        try { when = c.at && c.at.toDate ? c.at.toDate().toLocaleString() : ""; } catch (e) {}
-        return '<div class="sr-comment"><strong>' + esc(c.by || "") + '</strong><span>' + esc(when) + '</span><p>' + esc(c.text || "").replace(/\n/g, "<br>") + '</p></div>';
-      }).join("") : '<p class="sr-faint">No comments yet.</p>') + '</div>' +
-      '<div class="sr-row"><input type="text" id="srComment" placeholder="Add a comment…" style="flex:1">' +
-      '<button class="btn btn-gold btn-sm" id="srAddComment" type="button">Add</button></div></div>';
-    h += '<div class="sr-card"><h4>Quote for customer</h4>' +
-      '<p class="sr-faint">Set a price, then set Status to "Quoted" and save - the customer sees it on their dashboard with Approve / Decline buttons.</p>' +
-      '<div class="sr-row"><label>Quote price<br><input id="srQuotePrice" placeholder="$0" value="' + esc(r.quotePrice || "") + '"></label></div>' +
-      '<label>Quote notes (shown to customer)<br><textarea id="srQuoteNotes" rows="2" placeholder="What the price covers…">' + esc(r.quoteNotes || "") + '</textarea></label></div>';
-    h += '<div class="sr-actions">' +
-      '<button class="btn btn-gold btn-sm" id="srMakeWO" type="button">Create work order</button>' +
-      '<button class="mini" id="srCalBtn" type="button">Add to calendar</button>' +
-      '<button class="btn btn-ghost btn-sm" id="srDelete" type="button">Delete request</button></div>';
-    box.innerHTML = h;
-
-    $("srClose").addEventListener("click", closeRequest);
-    $("srModal").addEventListener("click", function (e) { if (e.target === $("srModal")) closeRequest(); });
-    $("vdClose").addEventListener("click", closeVendor);
-    $("vdModal").addEventListener("click", function (e) { if (e.target === $("vdModal")) closeVendor(); });
-    $("srSaveStatus").addEventListener("click", function () {
-      var upd = { status: $("srStatus").value };
-      if ($("srQuotePrice")) upd.quotePrice = $("srQuotePrice").value.trim();
-      if ($("srQuoteNotes")) upd.quoteNotes = $("srQuoteNotes").value.trim();
-      db.collection("service_requests").doc(srId).update(upd).then(function () {
-        logActivity("Updated a customer request (" + upd.status + ")");
-        srData.status = upd.status; srData.quotePrice = upd.quotePrice; srData.quoteNotes = upd.quoteNotes;
-        saved(); loadServiceRequests();
-      });
-    });
-    $("srSaveNotes").addEventListener("click", function () {
-      db.collection("service_requests").doc(srId).update({ adminNotes: $("srNotes").value.trim() }).then(function () {
-        logActivity("Saved internal notes on a customer request");
-        srData.adminNotes = $("srNotes").value.trim(); saved();
-      });
-    });
-    $("srAddComment").addEventListener("click", function () {
-      var t = $("srComment").value.trim();
-      if (!t) return;
-      db.collection("service_requests").doc(srId).update({
-        comments: firebase.firestore.FieldValue.arrayUnion({ by: me ? me.email : "team", text: t, at: new Date() })
-      }).then(function () { return db.collection("service_requests").doc(srId).get(); }).then(function (s) {
-        logActivity("Commented on a customer request");
-        srData = s.data(); renderRequestModal();
-      });
-    });
-    $("srDelete").addEventListener("click", function () {
-      if (!confirm("Delete this customer request?")) return;
-      db.collection("service_requests").doc(srId).delete().then(function () { closeRequest(); loadServiceRequests(); });
-    });
-    $("srMakeWO").addEventListener("click", function () { requestToWorkOrder(); });
-    $("srCalBtn").addEventListener("click", function () { if (srData) openCal(srCalPrefill(srData)); });
-    function saved() {
-      var el = $("srSaved");
-      if (el) { el.classList.remove("hidden"); setTimeout(function () { el.classList.add("hidden"); }, 1800); }
-    }
-  }
-
-  function requestToWorkOrder() {
-    var r = srData;
-    var catMap = { "Lawn Care": "Lawn care", "Pressure Washing": "Pressure washing", "Debris & Junk Removal": "Cleanups", "Junk Removal": "Cleanups", "Make-Ready Cleaning": "Cleanups", "Handyman Services": "Handyman" };
-    $("wo-title").value = (r.service || "Service") + " - " + (r.name || "customer");
-    var cat = catMap[r.service] || "Cleanups";
-    var catSel = $("wo-category");
-    for (var i = 0; i < catSel.options.length; i++) if (catSel.options[i].value === cat) catSel.selectedIndex = i;
-    $("wo-details").value = "Frequency: " + (r.frequency || "One-time") + "\n" +
-      (r.message ? r.message + "\n" : "") +
-      "\nCustomer: " + (r.name || "") + " " + (r.phone || "") + " " + (r.email || "") +
-      (r.address ? "\nAddress: " + r.address : "") +
-      "\n(From customer request " + srId + ")";
-    woSourceRequestId = srId;
-    closeRequest();
-    setWoFormCollapsed(false);
-    document.getElementById("ad-woform").scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   function loadStats() {
     db.collection("work_orders").get().then(function (qs) {
       var open = 0, active = 0;
@@ -2289,15 +2102,6 @@
 
     uploadP.then(save).then(function () {
       logActivity(isEdit ? "Edited a work order" : "Created a work order");
-      if (!isEdit && woSourceRequestId) {
-        var srcId = woSourceRequestId;
-        return db.collection("service_requests").doc(srcId).update({
-          status: "converted",
-          convertedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(function () {
-          logActivity("Converted a customer request to a work order");
-        }).catch(function () {});
-      }
     }).then(function () {
       okEl.classList.remove("hidden");
       resetWoForm();
@@ -2378,21 +2182,6 @@
     var map = { "Lawn care": "10", "Pressure washing": "7", "Home maintenance": "5" };
     return map[category] || "8";
   }
-  function srCalPrefill(r) {
-    var notes = [r.phone ? "Phone: " + r.phone : "", r.email ? "Email: " + r.email : "",
-      r.frequency ? "Frequency: " + r.frequency : "", r.message || ""].filter(Boolean).join("\n");
-    return {
-      title: (r.name || "Customer") + " - " + (r.service || "Service") + " estimate",
-      address: r.address || "",
-      colorId: "6",
-      notes: notes
-    };
-  }
-  function calFromRequest(id) {
-    db.collection("service_requests").doc(id).get().then(function (snap) {
-      if (snap.exists) openCal(srCalPrefill(snap.data()));
-    });
-  }
   function calFromWorkOrder(id) {
     db.collection("work_orders").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
@@ -2455,7 +2244,6 @@
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
-    if (t.id === "srClose" || t.id === "srModal") closeRequest();
     if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
     if (d.fudone) {
       db.collection("item_notes").doc(d.fudone).update({
@@ -2492,9 +2280,6 @@
     if (t.id === "hlNoteClose" || t.id === "hlNoteModal") closeHotLeadNotes();
     if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
     if (t.id === "hlConvertClose" || t.id === "hlConvertModal") closeHotLeadConvert();
-    if (d.srdel && confirm("Delete this customer request?")) { logActivity("Deleted a customer request"); db.collection("service_requests").doc(d.srdel).delete().then(loadAll); }
-    if (d.sropen) openRequest(d.sropen);
-    if (d.calsr) calFromRequest(d.calsr);
     if (d.calwo) calFromWorkOrder(d.calwo);
     if (d.calquote) calFromQuote(d.calquote);
     if (d.callead) calFromLead(d.callead);
@@ -2519,11 +2304,10 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
-    var modalOpen = !$("srModal").classList.contains("hidden") || !$("vdModal").classList.contains("hidden") ||
+    var modalOpen = !$("vdModal").classList.contains("hidden") ||
       !$("woNoteModal").classList.contains("hidden") || !$("hlNoteModal").classList.contains("hidden") ||
       !$("hlFormModal").classList.contains("hidden") || !$("hlConvertModal").classList.contains("hidden") ||
       !$("cal2Modal").classList.contains("hidden");
-    if (!$("srModal").classList.contains("hidden")) closeRequest();
     if (!$("vdModal").classList.contains("hidden")) closeVendor();
     if (!$("woNoteModal").classList.contains("hidden")) closeWorkOrderNotes();
     if (!$("hlConvertModal").classList.contains("hidden")) closeHotLeadConvert();

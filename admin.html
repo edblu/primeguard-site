@@ -527,23 +527,10 @@
   </section>
 
   <section class="asec">
-    <h2>Customer requests</h2>
-    <div class="acard"><div id="ad-sr-list"></div></div>
-  </section>
-
-  <section class="asec">
     <h2>Work orders</h2>
     <div class="acard"><div id="ad-wo-list"></div></div>
   </section>
   </div><!-- /atab-work -->
-
-  <!-- Request detail modal -->
-  <div class="modal-overlay hidden" id="srModal">
-    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="srTitle">
-      <button class="modal-close" id="srClose" aria-label="Close">×</button>
-      <div id="srBody"></div>
-    </div>
-  </div>
 
   <!-- Vendor review modal -->
   <div class="modal-overlay hidden" id="vdModal">
@@ -783,7 +770,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=26"></script>
+<script src="admin.js?v=27"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "calendar", "team", "activity"];
