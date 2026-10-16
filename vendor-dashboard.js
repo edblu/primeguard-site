@@ -314,6 +314,47 @@
   }
 
   // ---------- Work orders ----------
+  // Visibility (Edwin, 2026-10-16): an open work order is NOT visible to a
+  // vendor just because it exists. It shows only when the office sent it to
+  // this vendor (vendorNotifyTarget is their id, or they are the assignee)
+  // or posted it as available work (broadcast). A specific target locks the
+  // job to that vendor; legacy docs with no specific target fall back to the
+  // broadcast flag (undefined broadcast counts as posted, matching how the
+  // pre-board portal behaved for those docs).
+  function woVisibleToMe(w) {
+    if (!w || !me) return false;
+    if (w.vendorNotifyTarget && w.vendorNotifyTarget !== "broadcast") {
+      return w.vendorNotifyTarget === me.uid || w.vendorId === me.uid;
+    }
+    return w.broadcast !== false || w.vendorId === me.uid;
+  }
+
+  // Inactive accounts (archived or rejected by the office) get no job
+  // board: every job surface is cleared and one panel explains why. Their
+  // profile, agreements and documents stay reachable above.
+  function vendorInactive() {
+    if (!vendor) return false;
+    var st = vendor.status || (vendor.verified ? "approved" : "pending");
+    return st === "archived" || st === "rejected";
+  }
+  function renderInactivePanel() {
+    ["list-qr", "list-jobs", "list-active", "list-done"].forEach(function (id) {
+      var el = $(id); if (el) el.innerHTML = "";
+    });
+    ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done"].forEach(function (id) {
+      var el = $(id); if (el) el.textContent = "";
+    });
+    openQRs = [];
+    var sel = $("q-workorder");
+    if (sel) sel.innerHTML = '<option value="">Select a quote request...</option>';
+    var qr = $("list-qr");
+    if (qr) {
+      qr.innerHTML = '<div class="vjob" style="max-width:720px"><h3>Tu cuenta no está activa</h3>' +
+        '<p>Llama a PrimeGuard al <a href="tel:+17864229674">(786) 422-9674</a>.</p>' +
+        '<p style="color:var(--muted)">Your account isn\'t active. Call PrimeGuard at (786) 422-9674.</p></div>';
+    }
+  }
+
   // Quote form dropdown: open quote requests + ones I accepted for evaluation,
   // minus any I already quoted. Any open request can be quoted right from its card.
   function buildQuoteSelect() {
@@ -333,6 +374,7 @@
   }
 
   function loadAll() {
+    if (vendorInactive()) { renderInactivePanel(); return; }
     db.collection("quotes").where("vendorId", "==", me.uid).get().then(function (qs) {
       myQuoted = {};
       qs.forEach(function (d) {
@@ -344,6 +386,7 @@
       var jobs = [], qrs = [];
       qs.forEach(function (d) {
         var w = d.data(); w.id = d.id;
+        if (!woVisibleToMe(w)) return; // not sent to me and not posted as available work
         if (w.kind === "quote_request") qrs.push(w); else jobs.push(w);
       });
       openQRs = qrs;

@@ -1188,7 +1188,10 @@
       area: $("hl-cv-area").value.trim(),
       details: $("hl-cv-details").value.trim(),
       pay: $("hl-cv-pay").value.trim(),
-      broadcast: assignVal === "broadcast",
+      // Conversions start PRIVATE (Edwin, 2026-10-16): no vendor sees a
+      // work order until the office sends it (Preview & send stamps
+      // broadcast from the chosen target) or posts it as available work.
+      broadcast: false,
       vendorId: assignVal === "broadcast" ? null : assignVal,
       vendorBusiness: null,
       status: "open",
@@ -2912,8 +2915,15 @@
     var state = "";
     if (sentMs) state = ' <span class="sr-faint">Sent to vendors ✓ ' + esc(new Date(sentMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</span>";
     else if (w.vendorNotifyPending) state = ' <span class="sr-faint">Send queued…</span>';
+    // Available-work board toggle (Edwin, 2026-10-16): posting puts the
+    // job in every vendor's portal for volunteers; removing it makes the
+    // job private again. No notification is sent either way.
+    var onBoard = w.broadcast === true;
+    var board = ' <button class="mini" type="button" data-woboard="' + id + '">' +
+      (onBoard ? "On the board · Remove" : "Post as available work") + "</button>" +
+      (onBoard ? '<div class="sr-faint" style="margin-top:6px">Posted as available work — all vendors can see it.</div>' : "");
     return ' <span class="wo-send"><select data-wosendsel="' + id + '">' + opts + "</select>" +
-      ' <button class="mini" type="button" data-wosend="' + id + '">' + (sentMs ? "Preview & resend" : "Preview & send") + "</button>" + state + "</span>";
+      ' <button class="mini" type="button" data-wosend="' + id + '">' + (sentMs ? "Preview & resend" : "Preview & send") + "</button>" + state + "</span>" + board;
   }
 
   /* ----- Send preview modal (#woPrevModal) ----- */
@@ -3093,7 +3103,11 @@
       vendorNotifyPending: true,
       vendorNotifyTarget: ctx.target,
       vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      vendorNotifyLang: woPrevLang
+      vendorNotifyLang: woPrevLang,
+      // Sending also sets portal visibility: a broadcast send posts the
+      // job on the available-work board for every vendor; a single-vendor
+      // send keeps it private to that vendor (Edwin, 2026-10-16).
+      broadcast: ctx.target === "broadcast"
     }).then(function () {
       logActivity("Sent a work order to vendors for pricing");
       closeWoSendPreview();
@@ -3103,6 +3117,30 @@
       if (btn) { btn.disabled = false; btn.textContent = "Send to vendor(s)"; }
       alert("Could not send: " + (e.message || e));
     });
+  }
+
+  // Flip the available-work board flag on a work order. This only changes
+  // portal visibility — vendorNotifyPending is never touched, so the
+  // vendor-reply watch sends nothing when the board changes.
+  function toggleWoBoard(id, btn) {
+    var apply = function (w) {
+      var next = !(w && w.broadcast === true);
+      if (btn) btn.disabled = true;
+      db.collection("work_orders").doc(id).update({ broadcast: next }).then(function () {
+        logActivity((next ? "Posted a work order as available work" : "Removed a work order from the available-work board"));
+        loadWorkOrders();
+        if (woNoteId === id) openWorkOrderNotes(id);
+      }).catch(function (e) {
+        if (btn) btn.disabled = false;
+        alert("Could not update the board: " + (e.message || e));
+      });
+    };
+    var local = null;
+    woOrders.forEach(function (it) { if (it.id === id) local = it.d; });
+    if (local) { apply(local); return; }
+    db.collection("work_orders").doc(id).get().then(function (snap) {
+      apply(snap.exists ? snap.data() : null);
+    }).catch(function () { apply(null); });
   }
 
   function loadQuotes() {
@@ -3777,6 +3815,7 @@
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (d.wosend) openWoSendPreview(d.wosend, t);
+    if (d.woboard) toggleWoBoard(d.woboard, t);
     if (d.woprevlang) { woPrevLang = d.woprevlang; renderWoPrev(); }
     if (d.woprevconfirm) confirmWoSend(woPrevEl || t);
     if (d.woprevcancel) closeWoSendPreview();
