@@ -339,6 +339,19 @@
   .pg-light .hl-stage-chip.active { background:#0d0d0f; border-color:#0d0d0f; color:#f5c542; }
   .pg-light .hl-stage-chip.active .cnt { color:#f5c542; }
   #ad-hl-list { display:flex; flex-direction:column; gap:10px; }
+  #ad-wo-list { display:flex; flex-direction:column; gap:10px; }
+  #ad-wo-filters { display:block; }
+  .woq-card { border-left-color:#6b7c93; }
+  .woq-card.woq-action { border-left-color:#d9a92c; }
+  .woq-card.woq-progress { border-left-color:#6b7c93; }
+  .woq-card.woq-done { border-left-color:#565b63; }
+  .woq-card.woq-done .hlq-name { color:var(--faint); }
+  .pg-light .woq-card.woq-action { border-left-color:#b07d10; }
+  .woq-send { border-top:1px solid rgba(255,255,255,.08); margin-top:11px; padding-top:11px; }
+  .woq-send .wo-send { align-items:center; display:flex; flex-wrap:wrap; gap:7px; }
+  .woq-send select { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:999px; color:var(--text); font-family:inherit; font-size:.8rem; padding:7px 10px; }
+  .pg-light .woq-send { border-top-color:#e5e2d8; }
+  .pg-light .woq-send select { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .hlq-card { background:#151517; border:1px solid rgba(201,162,75,.16); border-left:5px solid #6b7c93; border-radius:14px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25); }
   .hlq-temp-hot { border-left-color:#d8542e; }
   .hlq-temp-warm { border-left-color:#d9a92c; }
@@ -574,6 +587,7 @@
 
   <section class="asec">
     <h2>Work orders</h2>
+    <div id="ad-wo-filters" class="hl-filters"></div>
     <div class="acard"><div id="ad-wo-list"></div></div>
   </section>
   </div><!-- /atab-work -->
@@ -864,7 +878,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=30"></script>
+<script src="admin.js?v=31"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];

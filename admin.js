@@ -663,6 +663,8 @@
   var hlTempFilter = "all"; // active temperature filter chip: all|hot|warm|cold
   var hlStageFilter = "all"; // active stage filter chip: all|new|contacted|quoted|booked|done|cold
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
+  var woFilter = "all"; // Work Orders queue filter chip: all|quote|active|done
+  var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
   var hlPendingPhotos = []; // compressed photos picked in the lead form, not yet uploaded
@@ -2725,24 +2727,122 @@
     return '<span class="pill ' + cls + '">' + esc(String(s || "new").replace(/_/g, " ")) + "</span>";
   }
 
+  /* ----- Work Orders work queue (mirrors the Hot Leads queue) ----- */
+  // The list is a prioritized card feed over the same work_orders docs:
+  // unsent quote requests first, then quote requests already sent and
+  // awaiting vendor pricing, then active jobs, then completed work.
+  // Filters and sorting are presentation only; every action keeps the
+  // same data-* hook and handler the old rows used.
+  function woStatusValue(w) { return String((w && w.status) || "open"); }
+  function woCustomerName(w) {
+    if (!w) return "";
+    return w.customerName || w.sourceLeadName || w.customer || "";
+  }
+  function woIsActiveJobStatus(status) {
+    return ["accepted", "evaluation_accepted", "in_progress", "scheduled", "review"].indexOf(status) >= 0;
+  }
+  function woBucket(w) {
+    var status = woStatusValue(w);
+    if (status === "done") return 3;
+    if (w && w.kind === "quote_request" && !woIsActiveJobStatus(status)) {
+      if (!tsMs(w.vendorNotifiedAt) && w.vendorNotifyPending !== true) return 0;
+      return 1;
+    }
+    return 2;
+  }
+  function woFilterGroup(w) {
+    var bucket = woBucket(w);
+    return bucket === 0 || bucket === 1 ? "quote" : (bucket === 3 ? "done" : "active");
+  }
+  function woIdleMs(w) {
+    var touchedMs = tsMs(w && w.updatedAt) || tsMs(w && w.createdAt);
+    return touchedMs ? Math.max(0, Date.now() - touchedMs) : 0;
+  }
+  function woVideoLinks(w) {
+    var out = [];
+    function push(link) {
+      link = String(link || "").trim();
+      if (link && out.indexOf(link) < 0) out.push(link);
+    }
+    if (w && Array.isArray(w.videos)) w.videos.forEach(push);
+    if (w) push(w.videoLink);
+    return out;
+  }
+  function renderWoFilterChips() {
+    var wrap = $("ad-wo-filters");
+    if (!wrap) return;
+    var counts = { all: woOrders.length, quote: 0, active: 0, done: 0 };
+    woOrders.forEach(function (it) { counts[woFilterGroup(it.d)]++; });
+    var defs = [["all", "All"], ["quote", "Quote requests"], ["active", "Active"], ["done", "Done"]];
+    wrap.innerHTML = defs.map(function (df) {
+      return '<button type="button" class="hl-chip' + (woFilter === df[0] ? " active" : "") +
+        '" data-wofilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
+    }).join("");
+  }
+  function renderWorkOrders() {
+    var box = $("ad-wo-list");
+    if (!box) return;
+    renderWoFilterChips();
+    if (!woOrders.length) {
+      box.innerHTML = '<p style="color:var(--faint)">No work orders yet.</p>';
+      return;
+    }
+    var visible = woOrders.filter(function (it) {
+      return woFilter === "all" || woFilterGroup(it.d) === woFilter;
+    });
+    visible.sort(function (a, b) {
+      var bucketRank = woBucket(a.d) - woBucket(b.d);
+      if (bucketRank) return bucketRank;
+      var idleRank = woIdleMs(b.d) - woIdleMs(a.d);
+      if (idleRank) return idleRank;
+      return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+    });
+    box.innerHTML = "";
+    if (!visible.length) {
+      var labels = { quote: "quote requests", active: "active work orders", done: "completed work orders" };
+      box.innerHTML = '<p style="color:var(--faint)">No ' + esc(labels[woFilter] || "work orders") + " right now.</p>";
+      return;
+    }
+    visible.forEach(function (it) {
+      var w = it.d;
+      var bucket = woBucket(w);
+      var idleDays = Math.floor(woIdleMs(w) / 86400000);
+      var idleCls = idleDays >= 7 ? " red" : (idleDays >= 3 ? " amber" : "");
+      var customer = woCustomerName(w);
+      var title = w.title || "Work order";
+      var metaLine = [w.category || "", w.area || "", w.address || ""].filter(Boolean).join(" · ");
+      var excerpt = hlExcerpt(w.details);
+      var photoCount = Array.isArray(w.photos) ? w.photos.length : 0;
+      var videoCount = woVideoLinks(w).length;
+      var mediaHtml = (photoCount ? ' <span class="hl-photo-badge" title="Photos on this work order">📷 ' + photoCount + "</span>" : "") +
+        (videoCount ? ' <span class="hl-photo-badge" title="Videos on this work order">🎬 ' + videoCount + "</span>" : "");
+      var sendHtml = woSendHtml(it.id, w);
+      var card = document.createElement("article");
+      card.className = "hlq-card woq-card " + (bucket === 0 ? "woq-action" : (bucket === 3 ? "woq-done" : "woq-progress"));
+      card.innerHTML =
+        '<div class="hlq-head"><button type="button" class="hlq-name" data-wonotes="' + it.id + '">' +
+          esc(title + (customer && title.indexOf(customer) < 0 ? " · " + customer : "")) + "</button>" +
+          pill(w.status) + "</div>" +
+        (metaLine || mediaHtml ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + "</div>" : "") +
+        (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
+        '<div class="hlq-actions">' +
+          '<button type="button" class="mini hlq-action hlq-action-primary" data-wonotes="' + it.id + '">Notes</button>' +
+          '<button type="button" class="mini hlq-action hlq-action-ghost" data-calwo="' + it.id + '">Add to calendar</button>' +
+          (w.status !== "done" ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-wodone="' + it.id + '">Done</button>' : "") +
+        "</div>" +
+        (sendHtml ? '<div class="woq-send">' + sendHtml + "</div>" : "") +
+        '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since update</span>' +
+          '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
+          '<button type="button" class="hlq-manage-btn danger" data-wodel="' + it.id + '">Delete</button></span>' +
+          '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>";
+      box.appendChild(card);
+    });
+  }
   function loadWorkOrders() {
     db.collection("work_orders").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
-      var box = $("ad-wo-list");
-      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No work orders yet.</p>'; return; }
-      box.innerHTML = "";
-      qs.forEach(function (d) {
-        var w = d.data();
-        var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(w.title) + "</strong><small>" + esc(w.area || "") + " · " + esc(w.kind || "job") + " · " + esc(w.vendorBusiness || "broadcast") + "</small></div>" +
-          pill(w.status) +
-          ' <button class="mini" data-wonotes="' + d.id + '">Notes</button>' +
-          ' <button class="mini" data-calwo="' + d.id + '">Add to calendar</button>' +
-          (w.status !== "done" ? ' <button class="mini" data-wodone="' + d.id + '">Done</button>' : "") +
-          ' <button class="mini danger" data-wodel="' + d.id + '">Delete</button>' +
-          ' <button class="mini" data-woedit="' + d.id + '">Edit</button>' +
-          woSendHtml(d.id, w);
-        box.appendChild(row);
-      });
+      woOrders = [];
+      qs.forEach(function (d) { woOrders.push({ id: d.id, d: d.data() }); });
+      renderWorkOrders();
     });
   }
 
@@ -3079,6 +3179,8 @@
     if (hlActionEl) d = hlActionEl.dataset;
     var custFilterEl = t.closest ? t.closest("[data-custfilter]") : null;
     if (custFilterEl) d = custFilterEl.dataset;
+    var woFilterEl = t.closest ? t.closest("[data-wofilter]") : null;
+    if (woFilterEl) d = woFilterEl.dataset;
     if (d.wodone) {
       logActivity("Marked a work order done");
       var woRef = db.collection("work_orders").doc(d.wodone);
@@ -3175,6 +3277,7 @@
     if (d.custedit) openCustomerForm(d.custedit);
     if (d.custdel) deleteCustomer(d.custdel);
     if (d.custfilter) { custFilter = d.custfilter; renderCustomers(); }
+    if (d.wofilter) { woFilter = d.wofilter; renderWorkOrders(); }
     if (d.hlmakecustomer) {
       var mkId = d.hlmakecustomer;
       makeCustomerFromLead(mkId).then(function () {
