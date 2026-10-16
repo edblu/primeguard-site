@@ -1295,7 +1295,7 @@
   document.querySelectorAll("[data-auth-open]").forEach(function (el) {
     el.addEventListener("click", function (e) {
       e.preventDefault();
-      if (!authModal) { window.location.href = "index.html#login"; return; }
+      if (!authModal) { window.location.href = "/index.html#login"; return; }
       if (currentUser && fbAuth) openProfile();
       else openAuth();
     });
@@ -1324,13 +1324,24 @@
     if (!authModal.hidden) closeAuth();
     if (!profileModal.hidden) closeProfile();
   });
-  if (window.location.hash === "#login") openAuth();
+  }
+
+  // Landing on index.html#login (the Log in button on every other page sends
+  // people here): open the auth UI only AFTER Firebase is initialized and the
+  // first auth-state answer is in. Opening it earlier showed the "coming
+  // soon" panel instead of the login, because fbAuth was still null.
+  var loginHashPending = !!authModal && window.location.hash === "#login";
+  function handleLoginHash(user) {
+    if (!loginHashPending) return;
+    loginHashPending = false;
+    if (user) openProfile(); else openAuth();
   }
 
   if (initFirebase() && fbAuth) {
     fbAuth.onAuthStateChanged(function (user) {
       currentUser = user;
       userProfile = {};
+      handleLoginHash(user);
       if (user && fbDb) {
         fbDb.collection("customers").doc(user.uid).get().then(function (doc) {
           if (doc && doc.exists) userProfile = doc.data() || {};
@@ -1344,6 +1355,10 @@
         updateAuthButtons();
       }
     });
+  } else if (loginHashPending) {
+    // Firebase unreachable: still answer the #login landing with the modal.
+    loginHashPending = false;
+    openAuth();
   }
 
   /* ---------- Exit-intent popup ("don't leave yet") ---------- */
