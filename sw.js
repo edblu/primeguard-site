@@ -64,7 +64,7 @@ try {
   }
 } catch (e) { /* FCM is an enhancement; never break the worker over it. */ }
 
-var CACHE_NAME = "pg-v2";
+var CACHE_NAME = "pg-v3";
 
 /* Small app shell precached on install so the installed app can
    open offline. Everything else is runtime-cached on first use. */
@@ -123,10 +123,13 @@ self.addEventListener("fetch", function (event) {
   /* Staff/vendor surfaces: no interception, no caching, ever. */
   if (isNetworkOnly(url)) return;
 
-  /* Static assets: cache-first, then network (and cache the result). */
+  /* Static assets: cache-first, then network (and cache the result).
+     Match WITHOUT ignoreSearch: CSS/JS are versioned via ?v= query
+     strings, and ignoring the query served stale stylesheets forever
+     (the Oct 15 daylight.css incident). */
   if (isStaticAsset(request, url)) {
     event.respondWith(
-      caches.match(request, { ignoreSearch: true }).then(function (hit) {
+      caches.match(request).then(function (hit) {
         var network = fetch(request).then(function (response) {
           if (response && response.ok) {
             var copy = response.clone();
