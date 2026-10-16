@@ -105,6 +105,22 @@ a{ color:var(--gold-deep); }
 }
 .nav-toggle span{ background:#0e5a6e; }
 body.nav-open .nav-toggle span{ background:#0e5a6e; }
+/* The base drawer surface is declared on #mainNav (ID) in styles.css,
+   which outranks the .main-nav rules above — restate the light
+   treatment at ID specificity so the drawer itself is cream glass,
+   never the old near-black panel. */
+@media (max-width:1024px){
+  #mainNav{
+    background:linear-gradient(165deg, rgba(255,255,255,.97), rgba(250,248,241,.94));
+    border-right:1px solid rgba(201,162,75,.5);
+    box-shadow:30px 0 70px rgba(23,34,43,.22);
+  }
+  #mainNav::before{ color:var(--ink); }
+  #mainNav a:not(.btn){ color:#33424e; opacity:1; }
+  #mainNav a:not(.btn):hover, #mainNav a:not(.btn):active{ background:rgba(201,162,75,.16); color:var(--gold-deep); }
+  #mainNav .btn-ghost{ color:#33424e; border-color:rgba(23,34,43,.25); background:rgba(255,255,255,.6); }
+  #mainNav .btn-ghost:hover{ color:var(--gold-deep); border-color:rgba(217,171,43,.6); }
+}
 
 /* ---------- 3. Buttons ---------- */
 .btn-gold,.cx-btn-g{
@@ -536,14 +552,51 @@ body .qdone-price{ color:var(--gold-deep); }
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
 }
 
-/* ---------- 11. Footer (warm cream, ink text) ---------- */
-.site-footer{
+/* ---------- 11. Footer + bottom request section (warm cream, ink text) ---------- */
+footer.site-footer{
   background:linear-gradient(180deg,#f6f2e7,#efe9da);
   border-top:2px solid rgba(201,162,75,.55);
   color:#33424e;
 }
 .site-footer p,.site-footer span{ color:#55645c; }
 .footer-brand p{ color:#33424e; }
+.footer-brand p span{ color:#55645c; }
 .footer-contact a,.footer-links a{ color:#33424e; }
 .footer-contact a:hover,.footer-links a:hover{ color:var(--gold-deep); }
+.footer-grid .footer-links a{ color:#33424e; }
+.footer-grid .footer-links a:hover{ color:var(--gold-deep); }
+.footer-bottom{ color:#8a8a7d; }
 .footer-copy{ color:#8a8a7d; }
+
+/* Bottom request section (#contact, homepage "Request service" +
+   "Get a fast quote"): styles.css paints it as a dark cinematic band
+   (ID rules + a dark ::before scrim) designed to melt into the old
+   near-black footer, and the quote form's inputs/labels keep their
+   dark-card colors. Bring the whole band onto the cream canvas:
+   soft gold warmth, no scrim, frosted glass form, ink details. */
+#contact{
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(245,197,66,.20), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 88% 78%, rgba(201,162,75,.10), transparent 70%),
+    linear-gradient(180deg,#faf8f1,#f3f0e6 60%,#efe9da);
+  border-top:1px solid rgba(201,162,75,.4);
+  border-bottom:none;
+}
+#contact::before{ background:none; }
+#contact .info-label{ color:var(--teal); }
+#contact .info-value{ color:var(--ink); }
+#contact .info-link:hover{ color:var(--gold-deep); }
+.quote-form{
+  background:var(--glass); border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+.quote-form h3{ color:var(--ink); }
+.quote-form label{ color:#33424e; }
+.quote-form input,.quote-form select,.quote-form textarea{
+  background:rgba(255,255,255,.92); color:var(--ink);
+  border:1px solid rgba(23,34,43,.18);
+}
+.quote-form input:focus,.quote-form select:focus,.quote-form textarea:focus{
+  border-color:rgba(217,171,43,.75); box-shadow:0 0 0 3px rgba(217,171,43,.22);
+}

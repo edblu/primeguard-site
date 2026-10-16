@@ -1202,6 +1202,19 @@
     }
     return "";
   }
+  function pgCleanAddr(q) {
+    return String(q || "").replace(/,?\s*(unit|apt\.?|apartment|suite|ste\.?|#)\s*[A-Za-z0-9-]+/gi, "").replace(/\s+,/g, ",").replace(/,\s*,/g, ", ").trim();
+  }
+  // Tries the full query, then the unit-stripped query, then the bare area,
+  // so addresses with apartment/unit parts still resolve to a point.
+  function pgGeocodeLoose(q, areaQ) {
+    return pgGeocode(q).then(function (pt) {
+      if (pt) return pt;
+      var cleaned = pgCleanAddr(q);
+      if (cleaned && cleaned !== q) return pgGeocode(cleaned).then(function (pt2) { return pt2 || (areaQ ? pgGeocode(areaQ) : null); });
+      return areaQ ? pgGeocode(areaQ) : null;
+    });
+  }
 
   // Loads EVERY vendor who could take work (approved or pending; archived
   // and rejected stay out) and annotates each row with how it matches the
@@ -1494,7 +1507,10 @@
     if (row.serviceMatch) badges += '<span class="pgvb-badge">Does this service</span>';
     var info = "";
     if (crew) info += "<span>Crew: " + esc(crew) + "</span>";
-    if (v.phone) info += '<span>Call: <a href="tel:' + esc(digits) + '">' + esc(v.phone) + "</a></span>";
+    var phoneDisp = v.phone;
+    if (digits.length === 10) phoneDisp = "(" + digits.slice(0, 3) + ") " + digits.slice(3, 6) + "-" + digits.slice(6);
+    else if (digits.length === 11 && digits.charAt(0) === "1") phoneDisp = "(" + digits.slice(1, 4) + ") " + digits.slice(4, 7) + "-" + digits.slice(7);
+    if (v.phone) info += '<span>Call: <a href="tel:' + esc(digits) + '">' + esc(phoneDisp) + "</a></span>";
     if (v.equipment) info += "<span>" + esc(v.equipment) + "</span>";
     return '<div class="pgvb-card' + (row.areaMatch && row.serviceMatch ? " both" : "") + '">' +
       '<div class="pgvb-av">' + esc(pgInitials(biz)) + "</div>" +
@@ -1584,7 +1600,12 @@
           if (!q || !origin) { row.distState = "done"; row.dist = null; pgVbDistUpdated(state, row); return null; }
           row.distState = "busy"; pgVbPaintDist(row);
           var wait = pgGeoCached(q) ? 0 : 150;
-          return pgDelay(wait).then(function () { return pgGeocode(q); }).then(function (pt) {
+          var areaQ = "";
+          if (String(row.v.address || "").trim()) {
+            var ars = row.v.areas || [];
+            for (var ai = 0; ai < ars.length; ai++) { var av = String(ars[ai] || "").trim(); if (av) { areaQ = av + ", FL"; break; } }
+          }
+          return pgDelay(wait).then(function () { return pgGeocodeLoose(q, areaQ); }).then(function (pt) {
             row.distState = "done";
             row.dist = pt ? pgHaversineMi(origin, pt) : null;
             pgVbDistUpdated(state, row);

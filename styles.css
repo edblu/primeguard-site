@@ -509,11 +509,11 @@ body.nav-open { overflow: hidden; }
     position: fixed; left: 0; top: 0; z-index: 120;
     width: min(340px, 88vw); height: 100dvh;
     flex-direction: column; align-items: stretch; gap: 4px;
-    background: linear-gradient(165deg, rgba(21, 21, 26, 0.99), rgba(10, 10, 13, 0.99));
-    border-right: 1px solid var(--line); border-radius: 0 20px 20px 0;
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(250, 248, 241, 0.94));
+    border-right: 1px solid rgba(201, 162, 75, 0.5); border-radius: 0 20px 20px 0;
     padding: 96px 18px 28px;
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    box-shadow: 30px 0 70px rgba(0, 0, 0, 0.55);
+    box-shadow: 30px 0 70px rgba(23, 34, 43, 0.22);
     overflow-y: auto; overscroll-behavior: contain;
     transform: translateX(-105%); visibility: hidden;
     transition: transform 0.28s ease, visibility 0s linear 0.28s;
@@ -524,7 +524,7 @@ body.nav-open { overflow: hidden; }
     content: "PrimeGuard";
     position: absolute; top: 24px; left: 84px;
     font-family: var(--display); font-size: 1.3rem; font-weight: 700;
-    letter-spacing: -0.01em; color: var(--text); line-height: 1;
+    letter-spacing: -0.01em; color: #101c26; line-height: 1;
   }
   #mainNav::after {
     content: "";
@@ -532,8 +532,10 @@ body.nav-open { overflow: hidden; }
     background: linear-gradient(90deg, var(--gold-bright), var(--gold));
     border-radius: 2px;
   }
-  #mainNav a:not(.btn) { padding: 13px 16px; border-radius: 12px; font-size: 1rem; }
-  #mainNav a:not(.btn):hover, #mainNav a:not(.btn):active { background: rgba(201, 162, 75, 0.1); }
+  #mainNav a:not(.btn) { padding: 13px 16px; border-radius: 12px; font-size: 1rem; color: #33424e; opacity: 1; }
+  #mainNav a:not(.btn):hover, #mainNav a:not(.btn):active { background: rgba(201, 162, 75, 0.16); color: #8a6d2a; }
+  #mainNav .btn-ghost { color: #33424e; border-color: rgba(23, 34, 43, 0.25); background: rgba(255, 255, 255, 0.6); }
+  #mainNav .btn-ghost:hover { color: #8a6d2a; border-color: rgba(201, 162, 75, 0.6); }
   .btn-nav-call { display: block; text-align: center; margin-top: 8px; }
   #mainNav .btn-nav-book { display: block; text-align: center; margin-top: 8px; }
   #mainNav .btn-nav-auth { display: block; text-align: center; margin-top: 8px; }

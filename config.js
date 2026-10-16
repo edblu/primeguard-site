@@ -12,7 +12,7 @@ window.SITE_CONFIG = {
   phoneDisplay: "(786) 422-9674",          // shown to visitors
   phoneHref: "tel:+17864229674",           // click-to-call link
   email: "primeguardllc.office@pgpbiz.com", // shown + used by the form
-  hours: "Mon-Sat, 8:00 AM - 6:00 PM",
+  hours: "Mon-Fri, 8:00 AM - 5:00 PM · Sat, 8:00 AM - 12:00 PM",
   serviceArea: "Miami-Dade County, FL",
 
   // --- Phase 2 integrations (fill these in; site degrades gracefully if empty) ---
