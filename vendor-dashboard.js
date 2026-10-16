@@ -64,6 +64,79 @@
   $("vd-logout").addEventListener("click", function (e) { e.preventDefault(); auth.signOut(); });
   $("vd-noprofile-logout").addEventListener("click", function () { auth.signOut(); });
 
+  // ---------- Left slide-over menu (burger + drawer) ----------
+  // Burger, backdrop and drawer live inside #vd-dash, so they only
+  // exist while the dashboard is shown (same scoping as the tab bar).
+  var drawerEl = $("vd-drawer"), backdropEl = $("vd-drawer-backdrop"), burgerEl = $("vd-burger");
+  function drawerOpen() { return drawerEl && drawerEl.classList.contains("open"); }
+  function openDrawer() {
+    if (!drawerEl) return;
+    drawerEl.classList.add("open");
+    if (backdropEl) backdropEl.classList.add("open");
+    if (burgerEl) burgerEl.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden"; // lock page scroll behind the drawer
+  }
+  function closeDrawer() {
+    if (!drawerEl) return;
+    drawerEl.classList.remove("open");
+    if (backdropEl) backdropEl.classList.remove("open");
+    if (burgerEl) burgerEl.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  }
+  if (burgerEl) burgerEl.addEventListener("click", openDrawer);
+  if (backdropEl) backdropEl.addEventListener("click", closeDrawer);
+  if ($("vd-drawer-close")) $("vd-drawer-close").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Escape" || e.key === "Esc") && drawerOpen()) closeDrawer();
+  });
+  // Drawer links: close first, then glide to the section (the page
+  // already smooth-scrolls anchors via CSS; scrollIntoView keeps the
+  // behavior identical after the drawer closes).
+  if (drawerEl) drawerEl.querySelectorAll(".vd-drawer-link").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      var href = a.getAttribute("href") || "";
+      if (href.charAt(0) !== "#") return;
+      var target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      closeDrawer();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  // Drawer "Salir": one logout behavior only — fire the hero's
+  // existing #vd-logout handler.
+  if ($("vd-drawer-logout")) $("vd-drawer-logout").addEventListener("click", function () {
+    closeDrawer();
+    var lo = $("vd-logout");
+    if (lo) lo.click();
+  });
+
+  // Count badge on a drawer link: number when n > 0, hidden otherwise.
+  function setDrawerBadge(id, n) {
+    var b = $(id);
+    if (!b) return;
+    if (n > 0) { b.textContent = n; b.classList.remove("hidden"); }
+    else { b.textContent = ""; b.classList.add("hidden"); }
+  }
+
+  // "Cuenta" attention dots, from the same vendor fields renderW9 /
+  // renderAgreements already read: W-9 still pending, or the current
+  // agreements version not yet signed.
+  function renderDrawerDots() {
+    if (!vendor) return;
+    var w9 = $("vd-nav-dot-w9");
+    if (w9) {
+      var st = String(vendor.w9Status || "pending").toLowerCase();
+      var w9Done = st === "received" || st === "approved" || st === "submitted";
+      w9.classList.toggle("hidden", w9Done);
+    }
+    var ag = $("vd-nav-dot-agree");
+    if (ag) {
+      var signed = vendor.agreements && vendor.agreements.version === AGREEMENTS_VERSION;
+      ag.classList.toggle("hidden", !!signed);
+    }
+  }
+
   $("vd-google").addEventListener("click", function () {
     var errEl = $("vd-login-error"); hide(errEl);
     var provider = new firebase.auth.GoogleAuthProvider();
@@ -128,6 +201,16 @@
     var areas = vendor.areas || [];
     $("vd-area").textContent = areas.length ? areas[0] + (areas.length > 1 ? " +" + (areas.length - 1) : "") : "";
     $("vd-hello").textContent = (vendor.name || "there").split(" ")[0];
+    // Drawer header mirrors the same identity: business name + an
+    // initials avatar (first letters of the first two words of the
+    // business, falling back to the contact name).
+    var dBiz = $("vd-drawer-biz");
+    if (dBiz) dBiz.textContent = vendor.business || vendor.name || "Vendor";
+    var dIni = $("vd-drawer-initials");
+    if (dIni) {
+      var words = String(vendor.business || vendor.name || "PrimeGuard").split(/\s+/).filter(Boolean);
+      dIni.textContent = words.slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join("") || "PG";
+    }
   }
 
   function renderProfile() {
@@ -161,6 +244,11 @@
       if (st === "approved") { pill.className = "vd-ph-pill"; pill.textContent = "✓ Aprobado"; }
       else if (st === "pending") { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = "En revisión"; }
       else { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = stTxt; }
+    }
+    // Drawer header status line: same computed status, Spanish labels.
+    var dStatus = $("vd-drawer-status");
+    if (dStatus) {
+      dStatus.textContent = st === "approved" ? "✓ Aprobado" : st === "pending" ? "En revisión" : stTxt;
     }
     $("vd-profile").innerHTML = [
       ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
@@ -254,6 +342,7 @@
   function renderAgreements() {
     var statusEl = $("va-status"), form = $("va-form");
     if (!statusEl || !form || !vendor) return;
+    renderDrawerDots();
     var ag = vendor.agreements || {};
     var agSec = $("vd-agreements");
     if (agSec) agSec.classList.toggle("vd-doc-done", ag.version === AGREEMENTS_VERSION);
@@ -326,6 +415,7 @@
   function renderW9() {
     var el = $("vd-w9-status");
     if (!el || !vendor) return;
+    renderDrawerDots();
     var st = String(vendor.w9Status || "pending").toLowerCase();
     var w9Sec = $("vd-w9-sec");
     if (w9Sec) w9Sec.classList.toggle("vd-doc-done", st === "received" || st === "approved" || st === "submitted");
@@ -511,6 +601,10 @@
     ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done", "vd-hero-cnt"].forEach(function (id) {
       var el = $(id); if (el) el.textContent = "";
     });
+    // No job board for inactive accounts: no menu entry point, no badges.
+    if (burgerEl) burgerEl.classList.add("hidden");
+    setDrawerBadge("vd-nav-badge-avail", 0);
+    setDrawerBadge("vd-nav-badge-active", 0);
     openQRs = [];
     var sel = $("q-workorder");
     if (sel) sel.innerHTML = '<option value="">Select a quote request...</option>';
@@ -542,6 +636,7 @@
 
   function loadAll() {
     if (vendorInactive()) { renderInactivePanel(); return; }
+    if (burgerEl) burgerEl.classList.remove("hidden");
     db.collection("quotes").where("vendorId", "==", me.uid).get().then(function (qs) {
       myQuoted = {};
       qs.forEach(function (d) {
@@ -560,6 +655,7 @@
       renderList($("list-qr"), qrs, "quote_request");
       renderList($("list-jobs"), jobs, "job");
       $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? " NUEVA" : " NUEVAS");
+      setDrawerBadge("vd-nav-badge-avail", qrs.length);
       $("cnt-jobs").textContent = jobs.length + " DISPONIBLES";
       $("st-open").textContent = jobs.length + qrs.length;
       buildQuoteSelect();
@@ -604,6 +700,7 @@
       $("st-pending").textContent = "$" + pending.toLocaleString();
       $("st-pending-n").textContent = pendingN ? pendingN + " trabajo(s) esperando confirmación" : "Nada esperando confirmación";
       $("cnt-active").textContent = active.length + " EN CURSO";
+      setDrawerBadge("vd-nav-badge-active", active.length);
       $("cnt-done").textContent = done.length + " TRABAJOS";
       buildQuoteSelect();
     });
@@ -840,6 +937,22 @@
       ["sec-done", "#sec-mistrabajos"],
       ["sec-mas", "#sec-mas"]
     ];
+    // Drawer links spy on their own sections (same walk, own hrefs);
+    // sections without a drawer entry keep the previous drawer state.
+    var drawerLinks = Array.prototype.slice.call(document.querySelectorAll(".vd-drawer-link"));
+    var drawerMap = [
+      ["sec-dinero", "#vd-topbar"],
+      ["sec-proximo", "#sec-proximo"],
+      ["sec-disponibles", "#sec-disponibles"],
+      ["sec-jobs", "#sec-jobs"],
+      ["sec-mistrabajos", "#sec-mistrabajos"],
+      ["sec-cotizar", "#sec-cotizar"],
+      ["sec-done", "#sec-done"],
+      ["vd-w9-sec", "#vd-w9-sec"],
+      ["vd-agreements", "#vd-agreements"],
+      ["vd-avisos", "#vd-avisos"],
+      ["vd-perfil", "#vd-perfil"]
+    ];
     var ticking = false;
     function update() {
       ticking = false;
@@ -853,6 +966,16 @@
       tabs.forEach(function (t) {
         t.classList.toggle("active", t.getAttribute("href") === current);
       });
+      if (drawerLinks.length) {
+        var dCurrent = "#vd-topbar";
+        for (var j = 0; j < drawerMap.length; j++) {
+          var dEl = document.getElementById(drawerMap[j][0]);
+          if (dEl && dEl.offsetParent !== null && dEl.getBoundingClientRect().top <= 160) dCurrent = drawerMap[j][1];
+        }
+        drawerLinks.forEach(function (t) {
+          t.classList.toggle("active", t.getAttribute("href") === dCurrent);
+        });
+      }
     }
     window.addEventListener("scroll", function () {
       if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
