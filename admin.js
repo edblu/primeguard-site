@@ -1391,7 +1391,7 @@
     }).then(function () {
       renderCustomers();
     }).catch(function () {
-      box.innerHTML = '<p style="color:var(--faint)">Customers could not load yet. The database rules update may still need to be published.</p>';
+      box.innerHTML = '<p style="color:var(--faint)">CRM could not load yet. The database rules update may still need to be published.</p>';
     });
   }
 
@@ -1427,7 +1427,7 @@
     }
     var conv = custHotLeads.length ? Math.round(100 * converted / custHotLeads.length) + "%" : "—";
     box.innerHTML = '<section class="astats">' +
-      '<div class="astat"><div class="l">Customers</div><div class="v">' + custRows.length + "</div></div>" +
+      '<div class="astat"><div class="l">Total customers</div><div class="v">' + custRows.length + "</div></div>" +
       '<div class="astat"><div class="l">Repeat customers</div><div class="v">' + repeats + "</div></div>" +
       '<div class="astat"><div class="l">Leads this month</div><div class="v">' + leadsMonth + "</div></div>" +
       '<div class="astat"><div class="l">Top source</div><div class="v vsrc">' + esc(topName) + '</div>' + (topCount ? '<div class="vsub">' + esc(topCount) + "</div>" : "") + "</div>" +
