@@ -517,3 +517,32 @@
   .vd-mini strong { font-size: 1.1rem; }
   .vd-hero-body h3 { font-size: 1.3rem; }
 }
+
+/* ---------- Calendario (portal calendars, 2026-10-16) ---------- */
+.vcal-card { background:#fffdf7; border:1px solid #eadfc6; border-radius:18px; padding:18px; box-shadow:var(--vd-sh-sm); max-width:720px; }
+.vcal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.vcal-title { font-weight:800; font-size:1.05rem; text-transform:capitalize; }
+.vcal-nav { width:38px; height:38px; border-radius:50%; border:1px solid #e0aa26; background:#ffffff; color:#8a6d1f; font-size:1.3rem; line-height:1; cursor:pointer; font-family:inherit; }
+.vcal-dow { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:.72rem; font-weight:700; color:#a08c5a; margin-bottom:6px; }
+.vcal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.vcal-cell { aspect-ratio:1; border:1px solid transparent; background:transparent; border-radius:12px; font-family:inherit; font-size:.9rem; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:#3a2f16; padding:0; }
+.vcal-cell.empty { cursor:default; }
+.vcal-cell.today { border-color:#e0aa26; font-weight:800; }
+.vcal-cell.sel { background:var(--vd-gold-grad); font-weight:800; }
+.vcal-dots { display:flex; gap:3px; height:6px; }
+.vcal-dot { width:6px; height:6px; border-radius:50%; background:#c9a227; }
+.vcal-cell.sel .vcal-dot { background:#3a2f16; }
+.vcal-day { margin-top:14px; border-top:1px solid #f0e6cd; padding-top:12px; }
+.vcal-dayh { font-weight:800; text-transform:capitalize; margin-bottom:6px; }
+.vcal-none { color:#8a7a52; font-size:.9rem; }
+.vcal-ev { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f5edd8; }
+.vcal-ev:last-child { border-bottom:none; }
+.vcal-ev-tx { flex:1; display:flex; flex-direction:column; min-width:0; }
+.vcal-ev-tx small { color:#8a7a52; }
+.vcal-ev-btn { padding:8px 14px; font-size:.85rem; white-space:nowrap; }
+.vcal-connect { margin-top:16px; background:#fffdf7; border:1px solid #eadfc6; border-radius:18px; padding:18px; box-shadow:var(--vd-sh-sm); max-width:720px; }
+.vcal-connect h3 { margin-bottom:6px; }
+.vcal-connect p { color:#8a7a52; font-size:.9rem; margin-bottom:12px; }
+.vcal-linkrow { display:flex; gap:10px; flex-wrap:wrap; }
+.vcal-linkrow input { flex:1; min-width:220px; padding:11px 13px; border-radius:10px; border:1px solid #e3d5ae; background:#ffffff; font-size:.85rem; font-family:inherit; }
+.vcal-connect .vcal-fine { font-size:.8rem; margin-bottom:4px; }
