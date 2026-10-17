@@ -705,6 +705,7 @@
       buildVendorCalEvents(active, done);
       renderVendorCal();
       renderCalConnect();
+      writeCalFeedSnapshot();
       $("st-done").textContent = done.length;
       $("st-earned").textContent = "$" + earned.toLocaleString();
       $("st-pending").textContent = "$" + pending.toLocaleString();
@@ -806,6 +807,38 @@
     for (var i = 0; i < 32; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
     return s;
   }
+  function vcalIcsText() {
+    function escT(s) { return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+    function z(d) { return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"; }
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PrimeGuard//Vendor Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:PrimeGuard Trabajos"];
+    var stamp = z(new Date());
+    Object.keys(vcalMap).forEach(function (k) {
+      vcalMap[k].forEach(function (ev, idx) {
+        var w = ev.w;
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:" + w.id + "-" + k + "-" + idx + "@primeguardmia.com");
+        lines.push("DTSTAMP:" + stamp);
+        lines.push("DTSTART:" + z(ev.date));
+        lines.push("DTEND:" + z(new Date(ev.date.getTime() + 90 * 60000)));
+        lines.push("SUMMARY:" + escT(w.title || w.category || "Trabajo PrimeGuard"));
+        var loc = w.address || w.area || "";
+        if (loc) lines.push("LOCATION:" + escT(loc));
+        lines.push("DESCRIPTION:" + escT("Trabajo de PrimeGuard. Estado: " + statusLabelEs(w)));
+        lines.push("END:VEVENT");
+      });
+    });
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
+  }
+  function writeCalFeedSnapshot() {
+    if (!me || !vendor || !vendor.calendarToken) return;
+    try {
+      db.collection("calendar_feeds").doc(vendor.calendarToken).set({
+        kind: "vendor", ownerUid: me.uid, ics: vcalIcsText(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function () {});
+    } catch (e) {}
+  }
   function renderCalConnect() {
     var inp = $("vcal-link"); if (!inp || !me || !vendor) return;
     var err = $("vcal-err");
@@ -813,7 +846,7 @@
     if (vendor.calendarToken) { showLink(); return; }
     var tok = vcalNewToken();
     db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
-      vendor.calendarToken = tok; showLink();
+      vendor.calendarToken = tok; showLink(); writeCalFeedSnapshot();
     }).catch(function () {
       if (err) { err.textContent = "No se pudo crear tu enlace. Revisa tu conexión e inténtalo de nuevo."; err.classList.remove("hidden"); }
     });
@@ -835,8 +868,10 @@
     if (regen) regen.addEventListener("click", function () {
       if (!me) return;
       var tok = vcalNewToken();
+      var oldTok = vendor.calendarToken;
       db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
-        vendor.calendarToken = tok; renderCalConnect();
+        vendor.calendarToken = tok; renderCalConnect(); writeCalFeedSnapshot();
+        if (oldTok && oldTok !== tok) { try { db.collection("calendar_feeds").doc(oldTok).delete().catch(function () {}); } catch (e) {} }
       }).catch(function () { var err = $("vcal-err"); if (err) { err.textContent = "No se pudo generar el enlace nuevo."; err.classList.remove("hidden"); } });
     });
   })();
