@@ -130,6 +130,8 @@
       var w9Done = st === "received" || st === "approved" || st === "submitted";
       w9.classList.toggle("hidden", w9Done);
     }
+    var payDot = $("vd-nav-dot-pay");
+    if (payDot) payDot.classList.toggle("hidden", payoutComplete(vendor));
     var ag = $("vd-nav-dot-agree");
     if (ag) {
       var signed = vendor.agreements && vendor.agreements.version === AGREEMENTS_VERSION;
@@ -189,6 +191,7 @@
       renderDocs();
       renderAgreements();
       renderW9();
+      renderSetup();
       loadAll();
     }).catch(function () {
       // Profile load failed: stay on this page, back to the login view
@@ -325,7 +328,7 @@
       }).then(function () {
         return db.collection("vendors").doc(me.uid).get();
       }).then(function (snap) {
-        vendor = snap.data(); renderDocs(); renderW9();
+        vendor = snap.data(); renderDocs(); renderW9(); renderSetup();
         alert("Document received. Thank you.");
       }).catch(function () { alert("Upload failed. Please try again."); });
     };
@@ -434,6 +437,122 @@
       var due = fmtDate(vendor.w9Due, false);
       el.innerHTML = '<strong style="color:#f5d67b">W-9: pending' + (due ? " — due " + esc(due) : "") + '</strong> <span style="color:var(--muted)">— download the blank form below, fill it in, and upload it in the "Documents needed" section above.</span>';
     }
+  }
+
+  /* ---------- Finish-your-setup checklist + payment info (v16) ----------
+     Edwin's design (2026-10-17): after signup the portal shows the vendor
+     a checklist of everything still owed, and one of the items is their
+     payment information (Zelle preferred, ACH, or check). Saved on the
+     vendor doc as payoutMethod / payoutZelle / payoutName / payoutBankName
+     / payoutRouting / payoutAccount so the office knows where to send pay
+     the moment a job closes. */
+  function payoutComplete(v) {
+    if (!v || !v.payoutMethod) return false;
+    if (v.payoutMethod === "zelle") return !!(v.payoutZelle && v.payoutName);
+    if (v.payoutMethod === "ach") return !!(v.payoutAccount && v.payoutName);
+    if (v.payoutMethod === "check") return true;
+    return false;
+  }
+  function payoutSummary(v) {
+    if (v.payoutMethod === "zelle") return "Zelle \u00b7 " + (v.payoutZelle || "") + (v.payoutName ? " (" + v.payoutName + ")" : "");
+    if (v.payoutMethod === "ach") return "Bank transfer \u00b7 " + (v.payoutBankName || "bank") + " \u2026" + String(v.payoutAccount || "").slice(-4) + (v.payoutName ? " (" + v.payoutName + ")" : "");
+    if (v.payoutMethod === "check") return "Check by mail \u00b7 " + (v.address || "");
+    return "";
+  }
+  var setupPayOpen = false;
+  function renderSetup() {
+    var box = $("vd-setup");
+    if (!box || !vendor) return;
+    renderDrawerDots();
+    var v = vendor;
+    var w9st = String(v.w9Status || "pending").toLowerCase();
+    var w9Done = w9st === "received" || w9st === "approved" || w9st === "submitted";
+    var agreeDone = !!(v.agreements && v.agreements.version === AGREEMENTS_VERSION);
+    var payDone = payoutComplete(v);
+    var items = [
+      { label: "Payment information: how we pay you", done: payDone, hint: payDone ? payoutSummary(v) : "Add your Zelle, bank transfer, or check details below so the office can pay you per job completed.", anchor: null, pay: true },
+      { label: "W-9 form", done: w9Done, hint: w9Done ? "On file with the office." : "Still needed. Download the blank form and upload it in Documents needed.", anchor: "#vd-w9-sec" },
+      { label: "Signed agreements (NDA + contractor agreement)", done: agreeDone, hint: agreeDone ? "Signed and on file." : "Review and sign in the Acuerdos section.", anchor: "#vd-agreements" }
+    ];
+    if (v.insured === "yes") {
+      var coiDone = String(v.coiStatus || "").toLowerCase() === "received";
+      items.push({ label: "Certificate of insurance", done: coiDone, hint: coiDone ? "On file with the office." : "Upload it in the Documents needed section.", anchor: "#vd-w9-sec" });
+    }
+    var doneN = items.filter(function (i) { return i.done; }).length;
+    var html = '<div class="vd-doccard" style="margin-bottom:18px"><div class="t">Finish your setup</div>' +
+      '<h4>' + (doneN === items.length ? "Your setup is complete \u2713" : doneN + " of " + items.length + " done") + "</h4>";
+    items.forEach(function (it) {
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.09)">' +
+        '<span style="font-size:1.05rem;line-height:1.3">' + (it.done ? "\u2705" : "\u2b1c") + "</span>" +
+        '<div style="flex:1"><strong style="font-size:.95rem">' + esc(it.label) + '</strong><div style="font-size:.84rem;color:var(--muted)">' + esc(it.hint) + "</div></div>" +
+        (it.pay ? '<button class="btn btn-gold" id="vd-pay-toggle" type="button" style="padding:8px 16px;font-size:.85rem">' + (it.done ? "Update" : "Add") + "</button>"
+                 : (!it.done && it.anchor ? '<a class="btn btn-ghost" href="' + it.anchor + '" style="padding:8px 16px;font-size:.85rem;text-decoration:none">Go</a>' : "")) +
+        "</div>";
+    });
+    var showForm = setupPayOpen || !payDone;
+    html += '<form id="vd-pay-form" class="vform' + (showForm ? "" : " hidden") + '" style="margin-top:14px;max-width:640px">' +
+      '<label>Payment method<select id="vd-paymethod" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">' +
+      '<option value="zelle">Zelle (fastest)</option><option value="ach">Bank transfer (ACH)</option><option value="check">Check by mail</option></select></label>' +
+      '<div id="vd-pay-zelle"><label>Zelle phone or email<input type="text" id="vd-zelle" value="' + esc(v.payoutZelle || "") + '"></label>' +
+      '<label>Name on the account<input type="text" id="vd-payname" value="' + esc(v.payoutName || "") + '"></label></div>' +
+      '<div id="vd-pay-ach" class="hidden"><label>Bank name<input type="text" id="vd-bankname" value="' + esc(v.payoutBankName || "") + '"></label>' +
+      '<label>Routing number<input type="text" id="vd-routing" inputmode="numeric" value="' + esc(v.payoutRouting || "") + '"></label>' +
+      '<label>Account number<input type="text" id="vd-account" inputmode="numeric" value="' + esc(v.payoutAccount || "") + '"></label>' +
+      '<label>Name on the account<input type="text" id="vd-achname" value="' + esc(v.payoutName || "") + '"></label></div>' +
+      '<p id="vd-pay-check" class="hidden" style="font-size:.88rem;color:var(--muted)">Checks are mailed to your business address on file: ' + esc(v.address || "") + ".</p>" +
+      '<p id="vd-pay-msg" style="font-size:.88rem;margin:8px 0"></p>' +
+      '<button class="btn btn-gold" id="vd-pay-save" type="submit" style="padding:11px 22px">Save payment info</button></form>';
+    html += '<p style="font-size:.84rem;color:var(--muted);margin-top:12px">Job alerts: turn on notifications so you never miss a new job. <button class="btn btn-ghost" id="vd-setup-push" type="button" style="padding:7px 14px;font-size:.82rem;margin-left:6px">Turn on notifications</button></p>';
+    html += "</div>";
+    box.innerHTML = html;
+    var sel = $("vd-paymethod");
+    if (sel) {
+      sel.value = v.payoutMethod || "zelle";
+      var sync = function () {
+        var m = sel.value;
+        $("vd-pay-zelle").classList.toggle("hidden", m !== "zelle");
+        $("vd-pay-ach").classList.toggle("hidden", m !== "ach");
+        $("vd-pay-check").classList.toggle("hidden", m !== "check");
+      };
+      sel.addEventListener("change", sync); sync();
+    }
+    var tog = $("vd-pay-toggle");
+    if (tog) tog.addEventListener("click", function () { setupPayOpen = !setupPayOpen; renderSetup(); });
+    var pushBtn = $("vd-setup-push");
+    if (pushBtn) pushBtn.addEventListener("click", function () { if (window.PGpush) PGpush.enable("vendor"); });
+    var form = $("vd-pay-form");
+    if (form) form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var m = sel.value;
+      var data = {
+        payoutMethod: m,
+        payoutZelle: $("vd-zelle").value.trim(),
+        payoutName: $("vd-payname").value.trim(),
+        payoutBankName: $("vd-bankname").value.trim(),
+        payoutRouting: $("vd-routing").value.trim(),
+        payoutAccount: $("vd-account").value.trim(),
+        payoutUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (m === "ach" && $("vd-achname").value.trim()) data.payoutName = $("vd-achname").value.trim();
+      var msg = $("vd-pay-msg");
+      var probe = Object.assign({}, vendor, data);
+      if (!payoutComplete(probe)) {
+        msg.style.color = "#e8a33d";
+        msg.textContent = m === "zelle" ? "Add your Zelle phone or email and the name on the account." : m === "ach" ? "Add your bank, routing, account number, and the name on the account." : "Something is missing.";
+        return;
+      }
+      $("vd-pay-save").disabled = true;
+      db.collection("vendors").doc(me.uid).update(data).then(function () {
+        return db.collection("vendors").doc(me.uid).get();
+      }).then(function (snap) {
+        vendor = snap.data(); setupPayOpen = false;
+        renderSetup(); renderDrawerDots();
+        alert("Payment info saved. The office can now pay you per job completed.");
+      }).catch(function () {
+        msg.style.color = "#e88"; msg.textContent = "Save failed. Please try again.";
+        $("vd-pay-save").disabled = false;
+      });
+    });
   }
 
   // ---------- "My Day" helpers (money strip + next-job hero) ----------
