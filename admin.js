@@ -773,10 +773,11 @@
   function renderHlFilterChips() {
     var wrap = $("ad-hl-filters");
     if (!wrap) return;
-    var stageCounts = { all: hlLeads.length };
+    var queueLeads = hlLeads.filter(function (it) { return !it.d.convertedWorkOrderId && !it.d.customerId; });
+    var stageCounts = { all: queueLeads.length };
     HL_STAGES.forEach(function (s) { stageCounts[s[0]] = 0; });
-    var tempCounts = { all: hlLeads.length, hot: 0, warm: 0, cold: 0 };
-    hlLeads.forEach(function (it) {
+    var tempCounts = { all: queueLeads.length, hot: 0, warm: 0, cold: 0 };
+    queueLeads.forEach(function (it) {
       stageCounts[hlStageValue(it.d)]++;
       tempCounts[leadTemp(it.d)]++;
     });
@@ -821,6 +822,10 @@
       return;
     }
     var visible = hlLeads.filter(function (it) {
+      // Pipeline rule (Edwin, 2026-10-16): a record lives in ONE stage at a
+      // time. Once a lead converts to a work order (or is promoted into the
+      // CRM) it leaves the Hot Leads queue for good.
+      if (it.d.convertedWorkOrderId || it.d.customerId) return false;
       var stageOk = hlStageFilter === "all" || hlStageValue(it.d) === hlStageFilter;
       var tempOk = hlTempFilter === "all" || leadTemp(it.d) === hlTempFilter;
       return stageOk && tempOk;
@@ -4019,11 +4024,42 @@
     var box = $("ad-cq-signed-list");
     db.collection("customer_quotes").orderBy("createdAt", "desc").limit(50).get()
       .then(function (qs) {
-        var signed = [];
+        var signed = [], awaiting = [];
         qs.forEach(function (d) {
           var q = d.data();
           if (q && q.status === "signed") signed.push({ id: d.id, q: q });
+          else if (q && q.status === "sent") awaiting.push({ id: d.id, q: q });
         });
+        var pbox = $("ad-cq-pending-list");
+        if (pbox) {
+          if (!awaiting.length) {
+            pbox.innerHTML = '<p style="color:var(--faint)">No customer quotes waiting on a signature right now.</p>';
+          } else {
+            pbox.innerHTML = "";
+            awaiting.forEach(function (it) {
+              var q = it.q;
+              var sdMs = tsMs(q.createdAt);
+              var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+              var exMs = tsMs(q.expiresAt);
+              var ex = exMs ? new Date(exMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+              var link = "https://primeguardmia.com/quote-sign.html?id=" + it.id;
+              var row = document.createElement("div"); row.className = "arow";
+              row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + "</strong><small>" +
+                esc(q.service || "") + (sd ? " \u00b7 sent " + esc(sd) : "") + (ex ? " \u00b7 expires " + esc(ex) : "") + "</small></div>" +
+                '<button type="button" class="mini" data-cqcopylink="' + esc(link) + '">Copy sign link</button>' +
+                '<span class="pill p-pend">Awaiting signature</span>';
+              pbox.appendChild(row);
+            });
+            pbox.querySelectorAll("[data-cqcopylink]").forEach(function (b) {
+              b.addEventListener("click", function () {
+                var link = b.getAttribute("data-cqcopylink");
+                function done() { b.textContent = "Copied \u2713"; setTimeout(function () { b.textContent = "Copy sign link"; }, 2000); }
+                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(done);
+                else done();
+              });
+            });
+          }
+        }
         if (box) {
           if (!signed.length) {
             box.innerHTML = '<p style="color:var(--faint)">No signed customer quotes yet.</p>';
