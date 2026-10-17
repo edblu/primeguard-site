@@ -852,6 +852,9 @@
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-hlnotes="' + it.id + '">Notes</button>' +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-taskfor="hot_lead|' + it.id + '">Task</button>' +
+          (d.customerId
+            ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlviewcustomer="' + d.customerId + '">In CRM \u2713</button>'
+            : '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlmakecustomer="' + it.id + '">Add to CRM</button>') +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-callead="' + it.id + '">Calendar</button>' +
           (d.convertedWorkOrderId
             ? '<button type="button" class="mini hlq-action hlq-action-ghost" disabled>Converted ✓</button>'
@@ -1805,6 +1808,47 @@
     });
   }
 
+  /* ----- Promote a work order's customer into the CRM (idempotent) ----- */
+  function makeCustomerFromWO(woId) {
+    var w = null;
+    for (var i = 0; i < woOrders.length; i++) if (woOrders[i].id === woId) w = woOrders[i].d;
+    if (!w) return Promise.resolve(null);
+    if (w.customerId) return Promise.resolve(w.customerId);
+    function linkBack(custId) {
+      if (!custId) return null;
+      return db.collection("work_orders").doc(woId).update({
+        customerId: custId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        for (var j = 0; j < woOrders.length; j++) if (woOrders[j].id === woId) woOrders[j].d.customerId = custId;
+        return custId;
+      });
+    }
+    // Richest path: the WO came from a hot lead, promote the lead so the
+    // customer carries the lead's contact info and history link.
+    if (w.sourceLeadId) {
+      return makeCustomerFromLead(w.sourceLeadId).then(linkBack);
+    }
+    var bits = [w.customerContact || w.contact || "", w.customerPhone || w.phone || "", w.customerEmail || w.email || ""];
+    var email = "", phone = "";
+    bits.forEach(function (b) { if (!b) return; if (/@/.test(b) && !email) email = b; else if (!phone && !/@/.test(b)) phone = b; });
+    var fields = {
+      name: woCustomerName(w) || w.title || "Customer",
+      contact: bits.filter(Boolean).join(" \u00b7 "), email: email, phone: phone,
+      address: w.address || "", source: "Work order", notes: w.details || "",
+      lastServiceAt: null, lastServiceLabel: "", totalJobs: 0, totalSpent: null,
+      leadId: null, annualContract: "none",
+      createdBy: me ? me.email : "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    return db.collection("customers").add(fields).then(function (ref) {
+      logActivity("Created customer record from work order: " + fields.name);
+      loadCustomers();
+      return linkBack(ref.id);
+    });
+  }
+
   /* ----- Review-request task, auto-created when a job completes ----- */
   // One Tasks-page item per completed job, linked to the customer, so the
   // team asks for a Google review while the work is fresh. Best effort by
@@ -1901,27 +1945,32 @@
         return '<option value="' + o[0] + '"' + ((d.annualContract || "none") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("");
       var selStyle = 'style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit;color-scheme:dark"';
+      var custPhone = d.phone || (/@/.test(d.contact || "") ? "" : (d.contact || ""));
+      var custEmail = d.email || (/@/.test(d.contact || "") ? d.contact : "");
+      var contractLabel = { none: "No contract", offered: "Contract offered", signed: "Contract signed" }[d.annualContract || "none"];
+      var sinceMs = tsMs(d.createdAt);
+      var kvRow = function (k, v) { return v ? '<div class="cust-kv"><span>' + k + '</span><strong>' + v + "</strong></div>" : ""; };
       var h = '<h3 id="custTitle">' + esc(d.name || "Customer") + "</h3>" +
         '<p class="sr-meta">' + (d.source ? '<span class="pill p-acc">' + esc(d.source) + "</span>" : "") +
+        '<span class="pill">' + esc(contractLabel) + "</span>" +
         "<span>" + esc([custContactLine(d), d.address || ""].filter(Boolean).join(" · ")) + "</span></p>" +
-        '<div class="sr-actions" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" id="cust-task-btn-top" type="button">Create task</button></div>' +
-        '<div class="sr-card"><h4>Service</h4>' +
-        '<div class="cust-lastsvc big">' + (lastMs ? "Last service: " + esc(fullDate(lastMs)) + (d.lastServiceLabel ? " · " + esc(d.lastServiceLabel) : "") : "No service yet") + "</div>" +
-        '<p style="margin-top:8px"><strong>Jobs:</strong> ' + (d.totalJobs || 0) +
-        (d.totalSpent != null ? " · <strong>Total spent:</strong> $" + esc(d.totalSpent) : "") +
-        (days != null ? " · <strong>Last visit:</strong> " + days + "d ago" : "") + "</p>" +
-        '<label style="display:block;margin-top:12px;font-size:.85rem;color:var(--muted)">Annual contract<select id="cust-annual" ' + selStyle + ">" + contractOpts + "</select></label>" +
+        '<div class="sr-actions" style="margin:2px 0 12px">' +
+        '<button class="btn btn-gold btn-sm" id="cust-task-btn-top" type="button">Create task</button>' +
+        (custPhone ? '<a class="btn btn-ghost btn-sm" href="tel:' + esc(custPhone.replace(/[^0-9+]/g, "")) + '">Call</a>' +
+          '<a class="btn btn-ghost btn-sm" href="sms:' + esc(custPhone.replace(/[^0-9+]/g, "")) + '">Text</a>' : "") +
+        (custEmail ? '<a class="btn btn-ghost btn-sm" href="mailto:' + esc(custEmail) + '">Email</a>' : "") +
+        '<button class="btn btn-ghost btn-sm" id="cust-edit-top" type="button">Edit</button></div>' +
+        '<div class="cust-strip">' +
+        '<div class="cust-tile"><span class="cust-tile-v" id="cust-strip-value">…</span><span class="cust-tile-l" id="cust-strip-value-l">Value</span></div>' +
+        '<div class="cust-tile"><span class="cust-tile-v">' + (d.totalJobs || 0) + '</span><span class="cust-tile-l">Jobs done</span></div>' +
+        '<div class="cust-tile"><span class="cust-tile-v">' + (lastMs ? esc(fullDate(lastMs)) : "None yet") + '</span><span class="cust-tile-l">Last service</span></div>' +
+        '<div class="cust-tile"><span class="cust-tile-v" id="cust-strip-next">…</span><span class="cust-tile-l">Next visit</span></div>' +
         "</div>" +
-        '<div class="sr-card"><h4>Log a completed service</h4>' +
-        '<p class="sr-faint">Until jobs close out on their own, log each finished visit here: it stamps the last-service date the whole team works from.</p>' +
-        '<div class="note-form"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-        '<label>Date<input type="date" id="cust-svc-date" value="' + localDateKey(new Date()) + '"></label>' +
-        '<label>Service<input type="text" id="cust-svc-label" placeholder="Lawn care visit" style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit"></label></div></div>' +
-        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="cust-svc-btn" type="button">Log service</button></div>' +
-        '<p class="aerr hidden" id="cust-svc-err" style="margin-top:10px"></p></div>' +
-        '<div class="sr-card"><h4>Service history</h4><div id="cust-history"><p class="sr-faint">Loading…</p></div></div>' +
-        (d.notes ? '<div class="sr-card"><h4>Customer notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
-        '<div class="sr-card"><h4>Calls & notes</h4>' +
+        '<div class="cust-grid"><div class="cust-main">' +
+        '<div class="sr-card"><h4>Plan &amp; contract</h4><div id="cust-plan"><p class="sr-faint">Loading…</p></div>' +
+        '<label style="display:block;margin-top:12px;font-size:.85rem;color:var(--muted)">Annual contract<select id="cust-annual" ' + selStyle + ">" + contractOpts + "</select></label></div>" +
+        '<div class="sr-card"><h4>Timeline</h4><div id="cust-timeline"><p class="sr-faint">Loading…</p></div></div>' +
+        '<div class="sr-card"><h4>Calls &amp; notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
         '<div class="outcome-grid" id="custOutcomes">' +
         CALL_OUTCOMES.map(function (o) {
@@ -1933,7 +1982,26 @@
         '<button class="btn btn-ghost btn-sm" id="cust-task-btn" type="button">Create task</button></div>' +
         '<p class="aok hidden" id="cnOk" style="margin-top:10px">Saved.</p>' +
         '<p class="aerr hidden" id="cnErr" style="margin-top:10px"></p>' +
-        '<div class="sr-comments" id="cnNotes" style="margin-top:14px"></div></div>';
+        '<div class="sr-comments" id="cnNotes" style="margin-top:14px"></div></div>' +
+        '<div class="sr-card"><h4>Log a completed service</h4>' +
+        '<p class="sr-faint">Until jobs close out on their own, log each finished visit here: it stamps the last-service date the whole team works from.</p>' +
+        '<div class="note-form"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+        '<label>Date<input type="date" id="cust-svc-date" value="' + localDateKey(new Date()) + '"></label>' +
+        '<label>Service<input type="text" id="cust-svc-label" placeholder="Lawn care visit" style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit"></label></div></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="cust-svc-btn" type="button">Log service</button></div>' +
+        '<p class="aerr hidden" id="cust-svc-err" style="margin-top:10px"></p></div>' +
+        '<div class="sr-card"><h4>Service history</h4><div id="cust-history"><p class="sr-faint">Loading…</p></div></div>' +
+        '</div><div class="cust-rail">' +
+        '<div class="sr-card"><h4>Contact</h4>' +
+        kvRow("Phone", esc(custPhone || "")) + kvRow("Email", esc(custEmail || "")) +
+        kvRow("Source", esc(d.source || "")) + kvRow("Customer since", sinceMs ? esc(fullDate(sinceMs)) : "") +
+        kvRow("Last visit", days != null ? days + "d ago" : "") + "</div>" +
+        '<div class="sr-card"><h4>Property</h4>' +
+        (d.address ? '<p style="margin:0 0 8px">' + esc(d.address) + '</p><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&amp;query=' + esc(encodeURIComponent(d.address)) + '">Open in Maps</a>' : '<p class="sr-faint">No address on file yet.</p>') +
+        (d.leadId ? '<p class="sr-faint" style="margin-top:8px">Came in as a hot lead; the full lead history is in the timeline.</p>' : "") + "</div>" +
+        (d.notes ? '<div class="sr-card"><h4>Customer notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
+        '<div class="sr-card"><h4>Open tasks</h4><div id="cust-tasks"><p class="sr-faint">Loading…</p></div></div>' +
+        "</div></div>";
       var box = $("custBody");
       box.innerHTML = h;
       box.querySelectorAll("[data-custoutcome]").forEach(function (b) {
@@ -1966,6 +2034,10 @@
       document.body.style.overflow = "hidden";
       loadItemNotes("customer", id, $("cnNotes"));
       loadCustomerHistory(id, d);
+      var editTop = $("cust-edit-top");
+      if (editTop) editTop.addEventListener("click", function () { openCustomerForm(id); });
+      loadCustProfileExtras(id, d);
+      loadCustOpenTasks(id, d);
     });
   }
   function closeCustomer() {
@@ -2001,6 +2073,146 @@
       }).join("");
     });
   }
+  /* ----- Two Column Pro profile: plan, timeline, tasks (v45) ----- */
+  function custDateMs(v) {
+    if (v == null) return 0;
+    if (typeof v.toDate === "function") { try { return v.toDate().getTime(); } catch (e) { return 0; } }
+    if (typeof v === "object" && typeof v.seconds === "number") return v.seconds * 1000;
+    if (typeof v === "string" || typeof v === "number") { var t = new Date(v).getTime(); return isNaN(t) ? 0 : t; }
+    return 0;
+  }
+  function custLinkedWOs(id, d) {
+    var found = {};
+    function collect(qs) { qs.forEach(function (doc) { found[doc.id] = doc.data(); }); }
+    var ps = [];
+    if (d.leadId) ps.push(db.collection("work_orders").where("sourceLeadId", "==", d.leadId).limit(50).get().then(collect).catch(function () {}));
+    ps.push(db.collection("work_orders").where("customerId", "==", id).limit(50).get().then(collect).catch(function () {}));
+    return Promise.all(ps).then(function () {
+      return Object.keys(found).map(function (wid) { return { id: wid, w: found[wid] }; });
+    });
+  }
+  function custNextVisit(wos) {
+    var now = new Date(); now.setHours(0, 0, 0, 0);
+    var best = null;
+    function consider(ms, w) { if (ms && ms >= now.getTime() && (!best || ms < best.ms)) best = { ms: ms, w: w }; }
+    (wos || []).forEach(function (row) {
+      var w = row.w;
+      var anchorMs = custDateMs(w.planAnchor);
+      var count = parseInt(w.visitCount, 10) || 0;
+      if (anchorMs && count > 1) {
+        var step = (w.cadence === "weekly" ? 7 : 14) * 86400000;
+        var tMs = custDateMs(w.scheduledFor);
+        var tod = tMs ? (tMs - anchorMs) % 86400000 : 0;
+        for (var i = 0; i < count; i++) consider(anchorMs + i * step + tod, w);
+      } else {
+        ["scheduledFor", "scheduledDate", "serviceDate", "appointmentDate", "date"].forEach(function (f) { consider(custDateMs(w[f]), w); });
+      }
+    });
+    return best;
+  }
+  function loadCustProfileExtras(id, d) {
+    custLinkedWOs(id, d).then(function (wos) {
+      var next = custNextVisit(wos);
+      var nxEl = $("cust-strip-next");
+      if (nxEl) nxEl.textContent = next ? new Date(next.ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "Not scheduled";
+      var email = String(d.email || (/@/.test(d.contact || "") ? d.contact : "") || "").toLowerCase();
+      var quotes = {}, qps = [];
+      function qcollect(qs) { qs.forEach(function (doc) { quotes[doc.id] = doc.data(); }); }
+      if (email) {
+        qps.push(db.collection("customer_quotes").where("customerEmail", "==", email).limit(25).get().then(qcollect).catch(function () {}));
+        qps.push(db.collection("customer_quotes").where("contact", "==", email).limit(25).get().then(qcollect).catch(function () {}));
+      }
+      wos.forEach(function (row) {
+        qps.push(db.collection("customer_quotes").where("workOrderId", "==", row.id).limit(5).get().then(qcollect).catch(function () {}));
+      });
+      return Promise.all(qps).then(function () { return { wos: wos, next: next, quotes: Object.keys(quotes).map(function (q) { return quotes[q]; }) }; });
+    }).then(function (ctx) {
+      if (!ctx) return;
+      var quotes = ctx.quotes.slice().sort(function (a, b) { return custDateMs(b.createdAt) - custDateMs(a.createdAt); });
+      var signed = quotes.filter(function (q) { return q.status === "signed"; });
+      var valEl = $("cust-strip-value"), valL = $("cust-strip-value-l");
+      if (valEl) {
+        if (signed.length) {
+          valEl.textContent = "$" + signed.reduce(function (s, q) { return s + (Number(q.total) || 0); }, 0).toLocaleString();
+          if (valL) valL.textContent = "Contract value";
+        } else if (quotes.length) {
+          valEl.textContent = "$" + (Number(quotes[0].total) || 0).toLocaleString();
+          if (valL) valL.textContent = "Quoted (unsigned)";
+        } else { valEl.textContent = "No quote yet"; if (valL) valL.textContent = "Value"; }
+      }
+      var planBox = $("cust-plan");
+      if (planBox) {
+        var rows = [];
+        var planWO = ctx.wos.map(function (r) { return r.w; }).filter(function (w) { return w.planAnchor || w.cadence; })[0];
+        if (planWO) {
+          rows.push('<div class="cust-kv"><span>Plan</span><strong>' + esc((planWO.cadence === "weekly" ? "Weekly" : "Biweekly") + " · " + (planWO.visitCount || "?") + " visits") + "</strong></div>");
+          rows.push('<div class="cust-kv"><span>Crew</span><strong>' + esc(planWO.vendorBusiness || "Not assigned") + "</strong></div>");
+        }
+        if (quotes.length) {
+          var q0 = quotes[0];
+          rows.push('<div class="cust-kv"><span>Latest quote</span><strong>' + esc((q0.service || "Service") + " · $" + (Number(q0.total) || 0).toLocaleString()) + "</strong></div>");
+          rows.push('<div class="cust-kv"><span>Quote status</span><strong>' + esc(q0.status === "signed" ? "Signed" : "Awaiting signature") + "</strong></div>");
+        }
+        if (ctx.next) rows.push('<div class="cust-kv"><span>Next visit</span><strong>' + esc(new Date(ctx.next.ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" })) + "</strong></div>");
+        planBox.innerHTML = rows.length ? rows.join("") : '<p class="sr-faint">No plan on file yet. When a quote is built and signed, the plan shows up here.</p>';
+      }
+      var tlBox = $("cust-timeline");
+      if (tlBox) {
+        var evs = [];
+        ctx.wos.forEach(function (row) {
+          var w = row.w, cms = custDateMs(w.createdAt);
+          if (cms) evs.push({ ms: cms, icon: "\U0001F6E0", text: "Work order created: " + (w.title || "Job") + " · " + String(w.status || "").replace(/_/g, " ") });
+          var sms = custDateMs(w.scheduledFor);
+          if (sms) evs.push({ ms: sms, icon: "\U0001F4C5", text: "Visit scheduled: " + (w.title || "Service") + (w.vendorBusiness ? " · " + w.vendorBusiness : "") });
+        });
+        quotes.forEach(function (q) {
+          var cms2 = custDateMs(q.createdAt);
+          if (cms2) evs.push({ ms: cms2, icon: "\U0001F4C4", text: "Quote sent: " + (q.service || "Service") + " · $" + (Number(q.total) || 0).toLocaleString() });
+          var sms2 = custDateMs(q.signedAt);
+          if (sms2) evs.push({ ms: sms2, icon: "\u270D", text: "Quote signed by " + (q.signedName || "customer") });
+        });
+        var keys = ["customer:" + id];
+        if (d.leadId) keys.push("hot_lead:" + d.leadId);
+        ctx.wos.forEach(function (row) { keys.push("work_order:" + row.id); });
+        var nps = keys.map(function (k) {
+          return db.collection("item_notes").where("entityKey", "==", k).limit(50).get().then(function (qs) {
+            qs.forEach(function (doc) {
+              var n = doc.data(), nms = custDateMs(n.createdAt);
+              if (nms) evs.push({ ms: nms, icon: n.kind === "call" ? "\U0001F4DE" : "\U0001F4DD", text: (n.kind === "call" ? "Call" + (n.outcome ? " (" + outcomeLabel(n.outcome) + ")" : "") + ": " : "Note: ") + String(n.text || "").slice(0, 140) });
+            });
+          }).catch(function () {});
+        });
+        Promise.all(nps).then(function () {
+          evs.sort(function (a, b) { return b.ms - a.ms; });
+          tlBox.innerHTML = evs.length ? evs.slice(0, 25).map(function (e) {
+            return '<div class="tl-item"><span class="tl-ic">' + e.icon + '</span><div class="tl-tx"><p>' + esc(e.text) + '</p><small>' + esc(new Date(e.ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</small></div></div>";
+          }).join("") : '<p class="sr-faint">Nothing yet. Jobs, quotes, calls, and notes will land here in order.</p>';
+        });
+      }
+    }).catch(function () {});
+  }
+  function loadCustOpenTasks(id, d) {
+    var box = $("cust-tasks");
+    if (!box) return;
+    var found = {};
+    function collect(qs) { qs.forEach(function (doc) { found[doc.id] = doc.data(); }); }
+    var ps = [db.collection("tasks").where("entityId", "==", id).limit(50).get().then(collect).catch(function () {})];
+    if (d.leadId) ps.push(db.collection("tasks").where("entityId", "==", d.leadId).limit(50).get().then(collect).catch(function () {}));
+    Promise.all(ps).then(function () {
+      var rows = Object.keys(found).map(function (tid) { return { id: tid, t: found[tid] }; }).filter(function (r) { return !r.t.done; });
+      rows.sort(function (a, b) { return String(a.t.dueDate || "9999") < String(b.t.dueDate || "9999") ? -1 : 1; });
+      if (!rows.length) { box.innerHTML = '<p class="sr-faint">No open tasks. Use Create task when something needs doing.</p>'; return; }
+      box.innerHTML = rows.map(function (r) {
+        return '<div class="cust-task-row"><div class="cust-task-tx"><strong>' + esc(r.t.title || "Task") + "</strong>" +
+          (r.t.dueDate ? "<small>Due " + esc(fmtFollowDate(r.t.dueDate)) + "</small>" : "") + '</div>' +
+          '<button type="button" class="mini" data-taskdone="' + r.id + '">\u2713 Done</button></div>';
+      }).join("");
+      box.querySelectorAll("[data-taskdone]").forEach(function (b) {
+        b.addEventListener("click", function () { setTimeout(function () { if (custId) loadCustOpenTasks(custId, custData || {}); }, 700); });
+      });
+    });
+  }
+
   function logCustomerService() {
     if (!custId) return;
     var err = $("cust-svc-err"); err.classList.add("hidden");
@@ -3149,6 +3361,9 @@
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-wonotes="' + it.id + '">Notes</button>' +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-taskfor="work_order|' + it.id + '">Task</button>' +
+          (w.customerId
+            ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-woviewcustomer="' + esc(w.customerId) + '">In CRM \u2713</button>'
+            : '<button type="button" class="mini hlq-action hlq-action-ghost" data-wotocrm="' + it.id + '">Add to CRM</button>') +
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-calwo="' + it.id + '">Add to calendar</button>' +
           (w.status !== "done" ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-wodone="' + it.id + '">Done</button>' : "") +
         "</div>" +
@@ -4196,6 +4411,16 @@
     if (d.custedit) openCustomerForm(d.custedit);
     if (d.custdel) deleteCustomer(d.custdel);
     if (d.wofilter) { woFilter = d.wofilter; renderWorkOrders(); }
+    if (d.wotocrm) {
+      makeCustomerFromWO(d.wotocrm).then(function () { renderWorkOrders(); })
+        .catch(function (e) { alert("Could not create customer: " + (e.message || e)); });
+    }
+    if (d.woviewcustomer) {
+      var wvCustId = d.woviewcustomer;
+      var woNavBtn = document.querySelector('#pgNavDrawer [data-atab="customers"]');
+      if (woNavBtn) woNavBtn.click();
+      openCustomer(wvCustId);
+    }
     if (d.hlmakecustomer) {
       var mkId = d.hlmakecustomer;
       makeCustomerFromLead(mkId).then(function () {
