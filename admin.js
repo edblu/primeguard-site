@@ -1361,6 +1361,8 @@
   // createdBy fields — plus any staff-added records).
   var custRows = []; // cached { id, d } rows from the last loadCustomers()
   var custId = null, custData = null, custOutcome = "";
+  var custTlSort = "new", custHistSort = "new", custTaskSort = "due";
+  var custTlEvs = null, custHistFound = null;
   var custEditId = null;
   // Customers filter panel state (slide-over, applies live). quick is a
   // single preset; sources is a list of source keys ("__none__" = blank
@@ -1980,7 +1982,7 @@
         '<div class="cust-grid"><div class="cust-main">' +
         '<div class="sr-card"><h4>Plan &amp; contract</h4><div id="cust-plan"><p class="sr-faint">Loading…</p></div>' +
         '<label style="display:block;margin-top:12px;font-size:.85rem;color:var(--muted)">Annual contract<select id="cust-annual" ' + selStyle + ">" + contractOpts + "</select></label></div>" +
-        '<div class="sr-card"><h4>Timeline</h4><div id="cust-timeline"><p class="sr-faint">Loading…</p></div></div>' +
+        '<div class="sr-card"><h4 style="display:flex;justify-content:space-between;align-items:center;gap:8px">Timeline <button type="button" class="mini" id="cust-tl-sort">Oldest first</button></h4><div id="cust-timeline" class="cust-scrollbox"><p class="sr-faint">Loading…</p></div></div>' +
         '<div class="sr-card"><h4>Calls &amp; notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
         '<div class="outcome-grid" id="custOutcomes">' +
@@ -2001,7 +2003,7 @@
         '<label>Service<input type="text" id="cust-svc-label" placeholder="Lawn care visit" style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit"></label></div></div>' +
         '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="cust-svc-btn" type="button">Log service</button></div>' +
         '<p class="aerr hidden" id="cust-svc-err" style="margin-top:10px"></p></div>' +
-        '<div class="sr-card"><h4>Service history</h4><div id="cust-history"><p class="sr-faint">Loading…</p></div></div>' +
+        '<div class="sr-card"><h4 style="display:flex;justify-content:space-between;align-items:center;gap:8px">Service history <button type="button" class="mini" id="cust-hist-sort">Oldest first</button></h4><div id="cust-history" class="cust-scrollbox"><p class="sr-faint">Loading…</p></div></div>' +
         '</div><div class="cust-rail">' +
         '<div class="sr-card"><h4>Contact</h4>' +
         kvRow("Phone", esc(custPhone || "")) + kvRow("Email", esc(custEmail || "")) +
@@ -2010,7 +2012,8 @@
         '<div class="sr-card"><h4>Tasks</h4>' +
         '<div class="sr-actions" style="margin:0 0 6px"><button class="btn btn-gold btn-sm" id="cust-tasks-new" type="button">Create task</button></div>' +
         '<p class="sr-faint" style="margin:0 0 4px">Create opens the Tasks page with this customer already linked.</p>' +
-        '<div id="cust-tasks"><p class="sr-faint">Loading…</p></div></div>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:var(--muted);margin:0 0 6px">Sort <select id="cust-tasks-sort" class="cust-sortsel"><option value="due">Due soonest</option><option value="due-desc">Due latest</option><option value="az">A to Z</option><option value="new">Newest first</option></select></label>' +
+        '<div id="cust-tasks" class="cust-scrollbox"><p class="sr-faint">Loading…</p></div></div>' +
         '<div class="sr-card"><h4>Property</h4>' +
         (d.address ? '<p style="margin:0 0 8px">' + esc(d.address) + '</p><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&amp;query=' + esc(encodeURIComponent(d.address)) + '">Open in Maps</a>' : '<p class="sr-faint">No address on file yet.</p>') +
         (d.leadId ? '<p class="sr-faint" style="margin-top:8px">Came in as a hot lead; the full lead history is in the timeline.</p>' : "") + "</div>" +
@@ -2059,6 +2062,23 @@
         if (navBtn) navBtn.click();
         openTaskForm({ entityType: "customer", entityId: id, entityName: nm });
       });
+      var tlSortBtn = $("cust-tl-sort");
+      if (tlSortBtn) tlSortBtn.addEventListener("click", function () {
+        custTlSort = custTlSort === "new" ? "old" : "new";
+        tlSortBtn.textContent = custTlSort === "new" ? "Oldest first" : "Newest first";
+        renderCustTimeline();
+      });
+      var histSortBtn = $("cust-hist-sort");
+      if (histSortBtn) histSortBtn.addEventListener("click", function () {
+        custHistSort = custHistSort === "new" ? "old" : "new";
+        histSortBtn.textContent = custHistSort === "new" ? "Oldest first" : "Newest first";
+        renderCustHistory();
+      });
+      var taskSortSel = $("cust-tasks-sort");
+      if (taskSortSel) taskSortSel.addEventListener("change", function () {
+        custTaskSort = taskSortSel.value;
+        if (custId) loadCustOpenTasks(custId, custData || {});
+      });
       loadCustProfileExtras(id, d);
       loadCustOpenTasks(id, d);
     });
@@ -2067,6 +2087,15 @@
     $("custModal").classList.add("hidden");
     document.body.style.overflow = "";
     custId = null; custData = null; custOutcome = "";
+  }
+  function renderCustTimeline() {
+    var tlBox = $("cust-timeline");
+    if (!tlBox) return;
+    var evs = (custTlEvs || []).slice();
+    evs.sort(function (a, b) { return custTlSort === "new" ? b.ms - a.ms : a.ms - b.ms; });
+    tlBox.innerHTML = evs.length ? evs.slice(0, 40).map(function (e) {
+      return '<div class="tl-item"><span class="tl-ic">' + e.icon + '</span><div class="tl-tx"><p>' + esc(e.text) + '</p><small>' + esc(new Date(e.ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</small></div></div>";
+    }).join("") : '<p class="sr-faint">Nothing yet. Jobs, quotes, calls, and notes will land here in order.</p>';
   }
   function loadCustomerHistory(id, d) {
     var box = $("cust-history");
@@ -2078,13 +2107,19 @@
       ps.push(db.collection("work_orders").where("sourceLeadId", "==", d.leadId).limit(50).get().then(collect).catch(function () {}));
     }
     ps.push(db.collection("work_orders").where("customerId", "==", id).limit(50).get().then(collect).catch(function () {}));
-    Promise.all(ps).then(function () {
+    Promise.all(ps).then(function () { custHistFound = found; renderCustHistory(); });
+  }
+  function renderCustHistory() {
+    var box = $("cust-history");
+    if (!box || !custHistFound) return;
+    var found = custHistFound;
+    {
       var ids = Object.keys(found);
       if (!ids.length) {
         box.innerHTML = '<p class="sr-faint">No linked work orders yet. Jobs converted from this customer\'s lead will show up here.</p>';
         return;
       }
-      ids.sort(function (a, b) { return tsMs(found[b].createdAt) - tsMs(found[a].createdAt); });
+      ids.sort(function (a, b) { return custHistSort === "new" ? tsMs(found[b].createdAt) - tsMs(found[a].createdAt) : tsMs(found[a].createdAt) - tsMs(found[b].createdAt); });
       box.innerHTML = ids.map(function (wid) {
         var w = found[wid];
         var whenMs = tsMs(w.createdAt);
@@ -2094,7 +2129,7 @@
           (w.vendorBusiness ? " · " + esc(w.vendorBusiness) : "") + "</span>" +
           (w.details ? "<p>" + esc(hlExcerpt(w.details)) + "</p>" : "") + "</div>";
       }).join("");
-    });
+    }
   }
   /* ----- Two Column Pro profile: plan, timeline, tasks (v45) ----- */
   function custDateMs(v) {
@@ -2205,12 +2240,7 @@
             });
           }).catch(function () {});
         });
-        Promise.all(nps).then(function () {
-          evs.sort(function (a, b) { return b.ms - a.ms; });
-          tlBox.innerHTML = evs.length ? evs.slice(0, 25).map(function (e) {
-            return '<div class="tl-item"><span class="tl-ic">' + e.icon + '</span><div class="tl-tx"><p>' + esc(e.text) + '</p><small>' + esc(new Date(e.ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) + "</small></div></div>";
-          }).join("") : '<p class="sr-faint">Nothing yet. Jobs, quotes, calls, and notes will land here in order.</p>';
-        });
+        Promise.all(nps).then(function () { custTlEvs = evs; renderCustTimeline(); });
       }
     }).catch(function () {});
   }
@@ -2224,7 +2254,12 @@
     Promise.all(ps).then(function () {
       var all = Object.keys(found).map(function (tid) { return { id: tid, t: found[tid] }; });
       var rows = all.filter(function (r) { return !r.t.done; });
-      rows.sort(function (a, b) { return String(a.t.dueDate || "9999") < String(b.t.dueDate || "9999") ? -1 : 1; });
+      rows.sort(function (a, b) {
+        if (custTaskSort === "due-desc") return String(b.t.dueDate || "0000") < String(a.t.dueDate || "0000") ? -1 : 1;
+        if (custTaskSort === "az") return String(a.t.title || "").toLowerCase() < String(b.t.title || "").toLowerCase() ? -1 : 1;
+        if (custTaskSort === "new") return custDateMs(b.t.createdAt) - custDateMs(a.t.createdAt);
+        return String(a.t.dueDate || "9999") < String(b.t.dueDate || "9999") ? -1 : 1;
+      });
       var doneRows = all.filter(function (r) { return r.t.done; });
       doneRows.sort(function (a, b) { return custDateMs(b.t.doneAt) - custDateMs(a.t.doneAt); });
       var todayKey = localDateKey(new Date());
