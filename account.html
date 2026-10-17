@@ -241,7 +241,7 @@
     .promo-banner { flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 84px; }
   }
 </style>
-<link rel="stylesheet" href="portal.css?v=3">
+<link rel="stylesheet" href="portal.css?v=4">
 </head>
 <body class="acct-page">
 <header class="site-header">
@@ -368,6 +368,25 @@
           <section class="acct-card hidden" id="custQuotesSection">
             <div class="acct-card-head"><h3>Your quotes</h3><span class="pill pill-new" id="custQuoteCount"></span></div>
             <div id="cust-quotes-list"></div>
+          </section>
+        </div>
+
+        <div class="container">
+          <section class="acct-card hidden" id="custCalSection">
+            <div class="acct-card-head"><h3>📅 Your calendar</h3><span class="pill pill-new" id="ccalNext"></span></div>
+            <div class="ccal-nav">
+              <button type="button" class="ccal-navbtn" id="ccalPrev" aria-label="Previous month">‹</button>
+              <strong id="ccalTitle"></strong>
+              <button type="button" class="ccal-navbtn" id="ccalNextBtn" aria-label="Next month">›</button>
+            </div>
+            <div class="ccal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+            <div class="ccal-grid" id="ccalGrid"></div>
+            <div id="ccalDay"></div>
+            <div class="ccal-connect">
+              <h4>Connect my calendar</h4>
+              <p class="ccal-connect-sub">See your PrimeGuard visits right inside Google Calendar or your iPhone calendar. We keep this link updated for you.</p>
+              <div id="ccalConnectBody"></div>
+            </div>
           </section>
         </div>
 
@@ -579,7 +598,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=13"></script>
+<script src="account.js?v=14"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
