@@ -3252,6 +3252,16 @@
       $("as-open").textContent = open; $("as-active").textContent = active;
     });
     db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("pg-nav-b-quotes"); if (mb) mb.textContent = qs.size; });
+    db.collection("push_tokens").limit(500).get().then(function (qs) {
+      var inst = 0, on = 0, instC = 0, instV = 0, onC = 0, onV = 0;
+      qs.forEach(function (doc) {
+        var d = doc.data() || {};
+        if (d.appInstalled) { inst++; if (d.surface === "vendor") instV++; else instC++; }
+        if (d.token) { on++; if (d.surface === "vendor") onV++; else onC++; }
+      });
+      var a1 = $("as-apps"); if (a1) a1.innerHTML = inst + ' <small style="font-size:.62em;color:var(--muted);font-weight:600">' + instC + " cust · " + instV + " vend</small>";
+      var a2 = $("as-pushon"); if (a2) a2.innerHTML = on + ' <small style="font-size:.62em;color:var(--muted);font-weight:600">' + onC + " cust · " + onV + " vend</small>";
+    }).catch(function () {});
     db.collection("vendors").get().then(function (qs) { var n = 0; qs.forEach(function (d) { var s = d.data().status; if (s !== "archived" && s !== "rejected") n++; }); $("as-vendors").textContent = n; var mb = $("pg-nav-b-vendors"); if (mb) mb.textContent = n; });
   }
 
