@@ -442,7 +442,7 @@
         var item = { src: "task", id: d.id, due: t.dueDate || today, text: t.details || "",
           entityType: t.entityType || null, entityId: t.entityId || null,
           entityLabel: t.title || "Task", by: t.createdBy || "", createdMs: tsMs(t.createdAt),
-          assignee: t.assigneeEmail || "", doneMs: tsMs(t.doneAt) };
+          assignee: t.assigneeEmail || "", dueTime: t.dueTime || "", doneMs: tsMs(t.doneAt) };
         if (t.done) done.push(item); else open.push(item);
       });
       open.sort(function (a, b) {
@@ -514,6 +514,14 @@
     });
   }
 
+  function fmtTaskTime(v) {
+    var m = String(v || "").match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return "";
+    var hh = parseInt(m[1], 10), mm = m[2];
+    var ap = hh >= 12 ? "PM" : "AM";
+    var h12 = hh % 12; if (h12 === 0) h12 = 12;
+    return h12 + ":" + mm + " " + ap;
+  }
   function tkRow(it, today, isDone) {
     var meta = tkDueMeta(it.due, today);
     var sub = [];
@@ -529,7 +537,7 @@
     if (isDone) {
       html += '<span class="pill p-done">Done' + (it.doneMs ? " · " + esc(tkWhen(it.doneMs)) : "") + "</span>";
     } else {
-      html += '<span class="pill ' + meta.cls + '">' + esc(meta.label) + "</span>";
+      html += '<span class="pill ' + meta.cls + '">' + esc(meta.label + (it.dueTime ? " \u00b7 " + fmtTaskTime(it.dueTime) : "")) + "</span>";
     }
     // For tasks the entity label shown is the task title; the linked record
     // rides in entityName when it differs, shown via the Open button target.
@@ -567,7 +575,9 @@
       '<label>Title<input type="text" id="tk-f-title" required placeholder="Call the customer about the annual plan"></label>' +
       '<label>Details<textarea id="tk-f-details" rows="3" placeholder="Anything the person doing this needs to know…"></textarea></label>' +
       '<div class="row2"><label>Due date<input type="date" id="tk-f-due" value="' + esc(prefill.dueDate || localDateKey(new Date())) + '"></label>' +
-      '<label>Assignee (email, optional)<input type="text" id="tk-f-assignee" placeholder="name@pgpbiz.com" value="' + esc(prefill.assigneeEmail || "") + '"></label></div>' +
+      '<label>Due time (optional)<input type="time" id="tk-f-time" value="' + esc(prefill.dueTime || "") + '"></label></div>' +
+      '<div class="row2"><label>Assignee (email, optional)<input type="text" id="tk-f-assignee" placeholder="name@pgpbiz.com" value="' + esc(prefill.assigneeEmail || "") + '"></label>' +
+      '<label>&nbsp;<span style="display:block;padding:11px 0;color:var(--muted);font-size:.85rem">Time is optional: date alone is fine.</span></label></div>' +
       '<div class="row2"><label>Linked to<select id="tk-f-etype">' + etOpts + "</select></label>" +
       '<label>Linked record name<input type="text" id="tk-f-ename" placeholder="Customer, vendor, or job name" value="' + esc(prefill.entityName || "") + '"></label></div>' +
       '<input type="hidden" id="tk-f-eid" value="' + esc(prefill.entityId || "") + '">' +
@@ -597,6 +607,7 @@
       title: title,
       details: $("tk-f-details").value.trim(),
       dueDate: $("tk-f-due").value || localDateKey(new Date()),
+      dueTime: ($("tk-f-time") && $("tk-f-time").value) || "",
       assigneeEmail: $("tk-f-assignee").value.trim(),
       entityType: eid ? ($("tk-f-etype").value || null) : null,
       entityId: eid,
@@ -1996,11 +2007,15 @@
         kvRow("Phone", esc(custPhone || "")) + kvRow("Email", esc(custEmail || "")) +
         kvRow("Source", esc(d.source || "")) + kvRow("Customer since", sinceMs ? esc(fullDate(sinceMs)) : "") +
         kvRow("Last visit", days != null ? days + "d ago" : "") + "</div>" +
+        '<div class="sr-card"><h4>Tasks</h4>' +
+        '<div class="sr-actions" style="margin:0 0 6px"><button class="btn btn-gold btn-sm" id="cust-tasks-new" type="button">Create task</button></div>' +
+        '<p class="sr-faint" style="margin:0 0 4px">Create opens the Tasks page with this customer already linked.</p>' +
+        '<div id="cust-tasks"><p class="sr-faint">Loading…</p></div></div>' +
         '<div class="sr-card"><h4>Property</h4>' +
         (d.address ? '<p style="margin:0 0 8px">' + esc(d.address) + '</p><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&amp;query=' + esc(encodeURIComponent(d.address)) + '">Open in Maps</a>' : '<p class="sr-faint">No address on file yet.</p>') +
         (d.leadId ? '<p class="sr-faint" style="margin-top:8px">Came in as a hot lead; the full lead history is in the timeline.</p>' : "") + "</div>" +
         (d.notes ? '<div class="sr-card"><h4>Customer notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
-        '<div class="sr-card"><h4>Open tasks</h4><div id="cust-tasks"><p class="sr-faint">Loading…</p></div></div>' +
+
         "</div></div>";
       var box = $("custBody");
       box.innerHTML = h;
@@ -2036,6 +2051,14 @@
       loadCustomerHistory(id, d);
       var editTop = $("cust-edit-top");
       if (editTop) editTop.addEventListener("click", function () { openCustomerForm(id); });
+      var tasksNew = $("cust-tasks-new");
+      if (tasksNew) tasksNew.addEventListener("click", function () {
+        var nm = d.name || "Customer";
+        closeCustomer();
+        var navBtn = document.querySelector('#pgNavDrawer [data-atab="followups"]');
+        if (navBtn) navBtn.click();
+        openTaskForm({ entityType: "customer", entityId: id, entityName: nm });
+      });
       loadCustProfileExtras(id, d);
       loadCustOpenTasks(id, d);
     });
@@ -2199,14 +2222,34 @@
     var ps = [db.collection("tasks").where("entityId", "==", id).limit(50).get().then(collect).catch(function () {})];
     if (d.leadId) ps.push(db.collection("tasks").where("entityId", "==", d.leadId).limit(50).get().then(collect).catch(function () {}));
     Promise.all(ps).then(function () {
-      var rows = Object.keys(found).map(function (tid) { return { id: tid, t: found[tid] }; }).filter(function (r) { return !r.t.done; });
+      var all = Object.keys(found).map(function (tid) { return { id: tid, t: found[tid] }; });
+      var rows = all.filter(function (r) { return !r.t.done; });
       rows.sort(function (a, b) { return String(a.t.dueDate || "9999") < String(b.t.dueDate || "9999") ? -1 : 1; });
-      if (!rows.length) { box.innerHTML = '<p class="sr-faint">No open tasks. Use Create task when something needs doing.</p>'; return; }
-      box.innerHTML = rows.map(function (r) {
+      var doneRows = all.filter(function (r) { return r.t.done; });
+      doneRows.sort(function (a, b) { return custDateMs(b.t.doneAt) - custDateMs(a.t.doneAt); });
+      var todayKey = localDateKey(new Date());
+      function taskMeta(t) {
+        var bits = [];
+        if (t.dueDate) bits.push("Due " + fmtFollowDate(t.dueDate) + (t.dueTime ? " \u00b7 " + fmtTaskTime(t.dueTime) : ""));
+        if (t.assigneeEmail) bits.push(t.assigneeEmail);
+        return bits.join(" \u00b7 ");
+      }
+      var html = "";
+      if (!rows.length) html += '<p class="sr-faint">No open tasks for this customer.</p>';
+      html += rows.map(function (r) {
+        var overdue = r.t.dueDate && r.t.dueDate < todayKey;
         return '<div class="cust-task-row"><div class="cust-task-tx"><strong>' + esc(r.t.title || "Task") + "</strong>" +
-          (r.t.dueDate ? "<small>Due " + esc(fmtFollowDate(r.t.dueDate)) + "</small>" : "") + '</div>' +
+          (taskMeta(r.t) ? "<small" + (overdue ? ' style="color:#d66"' : "") + ">" + esc(taskMeta(r.t)) + (overdue ? " \u00b7 overdue" : "") + "</small>" : "") + '</div>' +
           '<button type="button" class="mini" data-taskdone="' + r.id + '">\u2713 Done</button></div>';
       }).join("");
+      if (doneRows.length) {
+        html += '<p class="sr-faint" style="margin:10px 0 2px">Recently done</p>' + doneRows.slice(0, 2).map(function (r) {
+          var dms = custDateMs(r.t.doneAt);
+          return '<div class="cust-task-row" style="opacity:.65"><div class="cust-task-tx"><strong style="text-decoration:line-through">' + esc(r.t.title || "Task") + "</strong>" +
+            "<small>" + (dms ? "Done " + esc(fmtFollowDate(localDateKey(new Date(dms)))) : "Done") + "</small>" + '</div><span class="pill p-done">Done</span></div>';
+        }).join("");
+      }
+      box.innerHTML = html;
       box.querySelectorAll("[data-taskdone]").forEach(function (b) {
         b.addEventListener("click", function () { setTimeout(function () { if (custId) loadCustOpenTasks(custId, custData || {}); }, 700); });
       });
