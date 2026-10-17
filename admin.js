@@ -442,7 +442,7 @@
         var item = { src: "task", id: d.id, due: t.dueDate || today, text: t.details || "",
           entityType: t.entityType || null, entityId: t.entityId || null,
           entityLabel: t.title || "Task", by: t.createdBy || "", createdMs: tsMs(t.createdAt),
-          assignee: t.assigneeEmail || "", dueTime: t.dueTime || "", doneMs: tsMs(t.doneAt) };
+          assignee: pgTaskAssigneeLabel(t), dueTime: t.dueTime || "", doneMs: tsMs(t.doneAt) };
         if (t.done) done.push(item); else open.push(item);
       });
       open.sort(function (a, b) {
@@ -563,6 +563,59 @@
     return row;
   }
 
+  /* ----- Task assignment: pick a person, never type an email ----- */
+  // Friendly display names for the people who can hold a task. Staff docs
+  // carry only email + role, so known principals are named here; anyone
+  // else falls back to a prettified email local part.
+  function pgStaffName(email) {
+    var e = String(email || "").toLowerCase();
+    if (!e) return "";
+    if (e === ADMIN_EMAIL.toLowerCase()) return "Edwin Lora";
+    if (e === "primeguardllc.office@pgpbiz.com") return "Natasha Rivero";
+    var local = e.split("@")[0].replace(/[._-]+/g, " ").trim();
+    return local ? local.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : e;
+  }
+  function pgTaskAssigneeLabel(t) {
+    if (!t) return "";
+    return t.assigneeName || (t.assigneeEmail ? pgStaffName(t.assigneeEmail) : "");
+  }
+  // Fill the task form's Assign-to select: "Me" first (a reminder for the
+  // signed-in user), then every registered staff member, then the owner.
+  function pgFillAssigneeSelect(sel, prefillEmail) {
+    if (!sel) return;
+    var myEmail = me ? me.email : "";
+    var wanted = (prefillEmail || "").trim();
+    var chosen = wanted || myEmail;
+    var seen = {};
+    var opts = [];
+    function addOpt(email, name, label) {
+      var key = String(email || "").toLowerCase();
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      opts.push({ email: email, name: name, label: label });
+    }
+    addOpt(myEmail, pgStaffName(myEmail), "Me (reminder for myself)");
+    addOpt(ADMIN_EMAIL, "Edwin Lora", "Edwin Lora · Owner");
+    function render() {
+      if (wanted && !seen[wanted.toLowerCase()]) {
+        opts.push({ email: wanted, name: pgStaffName(wanted), label: pgStaffName(wanted) + " (" + wanted + ")" });
+      }
+      sel.innerHTML = opts.map(function (o) {
+        return '<option value="' + esc(o.email) + '" data-name="' + esc(o.name) + '"' +
+          (o.email.toLowerCase() === chosen.toLowerCase() ? " selected" : "") + ">" + esc(o.label) + "</option>";
+      }).join("");
+    }
+    render();
+    db.collection("staff").get().then(function (qs) {
+      qs.forEach(function (d) {
+        var s = d.data() || {};
+        if (!s.email) return;
+        addOpt(s.email, pgStaffName(s.email), pgStaffName(s.email) + " · " + roleLabel(s.role));
+      });
+      render();
+    }).catch(function () {});
+  }
+
   /* ----- New standalone task (optionally linked to an entity) ----- */
   function openTaskForm(prefill) {
     prefill = prefill || {};
@@ -576,7 +629,7 @@
       '<label>Details<textarea id="tk-f-details" rows="3" placeholder="Anything the person doing this needs to know…"></textarea></label>' +
       '<div class="row2"><label>Due date<input type="date" id="tk-f-due" value="' + esc(prefill.dueDate || localDateKey(new Date())) + '"></label>' +
       '<label>Due time (optional)<input type="time" id="tk-f-time" value="' + esc(prefill.dueTime || "") + '"></label></div>' +
-      '<div class="row2"><label>Assignee (email, optional)<input type="text" id="tk-f-assignee" placeholder="name@pgpbiz.com" value="' + esc(prefill.assigneeEmail || "") + '"></label>' +
+      '<div class="row2"><label>Assign to<select id="tk-f-assignee"><option value="">Loading team…</option></select></label>' +
       '<label>&nbsp;<span style="display:block;padding:11px 0;color:var(--muted);font-size:.85rem">Time is optional: date alone is fine.</span></label></div>' +
       '<div class="row2"><label>Linked to<select id="tk-f-etype">' + etOpts + "</select></label>" +
       '<label>Linked record name<input type="text" id="tk-f-ename" placeholder="Customer, vendor, or job name" value="' + esc(prefill.entityName || "") + '"></label></div>' +
@@ -586,6 +639,7 @@
       "</form>";
     $("taskFormModal").classList.remove("hidden");
     document.body.style.overflow = "hidden";
+    pgFillAssigneeSelect($("tk-f-assignee"), prefill.assigneeEmail || "");
     $("taskForm").addEventListener("submit", saveTaskForm);
     var tt = $("tk-f-title");
     if (tt) tt.focus();
@@ -609,6 +663,7 @@
       dueDate: $("tk-f-due").value || localDateKey(new Date()),
       dueTime: ($("tk-f-time") && $("tk-f-time").value) || "",
       assigneeEmail: $("tk-f-assignee").value.trim(),
+      assigneeName: ($("tk-f-assignee").selectedOptions && $("tk-f-assignee").selectedOptions[0] && $("tk-f-assignee").selectedOptions[0].getAttribute("data-name")) || "",
       entityType: eid ? ($("tk-f-etype").value || null) : null,
       entityId: eid,
       entityName: $("tk-f-ename").value.trim(),
@@ -2351,7 +2406,7 @@
       function taskMeta(t) {
         var bits = [];
         if (t.dueDate) bits.push("Due " + fmtFollowDate(t.dueDate) + (t.dueTime ? " \u00b7 " + fmtTaskTime(t.dueTime) : ""));
-        if (t.assigneeEmail) bits.push(t.assigneeEmail);
+        if (t.assigneeEmail) bits.push(pgTaskAssigneeLabel(t));
         return bits.join(" \u00b7 ");
       }
       var html = "";
