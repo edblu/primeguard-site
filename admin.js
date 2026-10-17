@@ -3026,6 +3026,7 @@
       '<button class="mini" id="vdCalBtn" type="button">Add to calendar</button></div>' +
       '<div class="sr-card"><h4>Documents</h4>' +
       docLine("W-9", v.w9Url, v.w9Status) +
+      '<p><strong>Payout:</strong> ' + (v.payoutMethod === "zelle" ? "Zelle \u00b7 " + esc(v.payoutZelle || "") + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "ach" ? "Bank transfer \u00b7 " + esc(v.payoutBankName || "") + " \u2026" + esc(String(v.payoutAccount || "").slice(-4)) + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "check" ? "Check by mail \u00b7 " + esc(v.address || "") : '<span style="color:#e8a33d">not set yet, vendor completes it in their portal setup checklist</span>') + '</p>' +
       '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
       (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>';
     if (isAdmin && st === "archived") {
