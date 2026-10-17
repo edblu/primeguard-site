@@ -116,6 +116,7 @@
       <a class="vd-drawer-link" href="#sec-cotizar">Enviar mi precio</a>
       <a class="vd-drawer-link" href="#sec-done">Terminados</a>
       <div class="vd-drawer-group">Cuenta</div>
+      <a class="vd-drawer-link" href="#vd-setup">Pago: cómo te pagamos<span class="vd-drawer-dot hidden" id="vd-nav-dot-pay"></span></a>
       <a class="vd-drawer-link" href="#vd-w9-sec">Documentos W-9<span class="vd-drawer-dot hidden" id="vd-nav-dot-w9"></span></a>
       <a class="vd-drawer-link" href="#vd-agreements">Acuerdos<span class="vd-drawer-dot hidden" id="vd-nav-dot-agree"></span></a>
       <a class="vd-drawer-link" href="#vd-avisos">Avisos</a>
@@ -238,6 +239,8 @@
   <section class="vsec" id="sec-mas" style="padding-bottom:20px">
     <div class="vd-sect"><h2>Más</h2></div>
 
+    <div id="vd-setup"></div>
+
     <h3 class="vd-subhead" style="margin-top:6px">Documentos</h3>
     <div id="vd-w9-sec">
       <div class="vd-doccard">
@@ -355,7 +358,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=15"></script>
+<script src="vendor-dashboard.js?v=16"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
