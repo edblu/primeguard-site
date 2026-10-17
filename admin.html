@@ -500,6 +500,8 @@
   .tkf-chip b { font-weight:800; }
   #custModal .sr-modal { max-width: 1060px; }
   .cust-scrollbox { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
+  /* Form modals must paint ABOVE the customer profile modal: all overlays share z-index 200, so DOM order put #custModal (later in the file) on top of the Edit / task / note forms opened from inside it, making Edit look dead. (v49) */
+  #custFormModal, #taskFormModal, #taskDateModal, #hlNoteModal { z-index: 320; }
   .aform .sr-actions { margin-top:10px; }
   .aform h3, .sr-modal h3 { margin-bottom:6px; }
   .cust-sortsel { padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.35); background: transparent; color: var(--text); font: inherit; font-size: .78rem; }
