@@ -199,7 +199,7 @@
     });
   });
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -2224,6 +2224,12 @@
           rows.push('<div class="cust-kv"><span>Latest quote</span><strong>' + esc((q0.service || "Service") + " · $" + (Number(q0.total) || 0).toLocaleString()) + "</strong></div>");
           rows.push('<div class="cust-kv"><span>Quote status</span><strong>' + esc(q0.status === "signed" ? "Signed" : "Awaiting signature") + "</strong></div>");
         }
+        if (signed.length) {
+          var sq = signed[0];
+          var sqMs = custDateMs(sq.signedAt);
+          rows.push('<div class="cust-kv"><span>Signed</span><strong>' + esc((sq.signedName || "Customer") + (sqMs ? " \u00b7 " + new Date(sqMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "")) + "</strong></div>");
+          if (sq.agreementDriveUrl) rows.push('<div class="cust-kv"><span>Agreement</span><strong><a href="' + esc(sq.agreementDriveUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">View signed agreement (PDF)</a></strong></div>');
+        }
         if (ctx.next) rows.push('<div class="cust-kv"><span>Next visit</span><strong>' + esc(new Date(ctx.next.ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" })) + "</strong></div>");
         planBox.innerHTML = rows.length ? rows.join("") : '<p class="sr-faint">No plan on file yet. When a quote is built and signed, the plan shows up here.</p>';
       }
@@ -4070,24 +4076,6 @@
             });
           }
         }
-        if (box) {
-          if (!signed.length) {
-            box.innerHTML = '<p style="color:var(--faint)">No signed customer quotes yet.</p>';
-          } else {
-            box.innerHTML = "";
-            signed.forEach(function (it) {
-              var q = it.q;
-              var sdMs = tsMs(q.signedAt);
-              var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
-              var row = document.createElement("div"); row.className = "arow";
-              row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + "</strong><small>" +
-                esc(q.service || "") + (sd ? " · signed " + esc(sd) : "") + " · " + (q.payChoice === "deposit20" ? "20% deposit" : "Full payment") +
-                (q.signedName ? " · signed by " + esc(q.signedName) : "") + "</small></div>" +
-                '<span class="pill p-done">Signed</span>';
-              box.appendChild(row);
-            });
-          }
-        }
         signed.forEach(function (it) { cqHandleSigned(it.id, it.q); });
       })
       .catch(function () {});
@@ -4127,6 +4115,71 @@
         })
         .catch(function () {});
     } catch (e) {}
+  }
+
+  /* ----- Contracts tab (v53, Edwin's direction 2026-10-17) -----
+     Signed agreements live here permanently. Quotes to Review keeps
+     only files still waiting on action; once a customer signs, the
+     contract is the record and the CRM profile is the customer's home. */
+  function loadContracts() {
+    var box = $("ad-contracts-list");
+    if (!box) return;
+    db.collection("customer_quotes").orderBy("createdAt", "desc").limit(100).get()
+      .then(function (qs) {
+        var signed = [];
+        qs.forEach(function (d) { var q = d.data(); if (q && q.status === "signed") signed.push({ id: d.id, q: q }); });
+        var badge = $("pg-nav-b-contracts");
+        if (badge) { badge.textContent = signed.length; badge.style.display = signed.length ? "" : "none"; }
+        if (!signed.length) { box.innerHTML = '<p style="color:var(--faint)">No signed contracts yet. The first signed agreement lands here.</p>'; return; }
+        return db.collection("customers").limit(300).get().then(function (cs) {
+          var byEmail = {}, byName = {};
+          cs.forEach(function (cd) {
+            var c = cd.data() || {};
+            var em = String(c.email || "").toLowerCase();
+            if (em) byEmail[em] = cd.id;
+            String(c.contact || "").split(/[\u00b7,;]/).forEach(function (p) { var pp = p.trim().toLowerCase(); if (/@/.test(pp)) byEmail[pp] = cd.id; });
+            if (c.name) byName[String(c.name).toLowerCase()] = cd.id;
+          });
+          var woGets = signed.map(function (it) {
+            return it.q.workOrderId ? db.collection("work_orders").doc(it.q.workOrderId).get().catch(function () { return null; }) : Promise.resolve(null);
+          });
+          return Promise.all(woGets).then(function (wos) {
+            box.innerHTML = "";
+            signed.forEach(function (it, ix) {
+              var q = it.q;
+              var email = (/@/.test(q.contact || "") ? q.contact : "") || q.customerEmail || "";
+              var custId = (email && byEmail[String(email).toLowerCase()]) || byName[String(q.customerName || "").toLowerCase()] || "";
+              var sdMs = tsMs(q.signedAt);
+              var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+              var paid = !!q.paidAt;
+              var due = Number(q.amountDueNow) || 0;
+              var wo = wos[ix] && wos[ix].exists ? wos[ix].data() : null;
+              var nv = "";
+              if (wo && wo.scheduledFor) {
+                var nms = tsMs(wo.scheduledFor);
+                if (nms) nv = "Next visit " + new Date(nms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) + (wo.status === "done" ? " (last job done)" : "");
+              }
+              var row = document.createElement("div"); row.className = "arow";
+              row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + '</strong><small>' +
+                esc(q.service || "") + (sd ? " \u00b7 signed " + esc(sd) : "") + (q.signedName ? " \u00b7 signed by " + esc(q.signedName) : "") +
+                " \u00b7 " + (q.payChoice === "deposit20" ? "20% deposit plan" : "Full payment plan") + (nv ? " \u00b7 " + esc(nv) : "") + '</small></div>' +
+                (paid ? '<span class="pill p-done">Paid</span>' : (due > 0 ? '<span class="pill p-pend">' + esc(cqMoney(due)) + ' due</span>' : '<span class="pill p-done">Signed</span>')) +
+                (q.agreementDriveUrl ? '<a class="mini" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(q.agreementDriveUrl) + '">Signed agreement</a>' : "") +
+                (custId ? '<button type="button" class="mini" data-contract-cust="' + esc(custId) + '">Open in CRM</button>' : "");
+              box.appendChild(row);
+            });
+            box.querySelectorAll("[data-contract-cust]").forEach(function (b) {
+              b.addEventListener("click", function () {
+                var id = b.getAttribute("data-contract-cust");
+                var navBtn = document.querySelector('[data-atab="customers"]');
+                if (navBtn) navBtn.click();
+                setTimeout(function () { openCustomer(id); }, 60);
+              });
+            });
+          });
+        });
+      })
+      .catch(function () { box.innerHTML = '<p style="color:var(--faint)">Contracts could not load just now.</p>'; });
   }
 
   function loadVendors() {
