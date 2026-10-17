@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
 <link rel="stylesheet" href="vendor.css?v=4">
-<link rel="stylesheet" href="vendor-dash.css?v=4">
+<link rel="stylesheet" href="vendor-dash.css?v=5">
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
@@ -111,6 +111,7 @@
       <a class="vd-drawer-link" href="#sec-disponibles">Trabajos disponibles<span class="vd-drawer-badge hidden" id="vd-nav-badge-avail"></span></a>
       <a class="vd-drawer-link" href="#sec-jobs">Trabajos directos</a>
       <a class="vd-drawer-link" href="#sec-mistrabajos">Mis trabajos<span class="vd-drawer-badge hidden" id="vd-nav-badge-active"></span></a>
+      <a class="vd-drawer-link" href="#sec-calendario">Calendario</a>
       <a class="vd-drawer-link" href="#sec-cotizar">Enviar mi precio</a>
       <a class="vd-drawer-link" href="#sec-done">Terminados</a>
       <div class="vd-drawer-group">Cuenta</div>
@@ -178,6 +179,29 @@
   <section class="vsec" id="sec-mistrabajos">
     <div class="vd-sect"><h2>Mis trabajos</h2><span class="cnt" id="cnt-active"></span></div>
     <div class="vjobs" id="list-active"></div>
+  </section>
+
+  <section class="vsec" id="sec-calendario">
+    <div class="vd-sect"><h2>Calendario</h2><span class="cnt" id="cnt-cal"></span></div>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">Tus visitas programadas. Toca un día para ver los trabajos de ese día.</p>
+    <div class="vcal-card">
+      <div class="vcal-head">
+        <button type="button" class="vcal-nav" id="vcal-prev" aria-label="Mes anterior">&lsaquo;</button>
+        <div class="vcal-title" id="vcal-title"></div>
+        <button type="button" class="vcal-nav" id="vcal-next" aria-label="Mes siguiente">&rsaquo;</button>
+      </div>
+      <div class="vcal-dow"><span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span></div>
+      <div class="vcal-grid" id="vcal-grid"></div>
+      <div class="vcal-day" id="vcal-day"></div>
+    </div>
+    <div class="vcal-connect">
+      <h3>Conecta tu calendario</h3>
+      <p>Agrega tus trabajos de PrimeGuard a tu Google Calendar o al calendario de tu iPhone con tu enlace personal. Se actualiza solo cuando entra un trabajo nuevo.</p>
+      <div class="vcal-linkrow"><input type="text" id="vcal-link" readonly value=""><button class="btn btn-gold" type="button" id="vcal-copy">Copiar enlace</button></div>
+      <p class="vcal-fine">Google Calendar: Configuración, Agregar calendario, Desde una URL, pega tu enlace. iPhone: Ajustes, Calendario, Cuentas, Agregar cuenta, Otro, Agregar calendario suscrito, pega tu enlace.</p>
+      <button class="btn btn-ghost" type="button" id="vcal-regen" style="margin-top:6px">Generar un enlace nuevo</button>
+      <p class="verr hidden" id="vcal-err" style="margin-top:10px"></p>
+    </div>
   </section>
 
   <section class="vsec" id="sec-cotizar">
@@ -273,6 +297,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Mis trabajos
       </a>
+      <a class="vd-tab" href="#sec-calendario">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendario
+      </a>
       <a class="vd-tab" href="#sec-dinero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
         Mi dinero
@@ -326,7 +354,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=12"></script>
+<script src="vendor-dashboard.js?v=13"></script>
 <script src="push.js?v=1"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
