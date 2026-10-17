@@ -492,6 +492,33 @@
   .pg-light .cust-lastsvc.none { color:#8a8f98; }
   a.mini { text-decoration:none; display:inline-block; }
 
+  /* Tasks page filter chips (v43 CSS, restored in v45) + Two Column Pro profile (v45) */
+  .tkf-chips { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+  .tkf-chip { border:1px solid rgba(201,162,39,.45); background:transparent; color:var(--muted); border-radius:999px; padding:7px 13px; font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; }
+  .tkf-chip.active { background:#c9a227; border-color:#c9a227; color:#fff; }
+  .pg-light .tkf-chip { color:#7a5f16; }
+  .tkf-chip b { font-weight:800; }
+  #custModal .sr-modal { max-width: 1060px; }
+  .cust-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:0 0 14px; }
+  .cust-tile { border:1px solid rgba(128,128,128,.25); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; }
+  .cust-tile-v { font-weight:800; font-size:1.02rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cust-tile-l { font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .cust-grid { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
+  .cust-main, .cust-rail { display:flex; flex-direction:column; min-width:0; }
+  .cust-kv { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px dashed rgba(128,128,128,.22); }
+  .cust-kv:last-child { border-bottom:none; }
+  .cust-kv span { color:var(--muted); font-size:.86rem; }
+  .cust-kv strong { color:var(--text); font-size:.9rem; text-align:right; }
+  .tl-item { display:flex; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(128,128,128,.18); }
+  .tl-item:last-child { border-bottom:none; }
+  .tl-ic { font-size:1rem; line-height:1.3; }
+  .tl-tx p { margin:0; font-size:.9rem; color:var(--text); }
+  .tl-tx small { color:var(--muted); }
+  .cust-task-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(128,128,128,.18); }
+  .cust-task-row:last-child { border-bottom:none; }
+  .cust-task-tx { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .cust-task-tx small { color:var(--muted); }
+  @media (max-width: 900px) { .cust-grid { grid-template-columns:1fr; } .cust-strip { grid-template-columns:repeat(2,1fr); } }
   /* ---------- Daylight Twin reskin (Edwin's pick: option A, 2026-10-16) ---------- */
   .abrand, .pg-nav-brand { font-family:Georgia,'Times New Roman',serif; letter-spacing:.01em; }
   .asec h2, .acard h3 { font-family:Georgia,'Times New Roman',serif; }
@@ -1059,7 +1086,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=43"></script>
+<script src="admin.js?v=45"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
