@@ -116,6 +116,59 @@
     } catch (e) {}
   }
 
+  /* ----- Google sign-up carry-through (Edwin, 2026-10-16) -----
+     If the visitor is already signed in (e.g. they tapped Continue with
+     Google on the portal login and had no vendor profile yet), do NOT
+     make them create a second email/password account: prefill their
+     Google identity, hide the password field, and write the vendor
+     profile onto their existing account when the form submits. If they
+     already HAVE a vendor profile, send them straight to the portal. */
+  var googleUser = null;
+  function enterGoogleMode(user) {
+    googleUser = user;
+    var em = document.getElementById("vr-email");
+    if (em && user.email) { em.value = user.email; em.readOnly = true; }
+    var nm = document.getElementById("vr-name");
+    if (nm && user.displayName && !nm.value) nm.value = user.displayName;
+    var pwEl = document.getElementById("vr-password");
+    if (pwEl) {
+      pwEl.required = false;
+      pwEl.removeAttribute("minlength");
+      var lab = pwEl.closest ? pwEl.closest("label") : null;
+      if (lab) lab.style.display = "none";
+    }
+    var bn = document.getElementById("vr-google-banner");
+    if (bn) {
+      bn.innerHTML = "You\u2019re signed in with Google as <strong>" + (user.email || "") + "</strong>. Finish your vendor registration below \u2014 no password needed.";
+      bn.classList.remove("hidden");
+    }
+    var gw = document.getElementById("vr-google-wrap");
+    if (gw) gw.style.display = "none";
+    var sb = document.getElementById("vr-submit");
+    if (sb) sb.textContent = "Finish registration";
+    var h2 = document.querySelector("#vendor-register-form h2");
+    if (h2) h2.textContent = "Finish your vendor registration";
+  }
+  auth.onAuthStateChanged(function (user) {
+    if (!user) return;
+    db.collection("vendors").doc(user.uid).get().then(function (snap) {
+      if (snap.exists) { window.location.href = "vendor-dashboard.html"; return; }
+      enterGoogleMode(user);
+    }).catch(function () { enterGoogleMode(user); });
+  });
+  var vrGoogleBtn = document.getElementById("vr-google");
+  if (vrGoogleBtn) vrGoogleBtn.addEventListener("click", function () {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(function (err) {
+      if (err && (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-window-closed")) {
+        auth.signInWithRedirect(provider);
+      } else {
+        var e = document.getElementById("vr-error");
+        if (e) { e.textContent = (err && err.message) || "Google sign-in failed. Please try again."; e.classList.remove("hidden"); }
+      }
+    });
+  });
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var errEl = document.getElementById("vr-error");
@@ -150,6 +203,7 @@
     .then(function (u) {
       coiUrl = u;
       btn.textContent = "Creating account...";
+      if (googleUser) return Promise.resolve({ user: googleUser });
       return auth.createUserWithEmailAndPassword(email, pw);
     }).then(function (cred) {
       var v = {
