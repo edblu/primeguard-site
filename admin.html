@@ -254,8 +254,8 @@
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .hl-photo-badge { font-size:.72rem; background:rgba(120,180,255,.14); color:#a9c8ff; border-radius:999px; padding:4px 10px; font-weight:700; white-space:nowrap; }
   .pg-light .hl-photo-badge { background:#d9e8f6; color:#0b4778; }
-  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody { padding: 20px 18px 24px; } }
+  .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody, .sr-modal #custBody { padding: 26px 30px 30px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+  @media (max-width: 640px) { .sr-modal #hlNoteBody, .sr-modal #hlFormBody, .sr-modal #hlConvertBody, .sr-modal #cqBody, .sr-modal #woPrevBody, .sr-modal #custBody { padding: 20px 18px 24px; } }
   .woprev-actions { position: sticky; bottom: 0; display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; margin: 16px -30px -30px; padding: 14px 30px; background: #17181c; border-top: 1px solid rgba(201,162,75,.35); }
   .pg-light .woprev-actions { background: #f6f5f1; border-top-color: #ddd6c2; }
   @media (max-width: 640px) { .woprev-actions { margin: 16px -18px -24px; padding: 12px 18px; } .woprev-actions .btn { flex: 1 1 auto; } }
@@ -499,6 +499,8 @@
   .pg-light .tkf-chip { color:#7a5f16; }
   .tkf-chip b { font-weight:800; }
   #custModal .sr-modal { max-width: 1060px; }
+  .cust-scrollbox { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
+  .cust-sortsel { padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.35); background: transparent; color: var(--text); font: inherit; font-size: .78rem; }
   .cust-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:0 0 14px; }
   .cust-tile { border:1px solid rgba(128,128,128,.25); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; }
   .cust-tile-v { font-weight:800; font-size:1.02rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1086,7 +1088,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=46"></script>
+<script src="admin.js?v=47"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
