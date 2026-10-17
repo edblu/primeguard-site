@@ -528,3 +528,36 @@
 .acct-page .login-help h3 { margin: 0 0 8px; font-size: .95rem; color: var(--dl-ink); }
 .acct-page .login-help ol { margin: 0; padding-left: 20px; }
 .acct-page .login-help li { margin: 4px 0; }
+
+/* Customer calendar (2026-10-16) */
+.ccal-nav{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}
+.ccal-nav strong{font-size:1.02rem;color:#3a2f16;text-transform:capitalize}
+.ccal-navbtn{width:34px;height:34px;border-radius:50%;border:1px solid #e3d3a3;background:#fffdf7;color:#7a5f16;font-size:1.15rem;line-height:1;cursor:pointer}
+.ccal-dow,.ccal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.ccal-dow span{text-align:center;font-size:.66rem;font-weight:800;letter-spacing:.08em;color:#9a7b2d;text-transform:uppercase;padding:2px 0}
+.ccal-grid{margin-bottom:4px}
+.ccal-cell{position:relative;border:1px solid #eee3cb;background:#fffdf7;border-radius:10px;min-height:42px;padding:4px 0 6px;font:inherit;font-size:.85rem;color:#3a2f16;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ccal-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.ccal-cell.today{border-color:#c9a227;font-weight:800}
+.ccal-cell.sel{background:#f6e3ae;border-color:#c9a227}
+.ccal-cell.nextv{box-shadow:inset 0 0 0 2px #c9a227}
+.ccal-dots{display:flex;gap:3px;height:6px}
+.ccal-dot{width:6px;height:6px;border-radius:50%;background:#c9a227}
+.ccal-dayh{font-weight:800;margin:12px 0 4px;color:#3a2f16}
+.ccal-none{color:#8a7a52;font-size:.9rem;margin:0}
+.ccal-ev{display:flex;gap:10px;align-items:flex-start;background:#fffdf7;border:1px solid #eee3cb;border-radius:12px;padding:10px 12px;margin:6px 0}
+.ccal-ev-tx{flex:1;min-width:0}
+.ccal-ev-tx strong{display:block;color:#3a2f16}
+.ccal-ev-tx small{color:#8a7a52}
+.ccal-chip{font-size:.66rem;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:999px;background:#efe6cd;color:#7a5f16;white-space:nowrap;text-transform:uppercase}
+.ccal-chip.next{background:#c9a227;color:#fff}
+.ccal-chip.done{background:#2e7d32;color:#fff}
+.ccal-photos{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ccal-photos img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #eee3cb}
+.ccal-connect{margin-top:16px;border-top:1px dashed #e3d3a3;padding-top:12px}
+.ccal-connect h4{margin:0 0 4px;color:#3a2f16}
+.ccal-connect-sub{color:#8a7a52;font-size:.88rem;margin:0 0 10px}
+.ccal-linkrow{display:flex;gap:8px}
+.ccal-linkrow input{flex:1;min-width:0;border:1px solid #e3d3a3;border-radius:10px;padding:9px 10px;font-size:.8rem;background:#fffdf7;color:#3a2f16}
+.ccal-how{font-size:.8rem;color:#8a7a52;margin:8px 0}
+.ccal-revoke{background:none;border:none;color:#9a7b2d;text-decoration:underline;cursor:pointer;font-size:.8rem;padding:0;font:inherit}
