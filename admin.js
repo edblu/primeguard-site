@@ -407,6 +407,7 @@
     return detail;
   }
 
+  var tkEntityFilter = "all"; // Tasks page entity filter (chips)
   function loadFollowUps() {
     var box = $("ad-fu-list");
     if (!box) return;
@@ -469,9 +470,28 @@
         box.innerHTML = '<p style="color:var(--faint)">No tasks yet. Add a follow-up date to any note or call, or create a standalone task with the New task button.</p>';
         return;
       }
+      var tkTypes = [["all", "All"], ["hot_lead", "Hot leads"], ["work_order", "Work orders"], ["customer", "Customers"], ["customer_quote", "Quotes"], ["vendor", "Vendors"], ["", "Unlinked"]];
+      var tkCounts = {};
+      open.concat(done).forEach(function (it) { var k = it.entityType || ""; tkCounts[k] = (tkCounts[k] || 0) + 1; });
+      var tkAllCount = open.length + done.length;
+      if (tkEntityFilter !== "all") {
+        var tkFk = tkEntityFilter;
+        open = open.filter(function (it) { return (it.entityType || "") === tkFk; });
+        done = done.filter(function (it) { return (it.entityType || "") === tkFk; });
+      }
       box.innerHTML = "";
+      var tkChips = document.createElement("div");
+      tkChips.className = "tk-filters";
+      tkChips.innerHTML = tkTypes.map(function (tp) {
+        var n = tp[0] === "all" ? tkAllCount : (tkCounts[tp[0]] || 0);
+        return '<button type="button" class="tk-chip' + (tkEntityFilter === tp[0] ? " on" : "") + '" data-tkfilter="' + tp[0] + '">' + tp[1] + " (" + n + ")</button>";
+      }).join("");
+      box.appendChild(tkChips);
       if (!open.length) {
-        box.innerHTML = '<p style="color:var(--faint)">Nothing open. Everything is done — nice work.</p>';
+        var tkNp = document.createElement("p");
+        tkNp.style.color = "var(--faint)";
+        tkNp.textContent = (!done.length && tkEntityFilter !== "all") ? "No tasks match this filter." : "Nothing open. Everything is done, nice work.";
+        box.appendChild(tkNp);
       }
       [[0, "Overdue", "overdue"], [1, "Today", ""], [2, "Upcoming", ""]].forEach(function (g) {
         var items = open.filter(function (it) { return tkDueMeta(it.due, today).group === g[0]; });
@@ -1884,6 +1904,7 @@
       var h = '<h3 id="custTitle">' + esc(d.name || "Customer") + "</h3>" +
         '<p class="sr-meta">' + (d.source ? '<span class="pill p-acc">' + esc(d.source) + "</span>" : "") +
         "<span>" + esc([custContactLine(d), d.address || ""].filter(Boolean).join(" · ")) + "</span></p>" +
+        '<div class="sr-actions" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" id="cust-task-btn-top" type="button">Create task</button></div>' +
         '<div class="sr-card"><h4>Service</h4>' +
         '<div class="cust-lastsvc big">' + (lastMs ? "Last service: " + esc(fullDate(lastMs)) + (d.lastServiceLabel ? " · " + esc(d.lastServiceLabel) : "") : "No service yet") + "</div>" +
         '<p style="margin-top:8px"><strong>Jobs:</strong> ' + (d.totalJobs || 0) +
@@ -1935,6 +1956,9 @@
       });
       $("cust-svc-btn").addEventListener("click", logCustomerService);
       $("cnSave").addEventListener("click", saveCustomerNote);
+      $("cust-task-btn-top").addEventListener("click", function () {
+        openTaskForm({ entityType: "customer", entityId: id, entityName: d.name || "Customer" });
+      });
       $("cust-task-btn").addEventListener("click", function () {
         openTaskForm({ entityType: "customer", entityId: id, entityName: d.name || "Customer" });
       });
@@ -4057,6 +4081,8 @@
     if (woPhotoEl) d = woPhotoEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
+    var tkfEl = t.closest ? t.closest("[data-tkfilter]") : null;
+    if (tkfEl) { tkEntityFilter = tkfEl.getAttribute("data-tkfilter") || "all"; loadFollowUps(); }
     var taskForEl = t.closest ? t.closest("[data-taskfor]") : null;
     if (taskForEl) d = taskForEl.dataset;
     if (d.taskfor) {
