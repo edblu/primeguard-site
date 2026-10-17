@@ -270,5 +270,46 @@
     document.addEventListener("DOMContentLoaded", init);
   } else { init(); }
 
+  /* ---------- App install tracking (2026-10-17, Edwin's ask) ----------
+     A website cannot see installs on its own, so the app reports home:
+     when a signed-in customer or vendor installs the app (the
+     appinstalled event) or opens it as an installed app (standalone
+     display mode), stamp appInstalled on their push_tokens/{uid} doc.
+     The admin dashboard counts those stamps (App installs) plus the
+     docs carrying a live token (Push notifications on). */
+  function pgSurface() {
+    return /vendor-dashboard/.test(location.pathname) ? "vendor" : "customer";
+  }
+  function pgStandalone() {
+    try { return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; } catch (e) { return false; }
+  }
+  var pgStampDone = false;
+  function pgStampInstall() {
+    if (pgStampDone) return;
+    if (typeof firebase === "undefined" || !firebase.auth || !firebase.firestore) return;
+    var user = firebase.auth().currentUser;
+    if (!user) return;
+    pgStampDone = true;
+    var ref = firebase.firestore().collection("push_tokens").doc(user.uid);
+    ref.get().then(function (snap) {
+      var d = snap.exists ? (snap.data() || {}) : {};
+      var data = {
+        appInstalled: true,
+        surface: pgSurface(),
+        email: user.email || "",
+        lastAppOpenAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (!d.appInstalledAt) data.appInstalledAt = firebase.firestore.FieldValue.serverTimestamp();
+      if (pgSurface() === "vendor") data.vendorId = user.uid;
+      return ref.set(data, { merge: true });
+    }).catch(function () { /* best effort */ });
+  }
+  window.addEventListener("appinstalled", function () { pgStampInstall(); });
+  try {
+    if (typeof firebase !== "undefined" && firebase.auth) {
+      firebase.auth().onAuthStateChanged(function (u) { if (u && pgStandalone()) pgStampInstall(); });
+    }
+  } catch (e) { /* tracking is progressive enhancement */ }
+
   window.PGpush = { enable: enable, state: state };
 })();
