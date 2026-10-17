@@ -504,6 +504,13 @@
   #custFormModal, #taskFormModal, #taskDateModal, #hlNoteModal { z-index: 320; }
   .aform .sr-actions { margin-top:10px; }
   .aform h3, .sr-modal h3 { margin-bottom:6px; }
+  .cust-contact-row { padding:7px 0; border-bottom:1px dashed rgba(128,128,128,.22); }
+  .cust-contact-row span { display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+  .cust-contact-row a { font-size:1rem; font-weight:700; color:var(--gold-bright); text-decoration:none; word-break:break-all; }
+  .cust-contact-row .cust-none { font-size:.92rem; font-weight:600; color:var(--faint); }
+  .pg-light .cust-contact-row a { color:#8a6d14; }
+  .cust-contact-meta { margin-top:10px; }
+  .cust-contact-meta .cust-kv span, .cust-contact-meta .cust-kv strong { font-size:.8rem; }
   .cust-sortsel { padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.35); background: transparent; color: var(--text); font: inherit; font-size: .78rem; }
   .cust-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:0 0 14px; }
   .cust-tile { border:1px solid rgba(128,128,128,.25); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; }
@@ -524,7 +531,7 @@
   .cust-task-row:last-child { border-bottom:none; }
   .cust-task-tx { flex:1; min-width:0; display:flex; flex-direction:column; }
   .cust-task-tx small { color:var(--muted); }
-  @media (max-width: 900px) { .cust-grid { grid-template-columns:1fr; } .cust-strip { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width: 900px) { .cust-grid { display:flex; flex-direction:column; } .cust-rail { display:contents; } .cust-main { order:1; } .cust-rail > .sr-card { order:2; } .cust-rail > .cust-contact-card { order:0; } .cust-strip { grid-template-columns:repeat(2,1fr); } }
   /* ---------- Daylight Twin reskin (Edwin's pick: option A, 2026-10-16) ---------- */
   .abrand, .pg-nav-brand { font-family:Georgia,'Times New Roman',serif; letter-spacing:.01em; }
   .asec h2, .acard h3 { font-family:Georgia,'Times New Roman',serif; }
@@ -1092,7 +1099,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=47"></script>
+<script src="admin.js?v=50"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
