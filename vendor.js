@@ -187,6 +187,15 @@
     var crewSize = document.getElementById("vr-crewsize").value;
     var equipment = document.getElementById("vr-equipment").value.trim();
     var address = document.getElementById("vr-address").value.trim();
+    var payMethodEl = document.getElementById("vr-paymethod");
+    var payoutMethod = payMethodEl ? payMethodEl.value : "";
+    var payoutZelle = ((document.getElementById("vr-zelle") || {}).value || "").trim();
+    var payoutName = ((document.getElementById("vr-payname") || {}).value || "").trim();
+    var payoutBankName = ((document.getElementById("vr-bankname") || {}).value || "").trim();
+    var payoutRouting = ((document.getElementById("vr-routing") || {}).value || "").trim();
+    var payoutAccount = ((document.getElementById("vr-account") || {}).value || "").trim();
+    var payoutAchName = ((document.getElementById("vr-achname") || {}).value || "").trim();
+    if (payoutMethod === "ach" && payoutAchName) payoutName = payoutAchName;
     var insured = document.getElementById("vr-insured").value;
     var w9Choice = document.querySelector('input[name="vr-w9-choice"]:checked');
     var w9Later = w9Choice && w9Choice.value === "later";
@@ -228,6 +237,12 @@
           signedAt: new Date().toISOString(),
           version: "2026-10-15"
         },
+        payoutMethod: payoutMethod || "",
+        payoutZelle: payoutZelle || "",
+        payoutName: payoutName || "",
+        payoutBankName: payoutBankName || "",
+        payoutRouting: payoutRouting || "",
+        payoutAccount: payoutAccount || "",
         verified: false,
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -243,4 +258,18 @@
       btn.textContent = "Create vendor account";
     });
   });
+
+  /* Payment-method block toggle on the register form (v6). */
+  var paySel = document.getElementById("vr-paymethod");
+  if (paySel) {
+    var syncPayBlocks = function () {
+      var m = paySel.value;
+      var z = document.getElementById("vr-pay-zelle"), a = document.getElementById("vr-pay-ach"), c = document.getElementById("vr-pay-check");
+      if (z) z.classList.toggle("hidden", m !== "zelle");
+      if (a) a.classList.toggle("hidden", m !== "ach");
+      if (c) c.classList.toggle("hidden", m !== "check");
+    };
+    paySel.addEventListener("change", syncPayBlocks);
+    syncPayBlocks();
+  }
 })();
