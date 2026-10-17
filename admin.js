@@ -1069,7 +1069,7 @@
         (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
         (photos.length ? '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
           photos.map(function (u) {
-            return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="lead photo" loading="lazy"></a>';
+            return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="lead photo" loading="lazy"></button>';
           }).join("") + "</div></div>" : "") +
         (mediaLinks.length ? '<div class="sr-card"><h4>Media links (' + mediaLinks.length + ')</h4><p>' +
           mediaLinks.map(function (u) {
