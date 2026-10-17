@@ -39,7 +39,7 @@ window.SITE_CONFIG = {
   // price: shown on the plan card (injected by site.js). service: must match
   // a value in the quote-form service dropdown so "Choose plan" preselects it.
   plans: [
-    { price: "$80/mo",     service: "Lawn Care" },
+    { price: "From $45/mo", service: "Lawn Care" },
     { price: "$149/visit", service: "Pressure Washing" },
     { price: "$59/mo",     service: "Handyman Services" }
   ],

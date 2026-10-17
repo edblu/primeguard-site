@@ -188,11 +188,11 @@
       bb_total: "Estimated total", bb_continue: "Continue",
       bb_note: "Final quote confirmed before we start. No surprises.",
       plan_tag_popular: "Most popular",
-      plan_per_visit_1: "$40 per visit",
-      plan_save_1: "You save $10/mo",
+      plan_per_visit_1: "Biweekly visits · billed monthly",
+      plan_save_1: "Members save on every visit",
       plan_save_2: "You save $20 vs one-time ($169)",
       plan_save_3: "You save $6/mo",
-      plan_modal_per_1: "$40 per visit · billed monthly",
+      plan_modal_per_1: "Biweekly visits · billed monthly",
       plan_modal_per_2: "Per visit · auto-scheduled every 3 months",
       plan_modal_per_3: "One visit per month · billed monthly",
       plan_modal_note: "No payment due today. We confirm your start date first.",
@@ -446,11 +446,11 @@
       bb_total: "Total estimado", bb_continue: "Continuar",
       bb_note: "Precio final confirmado antes de empezar. Sin sorpresas.",
       plan_tag_popular: "El más popular",
-      plan_per_visit_1: "$40 por visita",
-      plan_save_1: "Ahorras $10/mes",
+      plan_per_visit_1: "Visitas cada dos semanas · facturación mensual",
+      plan_save_1: "Los miembros ahorran en cada visita",
       plan_save_2: "Ahorras $20 vs el precio único ($169)",
       plan_save_3: "Ahorras $6/mes",
-      plan_modal_per_1: "$40 por visita · facturación mensual",
+      plan_modal_per_1: "Visitas cada dos semanas · facturación mensual",
       plan_modal_per_2: "Por visita · programado automáticamente cada 3 meses",
       plan_modal_per_3: "Una visita por mes · facturación mensual",
       plan_modal_note: "Sin pago hoy. Primero confirmamos tu fecha de inicio.",
@@ -954,7 +954,7 @@
   var planSummaryWas = document.getElementById("planSummaryWas");
   var planSummarySave = document.getElementById("planSummarySave");
   var planSummaryPer = document.getElementById("planSummaryPer");
-  var PLAN_WAS = ["$90", "", "$65"];
+  var PLAN_WAS = ["", "", "$65"];
   var planForm = document.getElementById("planForm");
   var planFormError = document.getElementById("planFormError");
   var planPayBtn = document.getElementById("planPayBtn");

@@ -241,7 +241,7 @@
     .promo-banner { flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 84px; }
   }
 </style>
-<link rel="stylesheet" href="portal.css?v=4">
+<link rel="stylesheet" href="portal.css?v=5">
 </head>
 <body class="acct-page">
 <header class="site-header">
@@ -374,6 +374,9 @@
         <div class="container">
           <section class="acct-card hidden" id="custCalSection">
             <div class="acct-card-head"><h3>📅 Your calendar</h3><span class="pill pill-new" id="ccalNext"></span></div>
+            <!-- Live visit tracker (2026-10-17): appears when the crew
+                 starts the trip; stages update live from the work order. -->
+            <div id="ccalTracker"></div>
             <div class="ccal-nav">
               <button type="button" class="ccal-navbtn" id="ccalPrev" aria-label="Previous month">‹</button>
               <strong id="ccalTitle"></strong>
@@ -598,10 +601,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=14"></script>
+<script src="account.js?v=15"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
-<script src="site.js?v=34"></script>
+<script src="site.js?v=36"></script>
 </body>
 </html>
