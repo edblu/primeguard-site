@@ -272,7 +272,7 @@
         $("dashboard-greeting").textContent = daypart();
         $("dashboard-name").textContent = (user.displayName || "there").split(" ")[0];
       });
-      loadRequests(user.uid); loadJobs(user.uid); loadExtras(user); loadCustomerQuotes(user);
+      loadRequests(user.uid); loadJobs(user.uid); loadExtras(user); loadCustomerQuotes(user); loadCustCalendar(user);
     } else {
       show(authForms); show($("account-hero-static")); hide(dashboard);
       checkStaffEntry(null);
@@ -440,6 +440,237 @@
       .update({ status: status, decidedAt: firebase.firestore.FieldValue.serverTimestamp() })
       .then(function () { loadRequests(u.uid); })
       .catch(function () { alert("Couldn't update that quote. Please call us at (786) 422-9674."); });
+  }
+
+
+  /* ---------- Your calendar: visits + personal calendar connect ---------- */
+  var PG_FEED_BASE_C = "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec";
+  var CCAL_DATE_FIELDS = ["scheduledFor", "scheduledDate", "serviceDate", "appointmentDate", "date", "when"];
+  var ccalMap = {}, ccalCursor = null, ccalSelected = "", ccalNextKey = "", ccalUser = null, ccalProfile = null, ccalWired = false;
+  function ccalPad(n) { return (n < 10 ? "0" : "") + n; }
+  function ccalKey(d) { return d.getFullYear() + "-" + ccalPad(d.getMonth() + 1) + "-" + ccalPad(d.getDate()); }
+  function ccalParse(x) {
+    if (!x) return null;
+    if (typeof x.toDate === "function") { try { return x.toDate(); } catch (e) { return null; } }
+    if (x instanceof Date) return isNaN(x.getTime()) ? null : x;
+    if (typeof x === "object" && typeof x.seconds === "number") return new Date(x.seconds * 1000);
+    if (typeof x === "string" || typeof x === "number") { var d = new Date(x); return isNaN(d.getTime()) ? null : d; }
+    return null;
+  }
+  function ccalBuild(wos) {
+    ccalMap = {};
+    function pushEv(w, d) {
+      var k = ccalKey(d);
+      if (!ccalMap[k]) ccalMap[k] = [];
+      ccalMap[k].push({ w: w, date: new Date(d) });
+    }
+    (wos || []).forEach(function (w) {
+      var anchor = w.planAnchor ? ccalParse(w.planAnchor) : null;
+      var count = parseInt(w.visitCount, 10) || 0;
+      if (anchor && count > 1) {
+        var step = w.cadence === "weekly" ? 7 : 14;
+        var t = ccalParse(w.scheduledFor);
+        for (var i = 0; i < count; i++) {
+          var d = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + i * step);
+          if (t && (t.getHours() || t.getMinutes())) d.setHours(t.getHours(), t.getMinutes(), 0, 0);
+          pushEv(w, d);
+        }
+      } else {
+        var placed = false;
+        for (var j = 0; j < CCAL_DATE_FIELDS.length; j++) {
+          var dd = ccalParse(w[CCAL_DATE_FIELDS[j]]);
+          if (dd) { pushEv(w, dd); placed = true; break; }
+        }
+        if (!placed) { var cd = ccalParse(w.createdAt); if (cd) pushEv(w, cd); }
+      }
+    });
+    var todayK = ccalKey(new Date());
+    ccalNextKey = "";
+    Object.keys(ccalMap).sort().forEach(function (k) { if (!ccalNextKey && k >= todayK) ccalNextKey = k; });
+  }
+  function ccalStatus(ev) {
+    var todayK = ccalKey(new Date());
+    var k = ccalKey(ev.date);
+    var done = ["done", "completed", "review"].indexOf(String(ev.w.status || "")) >= 0;
+    if (k < todayK) return done ? { label: "Completed", cls: "done" } : { label: "Past visit", cls: "" };
+    if (k === ccalNextKey) return { label: "Next visit", cls: "next" };
+    return { label: "Scheduled", cls: "" };
+  }
+  function ccalTime(ev) {
+    var d = ev.date;
+    return (d.getHours() || d.getMinutes()) ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+  }
+  function renderCcal() {
+    var grid = $("ccalGrid"); if (!grid) return;
+    if (!ccalCursor) { var now = new Date(); ccalCursor = new Date(now.getFullYear(), now.getMonth(), 1); }
+    var y = ccalCursor.getFullYear(), m = ccalCursor.getMonth();
+    var titleEl = $("ccalTitle");
+    if (titleEl) titleEl.textContent = ccalCursor.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    var pill = $("ccalNext");
+    if (pill) {
+      if (ccalNextKey && ccalMap[ccalNextKey]) {
+        var nx = ccalMap[ccalNextKey].slice().sort(function (a, b) { return a.date - b.date; })[0];
+        pill.textContent = "Next: " + nx.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) + (ccalTime(nx) ? " · " + ccalTime(nx) : "");
+      } else pill.textContent = "";
+    }
+    var firstDow = new Date(y, m, 1).getDay();
+    var dim = new Date(y, m + 1, 0).getDate();
+    var todayK = ccalKey(new Date());
+    if (!ccalSelected) ccalSelected = ccalNextKey || todayK;
+    var html = "";
+    for (var b = 0; b < firstDow; b++) html += '<div class="ccal-cell empty"></div>';
+    for (var day = 1; day <= dim; day++) {
+      var k = ccalKey(new Date(y, m, day));
+      var evs = ccalMap[k] || [];
+      var dots = "";
+      for (var i = 0; i < Math.min(evs.length, 3); i++) dots += '<span class="ccal-dot"></span>';
+      html += '<button type="button" class="ccal-cell' + (k === todayK ? " today" : "") + (k === ccalSelected ? " sel" : "") + (k === ccalNextKey ? " nextv" : "") + '" data-ccal-day="' + k + '"><span>' + day + '</span><span class="ccal-dots">' + dots + "</span></button>";
+    }
+    grid.innerHTML = html;
+    renderCcalDay();
+  }
+  function renderCcalDay() {
+    var box = $("ccalDay"); if (!box) return;
+    var evs = (ccalMap[ccalSelected] || []).slice().sort(function (a, b) { return a.date - b.date; });
+    var dObj = ccalParse(ccalSelected + "T12:00:00");
+    var head = dObj ? dObj.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" }) : ccalSelected;
+    if (!evs.length) {
+      box.innerHTML = '<div class="ccal-dayh">' + esc(head) + '</div><p class="ccal-none">No visits this day.</p>';
+      return;
+    }
+    box.innerHTML = '<div class="ccal-dayh">' + esc(head) + "</div>" + evs.map(function (ev) {
+      var w = ev.w, st = ccalStatus(ev);
+      var crew = w.vendorBusiness || "PrimeGuard crew";
+      var meta = [ccalTime(ev), "Crew: " + crew, w.address || ""].filter(Boolean).join(" · ");
+      var photos = "";
+      if (st.cls === "done" && Array.isArray(w.photos) && w.photos.length) {
+        photos = '<div class="ccal-photos">' + w.photos.slice(0, 4).map(function (p) {
+          var src = typeof p === "string" ? p : (p && (p.url || p.src)) || "";
+          return src ? '<img src="' + esc(src) + '" alt="Visit photo" loading="lazy">' : "";
+        }).join("") + "</div>";
+      }
+      return '<div class="ccal-ev"><div class="ccal-ev-tx"><strong>' + esc(w.title || w.category || "PrimeGuard visit") + "</strong>" +
+        (meta ? "<small>" + esc(meta) + "</small>" : "") + photos + '</div><span class="ccal-chip ' + st.cls + '">' + esc(st.label) + "</span></div>";
+    }).join("");
+  }
+  function ccalNewToken() {
+    var s = "", chars = "abcdef0123456789";
+    for (var i = 0; i < 32; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  function ccalIcsText() {
+    function escT(s) { return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+    function z(d) { return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"; }
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PrimeGuard//Customer Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:PrimeGuard Visits"];
+    var stamp = z(new Date());
+    Object.keys(ccalMap).forEach(function (k) {
+      ccalMap[k].forEach(function (ev, idx) {
+        var w = ev.w;
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:" + (w.id || "wo") + "-" + k + "-" + idx + "@primeguardmia.com");
+        lines.push("DTSTAMP:" + stamp);
+        lines.push("DTSTART:" + z(ev.date));
+        lines.push("DTEND:" + z(new Date(ev.date.getTime() + 90 * 60000)));
+        lines.push("SUMMARY:" + escT("PrimeGuard visit: " + (w.category || w.title || "Service")));
+        if (w.address) lines.push("LOCATION:" + escT(w.address));
+        lines.push("DESCRIPTION:" + escT("Your PrimeGuard service visit. Crew: " + (w.vendorBusiness || "PrimeGuard") + ". Questions? Call (786) 422-9674."));
+        lines.push("END:VEVENT");
+      });
+    });
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
+  }
+  function writeCustCalFeedSnapshot() {
+    if (!ccalUser || !ccalProfile || !ccalProfile.calendarToken) return;
+    try {
+      db.collection("calendar_feeds").doc(ccalProfile.calendarToken).set({
+        kind: "customer", ownerUid: ccalUser.uid, ics: ccalIcsText(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function renderCcalConnect() {
+    var box = $("ccalConnectBody"); if (!box || !ccalUser) return;
+    var tok = ccalProfile && ccalProfile.calendarToken;
+    if (!tok) {
+      box.innerHTML = '<button type="button" class="btn btn-gold btn-sm" id="ccalGenBtn">Create my calendar link</button>';
+      var gb = $("ccalGenBtn");
+      if (gb) gb.addEventListener("click", ccalSetToken);
+      return;
+    }
+    var link = PG_FEED_BASE_C + "?feed=customer&id=" + encodeURIComponent(ccalUser.uid) + "&t=" + encodeURIComponent(tok);
+    box.innerHTML = '<div class="ccal-linkrow"><input type="text" readonly id="ccalLink" value="' + esc(link) + '"><button type="button" class="btn btn-gold btn-sm" id="ccalCopy">Copy</button></div>' +
+      '<p class="ccal-how">Google Calendar: Settings, then Add calendar, then From URL, paste the link. iPhone: Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar, paste the link.</p>' +
+      '<button type="button" class="ccal-revoke" id="ccalRegen">Get a new link (the old one stops working)</button>';
+    var cp = $("ccalCopy");
+    if (cp) cp.addEventListener("click", function () {
+      var i = $("ccalLink"); if (!i) return; i.select();
+      try { navigator.clipboard.writeText(i.value); } catch (e) { try { document.execCommand("copy"); } catch (e2) {} }
+      cp.textContent = "Copied \u2713";
+      setTimeout(function () { var b = $("ccalCopy"); if (b) b.textContent = "Copy"; }, 1600);
+    });
+    var rg = $("ccalRegen");
+    if (rg) rg.addEventListener("click", ccalSetToken);
+  }
+  function ccalSetToken() {
+    if (!ccalUser) return;
+    var old = ccalProfile && ccalProfile.calendarToken;
+    var tok = ccalNewToken();
+    db.collection("customers").doc(ccalUser.uid).set({ calendarToken: tok }, { merge: true }).then(function () {
+      if (!ccalProfile) ccalProfile = {};
+      ccalProfile.calendarToken = tok;
+      if (old && old !== tok) db.collection("calendar_feeds").doc(old).delete().catch(function () {});
+      renderCcalConnect();
+      writeCustCalFeedSnapshot();
+    }).catch(function () {});
+  }
+  function loadCustCalendar(u) {
+    var sec = $("custCalSection");
+    if (!sec || !u || !u.email) return;
+    ccalUser = u;
+    show(sec);
+    if (!ccalWired) {
+      ccalWired = true;
+      var grid = $("ccalGrid");
+      if (grid) grid.addEventListener("click", function (e) {
+        var t = e.target && e.target.closest ? e.target.closest("[data-ccal-day]") : null;
+        if (!t) return;
+        ccalSelected = t.getAttribute("data-ccal-day");
+        renderCcal();
+      });
+      var pv = $("ccalPrev"), nv = $("ccalNextBtn");
+      if (pv) pv.addEventListener("click", function () { ccalCursor = new Date(ccalCursor.getFullYear(), ccalCursor.getMonth() - 1, 1); renderCcal(); });
+      if (nv) nv.addEventListener("click", function () { ccalCursor = new Date(ccalCursor.getFullYear(), ccalCursor.getMonth() + 1, 1); renderCcal(); });
+    }
+    renderCcal();
+    db.collection("customers").doc(u.uid).get().then(function (s) {
+      ccalProfile = s.exists ? s.data() : {};
+      renderCcalConnect();
+      writeCustCalFeedSnapshot();
+    }).catch(function () {});
+    var email = String(u.email).toLowerCase();
+    var seen = {}, woIds = [];
+    function collect(qs) {
+      qs.forEach(function (doc) {
+        var d = doc.data();
+        if (d.workOrderId && !seen[d.workOrderId]) { seen[d.workOrderId] = 1; woIds.push(d.workOrderId); }
+      });
+    }
+    var p1 = db.collection("customer_quotes").where("customerEmail", "==", email).limit(25).get().then(collect).catch(function () {});
+    var p2 = db.collection("customer_quotes").where("contact", "==", email).limit(25).get().then(collect).catch(function () {});
+    Promise.all([p1, p2]).then(function () {
+      if (!woIds.length) { ccalBuild([]); renderCcal(); return; }
+      var gets = woIds.map(function (id) {
+        return db.collection("work_orders").doc(id).get().then(function (s) {
+          return s.exists ? Object.assign({ id: s.id }, s.data()) : null;
+        }).catch(function () { return null; });
+      });
+      Promise.all(gets).then(function (rows) {
+        ccalBuild(rows.filter(Boolean));
+        renderCcal();
+        writeCustCalFeedSnapshot();
+      });
+    }).catch(function () {});
   }
 
   // "Your quotes": the formal customer quotes staff built from a vendor
