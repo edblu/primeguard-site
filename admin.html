@@ -491,6 +491,32 @@
   .pg-light .cust-lastsvc { color:#8a6d14; }
   .pg-light .cust-lastsvc.none { color:#8a8f98; }
   a.mini { text-decoration:none; display:inline-block; }
+
+  /* ---------- Daylight Twin reskin (Edwin's pick: option A, 2026-10-16) ---------- */
+  .abrand, .pg-nav-brand { font-family:Georgia,'Times New Roman',serif; letter-spacing:.01em; }
+  .asec h2, .acard h3 { font-family:Georgia,'Times New Roman',serif; }
+  .astat .v { font-family:Georgia,'Times New Roman',serif; font-weight:700; }
+  /* Dark theme, warmed to match: Daylight after dark */
+  .acard { background:linear-gradient(180deg,#1e1811,#120e09); border-color:rgba(201,162,75,.18); }
+  .astat { background:rgba(255,244,214,.04); border-color:rgba(201,162,75,.16); }
+  .atop { background:rgba(20,14,8,.78); }
+  #pgNavDrawer { background:linear-gradient(180deg,#1c1610,#100c07); }
+  #pgBellPanel { background:linear-gradient(180deg,#1c1610,#100c07); }
+  /* Light theme: Daylight Twin (cream canvas, frosted panels, gold accents) */
+  .pg-light body { background:#f7f1e3; }
+  .pg-light .atop { background:linear-gradient(rgba(247,241,227,.88),rgba(247,241,227,.96)),url("assets/hero-home-daylight.jpg") center 32%/cover no-repeat; border-bottom:1px solid #e7dcc3; }
+  .pg-light .acard { background:rgba(255,255,255,.92); border:1px solid #eadfc6; box-shadow:0 10px 30px rgba(120,96,30,.08); }
+  .pg-light .astat { background:rgba(255,255,255,.92); border:1px solid #eadfc6; box-shadow:0 6px 18px rgba(120,96,30,.06); }
+  .pg-light .hlq-card { background:#ffffff; border:1px solid #eadfc6; box-shadow:0 6px 18px rgba(120,96,30,.06); }
+  .pg-light .arow { border-bottom-color:#f0e6cd; }
+  .pg-light #pgNavDrawer { background:rgba(255,255,255,.94); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-right-color:#e7dcc3; }
+  .pg-light #pgBellPanel { background:#ffffff; border-color:#e7dcc3; }
+  .pg-light .pg-nav-item.active { background:linear-gradient(135deg,#e9c766,#c9a227); color:#ffffff; border-color:transparent; box-shadow:0 4px 12px rgba(201,162,39,.35); }
+  .pg-light .pg-nav-item .cnt-b { background:#efe3c2; color:#7a6414; }
+  .pg-light .pg-nav-item.active .cnt-b { background:rgba(255,255,255,.35); color:#ffffff; }
+  .pg-light .mini { background:#ffffff; border-color:#d9c894; color:#7a6414; }
+  .pg-light .aform input, .pg-light .aform textarea, .pg-light .aform select, .pg-light .note-form textarea, .pg-light .note-form input[type="date"] { background:#fffdf8; border-color:#e0d3ae; color:#2b2416; }
+  .pg-light .atabs { background:rgba(255,255,255,.65); }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
@@ -509,7 +535,7 @@
   <button class="pg-nav-item" type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="vendors">Vendors <span class="cnt-b" id="pg-nav-b-vendors">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="followups">Tasks <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
-  <button class="pg-nav-item" type="button" data-atab="customers">Customers</button>
+  <button class="pg-nav-item" type="button" data-atab="customers">CRM</button>
   <button class="pg-nav-item" type="button" data-atab="calendar">Calendar</button>
   <button class="pg-nav-item" type="button" data-atab="team">Acquisition managers</button>
   <button class="pg-nav-item" type="button" data-atab="activity" id="pg-nav-activity">Staff activity</button>
@@ -821,7 +847,7 @@
   <section class="asec">
     <div id="ad-cust-stats"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <h2 style="margin:0">Customers</h2>
+      <h2 style="margin:0">CRM</h2>
       <button class="btn btn-gold btn-sm" type="button" id="cust-add">Add customer</button>
     </div>
     <div id="ad-cust-filters" class="hl-filters"></div>
@@ -1027,7 +1053,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=41"></script>
+<script src="admin.js?v=42"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
