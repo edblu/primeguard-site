@@ -46,6 +46,7 @@
   var myEvals = [];     // quote requests I accepted for evaluation (for quote form dropdown)
   var openQRs = [];     // open quote requests visible to me (for quote form dropdown)
   var myQuoted = {};    // workOrderId -> true, quote requests I already submitted a quote for
+  var sessionPhotosByWo = {}; // workOrderId -> [urls] uploaded from this device during this portal session (grouped into visitLog on Mark complete)
 
   var _yr = document.getElementById("vd-year");
   if (_yr) _yr.textContent = new Date().getFullYear();
@@ -1111,9 +1112,26 @@
     }
     if (t.dataset.complete) {
       if (!confirm("Mark this job complete? Make sure your after photos are uploaded.")) return;
-      db.collection("work_orders").doc(t.dataset.complete).update({
-        status: "review",
-        completedAt: firebase.firestore.FieldValue.serverTimestamp()
+      var cWoId = t.dataset.complete;
+      var cRef = db.collection("work_orders").doc(cWoId);
+      cRef.get().then(function (snap) {
+        return snap.exists ? snap.data() : null;
+      }, function () { return null; }).then(function (jw) {
+        var nowIso = new Date().toISOString();
+        var visitEntry = {
+          visitDate: nowIso,
+          completedAt: nowIso,
+          vendorId: me.uid,
+          vendorBusiness: (jw && jw.vendorBusiness) || (vendor && vendor.business) || "",
+          photos: (sessionPhotosByWo[cWoId] || []).slice(),
+          note: ""
+        };
+        var cupd = {
+          status: "review",
+          completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          visitLog: firebase.firestore.FieldValue.arrayUnion(visitEntry)
+        };
+        return cRef.update(cupd);
       }).then(loadAll);
     }
     if (t.dataset.upload) {
@@ -1167,6 +1185,7 @@
       }).then(function (r) { return r.json(); });
     }).then(function (out) {
       if (!out.ok) throw new Error(out.error || "upload failed");
+      (sessionPhotosByWo[woId] = sessionPhotosByWo[woId] || []).push.apply(sessionPhotosByWo[woId], out.urls);
       return db.collection("work_orders").doc(woId).update({
         photos: firebase.firestore.FieldValue.arrayUnion.apply(null, out.urls)
       });

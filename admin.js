@@ -1368,6 +1368,7 @@
   var custId = null, custData = null, custOutcome = "";
   var custTlSort = "new", custHistSort = "new", custTaskSort = "due";
   var custTlEvs = null, custHistFound = null;
+  var custVisitRows = {}; // "woId:visitIndex" -> { wid, entry } for the service-history visit rows (v56)
   var custEditId = null;
   // Customers filter panel state (slide-over, applies live). quick is a
   // single preset; sources is a list of source keys ("__none__" = blank
@@ -2126,23 +2127,88 @@
     var box = $("cust-history");
     if (!box || !custHistFound) return;
     var found = custHistFound;
-    {
-      var ids = Object.keys(found);
-      if (!ids.length) {
-        box.innerHTML = '<p class="sr-faint">No linked work orders yet. Jobs converted from this customer\'s lead will show up here.</p>';
-        return;
+    var ids = Object.keys(found);
+    if (!ids.length) {
+      box.innerHTML = '<p class="sr-faint">No linked work orders yet. Jobs converted from this customer\'s lead will show up here.</p>';
+      return;
+    }
+    // Flatten to one row per performed visit: a work order WITH a
+    // visitLog gets one tappable row per visit entry (its own date, crew,
+    // and photo count); a work order without one keeps the legacy row.
+    custVisitRows = {};
+    var rows = [];
+    ids.forEach(function (wid) {
+      var w = found[wid];
+      var log = Array.isArray(w.visitLog) ? w.visitLog.filter(function (e) { return e && typeof e === "object"; }) : [];
+      if (log.length) {
+        log.forEach(function (entry, idx) {
+          var key = wid + ":" + idx;
+          custVisitRows[key] = { wid: wid, entry: entry };
+          rows.push({ ms: custDateMs(entry.visitDate) || custDateMs(entry.completedAt) || tsMs(w.createdAt), wid: wid, entry: entry, key: key });
+        });
+      } else {
+        rows.push({ ms: tsMs(w.createdAt), wid: wid, entry: null, key: "" });
       }
-      ids.sort(function (a, b) { return custHistSort === "new" ? tsMs(found[b].createdAt) - tsMs(found[a].createdAt) : tsMs(found[a].createdAt) - tsMs(found[b].createdAt); });
-      box.innerHTML = ids.map(function (wid) {
-        var w = found[wid];
+    });
+    rows.sort(function (a, b) { return custHistSort === "new" ? b.ms - a.ms : a.ms - b.ms; });
+    box.innerHTML = rows.map(function (r) {
+      var w = found[r.wid];
+      if (!r.entry) {
         var whenMs = tsMs(w.createdAt);
         return '<div class="sr-comment"><strong>' + esc(w.title || "Work order") + "</strong><span>" +
           esc(String(w.status || "").replace(/_/g, " ")) +
           (whenMs ? " · " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) : "") +
           (w.vendorBusiness ? " · " + esc(w.vendorBusiness) : "") + "</span>" +
           (w.details ? "<p>" + esc(hlExcerpt(w.details)) + "</p>" : "") + "</div>";
-      }).join("");
+      }
+      var e = r.entry;
+      var vMs = custDateMs(e.visitDate) || custDateMs(e.completedAt);
+      var vPhotos = Array.isArray(e.photos) ? e.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
+      var statusWord = (w.status === "review" || w.status === "done") ? "Completed" : String(w.status || "Completed").replace(/_/g, " ");
+      return '<div class="sr-comment" data-custvisit="' + esc(r.key) + '" role="button" tabindex="0" title="View this visit" style="cursor:pointer"><strong>' + esc(w.title || "Work order") + "</strong><span>" +
+        esc(statusWord) +
+        (vMs ? " · " + esc(new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) : "") +
+        (e.vendorBusiness || w.vendorBusiness ? " · " + esc(e.vendorBusiness || w.vendorBusiness) : "") +
+        " · " + vPhotos.length + (vPhotos.length === 1 ? " photo" : " photos") +
+        ' <span style="color:var(--gold-bright);font-weight:700">View ›</span></span></div>';
+    }).join("");
+  }
+  /* ----- Visit detail (v56): one performed visit, only its own photos ----- */
+  // Opens in the shared #pgVmModal shell (ensurePgVmModal/closePgVmModal,
+  // the same modal the vendor browser uses) and its photos reuse the
+  // #pgLightbox via the same data-wophoto buttons as the work order detail.
+  function openCustVisitDetail(key) {
+    var rec = custVisitRows[key];
+    if (!rec || !custHistFound) return;
+    var w = custHistFound[rec.wid] || {};
+    var e = rec.entry || {};
+    ensurePgVmModal();
+    var vMs = custDateMs(e.visitDate) || custDateMs(e.completedAt);
+    var dateStr = vMs ? new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+    var statusWord = (w.status === "review" || w.status === "done") ? "Completed" : String(w.status || "").replace(/_/g, " ");
+    var pay = w.pay || w.payAgreed || "";
+    var photos = Array.isArray(e.photos) ? e.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
+    var ctxRow = function (k, v) { return v ? '<div class="pgvb-ctxi"><span class="k">' + k + '</span><span class="v">' + v + "</span></div>" : ""; };
+    var h = '<h3 id="pgVmTitle">' + esc(w.title || "Work order") + "</h3>" +
+      '<div class="pgvb-ctx">' +
+      ctxRow("Visit date", esc(dateStr)) +
+      ctxRow("Crew", esc(e.vendorBusiness || w.vendorBusiness || "")) +
+      ctxRow("Address", esc(w.address || "")) +
+      ctxRow("Status", esc(statusWord)) +
+      ctxRow("Pay", pay ? esc(String(pay)) : "") +
+      "</div>";
+    var noteBits = [];
+    if (w.details) noteBits.push(esc(w.details).replace(/\n/g, "<br>"));
+    if (e.note) noteBits.push(esc(e.note).replace(/\n/g, "<br>"));
+    if (noteBits.length) h += '<div class="woq-dblock"><h4>Details</h4><p>' + noteBits.join("<br>") + "</p></div>";
+    if (photos.length) {
+      h += '<div class="woq-dblock"><h4>Photos from this visit (' + photos.length + ')</h4><div class="athumbs woq-thumbs">' +
+        photos.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="visit photo"></button>'; }).join("") + "</div></div>";
+    } else {
+      h += '<p class="sr-faint">No photos were attached to this visit.</p>';
     }
+    $("pgVmBody").innerHTML = h;
+    $("pgVmModal").classList.remove("hidden");
   }
   /* ----- Two Column Pro profile: plan, timeline, tasks (v45) ----- */
   function custDateMs(v) {
@@ -4482,6 +4548,8 @@
     if (woPhotoEl) d = woPhotoEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
+    var custVisitEl = t.closest ? t.closest("[data-custvisit]") : null;
+    if (custVisitEl) d = custVisitEl.dataset;
     var tkfEl = t.closest ? t.closest("[data-tkfilter]") : null;
     if (tkfEl) { tkEntityFilter = tkfEl.getAttribute("data-tkfilter") || "all"; loadFollowUps(); }
     var taskForEl = t.closest ? t.closest("[data-taskfor]") : null;
@@ -4513,6 +4581,7 @@
     if (d.woprevlang) { woPrevLang = d.woprevlang; renderWoPrev(); }
     if (d.woprevconfirm) confirmWoSend(woPrevEl || t);
     if (d.woprevcancel) closeWoSendPreview();
+    if (d.custvisit) openCustVisitDetail(d.custvisit);
     if (d.wophoto) openPhotoLightbox(d.wophoto, d.wophotoorig);
     if (t.closest && t.closest("#pgLightbox")) closePhotoLightbox();
     if (t.id === "woPrevClose" || t.id === "woPrevModal") closeWoSendPreview();
