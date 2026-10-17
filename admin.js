@@ -1958,8 +1958,14 @@
         return '<option value="' + o[0] + '"' + ((d.annualContract || "none") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("");
       var selStyle = 'style="margin-top:6px;width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:.95rem;font-family:inherit;color-scheme:dark"';
-      var custPhone = d.phone || (/@/.test(d.contact || "") ? "" : (d.contact || ""));
-      var custEmail = d.email || (/@/.test(d.contact || "") ? d.contact : "");
+      var custPhone = d.phone || "", custEmail = d.email || "";
+      if (!custPhone || !custEmail) {
+        String(d.contact || "").split(/[\u00b7,;]/).forEach(function (part) {
+          var p = part.trim(); if (!p) return;
+          if (/@/.test(p)) { if (!custEmail) custEmail = p; }
+          else if (/\d{3}/.test(p)) { if (!custPhone) custPhone = p; }
+        });
+      }
       var contractLabel = { none: "No contract", offered: "Contract offered", signed: "Contract signed" }[d.annualContract || "none"];
       var sinceMs = tsMs(d.createdAt);
       var kvRow = function (k, v) { return v ? '<div class="cust-kv"><span>' + k + '</span><strong>' + v + "</strong></div>" : ""; };
@@ -2005,10 +2011,12 @@
         '<p class="aerr hidden" id="cust-svc-err" style="margin-top:10px"></p></div>' +
         '<div class="sr-card"><h4 style="display:flex;justify-content:space-between;align-items:center;gap:8px">Service history <button type="button" class="mini" id="cust-hist-sort">Oldest first</button></h4><div id="cust-history" class="cust-scrollbox"><p class="sr-faint">Loading…</p></div></div>' +
         '</div><div class="cust-rail">' +
-        '<div class="sr-card"><h4>Contact</h4>' +
-        kvRow("Phone", esc(custPhone || "")) + kvRow("Email", esc(custEmail || "")) +
+        '<div class="sr-card cust-contact-card"><h4>Contact</h4>' +
+        '<div class="cust-contact-row"><span>Phone</span>' + (custPhone ? '<a href="tel:' + esc(custPhone.replace(/[^0-9+]/g, "")) + '">' + esc(custPhone) + "</a>" : '<strong class="cust-none">Not on file</strong>') + "</div>" +
+        '<div class="cust-contact-row"><span>Email</span>' + (custEmail ? '<a href="mailto:' + esc(custEmail) + '">' + esc(custEmail) + "</a>" : '<strong class="cust-none">Not on file</strong>') + "</div>" +
+        '<div class="cust-contact-meta">' +
         kvRow("Source", esc(d.source || "")) + kvRow("Customer since", sinceMs ? esc(fullDate(sinceMs)) : "") +
-        kvRow("Last visit", days != null ? days + "d ago" : "") + "</div>" +
+        kvRow("Last visit", days != null ? days + "d ago" : "") + "</div></div>" +
         '<div class="sr-card"><h4>Tasks</h4>' +
         '<div class="sr-actions" style="margin:0 0 6px"><button class="btn btn-gold btn-sm" id="cust-tasks-new" type="button">Create task</button></div>' +
         '<p class="sr-faint" style="margin:0 0 4px">Create opens the Tasks page with this customer already linked.</p>' +
