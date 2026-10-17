@@ -103,6 +103,11 @@
 
       <form id="vendor-register-form" class="card auth-card vr-form-card" style="margin-top:30px">
         <h2>Create your vendor account</h2>
+        <div id="vr-google-wrap" style="margin:0 0 6px">
+          <button type="button" class="btn btn-ghost" id="vr-google" style="width:100%">Continue with Google</button>
+          <p style="text-align:center;font-size:.85rem;color:#a89a7d;margin:8px 0 0">Signing up with Google? One tap, no new password. Already a vendor? This signs you in.</p>
+        </div>
+        <div id="vr-google-banner" class="hidden" style="background:rgba(201,162,39,.14);border:1px solid rgba(201,162,39,.45);color:#f3d98b;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:.92rem"></div>
 
         <label>Business name<input type="text" id="vr-business" required autocomplete="organization"></label>
         <label>Your name<input type="text" id="vr-name" required autocomplete="name"></label>
@@ -247,7 +252,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor.js"></script>
+<script src="vendor.js?v=5"></script>
 <script>
 (function () {
   function wireMultiSelect(panelId, btnId, chipsId, placeholder, noun) {
