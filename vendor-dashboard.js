@@ -702,6 +702,9 @@
       renderHero(heroJob);
       renderActive(active, heroJob ? heroJob.id : null);
       renderDone(done);
+      buildVendorCalEvents(active, done);
+      renderVendorCal();
+      renderCalConnect();
       $("st-done").textContent = done.length;
       $("st-earned").textContent = "$" + earned.toLocaleString();
       $("st-pending").textContent = "$" + pending.toLocaleString();
@@ -713,6 +716,130 @@
     });
     });
   }
+
+
+  /* ---------- Calendario (portal calendars, Edwin's directive 2026-10-16) ---------- */
+  var PG_FEED_BASE = "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec";
+  var vcalCursor = null;
+  var vcalSelected = "";
+  var vcalMap = {};
+  function vcalPad(n) { return (n < 10 ? "0" : "") + n; }
+  function vcalKey(d) { return d.getFullYear() + "-" + vcalPad(d.getMonth() + 1) + "-" + vcalPad(d.getDate()); }
+  function vcalTime(w) {
+    for (var i = 0; i < WO_DATE_FIELDS.length; i++) {
+      var dd = parseDate(w[WO_DATE_FIELDS[i]]);
+      if (dd && (dd.getHours() || dd.getMinutes())) return dd.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit" });
+    }
+    return "";
+  }
+  function buildVendorCalEvents(active, done) {
+    vcalMap = {};
+    function pushEv(w, d) {
+      var k = vcalKey(d);
+      if (!vcalMap[k]) vcalMap[k] = [];
+      vcalMap[k].push({ w: w, date: new Date(d) });
+    }
+    (active || []).concat(done || []).forEach(function (w) {
+      var anchor = w.planAnchor ? parseDate(w.planAnchor) : null;
+      var count = parseInt(w.visitCount, 10) || 0;
+      if (anchor && count > 1) {
+        var step = w.cadence === "weekly" ? 7 : 14;
+        var t = parseDate(w.scheduledFor);
+        for (var i = 0; i < count; i++) {
+          var d = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + i * step);
+          if (t && (t.getHours() || t.getMinutes())) d.setHours(t.getHours(), t.getMinutes(), 0, 0);
+          pushEv(w, d);
+        }
+      } else {
+        var placed = false;
+        for (var j = 0; j < WO_DATE_FIELDS.length; j++) {
+          var dd = parseDate(w[WO_DATE_FIELDS[j]]);
+          if (dd) { pushEv(w, dd); placed = true; break; }
+        }
+        if (!placed) { var cd = parseDate(w.createdAt); if (cd) pushEv(w, cd); }
+      }
+    });
+    var cnt = $("cnt-cal");
+    if (cnt) { var n = Object.keys(vcalMap).length; cnt.textContent = n ? n + (n === 1 ? " DÍA" : " DÍAS") : ""; }
+  }
+  function renderVendorCal() {
+    var grid = $("vcal-grid"); if (!grid) return;
+    if (!vcalCursor) { var now = new Date(); vcalCursor = new Date(now.getFullYear(), now.getMonth(), 1); }
+    var y = vcalCursor.getFullYear(), m = vcalCursor.getMonth();
+    var titleEl = $("vcal-title");
+    if (titleEl) titleEl.textContent = vcalCursor.toLocaleDateString("es", { month: "long", year: "numeric" });
+    var firstDow = new Date(y, m, 1).getDay();
+    var dim = new Date(y, m + 1, 0).getDate();
+    var todayK = vcalKey(new Date());
+    if (!vcalSelected) vcalSelected = todayK;
+    var html = "";
+    for (var b = 0; b < firstDow; b++) html += '<div class="vcal-cell empty"></div>';
+    for (var day = 1; day <= dim; day++) {
+      var k = vcalKey(new Date(y, m, day));
+      var evs = vcalMap[k] || [];
+      var dots = "";
+      for (var i = 0; i < Math.min(evs.length, 3); i++) dots += '<span class="vcal-dot"></span>';
+      html += '<button type="button" class="vcal-cell' + (k === todayK ? " today" : "") + (k === vcalSelected ? " sel" : "") + '" data-vcal-day="' + k + '"><span>' + day + '</span><span class="vcal-dots">' + dots + "</span></button>";
+    }
+    grid.innerHTML = html;
+    renderVendorCalDay();
+  }
+  function renderVendorCalDay() {
+    var box = $("vcal-day"); if (!box) return;
+    var evs = (vcalMap[vcalSelected] || []).slice().sort(function (a, b) { return a.date - b.date; });
+    var dObj = parseDate(vcalSelected + "T12:00:00");
+    var head = dObj ? dObj.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" }) : vcalSelected;
+    if (!evs.length) {
+      box.innerHTML = '<div class="vcal-dayh">' + esc(head) + '</div><p class="vcal-none">Sin trabajos este día.</p>';
+      return;
+    }
+    box.innerHTML = '<div class="vcal-dayh">' + esc(head) + "</div>" + evs.map(function (ev) {
+      var w = ev.w;
+      var meta = [vcalTime(w), w.address || w.area || "", statusLabelEs(w)].filter(Boolean).join(" · ");
+      return '<div class="vcal-ev"><div class="vcal-ev-tx"><strong>' + esc(w.title || w.category || "Trabajo") + "</strong>" +
+        (meta ? "<small>" + esc(meta) + "</small>" : "") + "</div>" +
+        '<a class="btn btn-ghost vcal-ev-btn" href="#sec-mistrabajos">Ver trabajo</a></div>';
+    }).join("");
+  }
+  function vcalNewToken() {
+    var s = "", chars = "abcdef0123456789";
+    for (var i = 0; i < 32; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  function renderCalConnect() {
+    var inp = $("vcal-link"); if (!inp || !me || !vendor) return;
+    var err = $("vcal-err");
+    function showLink() { inp.value = PG_FEED_BASE + "?feed=vendor&id=" + encodeURIComponent(me.uid) + "&t=" + encodeURIComponent(vendor.calendarToken || ""); }
+    if (vendor.calendarToken) { showLink(); return; }
+    var tok = vcalNewToken();
+    db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
+      vendor.calendarToken = tok; showLink();
+    }).catch(function () {
+      if (err) { err.textContent = "No se pudo crear tu enlace. Revisa tu conexión e inténtalo de nuevo."; err.classList.remove("hidden"); }
+    });
+  }
+  (function bindVcal() {
+    var prev = $("vcal-prev"), next = $("vcal-next"), grid = $("vcal-grid");
+    if (prev) prev.addEventListener("click", function () { if (!vcalCursor) vcalCursor = new Date(); vcalCursor = new Date(vcalCursor.getFullYear(), vcalCursor.getMonth() - 1, 1); renderVendorCal(); });
+    if (next) next.addEventListener("click", function () { if (!vcalCursor) vcalCursor = new Date(); vcalCursor = new Date(vcalCursor.getFullYear(), vcalCursor.getMonth() + 1, 1); renderVendorCal(); });
+    if (grid) grid.addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("[data-vcal-day]") : null; if (!b) return; vcalSelected = b.getAttribute("data-vcal-day"); renderVendorCal(); });
+    var copy = $("vcal-copy");
+    if (copy) copy.addEventListener("click", function () {
+      var inp = $("vcal-link"); if (!inp || !inp.value) return;
+      inp.select();
+      function done() { copy.textContent = "\u00a1Copiado!"; setTimeout(function () { copy.textContent = "Copiar enlace"; }, 2000); }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done).catch(function () { try { document.execCommand("copy"); } catch (e) {} done(); });
+      else { try { document.execCommand("copy"); } catch (e) {} done(); }
+    });
+    var regen = $("vcal-regen");
+    if (regen) regen.addEventListener("click", function () {
+      if (!me) return;
+      var tok = vcalNewToken();
+      db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
+        vendor.calendarToken = tok; renderCalConnect();
+      }).catch(function () { var err = $("vcal-err"); if (err) { err.textContent = "No se pudo generar el enlace nuevo."; err.classList.remove("hidden"); } });
+    });
+  })();
 
   function photoThumbs(w) {
     var ph = w.photos || [];
