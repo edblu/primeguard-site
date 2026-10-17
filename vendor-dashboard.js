@@ -590,7 +590,7 @@
     if (w.vendorNotifyTarget && w.vendorNotifyTarget !== "broadcast") {
       return w.vendorNotifyTarget === me.uid || w.vendorId === me.uid;
     }
-    return w.broadcast !== false || w.vendorId === me.uid;
+    return w.broadcast === true || w.vendorId === me.uid;
   }
 
   // Inactive accounts (archived or rejected by the office) get no job
@@ -651,10 +651,26 @@
         if (q.workOrderId) myQuoted[q.workOrderId] = true;
       });
     }).catch(function () { myQuoted = {}; }).then(function () {
-    db.collection("work_orders").where("status", "==", "open").get().then(function (qs) {
-      var jobs = [], qrs = [];
+    // Scoped board queries (privacy hardening, 2026-10-16): the database
+    // rules only let a vendor read broadcast jobs or jobs sent to them,
+    // so the board asks for exactly those two sets instead of every open
+    // work order. A missing broadcast flag now means private.
+    var boardSeen = {}, boardDocs = [];
+    function boardCollect(qs) {
       qs.forEach(function (d) {
+        if (boardSeen[d.id]) return;
+        boardSeen[d.id] = 1;
         var w = d.data(); w.id = d.id;
+        if (w.status !== "open") return;
+        boardDocs.push(w);
+      });
+    }
+    Promise.all([
+      db.collection("work_orders").where("broadcast", "==", true).get().then(boardCollect).catch(function () {}),
+      db.collection("work_orders").where("vendorNotifyTarget", "==", me.uid).get().then(boardCollect).catch(function () {})
+    ]).then(function () {
+      var jobs = [], qrs = [];
+      boardDocs.forEach(function (w) {
         if (!woVisibleToMe(w)) return; // not sent to me and not posted as available work
         if (w.kind === "quote_request") qrs.push(w); else jobs.push(w);
       });
