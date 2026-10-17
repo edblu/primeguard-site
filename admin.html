@@ -517,6 +517,12 @@
   .pg-light .mini { background:#ffffff; border-color:#d9c894; color:#7a6414; }
   .pg-light .aform input, .pg-light .aform textarea, .pg-light .aform select, .pg-light .note-form textarea, .pg-light .note-form input[type="date"] { background:#fffdf8; border-color:#e0d3ae; color:#2b2416; }
   .pg-light .atabs { background:rgba(255,255,255,.65); }
+
+  .tk-filters { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 14px; }
+  .tk-chip { padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--text); font-size:.8rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#241a0c; border-color:transparent; }
+  .pg-light .tk-chip { background:#ffffff; border-color:#d9c894; color:#7a6414; }
+  .pg-light .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#ffffff; border-color:transparent; }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 </head>
@@ -1053,7 +1059,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=42"></script>
+<script src="admin.js?v=43"></script>
 <script>
 (function () {
   var tabs = ["work", "hotleads", "quotes", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
