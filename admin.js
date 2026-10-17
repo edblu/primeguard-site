@@ -911,17 +911,25 @@
       var serviceLine = [d.service || "", hlAreaLabel(d), d.contact || ""].filter(Boolean).join(" · ");
       var excerpt = hlExcerpt(d.notes);
       var photoCount = Array.isArray(d.photos) ? d.photos.length : 0;
+      var claim = pgLeadClaim(d);
+      var lockedOther = pgLeadLockedByOther(d);
+      var claimChip = claim
+        ? '<span class="pill p-acc" title="Claimed' + (pgLeadClaimWhen(claim) ? " since " + esc(pgLeadClaimWhen(claim)) : "") + '">🔒 Working: ' + esc(claim.name) + "</span>"
+        : '<span class="pill p-open">Open</span>';
       var row = document.createElement("article");
       row.className = "hlq-card hlq-temp-" + temp;
       row.innerHTML =
         '<div class="hlq-head"><button type="button" class="hlq-name" data-hldetail="' + it.id + '">' +
           (d.seen ? "" : '<span class="hl-dot" title="Unseen"></span>') + esc(d.name || "Lead") + '</button>' +
-          '<span class="pill ' + tm[2] + '">' + esc(tm[1]) + "</span></div>" +
+          '<span class="pill ' + tm[2] + '">' + esc(tm[1]) + "</span>" + claimChip + "</div>" +
         (serviceLine ? '<div class="hlq-service">' + esc(serviceLine) + (photoCount ? ' <span class="hl-photo-badge" title="Photos on this lead">📷 ' + photoCount + "</span>" : "") + "</div>" : "") +
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
-        hlStepperHtml(it.id, d) +
+        (lockedOther
+          ? '<div class="hlq-stepper" aria-label="Lead stage"><span class="hlq-step now">' + esc(hlStageMeta(hlStageValue(d))[1]) + "</span></div>"
+          : hlStepperHtml(it.id, d)) +
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-hlnotes="' + it.id + '">Notes</button>' +
+          (lockedOther ? "" :
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-taskfor="hot_lead|' + it.id + '">Task</button>' +
           (d.customerId
             ? '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlviewcustomer="' + d.customerId + '">In CRM \u2713</button>'
@@ -929,16 +937,19 @@
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-callead="' + it.id + '">Calendar</button>' +
           (d.convertedWorkOrderId
             ? '<button type="button" class="mini hlq-action hlq-action-ghost" disabled>Converted ✓</button>'
-            : '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlconvert="' + it.id + '">Convert</button>') +
+            : '<button type="button" class="mini hlq-action hlq-action-ghost" data-hlconvert="' + it.id + '">Convert</button>')) +
         "</div>" +
         '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since touch</span>' +
-          '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-hledit="' + it.id + '">Edit</button>' +
-          (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-hldel="' + it.id + '">Delete</button>' : "") + '</span>' +
+          (lockedOther
+            ? '<span class="hlq-manage"></span>'
+            : '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-hledit="' + it.id + '">Edit</button>' +
+              (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-hldel="' + it.id + '">Delete</button>' : "") + '</span>') +
           '<span class="hlq-source">' + esc(d.source || "Other") + "</span></div>";
       box.appendChild(row);
     });
   }
   function hlStageChanged(id, stage) {
+    if (!pgLeadGate(hlLeadData(id))) { loadHotLeads(); return; }
     db.collection("hot_leads").doc(id).update({
       stage: stage,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -954,8 +965,111 @@
     }).catch(function (e) { alert("Could not move lead: " + (e.message || e)); loadHotLeads(); });
   }
 
+  /* ----- Hot lead claim & lock (v59) ----- */
+  // One person works a lead at a time. claimedBy (email), claimedByName
+  // and claimedAt (ISO string) live on the hot_leads doc; no claimedBy =
+  // unclaimed and open to anyone. While a lead is claimed, only the
+  // claimant can work it: stage moves, notes, convert, edit, tasks. The
+  // owner (isAdmin) can release anyone's claim from the lead detail, but
+  // that is administration, not working the lead.
+  function pgLeadClaim(d) {
+    if (!d || !d.claimedBy) return null;
+    return {
+      email: String(d.claimedBy),
+      name: d.claimedByName || pgStaffName(d.claimedBy),
+      atMs: tsMs(d.claimedAt)
+    };
+  }
+  function pgLeadClaimMine(d) {
+    var c = pgLeadClaim(d);
+    if (!c || !me) return false;
+    return c.email.toLowerCase() === String(me.email || "").toLowerCase();
+  }
+  function pgLeadLockedByOther(d) {
+    var c = pgLeadClaim(d);
+    return (c && !pgLeadClaimMine(d)) ? c : null;
+  }
+  // Central gate for every lead-work handler. True = the signed-in user
+  // may work this lead; false = locked by someone else (message shown).
+  function pgLeadGate(d) {
+    var c = pgLeadLockedByOther(d);
+    if (!c) return true;
+    alert("This lead is locked by " + c.name + ". Only they can work it. They can release it from the lead, or the owner can release the claim.");
+    return false;
+  }
+  function pgLeadClaimWhen(c) {
+    return c && c.atMs ? new Date(c.atMs).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  }
+  function hlClaimCardHtml(id, d) {
+    var c = pgLeadClaim(d);
+    if (!c) {
+      return '<div class="sr-card"><h4>Claim</h4>' +
+        '<p class="sr-faint">Nobody is working this lead yet. Claim it to lock it to you: while you hold it, nobody else on the team can change it.</p>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" type="button" data-hlclaim="' + id + '">Work this lead</button></div></div>';
+    }
+    if (pgLeadClaimMine(d)) {
+      return '<div class="sr-card"><h4>Claim</h4>' +
+        '<p><strong>You are working this lead</strong>' + (pgLeadClaimWhen(c) ? " since " + esc(pgLeadClaimWhen(c)) : "") + ".</p>" +
+        '<div class="sr-actions"><button class="mini" type="button" data-hlrelease="' + id + '">Release lead</button></div></div>';
+    }
+    var when = pgLeadClaimWhen(c);
+    return '<div class="sr-card"><h4>🔒 Locked</h4>' +
+      '<p><strong>Locked by ' + esc(c.name) + "</strong>" + (when ? " since " + esc(when) : "") + ". This lead is view-only for you: only " + esc(c.name) + " can work it.</p>" +
+      (isAdmin ? '<div class="sr-actions"><button class="mini" type="button" data-hlrelease="' + id + '">Release claim (owner)</button></div>' : "") +
+      "</div>";
+  }
+  function claimHotLead(id) {
+    if (!me) return;
+    var ref = db.collection("hot_leads").doc(id);
+    ref.get().then(function (snap) {
+      if (!snap.exists) return;
+      var d = snap.data();
+      var c = pgLeadClaim(d);
+      if (c && !pgLeadClaimMine(d)) {
+        alert("This lead was just claimed by " + c.name + ".");
+        loadHotLeads();
+        if (hlNoteId === id) openHotLeadNotes(id);
+        return;
+      }
+      return ref.update({
+        claimedBy: me.email,
+        claimedByName: pgStaffName(me.email),
+        claimedAt: new Date().toISOString(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        logActivity("Claimed hot lead: " + (d.name || "lead"));
+        loadHotLeads();
+        if (hlNoteId === id) openHotLeadNotes(id);
+      });
+    }).catch(function (e) { alert("Could not claim lead: " + (e.message || e)); });
+  }
+  function releaseHotLead(id) {
+    var ref = db.collection("hot_leads").doc(id);
+    ref.get().then(function (snap) {
+      if (!snap.exists) return;
+      var d = snap.data();
+      var c = pgLeadClaim(d);
+      if (!c) return;
+      if (!pgLeadClaimMine(d) && !isAdmin) {
+        alert("Only " + c.name + " or the owner can release this claim.");
+        return;
+      }
+      return ref.update({
+        claimedBy: firebase.firestore.FieldValue.delete(),
+        claimedByName: firebase.firestore.FieldValue.delete(),
+        claimedAt: firebase.firestore.FieldValue.delete(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        logActivity("Released claim on hot lead: " + (d.name || "lead"));
+        loadHotLeads();
+        if (hlNoteId === id) openHotLeadNotes(id);
+      });
+    }).catch(function (e) { alert("Could not release claim: " + (e.message || e)); });
+  }
+
   /* ----- Add / edit lead form ----- */
   function openHotLeadForm(id) {
+    if (id && !pgLeadGate(hlLeadData(id))) return;
     hlEditId = id || null;
     var d = null;
     if (id) { for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) { d = hlLeads[i].d; break; } }
@@ -1029,6 +1143,7 @@
     var name = $("hl-f-name").value.trim();
     var err = $("hl-f-err"); err.classList.add("hidden");
     if (!name) { err.textContent = "Name is required."; err.classList.remove("hidden"); return; }
+    if (hlEditId && !pgLeadGate(hlLeadData(hlEditId))) { err.textContent = "This lead is locked by another team member."; err.classList.remove("hidden"); return; }
     var mediaLinks = $("hl-f-media").value.split(/\n/).map(function (s) { return s.trim(); })
       .filter(function (s) { return !!s; });
     var fields = {
@@ -1113,6 +1228,7 @@
       var photos = Array.isArray(d.photos) ? d.photos : [];
       var mediaLinks = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
       var convMs = tsMs(d.convertedAt);
+      var lockedOther = pgLeadLockedByOther(d);
       var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
       var hlToolsEntity = { label: d.name || "Lead", area: d.area || hlAreaLabel(d), address: d.address || "", service: d.service || "" };
       var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
@@ -1120,6 +1236,7 @@
         esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
         (d.address ? " · " + esc(d.address) : "") +
         (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
+        hlClaimCardHtml(id, d) +
         pgJobToolsHtml(hlToolsEntity) +
         (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
         (photos.length ? '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
@@ -1140,13 +1257,17 @@
         (d.convertedWorkOrderId
           ? '<p><strong>Quote request:</strong> converted' + (convMs ? " " + esc(fullDate(convMs)) : "") + '</p>' +
             '<div class="sr-actions"><button class="mini" type="button" data-hlviewwo="' + id + '">Open work order</button></div>'
-          : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to work order</button></div>') +
+          : (lockedOther ? "" : '<div class="sr-actions"><button class="mini" type="button" data-hlconvert="' + id + '">Convert to work order</button></div>')) +
         (d.customerId
           ? '<p style="margin-top:8px"><strong>Customer:</strong> CRM record on file</p>' +
             '<div class="sr-actions"><button class="mini" type="button" data-hlviewcustomer="' + esc(d.customerId) + '">Open customer record</button></div>'
-          : '<div class="sr-actions" style="margin-top:8px"><button class="mini" type="button" data-hlmakecustomer="' + id + '">Make customer</button></div>') +
+          : (lockedOther ? "" : '<div class="sr-actions" style="margin-top:8px"><button class="mini" type="button" data-hlmakecustomer="' + id + '">Make customer</button></div>')) +
         "</div>" +
-        '<div class="sr-card"><h4>Calls & notes</h4>' +
+        (lockedOther
+          ? '<div class="sr-card"><h4>Calls & notes</h4>' +
+            '<p class="sr-faint">🔒 ' + esc(lockedOther.name) + ' is working this lead. The call history below is view-only.</p>' +
+            '<div class="sr-comments" id="hlnNotes" style="margin-top:14px"></div></div>'
+          : '<div class="sr-card"><h4>Calls & notes</h4>' +
         '<p class="sr-faint">Log every call and update here. Notes are a permanent team record with your name and the time on them.</p>' +
         '<div class="outcome-grid" id="hlOutcomes">' +
         CALL_OUTCOMES.map(function (o) {
@@ -1157,7 +1278,7 @@
         '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="hlnSave" type="button">Save call / note</button></div>' +
         '<p class="aok hidden" id="hlnOk" style="margin-top:10px">Saved.</p>' +
         '<p class="aerr hidden" id="hlnErr" style="margin-top:10px"></p>' +
-        '<div class="sr-comments" id="hlnNotes" style="margin-top:14px"></div></div>';
+        '<div class="sr-comments" id="hlnNotes" style="margin-top:14px"></div></div>');
       var box = $("hlNoteBody");
       box.innerHTML = h;
       box.querySelectorAll("[data-hloutcome]").forEach(function (b) {
@@ -1168,7 +1289,8 @@
           });
         });
       });
-      $("hlnSave").addEventListener("click", saveHotLeadNote);
+      var hlnSaveBtn = $("hlnSave");
+      if (hlnSaveBtn) hlnSaveBtn.addEventListener("click", saveHotLeadNote);
       wireJobTools(box, hlToolsEntity, function () { closeHotLeadNotes(); });
       $("hlNoteModal").classList.remove("hidden");
       document.body.style.overflow = "hidden";
@@ -1182,6 +1304,7 @@
   }
   function saveHotLeadNote() {
     if (!hlNoteId) return;
+    if (!pgLeadGate(hlNoteData)) return;
     var text = $("hlnText").value.trim();
     var err = $("hlnErr"); err.classList.add("hidden");
     if (!hlOutcome && !text) { err.textContent = "Pick a call outcome or write a note first."; err.classList.remove("hidden"); return; }
@@ -1221,6 +1344,7 @@
   function openHotLeadConvert(id) {
     var d = hlLeadData(id);
     if (!d || d.convertedWorkOrderId) return;
+    if (!pgLeadGate(d)) return;
     hlConvertId = id;
     var links = Array.isArray(d.mediaLinks) ? d.mediaLinks : [];
     var photos = Array.isArray(d.photos) ? d.photos : [];
@@ -1268,6 +1392,7 @@
     if (!hlConvertId) return;
     var d = hlLeadData(hlConvertId);
     if (!d) return;
+    if (!pgLeadGate(d)) return;
     var err = $("hl-cv-err"); err.classList.add("hidden");
     var title = $("hl-cv-title").value.trim();
     if (!title) { err.textContent = "Title is required."; err.classList.remove("hidden"); return; }
@@ -4611,6 +4736,7 @@
     if (taskForEl) d = taskForEl.dataset;
     if (d.taskfor) {
       var tp = String(d.taskfor).split("|"), tName = "";
+      if (tp[0] === "hot_lead" && !pgLeadGate(hlLeadData(tp[1]))) return;
       if (tp[0] === "hot_lead") { var lr = hlLeads.find(function (x) { return x.id === tp[1]; }); if (lr && lr.d) tName = lr.d.name || ""; }
       if (tp[0] === "work_order") { var wr = woOrders.find(function (x) { return x.id === tp[1]; }); var wd = wr ? (wr.d || wr) : null; if (wd) tName = wd.customerName || wd.title || ""; }
       openTaskForm({ entityType: tp[0], entityId: tp[1], entityName: tName });
@@ -4733,10 +4859,12 @@
     }
     if (d.hlmakecustomer) {
       var mkId = d.hlmakecustomer;
-      makeCustomerFromLead(mkId).then(function () {
-        loadHotLeads();
-        if (hlNoteId === mkId) openHotLeadNotes(mkId);
-      }).catch(function (e) { alert("Could not create customer: " + (e.message || e)); });
+      if (pgLeadGate(hlLeadData(mkId))) {
+        makeCustomerFromLead(mkId).then(function () {
+          loadHotLeads();
+          if (hlNoteId === mkId) openHotLeadNotes(mkId);
+        }).catch(function (e) { alert("Could not create customer: " + (e.message || e)); });
+      }
     }
     if (d.hlviewcustomer) {
       var cvId = d.hlviewcustomer;
@@ -4758,6 +4886,8 @@
     if (d.hldel) deleteHotLead(d.hldel);
     if (d.hlbell) markLeadSeen(d.hlbell);
     if (d.hlconvert) openHotLeadConvert(d.hlconvert);
+    if (d.hlclaim) claimHotLead(d.hlclaim);
+    if (d.hlrelease) releaseHotLead(d.hlrelease);
     if (d.hlviewwo) { closeHotLeadConvert(); closeHotLeadNotes(); gotoWorkOrders(); }
     if (t.id === "hlNoteClose" || t.id === "hlNoteModal") closeHotLeadNotes();
     if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
