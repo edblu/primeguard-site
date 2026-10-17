@@ -30,6 +30,7 @@ body {
   overflow-x: hidden;
 }
 
+html, body { overflow-x: clip; }
 .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
 h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.12; letter-spacing: -0.02em; color: var(--text); }
@@ -1230,7 +1231,7 @@ elevenlabs-convai.pg-hidden { display: none !important; }
 }
 
 /* ================= FOOTER LINKS ================= */
-.footer-links { display: flex; gap: 24px; justify-content: center; margin: 20px 0 8px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: center; margin: 20px 0 8px; }
 .footer-links a { color: var(--muted); text-decoration: none; font-weight: 600; }
 .footer-links a:hover { color: var(--gold, #d4a843); }
 
@@ -2151,3 +2152,10 @@ body {
   .cx-cta h2 { font-size:clamp(1.9rem,4.5vw,3rem); margin-bottom:14px; }
   .cx-cta p { color:#a89a7d; margin-bottom:26px; }
   
+
+/* Phone header fit (2026-10-16): brand + actions must never exceed the screen */
+@media (max-width: 480px) {
+  .header-inner { gap: 12px; }
+  .brand-text { font-size: .95rem; }
+  .header-actions .btn { padding: 10px 15px; }
+}
