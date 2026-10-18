@@ -2098,3 +2098,27 @@
     });
   }
 })();
+
+/* Show/hide password eye on every password field (Edwin, Oct 18) */
+(function () {
+  function decorate(inp) {
+    if (!inp || inp.dataset.pwEye || !inp.parentNode) return; inp.dataset.pwEye = "1";
+    var wrap = document.createElement("span");
+    wrap.style.cssText = "position:relative;display:block";
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    inp.style.paddingRight = "44px";
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = "\u{1F441}"; b.setAttribute("aria-label", "Show password");
+    b.style.cssText = "position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:17px;line-height:1;padding:6px;color:#7a7668;z-index:3";
+    b.addEventListener("click", function () {
+      var show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      b.textContent = show ? "\u{1F648}" : "\u{1F441}";
+      b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+    wrap.appendChild(b);
+  }
+  function scan() { document.querySelectorAll('input[type="password"]').forEach(decorate); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scan); else scan();
+  if (window.MutationObserver) new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+})();

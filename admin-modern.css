@@ -229,3 +229,15 @@ label{ color:var(--m-muted) !important; }
 .home-pill-red{ background:rgba(176,58,46,.10); color:#a33327; }
 .home-amt{ margin-left:auto; font-family:"Sora",sans-serif; font-weight:800; color:var(--m-ink); white-space:nowrap; }
 .home-row .who{ min-width:0; }
+
+/* ===== Exit buttons: real labeled buttons, not bare black circles (Edwin, Oct 18) ===== */
+.pg-light .modal-close, .modal-close{
+  width:auto !important; height:auto !important; min-width:0 !important;
+  border-radius:999px !important; padding:7px 14px !important;
+  background:#fff !important; color:var(--m-ink) !important;
+  border:1px solid var(--m-line) !important; font-size:.82rem !important; font-weight:700 !important;
+  display:inline-flex !important; align-items:center; gap:2px; line-height:1 !important;
+  box-shadow:0 2px 8px rgba(16,28,38,.10) !important;
+}
+.modal-close::after{ content:" Close"; }
+.pg-light .modal-close:hover, .modal-close:hover{ background:var(--m-gold) !important; color:#fff !important; border-color:var(--m-gold) !important; box-shadow:0 4px 14px rgba(201,162,75,.35) !important; }
