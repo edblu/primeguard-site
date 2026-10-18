@@ -1,5 +1,5 @@
 /* ============================================================
-   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v3, Oct 18)
+   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v4, Oct 18)
    FULL reskin: Edwin approved the v4 look for the ENTIRE admin.
    Layer 1 flips the theme variables every surface consumes.
    Layer 2 overrides each component that hardcodes dark values.
@@ -203,3 +203,14 @@ label{ color:var(--m-muted) !important; }
 .tk-sep{ color:var(--m-faint); }
 .tk-when{ font-weight:700; font-size:.78rem; }
 .tk-when.tk-over{ color:#a33327; } .tk-when.tk-today{ color:#7a5c14; } .tk-when.tk-future{ color:#0e5560; }
+
+/* ---- Stat tiles: compact + gold top edge (Edwin's pick A, Oct 18) ---- */
+.astats{ gap:9px !important; margin:16px 0 4px !important; }
+.astat{
+  padding:10px 13px 11px !important; border-radius:14px !important;
+  border-top:3px solid #d9ab2b !important;
+  box-shadow:0 3px 10px rgba(23,34,43,.05) !important;
+}
+.astat .l{ font-size:.64rem !important; letter-spacing:.1em !important; }
+.astat .v{ font-size:1.32rem !important; line-height:1.15 !important; margin-top:1px; }
+.astat .v.vsrc{ font-size:1.05rem !important; }
