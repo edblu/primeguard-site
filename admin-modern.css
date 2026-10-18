@@ -1,5 +1,5 @@
 /* ============================================================
-   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v2, Oct 18)
+   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v3, Oct 18)
    FULL reskin: Edwin approved the v4 look for the ENTIRE admin.
    Layer 1 flips the theme variables every surface consumes.
    Layer 2 overrides each component that hardcodes dark values.
@@ -190,3 +190,16 @@ label{ color:var(--m-muted) !important; }
 .home-row .s{ font-size:.76rem; color:var(--m-muted); }
 .home-row .t{ font-weight:600; font-size:.92rem; }
 .home-row .go{ margin-left:auto; color:#a87e14; font-weight:800; }
+
+/* ---- Task rows: calendar date rail (Edwin's pick D, Oct 18) ---- */
+.tk-row{ display:flex !important; gap:13px; align-items:flex-start !important; }
+.tk-rail{ flex-shrink:0; width:52px; text-align:center; border-right:1px solid var(--m-line2); padding-right:11px; }
+.tk-dow{ font-size:.62rem; font-weight:700; color:var(--m-teal); letter-spacing:.12em; }
+.tk-day{ font-family:"Sora",sans-serif; font-size:1.5rem; font-weight:800; color:var(--m-ink); line-height:1.12; }
+.tk-mon{ font-size:.7rem; color:var(--m-muted); font-weight:600; }
+.tk-main{ flex:1; min-width:0; }
+.tk-links{ margin-top:8px; font-size:.8rem; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; }
+.tk-link{ background:none !important; border:none !important; color:#0e5560 !important; font-weight:600; padding:2px 0 !important; font-size:.8rem; cursor:pointer; box-shadow:none !important; border-radius:0 !important; min-height:0 !important; }
+.tk-sep{ color:var(--m-faint); }
+.tk-when{ font-weight:700; font-size:.78rem; }
+.tk-when.tk-over{ color:#a33327; } .tk-when.tk-today{ color:#7a5c14; } .tk-when.tk-future{ color:#0e5560; }

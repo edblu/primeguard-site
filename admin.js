@@ -522,6 +522,15 @@
     var h12 = hh % 12; if (h12 === 0) h12 = 12;
     return h12 + ":" + mm + " " + ap;
   }
+  function tkRailHtml(key, doneMs) {
+    var dt = null;
+    if (key) { var p = String(key).split("-"); if (p.length === 3) dt = new Date(+p[0], +p[1] - 1, +p[2]); }
+    if (!dt && doneMs) dt = new Date(doneMs);
+    if (!dt || isNaN(dt.getTime())) return '<div class="tk-rail"><div class="tk-dow">DATE</div><div class="tk-day">·</div><div class="tk-mon"></div></div>';
+    var dow = dt.toLocaleDateString([], { weekday: "short" }).toUpperCase();
+    var mon = dt.toLocaleDateString([], { month: "short" });
+    return '<div class="tk-rail"><div class="tk-dow">' + dow + '</div><div class="tk-day">' + dt.getDate() + '</div><div class="tk-mon">' + mon + "</div></div>";
+  }
   function tkRow(it, today, isDone) {
     var meta = tkDueMeta(it.due, today);
     var sub = [];
@@ -532,34 +541,34 @@
     } else if (it.by) {
       sub.push("Set by " + esc(it.by) + (it.createdMs ? " · " + esc(tkWhen(it.createdMs)) : ""));
     }
-    var html = '<div class="grow"><strong>' + esc(it.entityLabel) + "</strong>" +
+    var main = '<div class="grow"><strong>' + esc(it.entityLabel) + "</strong>" +
       (sub.length ? "<small>" + sub.join("<br>") + "</small>" : "") + "</div>";
-    if (isDone) {
-      html += '<span class="pill p-done">Done' + (it.doneMs ? " · " + esc(tkWhen(it.doneMs)) : "") + "</span>";
-    } else {
-      html += '<span class="pill ' + meta.cls + '">' + esc(meta.label + (it.dueTime ? " \u00b7 " + fmtTaskTime(it.dueTime) : "")) + "</span>";
+    var links = [];
+    if (!isDone) {
+      var whenCls = meta.group === 0 ? "tk-over" : (meta.group === 1 ? "tk-today" : "tk-future");
+      links.push('<span class="tk-when ' + whenCls + '">' + esc(meta.label + (it.dueTime ? " · " + fmtTaskTime(it.dueTime) : "")) + "</span>");
     }
-    // For tasks the entity label shown is the task title; the linked record
-    // rides in entityName when it differs, shown via the Open button target.
     if (it.entityType && it.entityId) {
-      html += ' <button class="mini" data-fuopen="' + esc(it.entityType) + "|" + esc(it.entityId) + '">Open</button>';
+      links.push('<button class="mini tk-link" data-fuopen="' + esc(it.entityType) + "|" + esc(it.entityId) + '">Open</button>');
     }
     if (isDone) {
-      html += it.src === "note"
-        ? ' <button class="mini" data-fuundo="' + it.id + '">Undo</button>'
-        : ' <button class="mini" data-taskundo="' + it.id + '">Undo</button>';
+      links.push(it.src === "note"
+        ? '<button class="mini tk-link" data-fuundo="' + it.id + '">Undo</button>'
+        : '<button class="mini tk-link" data-taskundo="' + it.id + '">Undo</button>');
     } else if (it.src === "note") {
-      html += ' <button class="mini" data-fudone="' + it.id + '">✓ Done</button>' +
-        ' <button class="mini" data-fusnooze="' + it.id + '">Snooze +1d</button>' +
-        ' <button class="mini" data-fueditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>';
+      links.push('<button class="mini tk-link" data-fudone="' + it.id + '">✓ Mark done</button>');
+      links.push('<button class="mini tk-link" data-fusnooze="' + it.id + '">Snooze +1d</button>');
+      links.push('<button class="mini tk-link" data-fueditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>');
     } else {
-      html += ' <button class="mini" data-taskdone="' + it.id + '">✓ Done</button>' +
-        ' <button class="mini" data-tasksnooze="' + it.id + '">Snooze +1d</button>' +
-        ' <button class="mini" data-taskeditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>';
+      links.push('<button class="mini tk-link" data-taskdone="' + it.id + '">✓ Mark done</button>');
+      links.push('<button class="mini tk-link" data-tasksnooze="' + it.id + '">Snooze +1d</button>');
+      links.push('<button class="mini tk-link" data-taskeditdate="' + it.id + "|" + esc(it.due) + '">Edit date</button>');
     }
     var row = document.createElement("div");
-    row.className = "arow";
-    row.innerHTML = html;
+    row.className = "arow tk-row";
+    row.innerHTML = tkRailHtml(it.due, it.doneMs) +
+      '<div class="tk-main">' + main +
+      '<div class="tk-links">' + links.join('<span class="tk-sep">·</span>') + "</div></div>";
     return row;
   }
 
