@@ -794,7 +794,43 @@
     return '<button class="home-row" type="button" data-atab="' + tab + '">' + (nHtml || "") +
       '<span class="who"><span class="t">' + title + '</span>' + (sub ? '<br><span class="s">' + sub + "</span>" : "") + '</span><span class="go">&#8250;</span></button>';
   }
+  function homeStageCounts() {
+    var c = { new: 0, contacted: 0, quoted: 0, rest: 0, total: 0, unseen: 0 };
+    (hlLeads || []).forEach(function (r) {
+      var d = r.d || {};
+      if (d.convertedWorkOrderId || d.customerId) return;
+      c.total++;
+      if (d.seen === false) c.unseen++;
+      var st = hlStageValue(d);
+      if (st === "new") c.new++; else if (st === "contacted") c.contacted++;
+      else if (st === "quoted") c.quoted++; else c.rest++;
+    });
+    return c;
+  }
+  function homeDonutSvg(c) {
+    var segs = [[c.new, "#0e7c86"], [c.contacted, "#d9ab2b"], [c.quoted, "#e8cf8f"], [c.rest, "#0b3b42"]];
+    var total = Math.max(1, c.total), r = 52, circ = 2 * Math.PI * r, off = 0, out = "";
+    segs.forEach(function (sg) {
+      if (!sg[0]) return;
+      var frac = sg[0] / total;
+      out += '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="' + sg[1] + '" stroke-width="17" stroke-dasharray="' + Math.max(0, frac * circ - 3) + " " + circ + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 70 70)"/>';
+      off += frac * circ;
+    });
+    if (!c.total) out = '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="#e9e4d6" stroke-width="17"/>';
+    return '<svg width="132" height="132" viewBox="0 0 140 140">' + out +
+      '<text x="70" y="67" text-anchor="middle" font-family="Sora" font-weight="800" font-size="21" fill="#101c26">' + c.total + '</text>' +
+      '<text x="70" y="86" text-anchor="middle" font-size="10" fill="#7a7668">active leads</text></svg>';
+  }
+  function homeBar(label, valText, pct, color) {
+    return '<div class="home-bar-row"><span>' + label + '</span><strong>' + valText + '</strong></div>' +
+      '<div class="home-bar"><i style="width:' + Math.max(1, Math.min(100, pct)) + '%;background:' + color + '"></i></div>';
+  }
+  // Safety wrapper (Oct 18 freeze lesson): Home renders inside the other
+  // tabs' renderers; a Home bug must NEVER take the whole admin down.
   function renderHomeDash() {
+    try { renderHomeDashReal(); } catch (e) { if (window.console) console.warn("Home dash skipped:", e); }
+  }
+  function renderHomeDashReal() {
     var sub = $("home-goal-sub"); if (!sub) return;
     var c = homeStageCounts();
     var signed = (custRows || []).filter(function (r) { return (r.d || {}).annualContract === "signed"; }).length;
