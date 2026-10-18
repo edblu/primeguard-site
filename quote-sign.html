@@ -30,6 +30,10 @@
   .qs-lines { margin-top: 14px; }
   .qs-line { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(16,28,38,.09); color: #22313d; font-size: 1rem; }
   .qs-line span:last-child { font-weight: 700; white-space: nowrap; }
+  .qs-addon { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px dashed #e3dcc8; font-size: .96rem; cursor: pointer; }
+  .qs-addon input { width: 19px; height: 19px; accent-color: #0e7c86; flex: none; }
+  .qs-addon .amt { margin-left: auto; font-weight: 700; white-space: nowrap; }
+  .qs-addon-head { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0e5560; padding-top: 12px; }
   .qs-total-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 16px 0 2px; }
   .qs-total-row .qs-tlabel { font-size: 1.05rem; font-weight: 700; color: #101c26; text-transform: uppercase; letter-spacing: .08em; }
   .qs-total { font-size: 2.1rem; font-weight: 800; color: #8a6d14; }
@@ -113,6 +117,7 @@
         <h1 class="qs-title">Your quote</h1>
         <p class="qs-meta" id="qs-for"></p>
         <div class="qs-lines" id="qs-items"></div>
+        <div class="qs-lines" id="qs-addons" style="display:none"></div>
         <div class="qs-total-row"><span class="qs-tlabel">Total</span><span class="qs-total" id="qs-total"></span></div>
         <p class="qs-expiry" id="qs-expiry"></p>
         <p class="qs-notes hidden" id="qs-notes"></p>
@@ -193,7 +198,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=19"></script>
-<script src="quote-sign.js?v=3"></script>
+<script src="quote-sign.js?v=4"></script>
 <script src="site.js?v=36"></script>
 <script src="human-chat.js"></script>
 </body>

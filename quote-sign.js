@@ -165,9 +165,27 @@
   }
 
   function renderForm(q) {
-    var total = Number(q.total) || 0;
+    var baseTotal = Number(q.total) || 0;
+    var total = baseTotal;
     var deposit = Math.round(total * 0.2);
     var balance = Math.round((total - deposit) * 100) / 100;
+    function pickedAddons() {
+      var picked = [];
+      Array.prototype.forEach.call(document.querySelectorAll(".qs-addon input[type=checkbox]:checked"), function (cb) {
+        picked.push({ label: cb.getAttribute("data-label") || "Add-on", amount: Number(cb.getAttribute("data-price")) || 0 });
+      });
+      return picked;
+    }
+    function recompute() {
+      var extra = pickedAddons().reduce(function (s2, a) { return s2 + a.amount; }, 0);
+      total = Math.round((baseTotal + extra) * 100) / 100;
+      deposit = Math.round(total * 0.2);
+      balance = Math.round((total - deposit) * 100) / 100;
+      $("qs-total").textContent = money(total);
+      $("qs-opt-full-t").textContent = "Pay in full: " + money(total);
+      $("qs-opt-dep-t").textContent = "Pay 20% deposit to schedule: " + money(deposit) + " now";
+      $("qs-opt-dep-d").textContent = money(deposit) + " today, and the " + money(balance) + " balance is due when the job is done.";
+    }
 
     $("qs-for").innerHTML = "<strong>" + esc(q.customerName || "") + "</strong>" +
       (q.address ? "<br>" + esc(q.address) : "") +
@@ -178,15 +196,21 @@
     $("qs-items").innerHTML = items.map(function (it) {
       return '<div class="qs-line"><span>' + esc(it.label || "Service") + "</span><span>" + esc(money(it.amount)) + "</span></div>";
     }).join("");
-    $("qs-total").textContent = money(total);
+    var addons = Array.isArray(q.addons) ? q.addons.filter(function (a) { return a && a.label && Number(a.amount) > 0; }) : [];
+    if (addons.length) {
+      var box = $("qs-addons");
+      box.innerHTML = '<div class="qs-addon-head">Optional add-ons, only if you want them</div>' + addons.map(function (a) {
+        return '<label class="qs-addon"><input type="checkbox" data-label="' + esc(a.label) + '" data-price="' + Number(a.amount) + '"><span>' + esc(a.label) + '</span><span class="amt">+ ' + esc(money(a.amount)) + "</span></label>";
+      }).join("");
+      box.style.display = "";
+      Array.prototype.forEach.call(box.querySelectorAll("input[type=checkbox]"), function (cb) { cb.addEventListener("change", recompute); });
+    }
+    recompute();
     var expTxt = fmtDate(q.expiresAt);
     $("qs-expiry").textContent = expTxt ? "Valid until " + expTxt : "";
     if (q.notes) { var n = $("qs-notes"); n.textContent = q.notes; show(n); }
 
-    $("qs-opt-full-t").textContent = "Pay in full: " + money(total);
     $("qs-opt-full-d").textContent = "One payment, and we schedule your job right away.";
-    $("qs-opt-dep-t").textContent = "Pay 20% deposit to schedule: " + money(deposit) + " now";
-    $("qs-opt-dep-d").textContent = money(deposit) + " today, and the " + money(balance) + " balance is due when the job is done.";
 
     show($("qs-main"));
 
@@ -217,16 +241,21 @@
       }
       var amountDueNow = choice === "deposit20" ? deposit : total;
       btn.disabled = true; btn.textContent = "Signing…";
+      var picked = pickedAddons();
       ref.update({
         status: "signed",
         signedName: signedName,
         signedAt: firebase.firestore.FieldValue.serverTimestamp(),
         payChoice: choice,
-        amountDueNow: amountDueNow
+        amountDueNow: amountDueNow,
+        acceptedAddons: picked,
+        total: total,
+        baseTotal: baseTotal
       }).then(function () {
         hide($("qs-main"));
         q.payChoice = choice;
         q.amountDueNow = amountDueNow;
+        q.total = total;
         var s = $("qs-signed");
         s.innerHTML = '<div class="qs-ok-ico">✓</div>' +
           '<h1 class="qs-title">You\'re signed.</h1>' +

@@ -4344,6 +4344,13 @@
     cqCtx = null;
   }
 
+  function cqAddonRowHtml(label, amount) {
+    return '<div class="cq-addon" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+      '<input type="text" class="cq-addon-label" placeholder="Optional extra, e.g. Pressure wash the driveway" value="' + esc(label || "") + '" style="flex:1;min-width:0">' +
+      '<input type="number" class="cq-addon-amount" min="0" step="0.01" inputmode="decimal" placeholder="0" value="' + (amount != null && amount !== "" ? esc(amount) : "") + '" style="width:130px;flex:none">' +
+      '<button type="button" class="mini danger" data-cq-addon-remove aria-label="Remove add-on">×</button></div>';
+  }
+
   function cqItemRowHtml(label, amount) {
     return '<div class="cq-item" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
       '<input type="text" class="cq-item-label" placeholder="What is included" value="' + esc(label || "") + '" style="flex:1;min-width:0">' +
@@ -4370,6 +4377,9 @@
       '<label style="margin-bottom:6px">Line items (what the customer sees)</label>' +
       '<div id="cq-items">' + cqItemRowHtml(firstLabel, vendorAmount) + "</div>" +
       '<button type="button" class="mini" id="cq-add-item">Add line</button>' +
+      '<label style="margin:14px 0 6px">Optional add-ons <span style="font-weight:400;color:var(--m-faint,#999)">(the customer can add these on the sign page; not in the total unless they pick them)</span></label>' +
+      '<div id="cq-addons"></div>' +
+      '<button type="button" class="mini" id="cq-add-addon">Add add-on</button>' +
       '<div id="cq-math" style="margin:16px 0;padding:14px 16px;border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:.95rem"></div>' +
       '<div class="row2"><label>Quote valid for<select id="cq-expiry"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></label>' +
       '<label>Notes for the customer (optional)<input type="text" id="cq-notes" placeholder="Terms line shown on the quote"></label></div>' +
@@ -4385,6 +4395,17 @@
       var lbl = row.querySelector(".cq-item-label");
       if (lbl) lbl.focus();
       cqRecalc();
+    });
+    $("cq-add-addon").addEventListener("click", function () {
+      var div = document.createElement("div");
+      div.innerHTML = cqAddonRowHtml("", "");
+      $("cq-addons").appendChild(div.firstChild);
+    });
+    $("cq-addons").addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("[data-cq-addon-remove]") : null;
+      if (!b) return;
+      var row = b.closest(".cq-addon");
+      if (row) row.remove();
     });
     $("cq-items").addEventListener("input", cqRecalc);
     $("cq-items").addEventListener("click", function (e) {
@@ -4477,6 +4498,12 @@
       var amount = Math.round((parseFloat(row.querySelector(".cq-item-amount").value) || 0) * 100) / 100;
       if (label || amount) items.push({ label: label || "Service", amount: amount });
     });
+    var addons = [];
+    Array.prototype.forEach.call(document.querySelectorAll("#cq-addons .cq-addon"), function (row) {
+      var label = row.querySelector(".cq-addon-label").value.trim();
+      var amount = Math.round((parseFloat(row.querySelector(".cq-addon-amount").value) || 0) * 100) / 100;
+      if (label && amount > 0) addons.push({ label: label, amount: amount });
+    });
     var total = Math.round(items.reduce(function (s, it) { return s + it.amount; }, 0) * 100) / 100;
     if (!items.length || total <= 0) { fail("Add at least one line item with an amount."); return; }
     var contact = $("cq-contact").value.trim();
@@ -4488,6 +4515,7 @@
       vendorId: cqCtx.quote.vendorId || null,
       vendorAmount: cqCtx.vendorAmount,
       items: items,
+      addons: addons,
       total: total,
       customerName: name,
       customerContact: contact,
