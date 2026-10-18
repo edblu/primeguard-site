@@ -802,10 +802,10 @@
     var done = (woOrders || []).filter(function (r) { return (r.d || {}).status === "done"; }).length;
     var pct = Math.round(signed / 67 * 1000) / 10;
     sub.textContent = signed + (signed === 1 ? " annual customer" : " annual customers") + " signed · " + done + (done === 1 ? " job" : " jobs") + " completed · " + c.total + " active leads";
-    $("home-goal-bar").style.width = Math.max(1, pct) + "%";
-    $("home-goal-pct").textContent = pct + "% there, at $150/mo per annual customer, " + signed + " of about 67 needed for $10K/mo";
-    $("home-donut").innerHTML = homeDonutSvg(c);
-    $("home-legend").innerHTML =
+    if ($("home-goal-bar")) $("home-goal-bar").style.width = Math.max(1, pct) + "%";
+    if ($("home-goal-pct")) $("home-goal-pct").textContent = pct + "% there, at $150/mo per annual customer, " + signed + " of about 67 needed for $10K/mo";
+    if ($("home-donut")) $("home-donut").innerHTML = homeDonutSvg(c);
+    if ($("home-legend")) $("home-legend").innerHTML =
       '<div class="home-legend"><span><span class="home-dot" style="background:#0e7c86"></span>New</span><strong>' + c.new + '</strong></div>' +
       '<div class="home-legend"><span><span class="home-dot" style="background:#d9ab2b"></span>Contacted</span><strong>' + c.contacted + '</strong></div>' +
       '<div class="home-legend"><span><span class="home-dot" style="background:#e8cf8f"></span>Quoted</span><strong>' + c.quoted + '</strong></div>' +
@@ -814,20 +814,20 @@
     bars += homeBar("Jobs completed", String(done), done ? Math.min(100, done * 10) : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
     if (homeExtra.vendApproved != null) bars += homeBar("Crew approved", homeExtra.vendApproved + " of " + homeExtra.vendTotal + " registered", homeExtra.vendTotal ? homeExtra.vendApproved / homeExtra.vendTotal * 100 : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
     bars += '<p style="font-size:.78rem;color:#7a7668">Every signed annual moves the gold bar. Projects and one-time jobs speed it up.</p>';
-    $("home-bars").innerHTML = bars;
+    if ($("home-bars")) $("home-bars").innerHTML = bars;
     var rows = "";
     function needRow(n, color, title, s2, tab) {
       return '<button class="home-row" type="button" data-atab="' + tab + '"><span class="n" style="color:' + color + '">' + n + '</span><span class="who"><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
     }
     if (review.length) {
       var r0 = review[0].d || {};
-      rows += needRow(review.length, "#c0392b", "Job" + (review.length > 1 ? "s" : "") + " in review" + (r0.customer ? ": " + esc(r0.customer) : ""), esc(r0.title || "Work order") + " · check the photos, tap Done, then pay the crew", "work");
+      rows += needRow(review.length, "#c0392b", "Job" + (review.length > 1 ? "s" : "") + " in review" + ((r0.customerName || r0.customer) ? ": " + esc(r0.customerName || r0.customer) : ""), esc(r0.title || "Work order") + " · check the photos, tap Done, then pay the crew", "work");
     }
     if (c.unseen) rows += needRow(c.unseen, "#a87e14", "New hot leads to look at", "Fresh inquiries waiting for a first touch", "hotleads");
     if (homeExtra.quotesPending) rows += needRow(homeExtra.quotesPending, "#a87e14", "Vendor quotes to review", "Build the customer quote so it can go out for signing", "quotes");
     if (homeExtra.tasksDue) rows += needRow(homeExtra.tasksDue, "#0e5560", "Tasks due or overdue", "Yours and the team's open items for today", "followups");
     if (!rows) rows = '<p style="font-size:.9rem;padding:10px 0;color:#7a7668">All caught up. Nothing is waiting on a tap right now.</p>';
-    $("home-needs").innerHTML = rows;
+    if ($("home-needs")) $("home-needs").innerHTML = rows;
 
     /* ---- v5 sections ---- */
     var todayKey = localDateKey(new Date());
@@ -846,9 +846,9 @@
     }
     if (review.length) {
       var rr = review[0].d || {};
-      todayHtml += homeRowBtn("work", '<span class="n" style="color:#c0392b">' + review.length + "</span>", "Job in review: " + esc(rr.customer || rr.title || "Work order"), "Check the photos and tap Done");
+      todayHtml += homeRowBtn("work", '<span class="n" style="color:#c0392b">' + review.length + "</span>", "Job in review: " + esc(rr.customerName || rr.customer || rr.title || "Work order"), "Check the photos and tap Done");
     }
-    $("home-today").innerHTML = todayHtml;
+    if ($("home-today")) $("home-today").innerHTML = todayHtml;
     var tk = $("home-today-kick");
     if (tk) tk.textContent = "Today · " + new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
 
@@ -879,7 +879,7 @@
     } else {
       weekHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading…</p>';
     }
-    $("home-week").innerHTML = weekHtml;
+    if ($("home-week")) $("home-week").innerHTML = weekHtml;
 
     // Crew papers
     var crewHtml = "";
@@ -901,7 +901,7 @@
         crewHtml += '<button class="home-row" type="button" data-atab="vendors"><span class="who"><span class="t">' + esc(v.name || "") + (v.business ? " · " + esc(v.business) : "") + '</span><br><span class="s">' + esc((v.services || []).join(", ") || "Crew") + '</span></span><span class="home-amt">' + chips + "</span></button>";
       });
     } else crewHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading…</p>';
-    $("home-crew").innerHTML = crewHtml;
+    if ($("home-crew")) $("home-crew").innerHTML = crewHtml;
 
     // Money owed: jobs in review carry the crew pay
     var owedHtml = "", owedTotal = 0, owedAny = false;
@@ -911,11 +911,11 @@
       var m = payTxt.replace(",", "").match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
       var amt = m ? parseFloat(m[1]) : 0;
       if (amt) { owedTotal += amt; owedAny = true; }
-      owedHtml += '<button class="home-row" type="button" data-atab="work"><span class="who"><span class="t">' + esc(d.vendorBusiness || d.customer || "Crew") + '</span><br><span class="s">' + esc(d.customer || "") + (d.title ? " · " + esc(d.title) : "") + " · pays when you tap Done</span></span>" + '<span class="home-amt">' + (amt ? "$" + amt : esc(payTxt)) + "</span></button>";
+      owedHtml += '<button class="home-row" type="button" data-atab="work"><span class="who"><span class="t">' + esc(d.vendorBusiness || d.customerName || d.customer || "Crew") + '</span><br><span class="s">' + esc(d.customerName || d.customer || "") + (d.title ? " · " + esc(d.title) : "") + " · pays when you tap Done</span></span>" + '<span class="home-amt">' + (amt ? "$" + amt : esc(payTxt)) + "</span></button>";
     });
     if (!review.length) owedHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nothing waiting. Crew payouts appear here the moment a job lands in review.</p>';
     else if (owedAny) owedHtml += '<div class="home-row" style="cursor:default"><span class="who"><span class="t">Total waiting</span></span><span class="home-amt">$' + owedTotal + "</span></div>";
-    $("home-owed").innerHTML = owedHtml;
+    if ($("home-owed")) $("home-owed").innerHTML = owedHtml;
 
     // Follow-up radar: leads going cold
     var cold = (hlLeads || []).filter(function (r) {
@@ -931,7 +931,7 @@
       var d = r.d || {}, days = hlIdleDays(d);
       radarHtml += '<button class="home-row" type="button" data-atab="hotleads"><span class="who"><span class="t">' + esc(d.name || "Lead") + '</span><br><span class="s">' + esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.source ? " · via " + esc(d.source) : "") + '</span></span><span class="home-amt"><span class="home-pill ' + (days >= 7 ? "home-pill-red" : "home-pill-gold") + '">' + days + " days quiet</span></span></button>";
     });
-    $("home-radar").innerHTML = radarHtml;
+    if ($("home-radar")) $("home-radar").innerHTML = radarHtml;
 
     homeBindRows($("atab-home"));
     var homeSec = $("atab-home");
@@ -3806,7 +3806,7 @@
   // assigned vendor + pay, schedule hints, every photo and video link,
   // and the record timestamps. Built from the cached row, so expanding
   // never needs a network round-trip.
-  function woDetailHtml(w) {
+  function woDetailHtml(w, woId) {
     function row(label, valueHtml) {
       if (!valueHtml) return "";
       return '<div class="woq-drow"><span class="woq-dlabel">' + esc(label) + '</span><span class="woq-dval">' + valueHtml + "</span></div>";
@@ -3830,6 +3830,23 @@
     html += row("Status", esc(String(woStatusValue(w)).replace(/_/g, " ")));
     html += row("Assigned to", assign ? esc(assign) : "");
     html += row("Pay", w.pay ? esc(w.pay) : "");
+    // Job costing (Oct 18, Jobber-steal #4): customer price vs crew pay vs
+    // margin, on the job itself. Price is editable and saved to the WO as
+    // jobPrice; margin colors flag thin jobs before they close.
+    (function () {
+      function money(v) { var m = String(v == null ? "" : v).replace(",", "").match(/(\d+(?:\.\d{1,2})?)/); return m ? parseFloat(m[1]) : 0; }
+      var crewPay = money(w.payAgreed || w.pay);
+      var price = parseFloat(w.jobPrice) || 0;
+      var inner = "";
+      if (price > 0) {
+        var margin = price - crewPay;
+        var mpct = Math.round(margin / price * 100);
+        var col = mpct < 15 ? "#c0392b" : (mpct < 30 ? "#a87e14" : "#177245");
+        inner = "$" + price + " price · $" + crewPay + " crew pay · <strong style='color:" + col + "'>$" + Math.round(margin) + " margin (" + mpct + "%)</strong><br>";
+      } else inner = "<span style='color:#7a7668'>No customer price on this job yet.</span><br>";
+      if (woId) inner += '<span style="display:inline-flex;gap:6px;align-items:center;margin-top:4px"><input class="wo-price-in" type="number" min="0" step="1" placeholder="Job price $" value="' + (price > 0 ? price : "") + '" style="width:110px;padding:5px 8px;border:1px solid var(--m-line,#ddd);border-radius:8px;font:inherit;font-size:.85rem"><button type="button" class="mini hlq-action hlq-action-ghost" data-wopricesave="' + esc(woId) + '">Save price</button></span>';
+      html += row("Job costing", inner);
+    })();
     if (when) html += row("Scheduled", fmtWhen(when));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
@@ -3986,7 +4003,7 @@
           '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
           '<button type="button" class="hlq-manage-btn danger" data-wodel="' + it.id + '">Delete</button></span>' +
           '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>" +
-        (isOpen ? woDetailHtml(w) : "");
+        (isOpen ? woDetailHtml(w, it.id) : "");
       box.appendChild(card);
     });
   }
@@ -5012,6 +5029,16 @@
         // source lead or a direct customerId) so last-service stays current.
         return custServicedFromWorkOrder(w);
       }).then(function () { loadAll(); }, function () { loadAll(); });
+    }
+    var woPriceEl = t.closest ? t.closest("[data-wopricesave]") : null;
+    if (woPriceEl) {
+      var card = woPriceEl.closest(".woq-card");
+      var inp = card ? card.querySelector(".wo-price-in") : null;
+      var val = inp ? parseFloat(inp.value) : 0;
+      if (val > 0) {
+        db.collection("work_orders").doc(woPriceEl.getAttribute("data-wopricesave")).update({ jobPrice: val }).then(function () { loadAll(); });
+        logActivity("Set a job price for costing");
+      }
     }
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
