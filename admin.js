@@ -3610,15 +3610,41 @@
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
-    if (w.details) html += '<div class="woq-dblock"><h4>Full details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>";
+    // v60 (Edwin, Oct 17): the long text blocks and the photos are
+    // collapsible, and photos are grouped BY VISIT (date + crew + that
+    // visit's summary), mirroring the CRM service history. Nothing dumps
+    // open by default inside the expanded card.
+    function collapsible(title, innerHtml) {
+      return '<details class="woq-dblock woq-collapse"><summary style="cursor:pointer;font-weight:700;list-style-position:inside">' + esc(title) + "</summary>" + innerHtml + "</details>";
+    }
+    if (w.details) html += collapsible("Full details", "<p>" + esc(w.details).replace(/\n/g, "<br>") + "</p>");
     var propNotes = w.propertyNotes || w.property_notes || "";
-    if (propNotes) html += '<div class="woq-dblock"><h4>Property notes</h4><p>' + esc(propNotes).replace(/\n/g, "<br>") + "</p></div>";
+    if (propNotes) html += collapsible("Property notes", "<p>" + esc(propNotes).replace(/\n/g, "<br>") + "</p>");
     var photoUrls = (Array.isArray(w.photos) ? w.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
-    if (photoUrls.length) {
+    function thumbsHtml(urls) {
       // Photos open in the in-page lightbox (#pgLightbox), never as Drive
       // links: Drive file pages bounce staff to a Google sign-in wall.
-      html += '<div class="woq-dblock"><h4>Photos (' + photoUrls.length + ')</h4><div class="athumbs woq-thumbs">' +
-        photoUrls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>'; }).join("") + "</div></div>";
+      return '<div class="athumbs woq-thumbs">' + urls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>'; }).join("") + "</div>";
+    }
+    var visitLog = Array.isArray(w.visitLog) ? w.visitLog.filter(function (e) { return e && typeof e === "object"; }) : [];
+    if (visitLog.length && photoUrls.length) {
+      var inVisit = {};
+      visitLog.forEach(function (e) {
+        (Array.isArray(e.photos) ? e.photos : []).forEach(function (u) { inVisit[u] = true; });
+      });
+      visitLog.forEach(function (e) {
+        var vPhotos = (Array.isArray(e.photos) ? e.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+        if (!vPhotos.length) return;
+        var vMs = tsMs(e.visitDate) || tsMs(e.completedAt);
+        var label = "Visit" + (vMs ? " · " + new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "") +
+          (e.vendorBusiness ? " · " + e.vendorBusiness : "") + " · " + vPhotos.length + (vPhotos.length === 1 ? " photo" : " photos");
+        var inner = (e.note ? "<p>" + esc(e.note).replace(/\n/g, "<br>") + "</p>" : "") + thumbsHtml(vPhotos);
+        html += collapsible(label, inner);
+      });
+      var refPhotos = photoUrls.filter(function (u) { return !inVisit[u]; });
+      if (refPhotos.length) html += collapsible("Property photos (" + refPhotos.length + ")", thumbsHtml(refPhotos));
+    } else if (photoUrls.length) {
+      html += collapsible("Photos (" + photoUrls.length + ")", thumbsHtml(photoUrls));
     }
     var vids = woVideoLinks(w);
     if (vids.length) {
