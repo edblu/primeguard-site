@@ -3693,6 +3693,15 @@
   function renderWorkOrders() {
     var box = $("ad-wo-list");
     if (!box) return;
+    // v61 (Edwin, Oct 17): red nav badge = jobs in "review" waiting on
+    // staff (vendor pressed done on their end). Visible without opening
+    // the Work orders view.
+    var revBadge = $("pg-nav-b-work-review");
+    if (revBadge) {
+      var nRev = woOrders.filter(function (it) { return it.d && it.d.status === "review"; }).length;
+      revBadge.textContent = nRev;
+      revBadge.style.display = nRev ? "" : "none";
+    }
     renderWoFilterChips();
     if (!woOrders.length) {
       box.innerHTML = '<p style="color:var(--faint)">No work orders yet.</p>';
