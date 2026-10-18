@@ -546,3 +546,13 @@
 .vcal-linkrow { display:flex; gap:10px; flex-wrap:wrap; }
 .vcal-linkrow input { flex:1; min-width:220px; padding:11px 13px; border-radius:10px; border:1px solid #e3d5ae; background:#ffffff; font-size:.85rem; font-family:inherit; }
 .vcal-connect .vcal-fine { font-size:.8rem; margin-bottom:4px; }
+
+/* Job checklists (Oct 18) */
+.vd-checkbar{ margin-top:12px; }
+.vd-checkbar-top{ display:flex; justify-content:space-between; font-size:.78rem; font-weight:700; color:#5c5545; margin-bottom:5px; }
+.vd-checktrack{ height:8px; border-radius:999px; background:#efe7d2; overflow:hidden; }
+.vd-checktrack i{ display:block; height:100%; background:linear-gradient(90deg,#ffd968,#d9ab2b); border-radius:999px; transition:width .25s ease; }
+.vd-checklist{ margin-top:10px; background:#fbf8ef; border:1px solid #eee5cd; border-radius:12px; padding:10px 12px; }
+.vd-check{ display:flex; gap:9px; align-items:center; padding:6px 0; font-size:.9rem; cursor:pointer; }
+.vd-check input{ width:19px; height:19px; accent-color:#b8912a; flex:none; }
+.vd-check input:checked + span{ color:#8a8578; text-decoration:line-through; }

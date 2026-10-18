@@ -3848,6 +3848,16 @@
       html += row("Job costing", inner);
     })();
     if (when) html += row("Scheduled", fmtWhen(when));
+    // Vendor checklist progress (Oct 18): same per-service lists as the
+    // vendor portal; keep the two in sync.
+    if (w.kind !== "quote_request" && (w.vendorId || w.status !== "open")) {
+      var ckCat = ((w.category || "") + " " + (w.title || "")).toLowerCase();
+      var ckTotal = /pressure|wash/.test(ckCat) ? 4 : (/lawn|landscap|grass|mow|cut/.test(ckCat) ? 6 : 4);
+      var ckState = (w.checklist && typeof w.checklist === "object") ? w.checklist : {};
+      var ckDone = 0; for (var cki = 0; cki < ckTotal; cki++) if (ckState[cki]) ckDone++;
+      var ckPct = Math.round(ckDone / ckTotal * 100);
+      html += row("Checklist", '<span style="display:inline-block;vertical-align:middle;width:130px;height:8px;border-radius:999px;background:#efe9da;overflow:hidden;margin-right:8px"><i style="display:block;height:100%;width:' + ckPct + '%;background:linear-gradient(90deg,#ffd968,#d9ab2b)"></i></span>' + ckDone + "/" + ckTotal + " steps");
+    }
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));

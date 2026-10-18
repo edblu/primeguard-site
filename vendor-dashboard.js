@@ -650,6 +650,27 @@
   var SVG_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var SVG_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 
+  // Job checklists (Oct 18, Jobber-steal): per-service steps the vendor
+  // ticks off; Mark complete is blocked until every step is checked.
+  function checklistFor(w) {
+    var cat = ((w.category || "") + " " + (w.title || "")).toLowerCase();
+    if (/pressure|presión|presion|wash/.test(cat)) return ["Fotos de antes subidas", "Superficie lavada completa", "Área enjuagada y limpia", "Fotos de después subidas"];
+    if (/lawn|landscap|césped|cesped|jardín|jardin|grass|mow|cut|corte/.test(cat)) return ["Fotos de antes subidas", "Césped cortado completo", "Bordes y trimming hechos", "Entrada, driveway y aceras soplados", "Portón cerrado y propiedad segura", "Fotos de después subidas"];
+    return ["Fotos de antes subidas", "Trabajo completado según la orden", "Área limpia al terminar", "Fotos de después subidas"];
+  }
+  function checklistState(w) { return (w && w.checklist && typeof w.checklist === "object") ? w.checklist : {}; }
+  function checklistDoneCount(w) { var st = checklistState(w); return checklistFor(w).filter(function (_, i) { return !!st[i]; }).length; }
+  function checklistBarHtml(w) {
+    var items = checklistFor(w), n = checklistDoneCount(w), pct = Math.round(n / items.length * 100);
+    return '<div class="vd-checkbar"><div class="vd-checkbar-top"><span>Lista de verificación</span><strong>' + n + "/" + items.length + '</strong></div><div class="vd-checktrack"><i style="width:' + pct + '%"></i></div></div>';
+  }
+  function checklistHtml(w) {
+    var items = checklistFor(w), st = checklistState(w);
+    return '<div class="vd-checklist">' + checklistBarHtml(w) + items.map(function (label, i) {
+      return '<label class="vd-check"><input type="checkbox" data-checklist="' + w.id + '" data-idx="' + i + '"' + (st[i] ? " checked" : "") + "><span>" + esc(label) + "</span></label>";
+    }).join("") + "</div>";
+  }
+
   function renderHero(w) {
     var box = $("vd-hero");
     if (!box) return;
@@ -693,6 +714,7 @@
       mapsBtn +
       '<button class="vd-btn vd-btn-outline" type="button" data-upload="' + w.id + '">' + SVG_CAM + "Subir fotos</button>" +
       third +
+      (w.kind !== "quote_request" ? checklistBarHtml(w) : "") +
       '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
       "</div></article>";
   }
@@ -1072,6 +1094,7 @@
       return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) + videoLinks(w) +
         '<ul class="vsteps">' + steps + "</ul>" +
+        (w.kind !== "quote_request" ? checklistHtml(w) : "") +
         '<button class="btn btn-gold" data-upload="' + w.id + '">Subir fotos</button>' +
         (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">Marcar terminado</button>' : "") +
         (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">Dar mi precio</button>' : "") +
@@ -1117,6 +1140,11 @@
       cRef.get().then(function (snap) {
         return snap.exists ? snap.data() : null;
       }, function () { return null; }).then(function (jw) {
+        if (jw && jw.kind !== "quote_request") {
+          var cItems = checklistFor(jw), cSt = checklistState(jw);
+          var cMissing = cItems.filter(function (_, i) { return !cSt[i]; }).length;
+          if (cMissing > 0) { alert("Completa la lista de verificación antes de marcar terminado. Faltan " + cMissing + " paso(s)."); return null; }
+        }
         var nowIso = new Date().toISOString();
         var visitEntry = {
           visitDate: nowIso,
@@ -1152,6 +1180,12 @@
 
   document.addEventListener("change", function (e) {
     var t = e.target;
+    if (t.dataset && t.dataset.checklist) {
+      var upd = {};
+      upd["checklist." + t.dataset.idx] = !!t.checked;
+      db.collection("work_orders").doc(t.dataset.checklist).update(upd).then(loadAll, loadAll);
+      return;
+    }
     if (t.id && t.id.indexOf("up-") === 0 && t.files.length) {
       var woId = t.id.slice(3);
       uploadPhotos(woId, t.files);
