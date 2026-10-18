@@ -566,7 +566,7 @@
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin-modern.css?v=4">
+<link rel="stylesheet" href="admin-modern.css?v=5">
 </head>
 <body>
 <button id="pgNavToggle" type="button" aria-label="Open menu">&#9776;</button>
@@ -657,6 +657,17 @@
         <div class="pct" id="home-goal-pct"></div>
       </div>
     </div>
+
+    <div class="home-qa">
+      <button class="home-qa-gold" type="button" data-homeact="work">+ Work order</button>
+      <button class="home-qa-ghost" type="button" data-homeact="lead">+ Lead</button>
+      <button class="home-qa-ghost" type="button" data-homeact="task">+ Task</button>
+    </div>
+    <div class="home-card" style="margin-top:12px">
+      <div class="home-kick" id="home-today-kick">Today</div>
+      <h3>What's on for today</h3>
+      <div id="home-today"><p style="color:#7a7668;font-size:.88rem;padding:6px 0">Loading…</p></div>
+    </div>
     <div class="home-grid">
       <div class="home-card">
         <div class="home-kick">Pipeline</div>
@@ -675,6 +686,31 @@
     <div class="home-card" style="margin-top:12px">
       <div class="home-kick">Needs you now</div>
       <div id="home-needs"><p style="color:var(--m-muted);font-size:.88rem;padding:8px 0">Loading…</p></div>
+    </div>
+
+    <div class="home-grid">
+      <div class="home-card">
+        <div class="home-kick">Week ahead</div>
+        <h3>Next 7 days</h3>
+        <div id="home-week"><p style="color:#7a7668;font-size:.88rem;padding:6px 0">Loading…</p></div>
+      </div>
+      <div class="home-card">
+        <div class="home-kick">Crew papers</div>
+        <h3>Who is ready to work</h3>
+        <div id="home-crew"><p style="color:#7a7668;font-size:.88rem;padding:6px 0">Loading…</p></div>
+      </div>
+    </div>
+    <div class="home-grid">
+      <div class="home-card">
+        <div class="home-kick">Money owed</div>
+        <h3>Crew payouts waiting</h3>
+        <div id="home-owed"><p style="color:#7a7668;font-size:.88rem;padding:6px 0">Loading…</p></div>
+      </div>
+      <div class="home-card">
+        <div class="home-kick">Follow-up radar</div>
+        <h3>Going cold</h3>
+        <div id="home-radar"><p style="color:#7a7668;font-size:.88rem;padding:6px 0">Loading…</p></div>
+      </div>
     </div>
   </section>
   </div>
@@ -1150,7 +1186,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=63"></script>
+<script src="admin.js?v=64"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];

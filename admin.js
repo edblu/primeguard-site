@@ -767,37 +767,32 @@
      bars, and a "needs you now" queue, all from live collections.
      Read-only: renders from the cached loaders plus three small
      count queries (vendor quotes pending, open tasks, vendors). */
-  var homeExtraAt = 0, homeExtra = { quotesPending: null, tasksDue: null, vendApproved: null, vendTotal: null };
-  function homeStageCounts() {
-    var c = { new: 0, contacted: 0, quoted: 0, rest: 0, total: 0, unseen: 0 };
-    (hlLeads || []).forEach(function (r) {
-      var d = r.d || {};
-      if (d.convertedWorkOrderId || d.customerId) return;
-      c.total++;
-      if (d.seen === false) c.unseen++;
-      var st = hlStageValue(d);
-      if (st === "new") c.new++; else if (st === "contacted") c.contacted++;
-      else if (st === "quoted") c.quoted++; else c.rest++;
-    });
-    return c;
+  var homeExtraAt = 0, homeExtra = { quotesPending: null, tasksDue: null, vendApproved: null, vendTotal: null, openTasks: null, vendorRows: null };
+  function homeParseDay(key) {
+    if (!key) return null;
+    var p = String(key).slice(0, 10).split("-");
+    if (p.length !== 3) return null;
+    var dt = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(dt.getTime()) ? null : dt;
   }
-  function homeDonutSvg(c) {
-    var segs = [[c.new, "#0e7c86"], [c.contacted, "#d9ab2b"], [c.quoted, "#e8cf8f"], [c.rest, "#0b3b42"]];
-    var total = Math.max(1, c.total), r = 52, circ = 2 * Math.PI * r, off = 0, out = "";
-    segs.forEach(function (sg) {
-      if (!sg[0]) return;
-      var frac = sg[0] / total;
-      out += '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="' + sg[1] + '" stroke-width="17" stroke-dasharray="' + Math.max(0, frac * circ - 3) + " " + circ + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 70 70)"/>';
-      off += frac * circ;
-    });
-    if (!c.total) out = '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="#e9e4d6" stroke-width="17"/>';
-    return '<svg width="132" height="132" viewBox="0 0 140 140">' + out +
-      '<text x="70" y="67" text-anchor="middle" font-family="Sora" font-weight="800" font-size="21" fill="#101c26">' + c.total + '</text>' +
-      '<text x="70" y="86" text-anchor="middle" font-size="10" fill="#7a7668">active leads</text></svg>';
+  function homeDayLabel(key, todayKey) {
+    var dt = homeParseDay(key); if (!dt) return key || "";
+    var base = dt.toLocaleDateString([], { weekday: "short" }) + " " + dt.toLocaleDateString([], { month: "short" }) + " " + dt.getDate();
+    return key === todayKey ? "Today" : base;
   }
-  function homeBar(label, valText, pct, color) {
-    return '<div class="home-bar-row"><span>' + label + '</span><strong>' + valText + '</strong></div>' +
-      '<div class="home-bar"><i style="width:' + Math.max(1, Math.min(100, pct)) + '%;background:' + color + '"></i></div>';
+  function homeBindRows(scope) {
+    if (!scope) return;
+    scope.querySelectorAll(".home-row[data-atab], .home-day[data-atab]").forEach(function (b) {
+      if (b.dataset.bound) return; b.dataset.bound = "1";
+      b.addEventListener("click", function () {
+        var nav = document.querySelector('#pgNavDrawer [data-atab="' + b.getAttribute("data-atab") + '"]');
+        if (nav) nav.click();
+      });
+    });
+  }
+  function homeRowBtn(tab, nHtml, title, sub) {
+    return '<button class="home-row" type="button" data-atab="' + tab + '">' + (nHtml || "") +
+      '<span class="who"><span class="t">' + title + '</span>' + (sub ? '<br><span class="s">' + sub + "</span>" : "") + '</span><span class="go">&#8250;</span></button>';
   }
   function renderHomeDash() {
     var sub = $("home-goal-sub"); if (!sub) return;
@@ -822,7 +817,7 @@
     $("home-bars").innerHTML = bars;
     var rows = "";
     function needRow(n, color, title, s2, tab) {
-      return '<button class="home-row" type="button" data-atab="' + tab + '"><span class="n" style="color:' + color + '">' + n + '</span><span><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
+      return '<button class="home-row" type="button" data-atab="' + tab + '"><span class="n" style="color:' + color + '">' + n + '</span><span class="who"><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
     }
     if (review.length) {
       var r0 = review[0].d || {};
@@ -833,27 +828,151 @@
     if (homeExtra.tasksDue) rows += needRow(homeExtra.tasksDue, "#0e5560", "Tasks due or overdue", "Yours and the team's open items for today", "followups");
     if (!rows) rows = '<p style="font-size:.9rem;padding:10px 0;color:#7a7668">All caught up. Nothing is waiting on a tap right now.</p>';
     $("home-needs").innerHTML = rows;
-    $("home-needs").querySelectorAll(".home-row").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var nav = document.querySelector('#pgNavDrawer [data-atab="' + b.getAttribute("data-atab") + '"]');
-        if (nav) nav.click();
+
+    /* ---- v5 sections ---- */
+    var todayKey = localDateKey(new Date());
+    // Today: open tasks due today or overdue, review jobs
+    var todayHtml = "";
+    if (homeExtra.openTasks) {
+      var dueToday = homeExtra.openTasks.filter(function (t) { return t.dueDate === todayKey; });
+      var overdue = homeExtra.openTasks.filter(function (t) { return t.dueDate && t.dueDate < todayKey; });
+      dueToday.slice(0, 3).forEach(function (t) {
+        todayHtml += homeRowBtn("followups", '<span class="n" style="color:#a87e14">!</span>', "Task due: " + esc(t.title), t.assigneeName ? "Assigned: " + esc(t.assigneeName) : "");
       });
+      if (overdue.length) todayHtml += homeRowBtn("followups", '<span class="n" style="color:#c0392b">' + overdue.length + "</span>", "Overdue task" + (overdue.length > 1 ? "s" : ""), esc(overdue[0].title) + (overdue.length > 1 ? " and " + (overdue.length - 1) + " more" : ""));
+      if (!dueToday.length && !overdue.length) todayHtml += '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No tasks due today. Clean slate.</p>';
+    } else {
+      todayHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading tasks…</p>';
+    }
+    if (review.length) {
+      var rr = review[0].d || {};
+      todayHtml += homeRowBtn("work", '<span class="n" style="color:#c0392b">' + review.length + "</span>", "Job in review: " + esc(rr.customer || rr.title || "Work order"), "Check the photos and tap Done");
+    }
+    $("home-today").innerHTML = todayHtml;
+    var tk = $("home-today-kick");
+    if (tk) tk.textContent = "Today · " + new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+
+    // Week ahead: open tasks + vendor W-9 deadlines in the next 7 days
+    var weekHtml = "";
+    var winEnd = localDateKey(new Date(Date.now() + 6 * 86400000));
+    var dayItems = {};
+    function addDay(key, text, tab) { if (!dayItems[key]) dayItems[key] = []; dayItems[key].push({ text: text, tab: tab }); }
+    if (homeExtra.openTasks) homeExtra.openTasks.forEach(function (t) {
+      if (t.dueDate && t.dueDate >= todayKey && t.dueDate <= winEnd) addDay(t.dueDate, esc(t.title), "followups");
     });
+    if (homeExtra.vendorRows) homeExtra.vendorRows.forEach(function (v) {
+      var st = String(v.w9Status || "pending");
+      if (st === "received" || st === "submitted" || st === "approved") return;
+      if (!v.w9Due) return;
+      var dk = String(v.w9Due).slice(0, 10);
+      if (dk >= todayKey && dk <= winEnd) addDay(dk, "W-9 deadline: " + esc(v.business || v.name || "Vendor"), "vendors");
+    });
+    var dayKeys = Object.keys(dayItems).sort();
+    if (dayKeys.length) {
+      weekHtml = dayKeys.map(function (k) {
+        return dayItems[k].map(function (it, i) {
+          return '<button class="home-day" type="button" data-atab="' + it.tab + '"><span class="dt">' + (i === 0 ? homeDayLabel(k, todayKey) : "") + "</span><span>" + it.text + "</span></button>";
+        }).join("");
+      }).join("");
+    } else if (homeExtra.openTasks) {
+      weekHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nothing dated in the next 7 days.</p>';
+    } else {
+      weekHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading…</p>';
+    }
+    $("home-week").innerHTML = weekHtml;
+
+    // Crew papers
+    var crewHtml = "";
+    if (homeExtra.vendorRows) {
+      var approved = homeExtra.vendorRows.filter(function (v) { return (v.status || (v.verified ? "approved" : "pending")) === "approved" && !v.archivedAt; });
+      approved.sort(function (a, b) {
+        function score(v) { var w = ["received", "submitted", "approved"].indexOf(String(v.w9Status || "")) >= 0 ? 0 : 1; var p = v.payoutMethod ? 0 : 1; return w + p; }
+        return score(a) - score(b);
+      });
+      if (!approved.length) crewHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No approved crew yet.</p>';
+      approved.slice(0, 5).forEach(function (v) {
+        var w9ok = ["received", "submitted", "approved"].indexOf(String(v.w9Status || "")) >= 0;
+        var chips = "";
+        if (w9ok && v.payoutMethod) chips = '<span class="home-pill home-pill-green">Ready ✓</span>';
+        else {
+          if (!w9ok) chips += '<span class="home-pill home-pill-gold">W-9' + (v.w9Due ? " due " + (homeParseDay(v.w9Due) ? homeParseDay(v.w9Due).toLocaleDateString([], { month: "short", day: "numeric" }) : "") : " open") + "</span> ";
+          if (!v.payoutMethod) chips += '<span class="home-pill home-pill-gold">Payout not set</span>';
+        }
+        crewHtml += '<button class="home-row" type="button" data-atab="vendors"><span class="who"><span class="t">' + esc(v.name || "") + (v.business ? " · " + esc(v.business) : "") + '</span><br><span class="s">' + esc((v.services || []).join(", ") || "Crew") + '</span></span><span class="home-amt">' + chips + "</span></button>";
+      });
+    } else crewHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading…</p>';
+    $("home-crew").innerHTML = crewHtml;
+
+    // Money owed: jobs in review carry the crew pay
+    var owedHtml = "", owedTotal = 0, owedAny = false;
+    review.forEach(function (r) {
+      var d = r.d || {};
+      var payTxt = String(d.payAgreed || d.pay || "");
+      var m = payTxt.replace(",", "").match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+      var amt = m ? parseFloat(m[1]) : 0;
+      if (amt) { owedTotal += amt; owedAny = true; }
+      owedHtml += '<button class="home-row" type="button" data-atab="work"><span class="who"><span class="t">' + esc(d.vendorBusiness || d.customer || "Crew") + '</span><br><span class="s">' + esc(d.customer || "") + (d.title ? " · " + esc(d.title) : "") + " · pays when you tap Done</span></span>" + '<span class="home-amt">' + (amt ? "$" + amt : esc(payTxt)) + "</span></button>";
+    });
+    if (!review.length) owedHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nothing waiting. Crew payouts appear here the moment a job lands in review.</p>';
+    else if (owedAny) owedHtml += '<div class="home-row" style="cursor:default"><span class="who"><span class="t">Total waiting</span></span><span class="home-amt">$' + owedTotal + "</span></div>";
+    $("home-owed").innerHTML = owedHtml;
+
+    // Follow-up radar: leads going cold
+    var cold = (hlLeads || []).filter(function (r) {
+      var d = r.d || {};
+      if (d.convertedWorkOrderId || d.customerId) return false;
+      var st = hlStageValue(d);
+      if (st !== "new" && st !== "contacted" && st !== "quoted") return false;
+      return hlIdleDays(d) >= 3;
+    }).sort(function (a, b) { return hlIdleDays(b.d) - hlIdleDays(a.d); });
+    var radarHtml = "";
+    if (!cold.length) radarHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nobody is going cold. Every open lead was touched in the last 3 days.</p>';
+    cold.slice(0, 4).forEach(function (r) {
+      var d = r.d || {}, days = hlIdleDays(d);
+      radarHtml += '<button class="home-row" type="button" data-atab="hotleads"><span class="who"><span class="t">' + esc(d.name || "Lead") + '</span><br><span class="s">' + esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.source ? " · via " + esc(d.source) : "") + '</span></span><span class="home-amt"><span class="home-pill ' + (days >= 7 ? "home-pill-red" : "home-pill-gold") + '">' + days + " days quiet</span></span></button>";
+    });
+    $("home-radar").innerHTML = radarHtml;
+
+    homeBindRows($("atab-home"));
+    var homeSec = $("atab-home");
+    if (homeSec && !homeSec.dataset.qaBound) {
+      homeSec.dataset.qaBound = "1";
+      homeSec.querySelectorAll("[data-homeact]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var act = b.getAttribute("data-homeact");
+          var tab = act === "lead" ? "hotleads" : (act === "task" ? "followups" : "work");
+          var nav = document.querySelector('#pgNavDrawer [data-atab="' + tab + '"]');
+          if (nav) nav.click();
+          if (act === "lead") { var lb = $("hl-add"); if (lb) setTimeout(function () { lb.click(); }, 60); }
+          if (act === "task") { var tb = $("tk-add"); if (tb) setTimeout(function () { tb.click(); }, 60); }
+        });
+      });
+    }
     if (Date.now() - homeExtraAt > 30000) {
       homeExtraAt = Date.now();
       db.collection("quotes").where("status", "==", "pending").limit(50).get().then(function (qs) { homeExtra.quotesPending = qs.size; renderHomeDash(); }).catch(function () {});
       db.collection("tasks").where("done", "==", false).limit(200).get().then(function (qs) {
-        var today = localDateKey(new Date()), n = 0;
-        qs.forEach(function (d) { var t = d.data(); if (t.dueDate && t.dueDate <= today) n++; });
-        homeExtra.tasksDue = n; renderHomeDash();
+        var today = localDateKey(new Date()), n = 0, list = [];
+        qs.forEach(function (d) { var t = d.data(); if (t.dueDate && t.dueDate <= today) n++; list.push({ title: t.title || "Task", dueDate: t.dueDate || "", assigneeName: t.assigneeName || "" }); });
+        homeExtra.tasksDue = n; homeExtra.openTasks = list; renderHomeDash();
+      }).catch(function () {});
+      db.collection("item_notes").where("followUpDone", "==", false).limit(200).get().then(function (qs) {
+        var extra = [];
+        qs.forEach(function (d) { var t = d.data(); if (t.followUpOn) extra.push({ title: (t.entityLabel || "Follow-up") + (t.text ? ": " + String(t.text).slice(0, 60) : ""), dueDate: t.followUpOn, assigneeName: "" }); });
+        if (extra.length) {
+          homeExtra.openTasks = (homeExtra.openTasks || []).concat(extra);
+          var today = localDateKey(new Date());
+          homeExtra.tasksDue = homeExtra.openTasks.filter(function (t) { return t.dueDate && t.dueDate <= today; }).length;
+          renderHomeDash();
+        }
       }).catch(function () {});
       db.collection("vendors").limit(60).get().then(function (qs) {
-        var ap = 0; qs.forEach(function (d) { var v = d.data(); if ((v.status || (v.verified ? "approved" : "pending")) === "approved") ap++; });
-        homeExtra.vendApproved = ap; homeExtra.vendTotal = qs.size; renderHomeDash();
+        var ap = 0, rows = [];
+        qs.forEach(function (d) { var v = d.data(); rows.push(v); if ((v.status || (v.verified ? "approved" : "pending")) === "approved") ap++; });
+        homeExtra.vendApproved = ap; homeExtra.vendTotal = qs.size; homeExtra.vendorRows = rows; renderHomeDash();
       }).catch(function () {});
     }
   }
-
 
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;

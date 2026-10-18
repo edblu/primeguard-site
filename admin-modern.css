@@ -1,5 +1,5 @@
 /* ============================================================
-   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v4, Oct 18)
+   PRIMEGUARD ADMIN — MODERN (v62 design, stylesheet v5, Oct 18)
    FULL reskin: Edwin approved the v4 look for the ENTIRE admin.
    Layer 1 flips the theme variables every surface consumes.
    Layer 2 overrides each component that hardcodes dark values.
@@ -214,3 +214,18 @@ label{ color:var(--m-muted) !important; }
 .astat .l{ font-size:.64rem !important; letter-spacing:.1em !important; }
 .astat .v{ font-size:1.32rem !important; line-height:1.15 !important; margin-top:1px; }
 .astat .v.vsrc{ font-size:1.05rem !important; }
+
+/* ---- Home v5 sections (Oct 18): quick actions, today, week, crew, owed, radar ---- */
+.home-qa{ display:flex; gap:8px; margin-top:12px; }
+.home-qa button{ flex:1; font-family:inherit; font-weight:700; font-size:.85rem; border-radius:12px; padding:11px 6px; cursor:pointer; }
+.home-qa-gold{ background:linear-gradient(180deg,#ffd968,#d9ab2b); color:#171205; border:none; box-shadow:0 6px 14px rgba(217,171,43,.30); }
+.home-qa-ghost{ background:#fff; border:1px solid var(--m-line); color:var(--m-text); }
+.home-day{ display:flex; gap:11px; padding:8px 0; border-bottom:1px solid var(--m-line2); font-size:.88rem; width:100%; text-align:left; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; cursor:pointer; color:var(--m-text); }
+.home-day:last-child{ border-bottom:none; }
+.home-day .dt{ font-family:"Sora",sans-serif; font-weight:800; font-size:.76rem; color:#0e5560; width:88px; flex-shrink:0; padding-top:1px; }
+.home-pill{ display:inline-block; font-size:.68rem; font-weight:700; border-radius:999px; padding:3px 10px; white-space:nowrap; }
+.home-pill-green{ background:rgba(30,142,79,.12); color:#177245; }
+.home-pill-gold{ background:rgba(201,162,75,.18); color:#8a6d2a; }
+.home-pill-red{ background:rgba(176,58,46,.10); color:#a33327; }
+.home-amt{ margin-left:auto; font-family:"Sora",sans-serif; font-weight:800; color:var(--m-ink); white-space:nowrap; }
+.home-row .who{ min-width:0; }
