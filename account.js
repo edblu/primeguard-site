@@ -447,6 +447,8 @@
   var PG_FEED_BASE_C = "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec";
   var CCAL_DATE_FIELDS = ["scheduledFor", "scheduledDate", "serviceDate", "appointmentDate", "date", "when"];
   var ccalMap = {}, ccalCursor = null, ccalSelected = "", ccalNextKey = "", ccalUser = null, ccalProfile = null, ccalWired = false;
+  var ccalWos = [];        // raw work order rows behind ccalMap (live tracker reads these)
+  var ccalLiveIds = {};    // work order ids with a live snapshot listener attached
   function ccalPad(n) { return (n < 10 ? "0" : "") + n; }
   function ccalKey(d) { return d.getFullYear() + "-" + ccalPad(d.getMonth() + 1) + "-" + ccalPad(d.getDate()); }
   function ccalParse(x) {
@@ -489,9 +491,13 @@
     Object.keys(ccalMap).sort().forEach(function (k) { if (!ccalNextKey && k >= todayK) ccalNextKey = k; });
   }
   function ccalStatus(ev) {
+    var st = String(ev.w.status || "");
+    // Live tracking stages (2026-10-17) outrank the calendar labels.
+    if (st === "en_route") return { label: "On the way", cls: "next" };
+    if (st === "arrived") return { label: "Crew arrived", cls: "next" };
     var todayK = ccalKey(new Date());
     var k = ccalKey(ev.date);
-    var done = ["done", "completed", "review"].indexOf(String(ev.w.status || "")) >= 0;
+    var done = ["done", "completed", "review"].indexOf(st) >= 0;
     if (k < todayK) return done ? { label: "Completed", cls: "done" } : { label: "Past visit", cls: "" };
     if (k === ccalNextKey) return { label: "Next visit", cls: "next" };
     return { label: "Scheduled", cls: "" };
@@ -536,6 +542,7 @@
     var head = dObj ? dObj.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" }) : ccalSelected;
     if (!evs.length) {
       box.innerHTML = '<div class="ccal-dayh">' + esc(head) + '</div><p class="ccal-none">No visits this day.</p>';
+      renderCustTracker();
       return;
     }
     box.innerHTML = '<div class="ccal-dayh">' + esc(head) + "</div>" + evs.map(function (ev) {
@@ -552,6 +559,70 @@
       return '<div class="ccal-ev"><div class="ccal-ev-tx"><strong>' + esc(w.title || w.category || "PrimeGuard visit") + "</strong>" +
         (meta ? "<small>" + esc(meta) + "</small>" : "") + photos + '</div><span class="ccal-chip ' + st.cls + '">' + esc(st.label) + "</span></div>";
     }).join("");
+    renderCustTracker();
+  }
+
+  /* Live visit tracker (2026-10-17): when the crew starts the trip,
+     today's next-visit card becomes a live tracker. Stages come
+     straight off the work order: Scheduled, On the way (enRouteAt),
+     Arrived (arrivedAt), Done (status review/done, photos shown).
+     Snapshot listeners on the work orders keep it current while the
+     page is open; stage push notifications go out through the same
+     push_tokens plumbing the portal already uses (send-push.mjs on
+     the office side reads those docs). */
+  function renderCustTracker() {
+    var box = $("ccalTracker");
+    if (!box) return;
+    var todayK = ccalKey(new Date());
+    var pick = null, pickEv = null;
+    function score(w) {
+      var st = String(w.status || "");
+      if (st === "en_route" || st === "arrived") return 3;
+      if (st === "review" || st === "done") return 2;
+      if (w.enRouteAt || w.arrivedAt) return 2;
+      return 1;
+    }
+    // A crew live right now wins, even over the calendar math.
+    ccalWos.forEach(function (w) {
+      var st = String(w.status || "");
+      if ((st === "en_route" || st === "arrived") && (!pick || score(w) > score(pick))) pick = w;
+    });
+    if (!pick) {
+      (ccalMap[todayK] || []).forEach(function (ev) {
+        if (!pick || score(ev.w) > score(pick)) { pick = ev.w; pickEv = ev; }
+      });
+    }
+    if (!pick) { box.innerHTML = ""; return; }
+    var w = pick;
+    var st = String(w.status || "");
+    var idx = 0;
+    if (w.enRouteAt || st === "en_route" || st === "arrived" || st === "review" || st === "done") idx = 1;
+    if (w.arrivedAt || st === "arrived" || st === "review" || st === "done") idx = 2;
+    if (st === "review" || st === "done") idx = 3;
+    var names = ["Scheduled", "On the way", "Arrived", "Done"];
+    var steps = names.map(function (n, i) {
+      var cls = "ct-step" + (i < idx ? " on" : (i === idx ? " on now" : ""));
+      return '<div class="' + cls + '">' + n + "</div>";
+    }).join("");
+    var live = "";
+    if (idx === 1) live = "Your crew is on the way. This page updates the moment they arrive.";
+    else if (idx === 2) live = "Your crew has arrived and is getting to work.";
+    else if (idx === 3 && st === "review") live = "Your crew finished this visit. Here are the photos.";
+    else if (idx === 3) live = "All done, confirmed by our office. Here are the photos from the visit.";
+    else live = "This tracker goes live the moment your crew starts the trip.";
+    var photos = "";
+    if (idx === 3 && Array.isArray(w.photos) && w.photos.length) {
+      photos = '<div class="ccal-photos">' + w.photos.slice(0, 6).map(function (p) {
+        var src = typeof p === "string" ? p : (p && (p.url || p.src)) || "";
+        return src ? '<img src="' + esc(src) + '" alt="Visit photo" loading="lazy">' : "";
+      }).join("") + "</div>";
+    }
+    var when = pickEv ? ccalTime(pickEv) : "";
+    box.innerHTML = '<div class="ccal-track"><h4>🚗 Live visit tracker</h4>' +
+      '<p class="ct-sub">' + esc(w.title || w.category || "PrimeGuard visit") + (when ? " · " + esc(when) : "") +
+      " · Crew: " + esc(w.vendorBusiness || "PrimeGuard crew") + "</p>" +
+      '<div class="ct-steps">' + steps + "</div>" +
+      (live ? '<p class="ct-live">' + esc(live) + "</p>" : "") + photos + "</div>";
   }
   function ccalNewToken() {
     var s = "", chars = "abcdef0123456789";
@@ -659,16 +730,36 @@
     var p1 = db.collection("customer_quotes").where("customerEmail", "==", email).limit(25).get().then(collect).catch(function () {});
     var p2 = db.collection("customer_quotes").where("contact", "==", email).limit(25).get().then(collect).catch(function () {});
     Promise.all([p1, p2]).then(function () {
-      if (!woIds.length) { ccalBuild([]); renderCcal(); return; }
+      if (!woIds.length) { ccalWos = []; ccalBuild([]); renderCcal(); return; }
       var gets = woIds.map(function (id) {
         return db.collection("work_orders").doc(id).get().then(function (s) {
           return s.exists ? Object.assign({ id: s.id }, s.data()) : null;
         }).catch(function () { return null; });
       });
       Promise.all(gets).then(function (rows) {
-        ccalBuild(rows.filter(Boolean));
+        ccalWos = rows.filter(Boolean);
+        ccalBuild(ccalWos);
         renderCcal();
         writeCustCalFeedSnapshot();
+        // Live updates: one snapshot listener per work order keeps the
+        // calendar and the live tracker current while this page is
+        // open (the vendor's On my way tap and automatic arrival land
+        // here within seconds, no refresh needed).
+        woIds.forEach(function (id) {
+          if (ccalLiveIds[id]) return;
+          ccalLiveIds[id] = true;
+          try {
+            db.collection("work_orders").doc(id).onSnapshot(function (s) {
+              if (!s.exists) return;
+              var row = Object.assign({ id: s.id }, s.data());
+              var found = false;
+              ccalWos = ccalWos.map(function (r) { if (r.id === id) { found = true; return row; } return r; });
+              if (!found) ccalWos.push(row);
+              ccalBuild(ccalWos);
+              renderCcal();
+            }, function () {});
+          } catch (e) {}
+        });
       });
     }).catch(function () {});
   }
@@ -742,6 +833,8 @@
         }).catch(function () {});
       }
       $("refCodeVal").textContent = code;
+      var rl = $("refLinkVal");
+      if (rl) rl.textContent = "https://primeguardmia.com/quote.html?ref=" + code;
       db.collection("service_requests").where("referralCode", "==", code).get().then(function (qs) {
         $("refUses").textContent = qs.size;
         $("refCredit").textContent = "$" + (qs.size * 20);
@@ -844,6 +937,12 @@
       var c = $("refCodeVal").textContent;
       function ok() { rc.textContent = "Copied!"; setTimeout(function () { rc.textContent = "Copy"; }, 1500); }
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c).then(ok).catch(ok); else ok();
+    });
+    var rlc = $("refLinkCopy");
+    if (rlc) rlc.addEventListener("click", function () {
+      var c = ($("refLinkVal") || {}).textContent || "";
+      function ok2() { rlc.textContent = "Copied!"; setTimeout(function () { rlc.textContent = "Copy link"; }, 1500); }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c).then(ok2).catch(ok2); else ok2();
     });
     var pa = $("propAdd");
     if (pa) pa.addEventListener("click", function () {

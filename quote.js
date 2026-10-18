@@ -3,6 +3,7 @@
    lead endpoint and mirrors to Firestore service_requests for the admin. */
 (function () {
   "use strict";
+  try { var _rp = new URLSearchParams(location.search).get("ref"); if (_rp) localStorage.setItem("pgRef", _rp); } catch (e) {}
 
   var QUOTE_SVCS = {
     "lawn-care": { name: "Lawn Care", img: "assets/qcard-lawn-care.jpg", from: 45, unit: "per visit",
@@ -379,8 +380,11 @@
       if (vres.urls.length) detail += "; Videos: " + vres.urls.join(", ");
       var videoLink = ($("qVideoLink").value || "").trim();
       if (videoLink) detail += "; Video link: " + videoLink;
+      var refCode = "";
+      try { refCode = (new URLSearchParams(location.search).get("ref") || localStorage.getItem("pgRef") || "").trim(); } catch (e) {}
+      if (!refCode) refCode = f.referrer.value.trim();
       var payload = {
-        type: "quote-request", status: "new", ref: ref,
+        type: "quote-request", status: "new", ref: ref, referralCode: refCode,
         service: selectedNames().join(", "), services: selectedNames(),
         estimate: p, unit: c.unit, details: detail,
         name: name, phone: phone, email: f.email.value.trim(),
@@ -401,7 +405,7 @@
           message: payload.message, status: "new",
           photos: photoUrls,
           videos: vres.urls, videoLink: videoLink,
-          source: "quote-page", ref: ref, estimate: p,
+          source: "quote-page", ref: ref, referralCode: refCode, estimate: p,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(function () {});
       }

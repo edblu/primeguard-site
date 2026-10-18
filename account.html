@@ -424,6 +424,8 @@
               <div id="referral-body">
                 <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px">Give $20, get $20. Share your code with friends.</p>
                 <div class="ref-code-row"><code id="refCodeVal">…</code><button class="btn btn-gold btn-sm" id="refCopy" type="button">Copy</button></div>
+                <p style="color:#a89a7d;font-size:.85rem;margin:8px 0 4px">Or send your personal link, the credit applies automatically:</p>
+                <div class="ref-code-row"><code id="refLinkVal">…</code><button class="btn btn-ghost btn-sm" id="refLinkCopy" type="button">Copy link</button></div>
                 <div class="ref-stats hidden" id="refStats">
                   <div><strong id="refUses">0</strong><span>friends joined</span></div>
                   <div><strong id="refCredit">$0</strong><span>credit earned</span></div>
@@ -601,7 +603,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=15"></script>
+<script src="account.js?v=16"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
