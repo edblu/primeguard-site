@@ -93,7 +93,7 @@
   document.querySelectorAll("#pgNavDrawer a.pg-nav-item").forEach(function (a) {
     a.addEventListener("click", function () { setNavOpen(false); });
   });
-  syncNavActive("work");
+  syncNavActive("home");
 
   function resetWoForm() {
     editingId = null;
@@ -752,6 +752,100 @@
   var woFilter = "all"; // Work Orders queue filter chip: all|quote|active|done
   var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
   var woOpenId = null; // work order id whose card is expanded inline (Open/Close toggle)
+
+  /* ================= Home dashboard (v62) =================
+     Edwin's approved v4: goal hero, leads-by-stage donut, money
+     bars, and a "needs you now" queue, all from live collections.
+     Read-only: renders from the cached loaders plus three small
+     count queries (vendor quotes pending, open tasks, vendors). */
+  var homeExtraAt = 0, homeExtra = { quotesPending: null, tasksDue: null, vendApproved: null, vendTotal: null };
+  function homeStageCounts() {
+    var c = { new: 0, contacted: 0, quoted: 0, rest: 0, total: 0, unseen: 0 };
+    (hlLeads || []).forEach(function (r) {
+      var d = r.d || {};
+      if (d.convertedWorkOrderId || d.customerId) return;
+      c.total++;
+      if (d.seen === false) c.unseen++;
+      var st = hlStageValue(d);
+      if (st === "new") c.new++; else if (st === "contacted") c.contacted++;
+      else if (st === "quoted") c.quoted++; else c.rest++;
+    });
+    return c;
+  }
+  function homeDonutSvg(c) {
+    var segs = [[c.new, "#0e7c86"], [c.contacted, "#d9ab2b"], [c.quoted, "#e8cf8f"], [c.rest, "#0b3b42"]];
+    var total = Math.max(1, c.total), r = 52, circ = 2 * Math.PI * r, off = 0, out = "";
+    segs.forEach(function (sg) {
+      if (!sg[0]) return;
+      var frac = sg[0] / total;
+      out += '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="' + sg[1] + '" stroke-width="17" stroke-dasharray="' + Math.max(0, frac * circ - 3) + " " + circ + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 70 70)"/>';
+      off += frac * circ;
+    });
+    if (!c.total) out = '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="#e9e4d6" stroke-width="17"/>';
+    return '<svg width="132" height="132" viewBox="0 0 140 140">' + out +
+      '<text x="70" y="67" text-anchor="middle" font-family="Sora" font-weight="800" font-size="21" fill="#101c26">' + c.total + '</text>' +
+      '<text x="70" y="86" text-anchor="middle" font-size="10" fill="#7a7668">active leads</text></svg>';
+  }
+  function homeBar(label, valText, pct, color) {
+    return '<div class="home-bar-row"><span>' + label + '</span><strong>' + valText + '</strong></div>' +
+      '<div class="home-bar"><i style="width:' + Math.max(1, Math.min(100, pct)) + '%;background:' + color + '"></i></div>';
+  }
+  function renderHomeDash() {
+    var sub = $("home-goal-sub"); if (!sub) return;
+    var c = homeStageCounts();
+    var signed = (custRows || []).filter(function (r) { return (r.d || {}).annualContract === "signed"; }).length;
+    var review = (woOrders || []).filter(function (r) { return (r.d || {}).status === "review"; });
+    var done = (woOrders || []).filter(function (r) { return (r.d || {}).status === "done"; }).length;
+    var pct = Math.round(signed / 67 * 1000) / 10;
+    sub.textContent = signed + (signed === 1 ? " annual customer" : " annual customers") + " signed · " + done + (done === 1 ? " job" : " jobs") + " completed · " + c.total + " active leads";
+    $("home-goal-bar").style.width = Math.max(1, pct) + "%";
+    $("home-goal-pct").textContent = pct + "% there, at $150/mo per annual customer, " + signed + " of about 67 needed for $10K/mo";
+    $("home-donut").innerHTML = homeDonutSvg(c);
+    $("home-legend").innerHTML =
+      '<div class="home-legend"><span><span class="home-dot" style="background:#0e7c86"></span>New</span><strong>' + c.new + '</strong></div>' +
+      '<div class="home-legend"><span><span class="home-dot" style="background:#d9ab2b"></span>Contacted</span><strong>' + c.contacted + '</strong></div>' +
+      '<div class="home-legend"><span><span class="home-dot" style="background:#e8cf8f"></span>Quoted</span><strong>' + c.quoted + '</strong></div>' +
+      '<div class="home-legend"><span><span class="home-dot" style="background:#0b3b42"></span>Signed / other</span><strong>' + c.rest + '</strong></div>';
+    var bars = homeBar("Annual customers", signed + " of ~67", pct, "linear-gradient(90deg,#ffd968,#d9ab2b)");
+    bars += homeBar("Jobs completed", String(done), done ? Math.min(100, done * 10) : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
+    if (homeExtra.vendApproved != null) bars += homeBar("Crew approved", homeExtra.vendApproved + " of " + homeExtra.vendTotal + " registered", homeExtra.vendTotal ? homeExtra.vendApproved / homeExtra.vendTotal * 100 : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
+    bars += '<p style="font-size:.78rem;color:#7a7668">Every signed annual moves the gold bar. Projects and one-time jobs speed it up.</p>';
+    $("home-bars").innerHTML = bars;
+    var rows = "";
+    function needRow(n, color, title, s2, tab) {
+      return '<button class="home-row" type="button" data-atab="' + tab + '"><span class="n" style="color:' + color + '">' + n + '</span><span><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
+    }
+    if (review.length) {
+      var r0 = review[0].d || {};
+      rows += needRow(review.length, "#c0392b", "Job" + (review.length > 1 ? "s" : "") + " in review" + (r0.customer ? ": " + esc(r0.customer) : ""), esc(r0.title || "Work order") + " · check the photos, tap Done, then pay the crew", "work");
+    }
+    if (c.unseen) rows += needRow(c.unseen, "#a87e14", "New hot leads to look at", "Fresh inquiries waiting for a first touch", "hotleads");
+    if (homeExtra.quotesPending) rows += needRow(homeExtra.quotesPending, "#a87e14", "Vendor quotes to review", "Build the customer quote so it can go out for signing", "quotes");
+    if (homeExtra.tasksDue) rows += needRow(homeExtra.tasksDue, "#0e5560", "Tasks due or overdue", "Yours and the team's open items for today", "followups");
+    if (!rows) rows = '<p style="font-size:.9rem;padding:10px 0;color:#7a7668">All caught up. Nothing is waiting on a tap right now.</p>';
+    $("home-needs").innerHTML = rows;
+    $("home-needs").querySelectorAll(".home-row").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var nav = document.querySelector('#pgNavDrawer [data-atab="' + b.getAttribute("data-atab") + '"]');
+        if (nav) nav.click();
+      });
+    });
+    if (Date.now() - homeExtraAt > 30000) {
+      homeExtraAt = Date.now();
+      db.collection("quotes").where("status", "==", "pending").limit(50).get().then(function (qs) { homeExtra.quotesPending = qs.size; renderHomeDash(); }).catch(function () {});
+      db.collection("tasks").where("done", "==", false).limit(200).get().then(function (qs) {
+        var today = localDateKey(new Date()), n = 0;
+        qs.forEach(function (d) { var t = d.data(); if (t.dueDate && t.dueDate <= today) n++; });
+        homeExtra.tasksDue = n; renderHomeDash();
+      }).catch(function () {});
+      db.collection("vendors").limit(60).get().then(function (qs) {
+        var ap = 0; qs.forEach(function (d) { var v = d.data(); if ((v.status || (v.verified ? "approved" : "pending")) === "approved") ap++; });
+        homeExtra.vendApproved = ap; homeExtra.vendTotal = qs.size; renderHomeDash();
+      }).catch(function () {});
+    }
+  }
+
+
   var hlNoteId = null, hlNoteData = null, hlOutcome = "";
   var hlEditId = null;
   var hlPendingPhotos = []; // compressed photos picked in the lead form, not yet uploaded
@@ -869,6 +963,7 @@
     return '<div class="hlq-stepper" aria-label="Lead stage">' + parts.join("") + "</div>";
   }
   function renderHotLeads() {
+    renderHomeDash();
     var box = $("ad-hl-list");
     if (!box) return;
     renderHlFilterChips();
@@ -1612,6 +1707,7 @@
       }).catch(function () { custHotLeads = []; });
     }).then(function () {
       renderCustomers();
+      renderHomeDash();
     }).catch(function () {
       box.innerHTML = '<p style="color:var(--faint)">CRM could not load yet. The database rules update may still need to be published.</p>';
     });
@@ -3691,6 +3787,7 @@
     if (img) { img.onerror = null; img.removeAttribute("src"); }
   }
   function renderWorkOrders() {
+    renderHomeDash();
     var box = $("ad-wo-list");
     if (!box) return;
     // v61 (Edwin, Oct 17): red nav badge = jobs in "review" waiting on

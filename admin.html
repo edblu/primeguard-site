@@ -565,6 +565,8 @@
   .pg-light .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#ffffff; border-color:transparent; }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin-modern.css?v=1">
 </head>
 <body>
 <button id="pgNavToggle" type="button" aria-label="Open menu">&#9776;</button>
@@ -576,6 +578,7 @@
     <button id="pgNavClose" type="button" aria-label="Close menu">&times;</button>
   </div>
   <div class="pg-nav-sec">Navigate</div>
+  <button class="pg-nav-item active" type="button" data-atab="home">Home</button>
   <button class="pg-nav-item" type="button" data-atab="hotleads">Hot Leads <span class="cnt-b" id="pg-nav-b-hotleads" style="display:none">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="work">Work orders <span class="cnt-b" id="pg-nav-b-work-review" style="display:none;background:#c0392b;color:#fff">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
@@ -637,10 +640,46 @@
   </section>
 
   <nav class="atabs">
-    <button class="atab active" data-atab="work">Work orders</button>
+    <button class="atab active" data-atab="home">Home</button>
+    <button class="atab" data-atab="work">Work orders</button>
   </nav>
 
-  <div id="atab-work">
+  
+  <div id="atab-home">
+  <section class="asec" style="padding-top:6px">
+    <div class="home-hero">
+      <img class="bg" src="assets/bg-guarantee-crew.jpg" alt="">
+      <div class="shade">
+        <div class="kick">The goal</div>
+        <div class="big">$10,000 <span>a month</span></div>
+        <div class="sub" id="home-goal-sub">Loading your numbers…</div>
+        <div class="bar"><i id="home-goal-bar" style="width:0%"></i></div>
+        <div class="pct" id="home-goal-pct"></div>
+      </div>
+    </div>
+    <div class="home-grid">
+      <div class="home-card">
+        <div class="home-kick">Pipeline</div>
+        <h3>Leads by stage</h3>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div id="home-donut"></div>
+          <div id="home-legend" style="flex:1"></div>
+        </div>
+      </div>
+      <div class="home-card">
+        <div class="home-kick">Money</div>
+        <h3>Path to $10K a month</h3>
+        <div id="home-bars"></div>
+      </div>
+    </div>
+    <div class="home-card" style="margin-top:12px">
+      <div class="home-kick">Needs you now</div>
+      <div id="home-needs"><p style="color:var(--m-muted);font-size:.88rem;padding:8px 0">Loading…</p></div>
+    </div>
+  </section>
+  </div>
+
+<div id="atab-work" class="hidden">
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
       <h2 id="wo-form-title" style="margin:0">Create work order</h2>
@@ -1111,10 +1150,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=61"></script>
+<script src="admin.js?v=62"></script>
 <script>
 (function () {
-  var tabs = ["work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
+  var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);

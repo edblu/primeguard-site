@@ -1,0 +1,118 @@
+/* ============================================================
+   PRIMEGUARD ADMIN — MODERN (v62, Edwin approved Oct 18, 2026)
+   Reskin ONLY: cream canvas, flat white cards, soft borders,
+   Sora headings + Inter body, gold/teal accents, real charts
+   on the Home view. Loaded LAST in admin.html so it wins ties
+   against the legacy dark base and the pg-light theme alike.
+   No layout or behavior changes live here.
+   ============================================================ */
+:root{
+  --m-bg:#f6f3ec; --m-card:#ffffff; --m-line:#e9e4d6; --m-line2:#f0ebdd;
+  --m-ink:#101c26; --m-text:#17222b; --m-muted:#7a7668; --m-faint:#a39d8b;
+  --m-gold:#c9a24b; --m-gold-deep:#8a6d2a; --m-teal:#0e7c86; --m-teal-deep:#0b3b42;
+  --m-red:#c0392b;
+}
+html{ background:#efece1; }
+body{
+  background:
+    radial-gradient(120% 40% at 50% -4%, rgba(245,197,66,.16), transparent 60%),
+    linear-gradient(180deg,#faf8f1,#f3f0e6 55%,#efece1) !important;
+  color:var(--m-text) !important;
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif !important;
+}
+h1,h2,h3,h4{ font-family:"Sora","Inter",sans-serif !important; color:var(--m-ink) !important; letter-spacing:-.01em; }
+
+/* Top bar + drawer */
+.atop{ background:rgba(250,248,241,.88) !important; border-bottom:1px solid var(--m-line) !important; backdrop-filter:blur(8px); }
+.abrand{ color:var(--m-ink) !important; font-family:"Sora",sans-serif; }
+.abrand span{ color:var(--m-gold-deep) !important; }
+.atag{ color:var(--m-teal) !important; }
+#pgNavDrawer{ background:#fdfcf7 !important; color:var(--m-text) !important; box-shadow:18px 0 44px rgba(23,34,43,.14) !important; }
+.pg-nav-brand{ color:var(--m-ink) !important; font-family:"Sora",sans-serif; }
+.pg-nav-brand span{ color:var(--m-gold-deep) !important; }
+.pg-nav-tag,.pg-nav-sec{ color:var(--m-teal) !important; }
+.pg-nav-foot{ color:var(--m-faint) !important; }
+.pg-nav-item{ color:var(--m-text) !important; border-radius:12px !important; }
+.pg-nav-item:hover{ background:rgba(201,162,75,.10) !important; }
+.pg-nav-item.active{ background:rgba(201,162,75,.16) !important; color:#7a5c14 !important; border-color:rgba(212,168,67,.4) !important; }
+.pg-nav-item .cnt-b{ background:rgba(201,162,75,.22); color:#7a5c14; }
+#pgNavToggle{ background:#fdfcf7 !important; color:var(--m-ink) !important; border:1px solid var(--m-line) !important; box-shadow:0 6px 16px rgba(23,34,43,.10) !important; }
+
+/* Cards + stat tiles */
+.acard,.astat,.sr-card,.acard-lite{
+  background:var(--m-card) !important; border:1px solid var(--m-line) !important;
+  border-radius:16px !important; box-shadow:0 4px 14px rgba(23,34,43,.05) !important; color:var(--m-text) !important;
+}
+.astat .v{ color:var(--m-ink) !important; font-family:"Sora",sans-serif; }
+.astat .l,.astat .k{ color:var(--m-muted) !important; }
+.asec h2{ color:var(--m-ink) !important; }
+.arow{ background:var(--m-card) !important; border:1px solid var(--m-line) !important; border-radius:14px !important; color:var(--m-text) !important; box-shadow:0 3px 10px rgba(23,34,43,.04) !important; }
+.arow small{ color:var(--m-muted) !important; }
+
+/* Work order + lead cards */
+.hlq,.hl-card,.woq{
+  background:var(--m-card) !important; border:1px solid var(--m-line) !important;
+  border-radius:16px !important; box-shadow:0 4px 14px rgba(23,34,43,.05) !important; color:var(--m-text) !important;
+}
+.hlq-notes,.sr-faint,.woq-dmeta{ color:var(--m-muted) !important; }
+.hlq-idle{ color:var(--m-faint) !important; }
+
+/* Tabs + chips */
+.atab{ background:rgba(255,255,255,.65) !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; border-radius:999px !important; font-weight:600; }
+.atab.active{ background:rgba(201,162,75,.16) !important; color:#7a5c14 !important; border-color:rgba(212,168,67,.45) !important; }
+.atab .cnt-b{ background:#1b1b1b; }
+.hl-chip,.tk-chip{ background:#fff !important; border-color:var(--m-line) !important; color:var(--m-text) !important; border-radius:999px !important; }
+.hl-chip.active,.tk-chip.on{ background:linear-gradient(180deg,#ffd968,#d9ab2b) !important; color:#171205 !important; border-color:transparent !important; }
+
+/* Buttons */
+.btn{ border-radius:12px !important; font-weight:700; }
+.btn-gold{ background:linear-gradient(180deg,#ffd968,#d9ab2b) !important; color:#171205 !important; border:none !important; box-shadow:0 6px 14px rgba(217,171,43,.30) !important; }
+.btn-ghost{ background:#fff !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; }
+.mini{ border-radius:10px !important; }
+.mini.danger{ color:var(--m-red) !important; }
+
+/* Pills keep their meaning, softer edges */
+.pill{ border-radius:999px !important; }
+
+/* Forms */
+input,select,textarea{
+  background:#fff !important; color:var(--m-text) !important;
+  border:1px solid var(--m-line) !important; border-radius:10px !important;
+}
+label{ color:var(--m-muted) !important; }
+
+/* Modals + bell */
+.modal,.pg-modal{ background:#fdfcf7 !important; color:var(--m-text) !important; border-radius:18px !important; }
+#pgBellPanel{ background:#fff !important; border:1px solid var(--m-line) !important; border-radius:14px !important; box-shadow:0 16px 34px rgba(23,34,43,.14) !important; color:var(--m-text) !important; }
+#pgLightbox{ background:rgba(16,24,32,.92) !important; }
+
+/* Tables-ish rows */
+.sr-comment{ border-bottom:1px solid var(--m-line2) !important; }
+
+/* ---------- Home dashboard (v62) ---------- */
+.home-hero{ position:relative; border-radius:20px; overflow:hidden; box-shadow:0 14px 30px rgba(23,34,43,.16); margin-bottom:14px; background:#0b3b42; }
+.home-hero img.bg{ width:100%; height:185px; object-fit:cover; display:block; }
+.home-hero .shade{ position:absolute; inset:0; background:linear-gradient(90deg,rgba(11,40,46,.78),rgba(11,40,46,.30) 60%,transparent); padding:18px 20px; color:#faf8f1; }
+.home-hero .kick{ color:#7fd1d9; letter-spacing:.28em; text-transform:uppercase; font-weight:700; font-size:.64rem; }
+.home-hero .big{ font-family:"Sora",sans-serif; font-size:1.85rem; font-weight:800; margin-top:3px; color:#fff; }
+.home-hero .big span{ font-size:.95rem; font-weight:600; color:#cfe3e0; }
+.home-hero .sub{ font-size:.87rem; color:#e8f0ee; margin-top:2px; }
+.home-hero .bar{ height:12px; border-radius:999px; background:rgba(255,255,255,.35); overflow:hidden; margin-top:10px; max-width:520px; }
+.home-hero .bar i{ display:block; height:100%; background:linear-gradient(90deg,#ffd968,#d9ab2b); border-radius:999px; }
+.home-hero .pct{ font-size:.74rem; color:#cfe3e0; margin-top:5px; }
+.home-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:12px; }
+.home-card{ background:#fff; border:1px solid var(--m-line); border-radius:16px; box-shadow:0 4px 14px rgba(23,34,43,.05); padding:16px; }
+.home-card h3{ font-size:1rem; margin:5px 0 10px; }
+.home-kick{ color:var(--m-teal); letter-spacing:.24em; text-transform:uppercase; font-weight:700; font-size:.64rem; }
+.home-legend{ font-size:.82rem; display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--m-line2); }
+.home-legend:last-child{ border-bottom:none; }
+.home-dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; }
+.home-bar-row{ font-size:.8rem; display:flex; justify-content:space-between; }
+.home-bar{ height:10px; border-radius:999px; background:#efe9da; overflow:hidden; margin:6px 0 14px; }
+.home-bar i{ display:block; height:100%; border-radius:999px; }
+.home-row{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:11px 2px; border:none; border-bottom:1px solid var(--m-line2); background:none; font-family:inherit; cursor:pointer; color:var(--m-text); }
+.home-row:last-child{ border-bottom:none; }
+.home-row .n{ font-family:"Sora",sans-serif; font-weight:800; font-size:1.15rem; min-width:30px; text-align:center; }
+.home-row .s{ font-size:.76rem; color:var(--m-muted); }
+.home-row .t{ font-weight:600; font-size:.92rem; }
+.home-row .go{ margin-left:auto; color:#a87e14; font-weight:800; }
