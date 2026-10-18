@@ -758,7 +758,7 @@
   var hlTempFilter = "all"; // active temperature filter chip: all|hot|warm|cold
   var hlStageFilter = "all"; // active stage filter chip: all|new|contacted|quoted|booked|done|cold
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
-  var woFilter = "all"; // Work Orders queue filter chip: all|quote|active|done
+  var woFilter = "active"; // Board opens on Active so Done jobs file away (Edwin, Oct 18); All/Done chips still show them
   var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
   var woOpenId = null; // work order id whose card is expanded inline (Open/Close toggle)
 
