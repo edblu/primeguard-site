@@ -254,6 +254,7 @@
       liveSubs[key] = query.onSnapshot(function (qs) {
         liveCache[key] = qs;
         if (onData) onData(qs);
+        pgScheduleHeads(); // v83: page-head count chips ride every snapshot
       }, function (err) {
         delete liveSubs[key];
         if (onErr) onErr(err);
@@ -3589,6 +3590,107 @@
     if (v.availability && v.availability.active === false) return '<span style="color:#e8a33d;font-weight:700">' + esc(txt) + "</span>";
     return esc(txt);
   }
+  // ---------- Editable vendor profile (v82) ----------
+  // Edwin's ask: click a vendor's name, open their profile, and edit
+  // anything in it (contact, coverage, areas, availability, payout,
+  // papers, office notes). The area/service lists below mirror the
+  // vendor register form (vendor-register.html) so office edits save
+  // the same strings vendors pick themselves.
+  var VD_AREA_LIST = ["Aventura", "Bal Harbour", "Bay Harbor Islands", "Biscayne Park", "Coral Gables", "Country Walk", "Cutler Bay", "Doral", "El Portal", "Florida City", "Fontainebleau", "Golden Beach", "Hialeah", "Hialeah Gardens", "Homestead", "Indian Creek", "Kendall", "Kendall Lakes", "Key Biscayne", "Medley", "Miami", "Miami Beach", "Miami Gardens", "Miami Lakes", "Miami Shores", "Miami Springs", "Miramar", "North Bay Village", "North Miami", "North Miami Beach", "Opa-locka", "Palmetto Bay", "Pinecrest", "Richmond Heights", "South Miami", "Sunny Isles Beach", "Surfside", "Sweetwater", "Tamiami", "The Hammocks", "Virginia Gardens", "West Miami"];
+  var VD_SERVICE_LIST = ["Lawn care", "Tree trimming", "Tree removal", "Stump grinding", "Cleanups", "Planting", "Pressure washing", "Handyman"];
+  var VD_CREW_LIST = ["Just me", "2-3 people", "4-6 people", "7+ people"];
+  // Same version string the vendor portal signs against
+  // (AGREEMENTS_VERSION in vendor-dashboard.js / vendor.js).
+  var VD_AGREEMENTS_VERSION = "2026-10-15";
+  var VD_DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // Working copies of the chip editors while the profile is open.
+  var vdAreasEdit = [], vdServicesEdit = [];
+  // Pure payload builders (no DOM, no firebase) so they can be unit
+  // simulated: the writers below read the form, call a builder, then
+  // stamp server timestamps onto the result.
+  function vdProfilePayload(vals) {
+    function clean(list) {
+      var out = [];
+      (Array.isArray(list) ? list : []).forEach(function (x) {
+        var s = String(x == null ? "" : x).trim();
+        if (s && out.indexOf(s) < 0) out.push(s);
+      });
+      return out;
+    }
+    var days = [];
+    (Array.isArray(vals.availDays) ? vals.availDays : []).forEach(function (d) {
+      d = Number(d);
+      if (d >= 1 && d <= 7 && days.indexOf(d) < 0) days.push(d);
+    });
+    days.sort(function (a, b) { return a - b; });
+    return {
+      name: String(vals.name || "").trim(),
+      business: String(vals.business || "").trim(),
+      phone: String(vals.phone || "").trim(),
+      email: String(vals.email || "").trim(),
+      address: String(vals.address || "").trim(),
+      crewSize: String(vals.crewSize || "").trim(),
+      equipment: String(vals.equipment || "").trim(),
+      insured: vals.insured === "yes" ? "yes" : "no",
+      services: clean(vals.services),
+      areas: clean(vals.areas),
+      // Same shape the vendor portal writes: { days: [1..7], active }.
+      availability: { days: days, active: vals.availActive !== false }
+    };
+  }
+  function vdPayoutPayload(vals) {
+    var m = String(vals.method || "");
+    if (m !== "zelle" && m !== "ach" && m !== "check") m = "";
+    return {
+      payoutMethod: m,
+      payoutZelle: String(vals.zelle || "").trim(),
+      payoutName: String(vals.name || "").trim(),
+      payoutBankName: String(vals.bank || "").trim(),
+      payoutRouting: String(vals.routing || "").trim(),
+      payoutAccount: String(vals.account || "").trim()
+    };
+  }
+  // kind: "w9" | "coi" | "agr". For agreements the doc stores an
+  // object (not a boolean): toggling preserves the vendor's own
+  // signedName/signedAt and only flips the version marker the portal
+  // checks, so an office un-mark sends them back to re-sign.
+  function vdPapersPayload(kind, checked, v) {
+    v = v || {};
+    if (kind === "w9") {
+      var w = { w9Status: checked ? "received" : "pending" };
+      if (checked) w.w9Due = null; // matches the portal upload write
+      return w;
+    }
+    if (kind === "coi") return { coiStatus: checked ? "received" : "pending" };
+    if (kind === "agr") {
+      var old = v.agreements || {};
+      return {
+        agreements: {
+          nda: checked ? true : !!old.nda,
+          contractorAgreement: checked ? true : !!old.contractorAgreement,
+          signedName: old.signedName || "",
+          signedAt: old.signedAt || (checked ? new Date().toISOString() : null),
+          version: checked ? VD_AGREEMENTS_VERSION : "",
+          markedByOffice: true
+        }
+      };
+    }
+    return {};
+  }
+  function vdW9On(v) { return ["received", "submitted", "approved"].indexOf(String((v || {}).w9Status || "").toLowerCase()) >= 0; }
+  function vdCoiOn(v) { return String((v || {}).coiStatus || "").toLowerCase() === "received"; }
+  function vdAgrOn(v) { return !!((v || {}).agreements && v.agreements.version === VD_AGREEMENTS_VERSION); }
+  // Job counts from the work-order cache already loaded for the board.
+  function vdJobCounts(id) {
+    var done = 0, active = 0;
+    (typeof woOrders !== "undefined" ? woOrders : []).forEach(function (it) {
+      var d = it && it.d;
+      if (!d || d.vendorId !== id) return;
+      if (d.status === "done") done++; else active++;
+    });
+    return { done: done, active: active };
+  }
+
   function openVendor(id) {
     db.collection("vendors").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
@@ -3609,27 +3711,116 @@
       if (url) return '<p><strong>' + label + ':</strong> <a href="' + esc(url) + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">View</a> (' + esc(status || "received") + ')</p>';
       return '<p><strong>' + label + ':</strong> <span style="color:var(--gold-bright)">not submitted yet</span></p>';
     }
+    // v82: chip editors start from the saved values on every render.
+    vdAreasEdit = (Array.isArray(v.areas) ? v.areas : []).slice();
+    vdServicesEdit = (Array.isArray(v.services) ? v.services : []).slice();
+    function vdDateText(x) {
+      if (!x) return "";
+      if (x.toDate) return x.toDate().toLocaleDateString();
+      var dt = new Date(x);
+      return isNaN(dt.getTime()) ? "" : dt.toLocaleDateString();
+    }
+    function vdDocExtra(url) {
+      if (!url) return "";
+      if (url === "uploaded") return ' <span class="sr-faint">(file on record)</span>';
+      return ' <a href="' + esc(url) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View</a>';
+    }
+    function vdPaperRow(kind, label, on, extra) {
+      return '<div class="vdp-paper"><label class="vdp-check"><input type="checkbox" data-vdp-paper="' + kind + '"' + (on ? " checked" : "") + '> <strong>' + esc(label) + '</strong></label>' + (extra || "") + '</div>';
+    }
+    var jc = vdJobCounts(vdId);
     var h = '<h3 id="vdTitle">' + esc(v.business || "Vendor") + '</h3>' +
       '<p class="sr-meta">' + pill(st) + ' <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
-      '<div class="sr-grid">' +
-      '<div class="sr-card"><h4>Contact</h4>' +
-      '<p><strong>' + esc(v.name || "-") + '</strong></p>' +
-      (v.phone ? '<p>📞 <a href="tel:' + esc(String(v.phone).replace(/\D/g, "")) + '">' + esc(v.phone) + '</a></p>' : '') +
-      (v.email ? '<p>✉️ <a href="mailto:' + esc(v.email) + '">' + esc(v.email) + '</a></p>' : '') +
-      (v.address ? '<p>📍 ' + esc(v.address) + '</p>' : '') + '</div>' +
-      '<div class="sr-card"><h4>Coverage</h4>' +
-      '<p><strong>Services:</strong> ' + esc((v.services || []).join(", ") || "-") + '</p>' +
-      '<p><strong>Areas:</strong> ' + esc((v.areas || []).join(", ") || "-") + '</p>' +
-      (vendorAvailText(v) ? '<p><strong>Availability:</strong> ' + vendorAvailHtml(v) + '</p>' : '') +
-      '<p><strong>Crew size:</strong> ' + esc(v.crewSize || "-") + '</p>' +
-      (v.equipment ? '<p><strong>Equipment:</strong> ' + esc(v.equipment) + '</p>' : '') + '</div></div>' +
-      '<div class="sr-actions" style="margin-bottom:14px">' +
-      '<button class="mini" id="vdCalBtn" type="button">Add to calendar</button></div>' +
-      '<div class="sr-card"><h4>Documents</h4>' +
-      docLine("W-9", v.w9Url, v.w9Status) +
-      '<p><strong>Payout:</strong> ' + (v.payoutMethod === "zelle" ? "Zelle \u00b7 " + esc(v.payoutZelle || "") + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "ach" ? "Bank transfer \u00b7 " + esc(v.payoutBankName || "") + " \u2026" + esc(String(v.payoutAccount || "").slice(-4)) + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "check" ? "Check by mail \u00b7 " + esc(v.address || "") : '<span style="color:#e8a33d">not set yet, vendor completes it in their portal setup checklist</span>') + '</p>' +
-      '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
-      (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>';
+      '<p class="sr-faint" style="margin:-4px 0 12px">Vendor ID: ' + esc(vdId || "") + ' · Jobs done: ' + jc.done + ' · In progress: ' + jc.active + '</p>';
+    if (isAdmin) {
+      // ---- Editable profile (v82): contact, coverage, availability ----
+      var crewOpts = VD_CREW_LIST.slice();
+      if (v.crewSize && crewOpts.indexOf(v.crewSize) < 0) crewOpts.unshift(v.crewSize);
+      var avDays = (v.availability && Array.isArray(v.availability.days) ? v.availability.days : []).filter(function (d) { return d >= 1 && d <= 7; });
+      var avActive = !(v.availability && v.availability.active === false);
+      var dayChecks = VD_DAY_NAMES.map(function (nm, i) {
+        var d = i + 1;
+        return '<label class="vdp-check"><input type="checkbox" class="vdp-avail-day" value="' + d + '"' + (avDays.indexOf(d) >= 0 ? " checked" : "") + '> ' + nm + '</label>';
+      }).join("");
+      h += '<div class="sr-card"><h4>Profile</h4>' +
+        '<p class="sr-faint" style="margin-bottom:10px">Edit anything on this vendor and save. Contact, coverage and availability changes show on their dashboard.</p>' +
+        '<div class="aform">' +
+        '<label>Contact name<input type="text" id="vdp-name" value="' + esc(v.name || "") + '"></label>' +
+        '<label>Business name<input type="text" id="vdp-business" value="' + esc(v.business || "") + '"></label>' +
+        '<label>Phone<input type="text" id="vdp-phone" value="' + esc(v.phone || "") + '"></label>' +
+        '<label>Email<input type="email" id="vdp-email" value="' + esc(v.email || "") + '"></label>' +
+        '<label>Address<input type="text" id="vdp-address" value="' + esc(v.address || "") + '"></label>' +
+        '<label>Crew size<select id="vdp-crew">' + crewOpts.map(function (c) { return '<option value="' + esc(c) + '"' + (v.crewSize === c ? " selected" : "") + '>' + esc(c) + '</option>'; }).join("") + '</select></label>' +
+        '<label>Equipment<input type="text" id="vdp-equipment" value="' + esc(v.equipment || "") + '"></label>' +
+        '<label>Insurance<select id="vdp-insured"><option value="no"' + (v.insured === "yes" ? "" : " selected") + '>Not currently insured</option><option value="yes"' + (v.insured === "yes" ? " selected" : "") + '>Carries general liability</option></select></label>' +
+        '</div>' +
+        '<p style="font-weight:700;margin:14px 0 2px">Services</p>' +
+        '<div class="vdp-chips" id="vdp-services-chips"></div>' +
+        '<div class="vdp-addrow"><select id="vdp-service-add"></select><input type="text" id="vdp-service-free" placeholder="Or type a service"><button class="mini" type="button" id="vdp-service-addbtn">Add</button></div>' +
+        '<p style="font-weight:700;margin:14px 0 2px">Areas of service</p>' +
+        '<div class="vdp-chips" id="vdp-areas-chips"></div>' +
+        '<div class="vdp-addrow"><select id="vdp-area-add"></select><input type="text" id="vdp-area-free" placeholder="Or type an area"><button class="mini" type="button" id="vdp-area-addbtn">Add</button></div>' +
+        '<p style="font-weight:700;margin:14px 0 2px">Availability</p>' +
+        '<label class="vdp-check"><input type="checkbox" id="vdp-avail-active"' + (avActive ? " checked" : "") + '> <strong>Accepting jobs</strong></label>' +
+        '<div>' + dayChecks + '</div>' +
+        '<div class="sr-actions" style="margin-top:12px"><button class="btn btn-gold btn-sm" id="vdp-save-profile" type="button">Save profile</button></div>' +
+        '<p class="aok hidden" id="vdp-profile-ok" style="margin-top:10px">Saved ✓</p>' +
+        '<p class="aerr hidden" id="vdp-profile-err" style="margin-top:10px"></p></div>';
+    } else {
+      h += '<div class="sr-grid">' +
+        '<div class="sr-card"><h4>Contact</h4>' +
+        '<p><strong>' + esc(v.name || "-") + '</strong></p>' +
+        (v.phone ? '<p>📞 <a href="tel:' + esc(String(v.phone).replace(/\D/g, "")) + '">' + esc(v.phone) + '</a></p>' : '') +
+        (v.email ? '<p>✉️ <a href="mailto:' + esc(v.email) + '">' + esc(v.email) + '</a></p>' : '') +
+        (v.address ? '<p>📍 ' + esc(v.address) + '</p>' : '') + '</div>' +
+        '<div class="sr-card"><h4>Coverage</h4>' +
+        '<p><strong>Services:</strong> ' + esc((v.services || []).join(", ") || "-") + '</p>' +
+        '<p><strong>Areas:</strong> ' + esc((v.areas || []).join(", ") || "-") + '</p>' +
+        (vendorAvailText(v) ? '<p><strong>Availability:</strong> ' + vendorAvailHtml(v) + '</p>' : '') +
+        '<p><strong>Crew size:</strong> ' + esc(v.crewSize || "-") + '</p>' +
+        (v.equipment ? '<p><strong>Equipment:</strong> ' + esc(v.equipment) + '</p>' : '') + '</div></div>';
+    }
+    h += '<div class="sr-actions" style="margin-bottom:14px">' +
+      '<button class="mini" id="vdCalBtn" type="button">Add to calendar</button></div>';
+    if (isAdmin) {
+      // ---- Payout editor (v82) ----
+      h += '<div class="sr-card"><h4>Payout</h4>' +
+        '<div class="aform">' +
+        '<label>Method<select id="vdp-pay-method"><option value="">Not set</option><option value="zelle">Zelle</option><option value="ach">Bank transfer (ACH)</option><option value="check">Check by mail</option></select></label>' +
+        '<div id="vdp-pay-zelle"><label>Zelle phone or email<input type="text" id="vdp-pay-zelle-val" value="' + esc(v.payoutZelle || "") + '"></label></div>' +
+        '<div id="vdp-pay-ach">' +
+        '<label>Bank name<input type="text" id="vdp-pay-bank" value="' + esc(v.payoutBankName || "") + '"></label>' +
+        '<label>Routing number<input type="text" id="vdp-pay-routing" value="' + esc(v.payoutRouting || "") + '"></label>' +
+        '<label>Account number<input type="text" id="vdp-pay-account" value="' + esc(v.payoutAccount || "") + '"></label></div>' +
+        '<label id="vdp-pay-name-wrap">Name on account<input type="text" id="vdp-pay-name" value="' + esc(v.payoutName || "") + '"></label>' +
+        '<p class="sr-faint" id="vdp-pay-check-note">Checks are mailed to the address on file (edit it under Profile above).</p>' +
+        '</div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="vdp-save-payout" type="button">Save payout</button></div>' +
+        '<p class="aok hidden" id="vdp-payout-ok" style="margin-top:10px">Saved ✓</p>' +
+        '<p class="aerr hidden" id="vdp-payout-err" style="margin-top:10px"></p></div>' +
+        // ---- Papers checklist (v82): toggles save on tap ----
+        '<div class="sr-card"><h4>Papers</h4>' +
+        '<p class="sr-faint" style="margin-bottom:6px">Tap a toggle when the paper is on file. It saves right away.</p>' +
+        vdPaperRow("w9", "W-9 received", vdW9On(v), vdDocExtra(v.w9Url)) +
+        vdPaperRow("coi", "Certificate of insurance (COI) on file", vdCoiOn(v), vdDocExtra(v.coiUrl)) +
+        vdPaperRow("agr", "Agreements signed (NDA + contractor agreement)", vdAgrOn(v),
+          (v.agreements && (v.agreements.signedName || v.agreements.signedAt) ? ' <span class="sr-faint">' + esc(v.agreements.signedName || "") + (vdDateText(v.agreements.signedAt) ? " · " + esc(vdDateText(v.agreements.signedAt)) : "") + '</span>' : "")) +
+        '<p class="aok hidden" id="vdp-papers-ok" style="margin-top:10px">Saved ✓</p>' +
+        '<p class="aerr hidden" id="vdp-papers-err" style="margin-top:10px"></p></div>' +
+        // ---- Office notes (v82): adminNotes on the vendor doc ----
+        '<div class="sr-card"><h4>Office notes</h4>' +
+        '<p class="sr-faint">Private to the office. The vendor never sees these notes.</p>' +
+        '<div class="aform"><label>Notes<textarea id="vdp-adminnotes" rows="4" placeholder="Anything the office should remember about this vendor…">' + esc(v.adminNotes || "") + '</textarea></label></div>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="vdp-save-notes" type="button">Save notes</button></div>' +
+        '<p class="aok hidden" id="vdp-notes-ok" style="margin-top:10px">Saved ✓</p>' +
+        '<p class="aerr hidden" id="vdp-notes-err" style="margin-top:10px"></p></div>';
+    } else {
+      h += '<div class="sr-card"><h4>Documents</h4>' +
+        docLine("W-9", v.w9Url, v.w9Status) +
+        '<p><strong>Payout:</strong> ' + (v.payoutMethod === "zelle" ? "Zelle \u00b7 " + esc(v.payoutZelle || "") + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "ach" ? "Bank transfer \u00b7 " + esc(v.payoutBankName || "") + " \u2026" + esc(String(v.payoutAccount || "").slice(-4)) + (v.payoutName ? " (" + esc(v.payoutName) + ")" : "") : v.payoutMethod === "check" ? "Check by mail \u00b7 " + esc(v.address || "") : '<span style="color:#e8a33d">not set yet, vendor completes it in their portal setup checklist</span>') + '</p>' +
+        '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + '</p>' +
+        (v.insured === "yes" ? docLine("Certificate of insurance", v.coiUrl, v.coiStatus) : '') + '</div>';
+    }
     if (isAdmin && st === "archived") {
       h += '<div class="sr-card"><h4>Registration status</h4>' +
         '<p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">This vendor is archived, so they are hidden from the active vendor list. Their record, calls, and notes are kept.' +
@@ -3666,6 +3857,7 @@
       '<p class="aerr hidden" id="vdNoteErr" style="margin-top:10px"></p>' +
       '<div class="sr-comments" id="vdNotes" style="margin-top:14px"></div></div>';
     box.innerHTML = h;
+    if (isAdmin) vdWireProfileEditor(box);
     box.querySelectorAll("[data-vstatus]").forEach(function (b) {
       b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
     });
@@ -3698,6 +3890,134 @@
     var vsn = $("vdSaveNote");
     if (vsn) vsn.addEventListener("click", saveVendorNote);
     loadItemNotes("vendor", vdId, $("vdNotes"));
+  }
+  // ---------- Vendor profile editor wiring + saves (v82) ----------
+  function vdSaveFlash(okId, errId, err) {
+    var ok = $(okId), er = $(errId);
+    if (err) {
+      if (er) { er.textContent = "Could not save: " + (err.message || err); er.classList.remove("hidden"); }
+      if (ok) ok.classList.add("hidden");
+    } else {
+      if (er) er.classList.add("hidden");
+      if (ok) ok.classList.remove("hidden");
+    }
+  }
+  function vdWriteVendor(payload, okId, errId, activity) {
+    if (!vdId || !isAdmin) return Promise.resolve();
+    return db.collection("vendors").doc(vdId).update(payload).then(function () {
+      Object.keys(payload).forEach(function (k) { vdData[k] = payload[k]; });
+      if (activity) logActivity(activity);
+      renderVendorModal();
+      vdSaveFlash(okId, errId, null);
+      loadVendors(); loadVendorOptions();
+    }).catch(function (err) { vdSaveFlash(okId, errId, err); });
+  }
+  function vdRenderChips(kind) {
+    var isAreas = kind === "areas";
+    var arr = isAreas ? vdAreasEdit : vdServicesEdit;
+    var delAttr = isAreas ? "data-vdp-areadel" : "data-vdp-svcdel";
+    var wrap = $(isAreas ? "vdp-areas-chips" : "vdp-services-chips");
+    if (wrap) {
+      wrap.innerHTML = arr.length ? arr.map(function (name, i) {
+        return '<span class="vdp-chip">' + esc(name) + ' <button type="button" ' + delAttr + '="' + i + '" aria-label="Remove ' + esc(name) + '">×</button></span>';
+      }).join("") : '<span class="sr-faint">None yet. Add from the list or type one below.</span>';
+      wrap.querySelectorAll("[" + delAttr + "]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          arr.splice(Number(b.getAttribute(delAttr)), 1);
+          vdRenderChips(kind);
+        });
+      });
+    }
+    var sel = $(isAreas ? "vdp-area-add" : "vdp-service-add");
+    if (sel) {
+      var list = isAreas ? VD_AREA_LIST : VD_SERVICE_LIST;
+      sel.innerHTML = '<option value="">Add from list…</option>' + list.filter(function (x) { return arr.indexOf(x) < 0; }).map(function (x) {
+        return '<option value="' + esc(x) + '">' + esc(x) + '</option>';
+      }).join("");
+    }
+  }
+  function vdAddChip(kind) {
+    var isAreas = kind === "areas";
+    var arr = isAreas ? vdAreasEdit : vdServicesEdit;
+    var sel = $(isAreas ? "vdp-area-add" : "vdp-service-add");
+    var free = $(isAreas ? "vdp-area-free" : "vdp-service-free");
+    var val = (sel && sel.value) || (free && free.value.trim()) || "";
+    if (!val) { if (free) free.focus(); return; }
+    if (arr.indexOf(val) < 0) arr.push(val);
+    if (free) free.value = "";
+    if (sel) sel.value = "";
+    vdRenderChips(kind);
+  }
+  function vdPaySync() {
+    var m = ($("vdp-pay-method") || {}).value || "";
+    function show(id, on) { var el = $(id); if (el) el.classList.toggle("hidden", !on); }
+    show("vdp-pay-zelle", m === "zelle");
+    show("vdp-pay-ach", m === "ach");
+    show("vdp-pay-name-wrap", m === "zelle" || m === "ach");
+    show("vdp-pay-check-note", m === "check");
+  }
+  function vdSaveProfile() {
+    if (!vdId || !isAdmin) return;
+    var days = [];
+    document.querySelectorAll(".vdp-avail-day").forEach(function (c) { if (c.checked) days.push(Number(c.value)); });
+    var payload = vdProfilePayload({
+      name: $("vdp-name").value, business: $("vdp-business").value,
+      phone: $("vdp-phone").value, email: $("vdp-email").value,
+      address: $("vdp-address").value, crewSize: $("vdp-crew").value,
+      equipment: $("vdp-equipment").value, insured: $("vdp-insured").value,
+      services: vdServicesEdit, areas: vdAreasEdit,
+      availDays: days, availActive: $("vdp-avail-active").checked
+    });
+    payload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    vdWriteVendor(payload, "vdp-profile-ok", "vdp-profile-err",
+      "Edited vendor profile: " + (payload.business || payload.name || "vendor"));
+  }
+  function vdSavePayout() {
+    if (!vdId || !isAdmin) return;
+    var payload = vdPayoutPayload({
+      method: $("vdp-pay-method").value,
+      zelle: $("vdp-pay-zelle-val").value, name: $("vdp-pay-name").value,
+      bank: $("vdp-pay-bank").value, routing: $("vdp-pay-routing").value,
+      account: $("vdp-pay-account").value
+    });
+    payload.payoutUpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    vdWriteVendor(payload, "vdp-payout-ok", "vdp-payout-err",
+      "Edited vendor payout: " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
+  }
+  function vdSaveNotes() {
+    if (!vdId || !isAdmin) return;
+    vdWriteVendor({ adminNotes: $("vdp-adminnotes").value }, "vdp-notes-ok", "vdp-notes-err",
+      "Edited office notes: " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
+  }
+  function vdPaperChanged(kind, checked) {
+    if (!vdId || !isAdmin) return;
+    var payload = vdPapersPayload(kind, checked, vdData);
+    db.collection("vendors").doc(vdId).update(payload).then(function () {
+      Object.keys(payload).forEach(function (k) { vdData[k] = payload[k]; });
+      vdSaveFlash("vdp-papers-ok", "vdp-papers-err", null);
+      logActivity("Vendor papers updated (" + kind + ": " + (checked ? "on file" : "missing") + "): " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
+    }).catch(function (err) {
+      vdSaveFlash("vdp-papers-ok", "vdp-papers-err", err);
+      renderVendorModal(); // put the toggle back to the saved state
+    });
+  }
+  function vdWireProfileEditor(box) {
+    vdRenderChips("areas");
+    vdRenderChips("services");
+    var ab = $("vdp-area-addbtn"); if (ab) ab.addEventListener("click", function () { vdAddChip("areas"); });
+    var sb = $("vdp-service-addbtn"); if (sb) sb.addEventListener("click", function () { vdAddChip("services"); });
+    [["vdp-area-free", "areas"], ["vdp-service-free", "services"]].forEach(function (pair) {
+      var inp = $(pair[0]);
+      if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); vdAddChip(pair[1]); } });
+    });
+    var pm = $("vdp-pay-method");
+    if (pm) { pm.value = (vdData && vdData.payoutMethod) || ""; pm.addEventListener("change", vdPaySync); vdPaySync(); }
+    var sp = $("vdp-save-profile"); if (sp) sp.addEventListener("click", vdSaveProfile);
+    var sy = $("vdp-save-payout"); if (sy) sy.addEventListener("click", vdSavePayout);
+    var sn = $("vdp-save-notes"); if (sn) sn.addEventListener("click", vdSaveNotes);
+    box.querySelectorAll("[data-vdp-paper]").forEach(function (c) {
+      c.addEventListener("change", function () { vdPaperChanged(c.getAttribute("data-vdp-paper"), c.checked); });
+    });
   }
   function saveVendorNote() {
     if (!vdId) return;
@@ -3839,7 +4159,7 @@
       var v = item.v;
       var when = v.archivedAt && v.archivedAt.toDate ? v.archivedAt.toDate().toLocaleDateString() : "";
       var row = document.createElement("div"); row.className = "arow";
-      row.innerHTML = '<div class="grow"><strong>' + esc(v.business || v.name || "Vendor") + "</strong><small>" +
+      row.innerHTML = '<div class="grow"><button type="button" class="vdp-namelink" data-vopen="' + item.id + '">' + esc(v.business || v.name || "Vendor") + '</button><small>' +
         esc(v.name || "") + (when ? " · archived " + esc(when) : "") + (v.archivedBy ? " · by " + esc(v.archivedBy) : "") + "</small></div>" +
         " " + pill(v.status || "archived") +
         ' <button class="mini" data-vopen="' + item.id + '">Open</button>' +
@@ -4667,14 +4987,29 @@
     }).catch(function () { delete quoteWoFetching[woId]; });
   }
 
-  function loadQuotes() {
-    loadCustomerQuotes();
-    liveOn("quotes", db.collection("quotes").orderBy("createdAt", "desc").limit(30), function (qs) {
-      var box = $("ad-quote-list");
-      if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No quotes submitted yet.</p>'; return; }
-      box.innerHTML = "";
-      qs.forEach(function (d) {
+  // v81: Quotes to Review is a work queue, not an archive. A vendor
+  // quote leaves the list once the customer has signed the customer
+  // quote built from it (the signed agreement lives in Contracts), or
+  // once the vendor quote itself was declined. The cq listener records
+  // signed customer-quote ids in cqSignedIds and re-renders this list.
+  var cqSignedIds = {};
+  var quoteSnapDocs = null;
+  function quoteStillOpen(q) {
+    if (!q) return false;
+    if (q.status === "declined") return false;
+    if (q.customerQuoteId && cqSignedIds[q.customerQuoteId]) return false;
+    return true;
+  }
+  function renderQuoteList() {
+    var box = $("ad-quote-list");
+    if (!box) return;
+    if (!quoteSnapDocs || !quoteSnapDocs.length) { box.innerHTML = '<p style="color:var(--faint)">No quotes submitted yet.</p>'; return; }
+    box.innerHTML = "";
+    var shown = 0;
+    quoteSnapDocs.forEach(function (d) {
         var q = d.data();
+        if (!quoteStillOpen(q)) return;
+        shown++;
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " - " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + (q.quotePdfUrl ? ' · <a href="' + esc(q.quotePdfUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View quote PDF</a>' : "") + "</small></div>" +
           pill(q.status) +
@@ -4690,7 +5025,16 @@
         info.innerHTML = quoteOfficeInfoListHtml(q);
         box.appendChild(info);
         hydrateQuotePhotos(q);
-      });
+    });
+    if (!shown) box.innerHTML = '<p style="color:var(--faint)">No quotes waiting for review. Signed quotes live under Contracts.</p>';
+  }
+  window.pgRenderQuoteList = renderQuoteList;
+  function loadQuotes() {
+    loadCustomerQuotes();
+    liveOn("quotes", db.collection("quotes").orderBy("createdAt", "desc").limit(30), function (qs) {
+      quoteSnapDocs = [];
+      qs.forEach(function (d) { quoteSnapDocs.push(d); });
+      renderQuoteList();
     });
   }
 
@@ -5024,6 +5368,11 @@
           if (q && q.status === "signed") signed.push({ id: d.id, q: q });
           else if (q && q.status === "sent") awaiting.push({ id: d.id, q: q });
         });
+        // v81: share signed ids with Quotes to Review so finished
+        // vendor quotes clear off that list, then re-render it.
+        cqSignedIds = {};
+        signed.forEach(function (it) { cqSignedIds[it.id] = true; });
+        if (typeof window.pgRenderQuoteList === "function") window.pgRenderQuoteList();
         var pbox = $("ad-cq-pending-list");
         if (pbox) {
           if (!awaiting.length) {
@@ -5171,7 +5520,7 @@
         if (st === "archived" || st === "rejected") return; // removed vendors live in the Archived & rejected section below
         shown++;
         var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + (vendorAvailText(v) ? " · " + vendorAvailHtml(v) : "") + "</small></div>" +
+        row.innerHTML = '<div class="grow"><button type="button" class="vdp-namelink" data-vopen="' + d.id + '">' + esc(v.business || v.name || "Vendor") + '</button><small>' + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + (vendorAvailText(v) ? " · " + vendorAvailHtml(v) : "") + "</small></div>" +
           pill(st) +
           ' <button class="mini" data-vopen="' + d.id + '">' + (isAdmin ? "Review" : "Open") + "</button>" +
           (isAdmin ? ' <button class="mini" data-varchive="' + d.id + '">Archive</button>' : "");
@@ -5453,6 +5802,50 @@
       notes: notes
     });
   }
+
+  // ---------- Calendar bridges (used by the cal2 module) ----------
+  // The calendar module lives in its own closure at the bottom of this
+  // file; these two helpers give it read access to the already-loaded
+  // lead / work-order caches and a way to jump from a calendar event to
+  // the matching record. Matching follows the title conventions the
+  // "Add to calendar" bridges above create: lead events are titled
+  // "<Lead name> - estimate visit", work-order events carry the work
+  // order's title / customer name. No calendarEventId is stored on the
+  // records, so this is a name match, best effort only.
+  window.pgCalFindLink = function (ev) {
+    var title = String((ev && ev.summary) || "").toLowerCase();
+    if (!title) return null;
+    var i, j, d, names, n;
+    for (i = 0; i < woOrders.length; i++) {
+      d = woOrders[i].d || {};
+      names = [d.customerName, d.title];
+      for (j = 0; j < names.length; j++) {
+        n = String(names[j] || "").trim().toLowerCase();
+        if (n.length >= 4 && title.indexOf(n) > -1) return { kind: "work_order", id: woOrders[i].id };
+      }
+    }
+    for (i = 0; i < hlLeads.length; i++) {
+      d = hlLeads[i].d || {};
+      n = String(d.name || "").trim().toLowerCase();
+      if (n.length >= 4 && title.indexOf(n) > -1) return { kind: "hot_lead", id: hlLeads[i].id };
+    }
+    return null;
+  };
+  window.pgCalJump = function (kind, id) {
+    if (kind === "work_order") {
+      gotoWorkOrders();
+      woOpenId = id;
+      renderWorkOrders();
+      setTimeout(function () {
+        var el = document.querySelector('[data-woopen="' + id + '"]');
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" });
+      }, 80);
+    } else if (kind === "hot_lead") {
+      var btn = document.querySelector('#pgNavDrawer [data-atab="hotleads"]');
+      if (btn) btn.click();
+      openHotLeadNotes(id);
+    }
+  };
 
   // ---------- Row actions ----------
   document.addEventListener("click", function (e) {
@@ -5915,25 +6308,346 @@
       setTimeout(function () { if (trafficMap) { try { trafficMap.invalidateSize(); } catch (e) {} } }, 300);
     });
   });
+
+  /* ================================================================
+     PAGE HEADS + CLICKABLE HOME TILES (v83, Edwin Oct 19)
+     Every section opens with the same Daylight header band: gold
+     kicker, serif title, one line on what the page is for, and the
+     section's key live counts as chips. Chips are never dead: the
+     Hot Leads / Work Orders / Tasks header chips carry the SAME
+     data attributes as the in-page filter chips, so the central
+     delegated handler routes them identically; the rest route
+     through pgChipRoute below (tab jumps, the CRM quick filter,
+     in-page scrolls, calendar view buttons). Counts are computed
+     from the same in-memory caches and snapshots the sections
+     themselves render from, and liveOn re-renders the heads
+     (debounced) on every snapshot, so a head count can never
+     disagree with the list under it.
+     The six Home stat tiles are doors too (pgTileRoute): work
+     tiles land on the board with the matching filter, and App
+     installs / Push open a people list built from the very
+     push_tokens snapshot loadStats counts, so the names behind
+     the numbers are always the numbers on the tiles.
+     ================================================================ */
+  var pgHeadsTimer = null;
+  function pgScheduleHeads() {
+    if (pgHeadsTimer) return;
+    pgHeadsTimer = setTimeout(function () { pgHeadsTimer = null; renderPageHeads(); }, 200);
+  }
+  function pgNavTo(tab) {
+    var btn = document.querySelector('#pgNavDrawer [data-atab="' + tab + '"]') ||
+      document.querySelector('[data-atab="' + tab + '"]');
+    if (btn) btn.click();
+  }
+  function pgScrollToId(id) {
+    var el = $(id);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function pgSnapDocs(key) {
+    var qs = liveCache[key], out = [];
+    if (qs && qs.forEach) qs.forEach(function (d) { out.push({ id: d.id, d: d.data() || {} }); });
+    return out;
+  }
+  // Merged task items, same inclusion rules as renderFollowUps:
+  // open notes need a followUpOn date; done notes and all tasks count.
+  function pgTaskItems() {
+    var open = [], done = [];
+    if (!fuSnaps.open || !fuSnaps.done || !fuSnaps.tasks) return { open: open, done: done };
+    var today = localDateKey(new Date());
+    fuSnaps.open.forEach(function (d) {
+      var n = d.data();
+      if (!n.followUpOn) return;
+      open.push({ entityType: n.entityType || "", due: n.followUpOn });
+    });
+    fuSnaps.done.forEach(function (d) { done.push({ entityType: (d.data() || {}).entityType || "" }); });
+    fuSnaps.tasks.forEach(function (d) {
+      var t = d.data();
+      var it = { entityType: t.entityType || "", due: t.dueDate || today };
+      if (t.done) done.push(it); else open.push(it);
+    });
+    return { open: open, done: done };
+  }
+  function pgTasksDueCount() {
+    var today = localDateKey(new Date());
+    return pgTaskItems().open.filter(function (it) { return tkDueMeta(it.due, today).group <= 1; }).length;
+  }
+  function pgQuotesOpenCount() {
+    if (quoteSnapDocs) return quoteSnapDocs.filter(function (d) { return quoteStillOpen(d.data()); }).length;
+    var qs = liveCache["stats-q"];
+    return qs && typeof qs.size === "number" ? qs.size : 0;
+  }
+  function pgCqCounts() {
+    var sent = 0, signed = 0, paid = 0, due = 0;
+    pgSnapDocs("contracts").forEach(function (r) {
+      var q = r.d;
+      if (q.status !== "signed") return;
+      signed++;
+      if (q.paidAt) paid++;
+      else if ((Number(q.amountDueNow) || 0) > 0) due++;
+    });
+    pgSnapDocs("cq").forEach(function (r) { if (r.d.status === "sent") sent++; });
+    return { sent: sent, signed: signed, paid: paid, due: due };
+  }
+  function pgChip(label, count, attrs, active) {
+    return '<button type="button" class="pg-ph-chip' + (active ? " active" : "") + '" ' + attrs + ">" +
+      esc(label) + (count != null ? ' <span class="cnt">' + count + "</span>" : "") + "</button>";
+  }
+  function pgRenderHead(tab, kick, title, tag, chipsHtml) {
+    var box = $("pghead-" + tab);
+    if (!box) return;
+    box.innerHTML = '<div class="pg-ph-kick">' + esc(kick) + '</div>' +
+      '<div class="pg-ph-title">' + esc(title) + "</div>" +
+      '<p class="pg-ph-tag">' + esc(tag) + "</p>" +
+      (chipsHtml ? '<div class="pg-ph-chips">' + chipsHtml + "</div>" : "");
+  }
+  function renderPageHeads() {
+    try {
+      // Home: jumps into the working tabs, counts from the same caches.
+      var woC = { all: woOrders.length, quote: 0, active: 0, done: 0 };
+      woOrders.forEach(function (it) { woC[woFilterGroup(it.d)]++; });
+      pgRenderHead("home", "Start here", "Home",
+        "The day at a glance: the $10K goal, today's work, and what needs you.",
+        pgChip("Leads to work", homeStageCounts().total, 'data-pgchip="tab:hotleads"') +
+        pgChip("Quotes to review", pgQuotesOpenCount(), 'data-pgchip="tab:quotes"') +
+        pgChip("Active jobs", woC.active, 'data-pgchip="wo:active"') +
+        pgChip("Tasks due", pgTasksDueCount(), 'data-pgchip="tab:followups"'));
+      // Hot Leads: stage chips are the section's own filter chips.
+      var queueLeads = hlLeads.filter(function (it) { return !it.d.convertedWorkOrderId && !it.d.customerId; });
+      var hlC = { all: queueLeads.length, new: 0, contacted: 0, quoted: 0, booked: 0, done: 0, cold: 0 };
+      queueLeads.forEach(function (it) { hlC[hlStageValue(it.d)]++; });
+      pgRenderHead("hotleads", "Pipeline", "Hot Leads",
+        "New inquiries and follow-ups in one queue. Claim it, call it, convert it.",
+        pgChip("All", hlC.all, 'data-hlstagefilter="all"', hlStageFilter === "all") +
+        pgChip("New", hlC.new, 'data-hlstagefilter="new"', hlStageFilter === "new") +
+        pgChip("Contacted", hlC.contacted, 'data-hlstagefilter="contacted"', hlStageFilter === "contacted") +
+        pgChip("Booked", hlC.booked, 'data-hlstagefilter="booked"', hlStageFilter === "booked"));
+      // Work Orders: board filter chips, same attributes as the board's own.
+      pgRenderHead("work", "Field work", "Work Orders",
+        "Quote requests go out to vendors here; accepted jobs run on this board until they are done.",
+        pgChip("All", woC.all, 'data-wofilter="all"', woFilter === "all") +
+        pgChip("Quote requests", woC.quote, 'data-wofilter="quote"', woFilter === "quote") +
+        pgChip("Active", woC.active, 'data-wofilter="active"', woFilter === "active") +
+        pgChip("Done", woC.done, 'data-wofilter="done"', woFilter === "done"));
+      // Quotes: two in-page lists plus the signed count next door.
+      var cq = pgCqCounts();
+      pgRenderHead("quotes", "Pricing", "Quotes to Review",
+        "Vendor prices land here. Build the customer quote; once it is signed, the file moves to Contracts.",
+        pgChip("To review", pgQuotesOpenCount(), 'data-pgchip="scroll:ad-quote-list"') +
+        pgChip("Awaiting signature", cq.sent, 'data-pgchip="scroll:ad-cq-pending-list"') +
+        pgChip("Signed", cq.signed, 'data-pgchip="tab:contracts"'));
+      // CRM: chips drive the same quick presets as the filter panel.
+      var winback = 0, annualR = 0, never = 0;
+      custRows.forEach(function (it) {
+        if (custIsWinBack(it.d)) winback++;
+        if (custIsAnnualReady(it.d)) annualR++;
+        if (!custLastMs(it.d)) never++;
+      });
+      pgRenderHead("customers", "Customers", "CRM",
+        "Every customer in one record: visits, photos, notes, and what they owe.",
+        pgChip("Customers", custRows.length, 'data-pgchip="crm:all"', custFilters.quick === "all") +
+        pgChip("Win-back", winback, 'data-pgchip="crm:winback"', custFilters.quick === "winback") +
+        pgChip("Annual ready", annualR, 'data-pgchip="crm:annual"', custFilters.quick === "annual") +
+        pgChip("Never serviced", never, 'data-pgchip="crm:never"', custFilters.quick === "never"));
+      // Contracts: no filters here, so chips jump to the related views.
+      pgRenderHead("contracts", "Agreements", "Contracts",
+        "Signed agreements live here for good. A customer's full record is in the CRM.",
+        pgChip("Signed", cq.signed, 'data-pgchip="scroll:ad-contracts-list"') +
+        pgChip("Paid", cq.paid, 'data-pgchip="scroll:ad-contracts-list"') +
+        pgChip("Balance due", cq.due, 'data-pgchip="scroll:ad-contracts-list"') +
+        pgChip("Awaiting signature", cq.sent, 'data-pgchip="tab:quotes"'));
+      // Tasks: entity chips are the page's own filter chips.
+      var tk = pgTaskItems();
+      var tkC = {};
+      tk.open.concat(tk.done).forEach(function (it) { tkC[it.entityType] = (tkC[it.entityType] || 0) + 1; });
+      pgRenderHead("followups", "Follow-ups", "Tasks",
+        "Follow-ups from calls, notes, and work orders, plus standalone tasks. Overdue first, then due today.",
+        pgChip("All", tk.open.length + tk.done.length, 'data-tkfilter="all"', tkEntityFilter === "all") +
+        pgChip("Hot leads", tkC.hot_lead || 0, 'data-tkfilter="hot_lead"', tkEntityFilter === "hot_lead") +
+        pgChip("Work orders", tkC.work_order || 0, 'data-tkfilter="work_order"', tkEntityFilter === "work_order") +
+        pgChip("Customers", tkC.customer || 0, 'data-tkfilter="customer"', tkEntityFilter === "customer"));
+      // Vendors: bench counts from the vendors snapshot itself.
+      var vActive = 0, vPending = 0;
+      pgSnapDocs("vendors").forEach(function (r) {
+        var st = r.d.status || (r.d.verified ? "approved" : "pending");
+        if (st === "archived" || st === "rejected") return;
+        vActive++;
+        if (st === "pending") vPending++;
+      });
+      pgRenderHead("vendors", "Crew bench", "Vendors",
+        "Your crew bench. Tap a vendor's name to open the full profile: notes, areas, payout, and papers.",
+        pgChip("Active vendors", vActive, 'data-pgchip="scroll:ad-vendor-list"') +
+        pgChip("Awaiting approval", vPending, 'data-pgchip="scroll:ad-vendor-list"') +
+        pgChip("Archived", archivedVendors.length, 'data-pgchip="vendarch"'));
+      // Calendar: view + action chips (the tab's own buttons, clicked).
+      pgRenderHead("calendar", "Schedule", "Calendar",
+        "The PrimeGuard Google calendar, right in the dashboard. Tap a day to see its appointments; tap one for details.",
+        pgChip("Today", null, 'data-pgchip="cal:today"') +
+        pgChip("Up next", null, 'data-pgchip="cal:agenda"') +
+        pgChip("Month", null, 'data-pgchip="cal:month"') +
+        pgChip("+ Add appointment", null, 'data-pgchip="cal:add"'));
+      // Traffic: counts read off the tab's own tiles, so they always match.
+      var trV = $("tr-visitors"), tr30 = $("tr-views-30");
+      pgRenderHead("traffic", "Owner only", "Website Traffic",
+        "Who is visiting primeguardmia.com, where they come from, and what they tap.",
+        pgChip("Visitors today", trV ? trV.textContent.trim() : "0", 'data-pgchip="scroll:tr-visitors"') +
+        pgChip("Views, 30 days", tr30 ? tr30.textContent.trim() : "0", 'data-pgchip="scroll:tr-chart"') +
+        pgChip("Journeys", null, 'data-pgchip="scroll:tr-journeys"') +
+        pgChip("Top pages", null, 'data-pgchip="scroll:tr-pages"'));
+    } catch (e) { if (window.console) console.warn("Page heads skipped:", e); }
+  }
+  function pgChipRoute(spec) {
+    if (!spec) return;
+    var kind = spec.split(":")[0], arg = spec.slice(kind.length + 1);
+    if (kind === "tab") pgNavTo(arg);
+    else if (kind === "wo") { pgNavTo("work"); woFilter = arg; renderWorkOrders(); }
+    else if (kind === "hl") { pgNavTo("hotleads"); hlStageFilter = arg; renderHotLeads(); }
+    else if (kind === "tk") { pgNavTo("followups"); tkEntityFilter = arg; loadFollowUps(); }
+    else if (kind === "crm") { pgNavTo("customers"); custFilters.quick = arg; renderCustomers(); }
+    else if (kind === "scroll") pgScrollToId(arg);
+    else if (kind === "cal") {
+      var id = { today: "cal2-today", agenda: "cal2-view-agenda", month: "cal2-view-month", add: "cal2-add" }[arg];
+      var b = id && $(id);
+      if (b) b.click();
+    } else if (kind === "vendarch") {
+      pgNavTo("vendors");
+      if (!archivedOpen) { var tg = $("ad-vendor-archived-toggle"); if (tg) tg.click(); }
+      setTimeout(function () { pgScrollToId("ad-vendor-archived-sec"); }, 60);
+    }
+    pgScheduleHeads();
+  }
+  function pgTileRoute(tile) {
+    if (tile === "wo-open") { pgNavTo("work"); woFilter = "quote"; renderWorkOrders(); }
+    else if (tile === "wo-active") { pgNavTo("work"); woFilter = "active"; renderWorkOrders(); }
+    else if (tile === "quotes") pgNavTo("quotes");
+    else if (tile === "vendors") pgNavTo("vendors");
+    else if (tile === "apps") openPgPeople("apps");
+    else if (tile === "push") openPgPeople("push");
+    pgScheduleHeads();
+  }
+  /* ----- Installs / push people list: the names behind the tiles ----- */
+  function pgPersonName(type, uid, email) {
+    var i, r;
+    if (type === "vendor") {
+      var docs = pgSnapDocs("vendors");
+      for (i = 0; i < docs.length; i++) if (docs[i].id === uid) {
+        r = docs[i].d;
+        return { name: r.business || r.name || "", sub: r.business && r.name && r.name !== r.business ? r.name : "" };
+      }
+      return null;
+    }
+    for (i = 0; i < custRows.length; i++) if (custRows[i].id === uid) return { name: custRows[i].d.name || "", sub: "" };
+    if (email) {
+      var em = String(email).toLowerCase();
+      for (i = 0; i < custRows.length; i++) {
+        r = custRows[i].d;
+        if ((r.email && String(r.email).toLowerCase() === em) ||
+            (r.contact && String(r.contact).toLowerCase().indexOf(em) > -1)) return { name: r.name || "", sub: "" };
+      }
+    }
+    return null;
+  }
+  // Built from the SAME push_tokens snapshot (limit 500) and the SAME
+  // two predicates loadStats counts: appInstalled stamps the App
+  // installs tile, a live token stamps the Push tile. A row exists
+  // exactly when one of the tiles counted that phone.
+  function pgPeopleRows() {
+    var qs = liveCache["stats-push"], rows = [];
+    if (!qs || !qs.forEach) return rows;
+    qs.forEach(function (doc) {
+      var d = doc.data() || {};
+      var installed = !!d.appInstalled, push = !!d.token;
+      if (!installed && !push) return;
+      var type = d.surface === "vendor" ? "vendor" : "customer";
+      var who = pgPersonName(type, doc.id, d.email);
+      var name = (who && who.name) || d.email || "Unknown";
+      var sub = (who && who.sub) || (d.email && name !== d.email ? d.email : "");
+      rows.push({ name: name, sub: sub, type: type, installed: installed, push: push });
+    });
+    rows.sort(function (a, b) {
+      if (a.type !== b.type) return a.type === "vendor" ? -1 : 1;
+      if (a.push !== b.push) return a.push ? -1 : 1;
+      return String(a.name).localeCompare(String(b.name));
+    });
+    return rows;
+  }
+  function openPgPeople(mode) {
+    var body = $("pgPeopleBody"), modal = $("pgPeopleModal");
+    if (!body || !modal) return;
+    var rows = pgPeopleRows();
+    var inst = 0, on = 0, instC = 0, instV = 0, onC = 0, onV = 0;
+    rows.forEach(function (r) {
+      if (r.installed) { inst++; if (r.type === "vendor") instV++; else instC++; }
+      if (r.push) { on++; if (r.type === "vendor") onV++; else onC++; }
+    });
+    var html = '<h3 id="pgPeopleTitle" style="margin:0 28px 4px 0">' + (mode === "push" ? "Push notifications" : "App installs") + "</h3>" +
+      '<p class="sub" style="margin:0 0 6px">App installed: <strong>' + inst + "</strong> (" + instC + " cust · " + instV + " vend)" +
+      ' · Push on: <strong>' + on + "</strong> (" + onC + " cust · " + onV + " vend). The same phones the Home tiles count.</p>";
+    if (!rows.length) html += '<p style="color:var(--faint)">No app installs or push signups yet. When a customer or vendor installs the app or turns on notifications, they show up here by name.</p>';
+    rows.forEach(function (r) {
+      html += '<div class="pg-pp-row"><div class="grow"><strong>' + esc(r.name) + "</strong>" +
+        (r.sub ? "<small>" + esc(r.sub) + "</small>" : "") +
+        "<small>" + (r.type === "vendor" ? "Vendor" : "Customer") + "</small></div>" +
+        '<span class="pg-pp-flag ' + (r.installed ? "on" : "off") + '">App ' + (r.installed ? "installed" : "not installed") + "</span>" +
+        '<span class="pg-pp-flag ' + (r.push ? "on" : "off") + '">Push ' + (r.push ? "on" : "off") + "</span></div>";
+    });
+    body.innerHTML = html;
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function closePgPeople() {
+    var modal = $("pgPeopleModal");
+    if (modal) modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var chipEl = t.closest("[data-pgchip]");
+    if (chipEl) { pgChipRoute(chipEl.getAttribute("data-pgchip")); return; }
+    var tileEl = t.closest("[data-pgtile]");
+    if (tileEl) { pgTileRoute(tileEl.getAttribute("data-pgtile")); return; }
+    if (t.id === "pgPeopleClose" || t.id === "pgPeopleModal") { closePgPeople(); return; }
+    // Any navigation or in-page filter change can move the numbers or
+    // the active chip: refresh the heads a beat later.
+    if (t.closest("[data-atab],[data-hlstagefilter],[data-hltempfilter],[data-wofilter],[data-tkfilter]")) pgScheduleHeads();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var el = e.target && e.target.closest ? e.target.closest("[data-pgtile]") : null;
+    if (el) { e.preventDefault(); pgTileRoute(el.getAttribute("data-pgtile")); }
+  });
+  window.pg83 = { renderPageHeads: renderPageHeads, pgPeopleRows: pgPeopleRows, pgChipRoute: pgChipRoute, pgTileRoute: pgTileRoute, pgTaskItems: pgTaskItems };
 })();
 
-// ---------- Calendar: native month view on the real Google calendar ----------
+// ---------- Calendar: month + agenda on the PrimeGuard Google calendar ----------
+// Transport (rebuilt Oct 19, 2026): NO browser-side Google sign-in.
+// The previous version used a GIS token client whose token lived only in
+// memory, so every visit to this tab forced the full interactive Google
+// connect flow (prompt: "consent") and the connection never persisted,
+// which is exactly what Edwin reported as "the calendar doesn't work".
+// All reads and writes now go through the PrimeGuard Lead Capture Apps
+// Script (the same /exec endpoint config.js already exposes for photo
+// uploads); its CalendarApi.gs handlers use CalendarApp server-side
+// against the PrimeGuard calendar, and stamp every created/updated
+// event with popup reminders 12 hours and 1 hour before. The Firebase
+// sign-in the rest of the admin uses is untouched.
 (function () {
   var grid = document.getElementById("cal2-grid");
   if (!grid) return;
-  var CAL_ID = "48927766c8739f4467e8110bd996256daa3664caa204634e9a370f699220c30e@group.calendar.google.com";
-  var CLIENT_ID = "1031375547061-mlni2m610tne83odo52honlp9af47rnk.apps.googleusercontent.com";
+  var ENDPOINT = (window.SITE_CONFIG && (window.SITE_CONFIG.photoEndpoint || window.SITE_CONFIG.leadEndpoint)) || "";
+  var CAL_API_KEY = ""; // optional shared key; must match Script Property PG_CAL_KEY when that is set
   var COLORS = { "1": "#7986cb", "2": "#33b679", "3": "#8e24aa", "4": "#e67c73", "5": "#f6bf26", "6": "#f4511e", "7": "#039be5", "8": "#616161", "9": "#3f51b5", "10": "#188038", "11": "#d50000" };
   var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var now = new Date();
   var viewY = now.getFullYear(), viewM = now.getMonth();
-  var events = []; // raw Google events for the visible window
-  var accessToken = null, tokenExp = 0, tokenClient = null, started = false;
-  var editingId = null;
+  var events = []; // backend events covering the grid window + the next 45 days
+  var started = false, loading = false, loadError = null;
+  var editingId = null, detailEv = null, selDay = null;
   var fromExternal = false; // editor was opened via window.openApptEditor (another admin section)
 
   function $(id) { return document.getElementById(id); }
-  function status(t) { $("cal2-status").textContent = t; }
+  function status(t) { var s = $("cal2-status"); if (s) s.textContent = t; }
   function pad(n) { return String(n).padStart(2, "0"); }
   function dayKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function esc(s) {
@@ -5942,69 +6656,27 @@
     });
   }
 
-  // ---- Google sign-in (GIS token client, warmed up at page load) ----
-  function loadGis() {
-    return new Promise(function (resolve, reject) {
-      if (window.google && google.accounts && google.accounts.oauth2) return resolve();
-      var s = document.createElement("script");
-      s.src = "https://accounts.google.com/gsi/client";
-      s.onload = function () { resolve(); };
-      s.onerror = function () { reject(new Error("Could not load Google sign-in.")); };
-      document.head.appendChild(s);
+  // ---- Backend transport (Apps Script exec endpoint, same lane as photo uploads) ----
+  function calApi(payload) {
+    if (!ENDPOINT) return Promise.reject(new Error("Calendar backend is not configured: config.js has no photoEndpoint/leadEndpoint."));
+    var body = {};
+    Object.keys(payload).forEach(function (k) { body[k] = payload[k]; });
+    if (CAL_API_KEY) body.key = CAL_API_KEY;
+    return fetch(ENDPOINT, {
+      method: "POST", mode: "cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).then(function (out) {
+      if (!out || out.ok !== true) {
+        throw new Error((out && out.error) || "The calendar backend answered without an ok flag.");
+      }
+      return out;
     });
   }
-  function initTokenClient() {
-    if (tokenClient || !window.google || !google.accounts || !google.accounts.oauth2) return;
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: "https://www.googleapis.com/auth/calendar.events",
-      callback: function () {},
-      error_callback: function () {},
-    });
-  }
-  loadGis().then(initTokenClient).catch(function () {});
-  function ensureToken() {
-    // Reuse the token Google already gave us (about an hour) instead of
-    // asking Google again on every load/save, which kept bouncing Edwin
-    // back to a sign-in screen.
-    if (accessToken && Date.now() < tokenExp) return Promise.resolve(accessToken);
-    return loadGis().then(function () {
-      initTokenClient();
-      return new Promise(function (resolve, reject) {
-        tokenClient.callback = function (resp) {
-          if (resp && resp.access_token) {
-            accessToken = resp.access_token;
-            tokenExp = Date.now() + ((resp.expires_in ? resp.expires_in - 60 : 3000) * 1000);
-            resolve(accessToken);
-          }
-        };
-        tokenClient.error_callback = function () {
-          reject(new Error("Google sign-in was closed or blocked. If Google shows a 'hasn't verified this app' warning, tap Advanced, then 'Go to PrimeGuard Admin', then Allow."));
-        };
-        tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
-      });
-    });
-  }
-  function api(path, method, body) {
-    function attempt(token) {
-      return fetch("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(CAL_ID) + path, {
-        method: method || "GET",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      }).then(function (r) {
-        if (r.status === 401) { accessToken = null; tokenExp = 0; throw new Error("EXPIRED"); }
-        if (!r.ok) {
-          return r.text().then(function (t) {
-            throw new Error("Google Calendar said " + r.status + ". " + (r.status === 403 || r.status === 404 ? "Your Google account may not have edit access to the PrimeGuard calendar yet." : String(t).slice(0, 160)));
-          });
-        }
-        return r.status === 204 ? null : r.json();
-      });
-    }
-    return ensureToken().then(attempt).catch(function (e) {
-      if (e && e.message === "EXPIRED") return ensureToken().then(attempt);
-      throw e;
-    });
+  function calList(fromIso, toIso) {
+    var attempt = function () { return calApi({ type: "cal-list", from: fromIso, to: toIso }); };
+    // One retry: Apps Script cold starts occasionally drop the first hit.
+    return attempt().catch(function () { return attempt(); });
   }
 
   // ---- Data ----
@@ -6014,18 +6686,36 @@
     var end = new Date(start); end.setDate(start.getDate() + 42);
     return { start: start, end: end };
   }
-  function loadEvents() {
+  function loadWindow() {
+    // Union of the visible month grid and the agenda horizon (today + 45d),
+    // so both views render from a single fetch.
     var w = gridWindow();
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var agendaEnd = new Date(today); agendaEnd.setDate(agendaEnd.getDate() + 45);
+    return {
+      start: w.start < today ? w.start : today,
+      end: w.end > agendaEnd ? w.end : agendaEnd,
+    };
+  }
+  function loadEvents() {
+    if (loading) return;
+    loading = true; loadError = null;
+    renderState();
     status("Loading appointments...");
-    var q = "/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=" +
-      encodeURIComponent(w.start.toISOString()) + "&timeMax=" + encodeURIComponent(w.end.toISOString());
-    return api(q).then(function (res) {
-      events = (res && res.items) || [];
+    var w = loadWindow();
+    calList(w.start.toISOString(), w.end.toISOString()).then(function (out) {
+      events = out.events || [];
+      loading = false;
+      renderState();
       render();
-      status("Tap any day to add an appointment. Tap an appointment to edit or delete it. Everything saves to the real PrimeGuard Google calendar.");
+      status("Tap a day to see its appointments. Tap an appointment for details. Everything saves to the real PrimeGuard Google calendar.");
     }).catch(function (e) {
-      status(e && e.message ? e.message : "Could not load the calendar.");
+      events = [];
+      loading = false;
+      loadError = (e && e.message) ? e.message : "The calendar backend did not answer.";
+      renderState();
       render();
+      status("The calendar did not load. Use Try again above; if it keeps failing, the Apps Script calendar API may need redeploying.");
     });
   }
   function evDay(ev) {
@@ -6033,12 +6723,52 @@
     if (ev.start && ev.start.dateTime) return ev.start.dateTime.slice(0, 10);
     return "";
   }
+  function evStart(ev) {
+    if (ev.start && ev.start.dateTime) return new Date(ev.start.dateTime);
+    if (ev.start && ev.start.date) return new Date(ev.start.date + "T00:00:00");
+    return null;
+  }
   function evTime(ev) {
     if (!ev.start || !ev.start.dateTime) return "All day";
-    var d = new Date(ev.start.dateTime);
+    return evTimeStr(new Date(ev.start.dateTime));
+  }
+  function evTimeStr(d) {
     var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "PM" : "AM";
     h = h % 12; if (h === 0) h = 12;
     return h + (m ? ":" + pad(m) : "") + " " + ap;
+  }
+  function evWhenLabel(ev) {
+    var d = evStart(ev);
+    if (!d) return "";
+    var s = DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getDate();
+    if (ev.start && ev.start.date) return s + " · All day";
+    s += " · " + evTime(ev);
+    if (ev.end && ev.end.dateTime) s += " to " + evTimeStr(new Date(ev.end.dateTime));
+    return s;
+  }
+  function findEv(id) {
+    var hit = events.filter(function (x) { return x.id === id; });
+    return hit.length ? hit[0] : null;
+  }
+
+  // ---- Load / error banner (never a silent blank) ----
+  function renderState() {
+    var b = $("cal2-banner");
+    if (!b) return;
+    if (loading) {
+      b.className = "cal2-banner loading";
+      b.textContent = "Loading appointments from the PrimeGuard calendar...";
+      return;
+    }
+    if (loadError) {
+      b.className = "cal2-banner error";
+      b.innerHTML = "<span><strong>Calendar did not load.</strong> " + esc(loadError) + "</span>" +
+        '<button type="button" class="btn btn-gold btn-sm" id="cal2-retry">Try again</button>';
+      $("cal2-retry").addEventListener("click", loadEvents);
+      return;
+    }
+    b.className = "cal2-banner hidden";
+    b.innerHTML = "";
   }
 
   // ---- Render ----
@@ -6057,7 +6787,7 @@
       var d = new Date(w.start); d.setDate(w.start.getDate() + i);
       var k = dayKey(d);
       var list = byDay[k] || [];
-      html += '<div class="cal2-cell' + (d.getMonth() !== viewM ? " dim" : "") + (k === todayK ? " today" : "") + '" data-day="' + k + '">' +
+      html += '<div class="cal2-cell' + (d.getMonth() !== viewM ? " dim" : "") + (k === todayK ? " today" : "") + (k === selDay ? " sel" : "") + '" data-day="' + k + '">' +
         '<span class="cal2-dnum">' + d.getDate() + "</span>";
       list.slice(0, 3).forEach(function (ev) {
         var c = COLORS[ev.colorId] || "#c9a227";
@@ -6070,39 +6800,109 @@
     grid.querySelectorAll(".cal2-cell").forEach(function (cell) {
       cell.addEventListener("click", function (e) {
         if (e.target.classList.contains("cal2-ev")) return;
-        openEditor(null, cell.getAttribute("data-day"));
-        renderDayList(cell.getAttribute("data-day"));
+        selDay = cell.getAttribute("data-day");
+        render();
+        renderDayList(selDay);
       });
     });
     grid.querySelectorAll(".cal2-ev").forEach(function (chip) {
       chip.addEventListener("click", function (e) {
         e.stopPropagation();
-        var id = chip.getAttribute("data-ev");
-        var ev = events.filter(function (x) { return x.id === id; })[0];
-        if (ev) openEditor(ev, evDay(ev));
+        var ev = findEv(chip.getAttribute("data-ev"));
+        if (ev) openDetail(ev);
       });
     });
+    renderAgenda();
+  }
+  function evButtonHtml(ev) {
+    var c = COLORS[ev.colorId] || "#c9a227";
+    return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evWhenLabel(ev)) + "</span></button>";
+  }
+  function bindEvButtons(scope) {
+    scope.querySelectorAll(".cal2-dayitem").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var ev = findEv(btn.getAttribute("data-ev"));
+        if (ev) openDetail(ev);
+      });
+    });
+  }
+  function renderAgenda() {
+    var box = $("cal2-agenda");
+    if (!box) return;
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var up = events.filter(function (ev) {
+      var s = evStart(ev);
+      return s && s >= t0;
+    }).sort(function (a, b) { return evStart(a) - evStart(b); }).slice(0, 8);
+    if (!up.length) {
+      box.innerHTML = '<p class="sub" style="margin:6px 0 0">Nothing coming up in the next 45 days. Use + Add appointment to schedule the next visit.</p>';
+      return;
+    }
+    box.innerHTML = up.map(evButtonHtml).join("");
+    bindEvButtons(box);
   }
   function renderDayList(k) {
     var box = $("cal2-daylist");
     var list = events.filter(function (ev) { return evDay(ev) === k; });
+    list.sort(function (a, b) { return (evStart(a) || 0) - (evStart(b) || 0); });
     var parts = k.split("-");
     var label = MONTHS[Number(parts[1]) - 1] + " " + Number(parts[2]) + ", " + parts[0];
-    if (!list.length) { box.innerHTML = ""; return; }
-    var html = '<h4 style="margin:16px 0 4px">' + esc(label) + "</h4>";
-    list.forEach(function (ev) {
-      var c = COLORS[ev.colorId] || "#c9a227";
-      html += '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8">' + esc(evTime(ev)) + "</span></button>";
-    });
+    var html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 4px"><h4 style="margin:0">' + esc(label) + '</h4><button type="button" class="btn btn-gold btn-sm" id="cal2-day-add">+ Add appointment</button></div>';
+    if (!list.length) html += '<p class="sub" style="margin:4px 0 0">No appointments this day.</p>';
+    list.forEach(function (ev) { html += evButtonHtml(ev); });
     box.innerHTML = html;
-    box.querySelectorAll(".cal2-dayitem").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var id = btn.getAttribute("data-ev");
-        var ev = events.filter(function (x) { return x.id === id; })[0];
-        if (ev) openEditor(ev, evDay(ev));
-      });
-    });
+    $("cal2-day-add").addEventListener("click", function () { openEditor(null, k); });
+    bindEvButtons(box);
   }
+
+  // ---- Detail view (tap an event) ----
+  function openDetail(ev) {
+    detailEv = ev;
+    $("cal2-d-title").textContent = ev.summary || "(no title)";
+    $("cal2-d-when").textContent = evWhenLabel(ev);
+    var where = $("cal2-d-where");
+    where.textContent = ev.location || "";
+    where.style.display = ev.location ? "" : "none";
+    var notes = $("cal2-d-notes");
+    notes.textContent = ev.description || "";
+    notes.style.display = ev.description ? "" : "none";
+    $("cal2-d-msg").textContent = "";
+    var recur = !!ev.recurring;
+    $("cal2-d-recur").classList.toggle("hidden", !recur);
+    $("cal2-d-edit").classList.toggle("hidden", recur);
+    $("cal2-d-delete").classList.toggle("hidden", recur);
+    var linkBox = $("cal2-d-link");
+    linkBox.innerHTML = "";
+    var link = null;
+    if (typeof window.pgCalFindLink === "function") {
+      try { link = window.pgCalFindLink(ev); } catch (e) { link = null; }
+    }
+    if (link && link.id) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-gold btn-sm";
+      btn.textContent = link.kind === "work_order" ? "Open work order" : "Open lead";
+      btn.addEventListener("click", function () {
+        closeDetail();
+        if (typeof window.pgCalJump === "function") window.pgCalJump(link.kind, link.id);
+      });
+      linkBox.appendChild(btn);
+    }
+    $("cal2Detail").classList.remove("hidden");
+  }
+  function closeDetail() { $("cal2Detail").classList.add("hidden"); detailEv = null; }
+  $("cal2-d-close").addEventListener("click", closeDetail);
+  $("cal2Detail").addEventListener("click", function (e) { if (e.target === $("cal2Detail")) closeDetail(); });
+  $("cal2-d-edit").addEventListener("click", function () {
+    if (!detailEv) return;
+    var ev = detailEv;
+    closeDetail();
+    openEditor(ev, evDay(ev));
+  });
+  $("cal2-d-delete").addEventListener("click", function () {
+    if (!detailEv) return;
+    deleteEvent(detailEv.id, $("cal2-d-msg"), closeDetail);
+  });
 
   // ---- Editor modal ----
   function openEditor(ev, dateStr) {
@@ -6110,7 +6910,10 @@
     editingId = ev ? ev.id : null;
     $("cal2-m-title").textContent = ev ? "Edit appointment" : "New appointment";
     $("cal2-f-delete").classList.toggle("hidden", !ev);
-    $("cal2-f-msg").textContent = "";
+    $("cal2-f-msg").textContent = ev && ev.recurring
+      ? "This is a repeating event. Edit it in the Google Calendar app so the whole series stays in sync."
+      : "";
+    $("cal2-f-save").disabled = !!(ev && ev.recurring);
     $("cal2-f-title").value = ev ? (ev.summary || "") : "";
     $("cal2-f-type").value = ev && ev.colorId ? String(ev.colorId) : "10";
     $("cal2-f-date").value = dateStr || dayKey(new Date());
@@ -6131,10 +6934,8 @@
   $("cal2Modal").addEventListener("click", function (e) { if (e.target === $("cal2Modal")) closeEditor(); });
 
   // ---- Shared entry point: any admin section can open the editor prefilled ----
-  // Runs the same lazy init as opening the Calendar tab (start()), then opens
-  // the editor in CREATE mode and applies the caller's prefill. Saving goes
-  // through the normal form handler; GIS sign-in happens on Save via
-  // ensureToken() and any failure lands in the modal's #cal2-f-msg line.
+  // Saving goes through the normal form handler to the Apps Script backend;
+  // no Google sign-in is involved at any point.
   window.openApptEditor = function (prefill) {
     prefill = prefill || {};
     start();
@@ -6146,25 +6947,31 @@
     fromExternal = true;
   };
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !$("cal2Modal").classList.contains("hidden")) closeEditor();
+    if (e.key !== "Escape") return;
+    if (!$("cal2Modal").classList.contains("hidden")) closeEditor();
+    if (!$("cal2Detail").classList.contains("hidden")) closeDetail();
   });
   $("cal2-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var title = $("cal2-f-title").value.trim();
-    var date = $("cal2-f-date").value, start = $("cal2-f-start").value, end = $("cal2-f-end").value;
-    if (!title || !date || !start || !end) { $("cal2-f-msg").textContent = "Fill in the title, date, and both times."; return; }
-    if (end <= start) { $("cal2-f-msg").textContent = "End time has to be after the start time."; return; }
-    var ev = {
+    var date = $("cal2-f-date").value, startT = $("cal2-f-start").value, endT = $("cal2-f-end").value;
+    if (!title || !date || !startT || !endT) { $("cal2-f-msg").textContent = "Fill in the title, date, and both times."; return; }
+    if (endT <= startT) { $("cal2-f-msg").textContent = "End time has to be after the start time."; return; }
+    // Reminders (popup 12h + 1h before) are stamped server-side by
+    // CalendarApi.gs on every create/update; nothing to send from here.
+    var evBody = {
       summary: title,
       colorId: $("cal2-f-type").value,
-      location: $("cal2-f-addr").value.trim() || undefined,
-      description: $("cal2-f-notes").value.trim() || undefined,
-      start: { dateTime: date + "T" + start + ":00", timeZone: "America/New_York" },
-      end: { dateTime: date + "T" + end + ":00", timeZone: "America/New_York" },
+      location: $("cal2-f-addr").value.trim(),
+      description: $("cal2-f-notes").value.trim(),
+      start: { dateTime: date + "T" + startT + ":00", timeZone: "America/New_York" },
+      end: { dateTime: date + "T" + endT + ":00", timeZone: "America/New_York" },
     };
     var btn = $("cal2-f-save"); btn.disabled = true;
     $("cal2-f-msg").textContent = "Saving...";
-    var call = editingId ? api("/events/" + encodeURIComponent(editingId), "PATCH", ev) : api("/events", "POST", ev);
+    var call = editingId
+      ? calApi({ type: "cal-update", id: editingId, event: evBody })
+      : calApi({ type: "cal-create", event: evBody });
     call.then(function () {
       btn.disabled = false;
       if (fromExternal) {
@@ -6182,27 +6989,57 @@
       $("cal2-f-msg").textContent = err && err.message ? err.message : "Something went wrong saving that appointment.";
     });
   });
-  $("cal2-f-delete").addEventListener("click", function () {
-    if (!editingId) return;
+  function deleteEvent(id, msgEl, onDone) {
+    if (!id) return;
     if (!confirm("Delete this appointment?")) return;
-    api("/events/" + encodeURIComponent(editingId), "DELETE").then(function () {
-      closeEditor();
+    calApi({ type: "cal-delete", id: id }).then(function () {
+      if (onDone) onDone();
       loadEvents();
     }).catch(function (err) {
-      $("cal2-f-msg").textContent = err && err.message ? err.message : "Could not delete that appointment.";
+      if (msgEl) msgEl.textContent = err && err.message ? err.message : "Could not delete that appointment.";
     });
+  }
+  $("cal2-f-delete").addEventListener("click", function () {
+    deleteEvent(editingId, $("cal2-f-msg"), closeEditor);
   });
 
   // ---- Header controls ----
-  $("cal2-prev").addEventListener("click", function () { viewM--; if (viewM < 0) { viewM = 11; viewY--; } $("cal2-daylist").innerHTML = ""; loadEvents(); });
-  $("cal2-next").addEventListener("click", function () { viewM++; if (viewM > 11) { viewM = 0; viewY++; } $("cal2-daylist").innerHTML = ""; loadEvents(); });
-  $("cal2-today").addEventListener("click", function () { var n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); $("cal2-daylist").innerHTML = ""; loadEvents(); });
+  $("cal2-prev").addEventListener("click", function () { viewM--; if (viewM < 0) { viewM = 11; viewY--; } $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
+  $("cal2-next").addEventListener("click", function () { viewM++; if (viewM > 11) { viewM = 0; viewY++; } $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
+  $("cal2-today").addEventListener("click", function () { var n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
   $("cal2-refresh").addEventListener("click", loadEvents);
+  var addBtn = $("cal2-add");
+  if (addBtn) addBtn.addEventListener("click", function () { openEditor(null, selDay || dayKey(new Date())); });
+
+  // ---- Phone view toggle (Month / Up next; agenda is the phone default) ----
+  var wrap = $("cal2-wrap");
+  var vAgenda = $("cal2-view-agenda"), vMonth = $("cal2-view-month");
+  function setPhoneView(month) {
+    if (!wrap) return;
+    wrap.classList.toggle("show-month", !!month);
+    if (vAgenda) vAgenda.classList.toggle("active", !month);
+    if (vMonth) vMonth.classList.toggle("active", !!month);
+  }
+  if (vAgenda) vAgenda.addEventListener("click", function () { setPhoneView(false); });
+  if (vMonth) vMonth.addEventListener("click", function () { setPhoneView(true); });
+  setPhoneView(false);
 
   // ---- Start when the Calendar tab is first opened ----
+  // Any [data-atab="calendar"] control counts (top bar, drawer, home rows):
+  // listening to only the first matching button is how the old module
+  // could sit blank when the tab was opened from the drawer. A
+  // MutationObserver on the section covers every other show path.
   function start() { if (started) return; started = true; loadEvents(); }
-  var tabBtn = document.querySelector('[data-atab="calendar"]');
-  if (tabBtn) tabBtn.addEventListener("click", start);
-  if (!$("atab-calendar").classList.contains("hidden")) start();
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('[data-atab="calendar"]') : null;
+    if (b) start();
+  });
+  if (typeof MutationObserver !== "undefined") {
+    var sec = $("atab-calendar");
+    if (sec) new MutationObserver(function () {
+      if (!sec.classList.contains("hidden")) start();
+    }).observe(sec, { attributes: true, attributeFilter: ["class"] });
+  }
+  if ($("atab-calendar") && !$("atab-calendar").classList.contains("hidden")) start();
   render(); // paint the empty grid immediately
 })();
