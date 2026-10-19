@@ -139,6 +139,27 @@
       q_notes_ph: "Labor, materials, haul-away included...",
       q_jobnotes: "Job notes for the office",
       q_jobnotes_ph: "What does this job require? What did the customer ask for? Anything the office should know...",
+      q_materials: "Materials cost ($)",
+      q_materials_by: "Who supplies the materials?",
+      q_mat_vendor: "I supply the materials",
+      q_mat_customer: "Customer supplies them",
+      q_mat_office: "Office supplies them",
+      q_mat_none: "No materials needed",
+      q_earliest: "Earliest day I can start",
+      q_custnote: "Note for the customer (the office will pass it along)",
+      q_custnote_ph: "Arrival window, gate code needed, anything the customer should know...",
+      nir_btn: "I need more info",
+      nir_ph: "What do you need? More photos, measurements, access details...",
+      nir_send: "Send request",
+      nir_cancel: "Cancel",
+      nir_sent: "Request sent. The office will reply.",
+      nir_open: "Waiting on the office:",
+      avail_title: "Availability",
+      avail_active: "I am accepting jobs",
+      avail_days: "Days I can work",
+      avail_save: "Save availability",
+      avail_saved: "Availability saved.",
+      av_d1: "Mon", av_d2: "Tue", av_d3: "Wed", av_d4: "Thu", av_d5: "Fri", av_d6: "Sat", av_d7: "Sun",
       addon_title: "Maximize the visit: what else does this property need?",
       addon_hint: "Walk the whole property. Check every extra service it needs and put your price for each one. The office adds them to your quote.",
       addon_hedge: "Hedge and bush trimming",
@@ -468,6 +489,27 @@
       q_notes_ph: "Mano de obra, materiales, recogida de escombros...",
       q_jobnotes: "Notas del trabajo",
       q_jobnotes_ph: "¿Qué requiere este trabajo? ¿Qué pidió el cliente? ¿Algo que la oficina debe saber?...",
+      q_materials: "Costo de materiales ($)",
+      q_materials_by: "¿Quién trae los materiales?",
+      q_mat_vendor: "Yo traigo los materiales",
+      q_mat_customer: "El cliente los trae",
+      q_mat_office: "La oficina los trae",
+      q_mat_none: "No se necesitan materiales",
+      q_earliest: "Primer día que puedo empezar",
+      q_custnote: "Nota para el cliente (la oficina se la comparte)",
+      q_custnote_ph: "Hora de llegada, necesito el código de la puerta, lo que el cliente debe saber...",
+      nir_btn: "Necesito más información",
+      nir_ph: "¿Qué necesitas? Más fotos, medidas, detalles de acceso...",
+      nir_send: "Enviar solicitud",
+      nir_cancel: "Cancelar",
+      nir_sent: "Solicitud enviada. La oficina te responderá.",
+      nir_open: "Esperando respuesta de la oficina:",
+      avail_title: "Disponibilidad",
+      avail_active: "Estoy aceptando trabajos",
+      avail_days: "Días que puedo trabajar",
+      avail_save: "Guardar disponibilidad",
+      avail_saved: "Disponibilidad guardada.",
+      av_d1: "Lun", av_d2: "Mar", av_d3: "Mié", av_d4: "Jue", av_d5: "Vie", av_d6: "Sáb", av_d7: "Dom",
       addon_title: "Maximiza la visita: ¿qué más necesita esta propiedad?",
       addon_hint: "Revisa toda la propiedad. Marca cada servicio extra que necesita y pon tu precio por cada uno. La oficina los suma a tu cotización.",
       addon_hedge: "Recorte de arbustos y setos",
@@ -1019,6 +1061,42 @@
     ].map(function (f) {
       return '<div class="vfield"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1] || "-") + '</strong></div>';
     }).join("");
+    renderAvailability();
+  }
+
+  // ---------- Availability (v29) ----------
+  // Stored on vendors/{uid} as availability: { days: [...], active }.
+  // Day numbering (documented choice): numbers 1..7, 1 = Monday ..
+  // 7 = Sunday. The admin Vendors tab renders the same numbering.
+  // active defaults to true when the field is missing.
+  function renderAvailability() {
+    var box = $("vd-availability");
+    if (!box || !vendor) return;
+    var av = vendor.availability || {};
+    var days = Array.isArray(av.days) ? av.days : [];
+    var active = av.active !== false;
+    var labels = [t("av_d1"), t("av_d2"), t("av_d3"), t("av_d4"), t("av_d5"), t("av_d6"), t("av_d7")];
+    var checks = labels.map(function (lbl, i) {
+      var d = i + 1;
+      return '<label style="display:inline-flex;align-items:center;gap:6px;margin:0 10px 6px 0;cursor:pointer"><input type="checkbox" class="vd-avail-day" value="' + d + '"' + (days.indexOf(d) >= 0 ? " checked" : "") + ' style="width:18px;height:18px"> ' + esc(lbl) + "</label>";
+    }).join("");
+    box.innerHTML = '<div class="vjob" style="max-width:720px"><div class="t">' + esc(t("avail_title")) + "</div>" +
+      '<label style="display:flex;gap:10px;align-items:center;cursor:pointer;margin:8px 0"><input type="checkbox" id="vd-avail-active"' + (active ? " checked" : "") + ' style="width:20px;height:20px"> <strong>' + esc(t("avail_active")) + "</strong></label>" +
+      '<div style="font-weight:700;font-size:.88rem;margin:6px 0 4px">' + esc(t("avail_days")) + "</div>" + checks +
+      '<div style="margin-top:10px"><button type="button" class="btn btn-gold" id="vd-avail-save">' + esc(t("avail_save")) + "</button>" +
+      ' <span class="vok hidden" id="vd-avail-ok">' + esc(t("avail_saved")) + "</span></div></div>";
+    $("vd-avail-save").addEventListener("click", function () {
+      var sel = [];
+      box.querySelectorAll(".vd-avail-day").forEach(function (c) { if (c.checked) sel.push(Number(c.value)); });
+      var isActive = !!$("vd-avail-active").checked;
+      db.collection("vendors").doc(me.uid).update({
+        availability: { days: sel, active: isActive },
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        vendor.availability = { days: sel, active: isActive };
+        var ok = $("vd-avail-ok"); if (ok) ok.classList.remove("hidden");
+      });
+    });
   }
 
   // ---------- Documents reminder (W-9 / insurance) ----------
@@ -2051,6 +2129,42 @@
     }).join("") + "</div>";
   }
 
+  // ---------- Info requests (v29) ----------
+  // A vendor who needs more photos / measurements / access details
+  // before pricing asks from the job card instead of guessing. The
+  // request arrayUnions onto work_orders.infoRequests; the office sees
+  // it in the admin work order detail and marks it answered there.
+  var infoReqJustSent = {};
+  function buildInfoRequest(text) {
+    return {
+      by: me.uid,
+      vendorName: (vendor && (vendor.name || vendor.business)) || "",
+      text: String(text || "").trim(),
+      at: new Date().toISOString(),
+      status: "open"
+    };
+  }
+  function infoReqHtml(w) {
+    if (!w || !w.id) return "";
+    var mine = (Array.isArray(w.infoRequests) ? w.infoRequests : []).filter(function (r) {
+      return r && r.by === me.uid && r.status === "open";
+    });
+    var out = '<div class="vd-inforeq" style="margin-top:10px">';
+    if (infoReqJustSent[w.id]) out += '<p class="vok" style="margin:0 0 6px">' + esc(t("nir_sent")) + "</p>";
+    if (mine.length) {
+      out += '<div style="font-size:.85rem;margin-bottom:6px"><strong>' + esc(t("nir_open")) + "</strong>" +
+        mine.map(function (r) { return "<div>• " + esc(r.text || "") + "</div>"; }).join("") + "</div>";
+    }
+    out += '<button type="button" class="btn btn-ghost" data-need-info="' + w.id + '">' + esc(t("nir_btn")) + "</button>" +
+      '<div class="nir-form hidden" style="margin-top:8px">' +
+      '<textarea class="nir-text" rows="2" style="width:100%" placeholder="' + esc(t("nir_ph")) + '"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:6px">' +
+      '<button type="button" class="btn btn-gold" data-need-info-send="' + w.id + '">' + esc(t("nir_send")) + "</button>" +
+      '<button type="button" class="btn btn-ghost" data-need-info-cancel="' + w.id + '">' + esc(t("nir_cancel")) + "</button>" +
+      "</div></div></div>";
+    return out;
+  }
+
   function renderList(box, arr, kind) {
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("list_empty")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
@@ -2118,6 +2232,7 @@
         '<button class="btn btn-gold" data-upload="' + w.id + '">' + esc(t("btn_upload")) + '</button>' +
         (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">' + esc(t("btn_complete2")) + '</button>' : "") +
         (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>' : "") +
+        infoReqHtml(w) +
         // The hero card carries this job's one file input; skip the
         // duplicate here so #up-{id} exists exactly once per job.
         (w.id === heroId ? "" : '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">') +
@@ -2215,7 +2330,7 @@
       return '<div class="vjob" data-job-row="' + r.id + '"><div class="t">' + esc(state) + '</div>' +
         "<h3>" + esc(w ? (w.title || w.category || t("job_word")) : t("rec_quote_only")) + "</h3>" +
         '<div class="meta"><strong>' + esc(w ? (w.area || "") : "") + "</strong>" + (when ? " · " + esc(when) : "") + "</div>" +
-        priceHtml + btns + "</div>";
+        priceHtml + btns + (w && w.status !== "done" ? infoReqHtml(w) : "") + "</div>";
     }).join("");
   }
 
@@ -2406,6 +2521,30 @@
         if (qp) qp.focus({ preventScroll: true });
       }, 500);
     }
+    if (t.dataset.needInfo) {
+      var nCard = t.closest ? t.closest("[data-job-row]") : null;
+      var nForm = nCard ? nCard.querySelector(".nir-form") : null;
+      if (nForm) nForm.classList.toggle("hidden");
+    }
+    if (t.dataset.needInfoCancel) {
+      var cCard = t.closest ? t.closest("[data-job-row]") : null;
+      var cForm = cCard ? cCard.querySelector(".nir-form") : null;
+      if (cForm) cForm.classList.add("hidden");
+    }
+    if (t.dataset.needInfoSend) {
+      var sWoId = t.dataset.needInfoSend;
+      var sCard = t.closest ? t.closest("[data-job-row]") : null;
+      var sTa = sCard ? sCard.querySelector(".nir-text") : null;
+      var sText = sTa ? sTa.value.trim() : "";
+      if (!sText) { if (sTa) sTa.focus(); return; }
+      t.disabled = true;
+      db.collection("work_orders").doc(sWoId).update({
+        infoRequests: firebase.firestore.FieldValue.arrayUnion(buildInfoRequest(sText))
+      }).then(function () {
+        infoReqJustSent[sWoId] = true;
+        loadAll();
+      }).catch(function (err) { alert(err.message); t.disabled = false; });
+    }
   });
 
   document.addEventListener("change", function (e) {
@@ -2497,6 +2636,18 @@
     // as vendorNotes and mirrored on the work order as lastVendorNotes so
     // the office sees them in Quotes to Review and the build-quote view.
     var jobNotes = $("q-jobnotes").value.trim();
+    // v29 fields (Edwin, Oct 19): materials split (labor vs materials,
+    // and who supplies them), the earliest day he can start, and a note
+    // meant for the customer that the office passes along. Saved on the
+    // quote and mirrored on the work order in the update below.
+    var qPriceNum = parseFloat(String($("q-price").value).replace(/[^0-9.]/g, "")) || 0;
+    var materialsCost = parseFloat(String($("q-materials").value).replace(/[^0-9.]/g, "")) || 0;
+    if (materialsCost > qPriceNum) materialsCost = qPriceNum;
+    materialsCost = Math.round(materialsCost * 100) / 100;
+    var materialsBy = $("q-materials-by").value || "vendor";
+    var laborCost = materialsCost > 0 ? Math.round((qPriceNum - materialsCost) * 100) / 100 : qPriceNum;
+    var earliestStart = $("q-earliest").value || null;
+    var customerNote = $("q-custnote").value.trim();
     function saveQuote(pdfUrl) {
       return db.collection("quotes").add({
         workOrderId: woId,
@@ -2507,6 +2658,11 @@
         duration: $("q-duration").value.trim(),
         notes: $("q-notes").value.trim(),
         vendorNotes: jobNotes,
+        materialsCost: materialsCost,
+        materialsBy: materialsBy,
+        laborCost: laborCost,
+        earliestStart: earliestStart,
+        customerNote: customerNote,
         addons: quoteAddons,
         quotePdfUrl: pdfUrl || null,
         status: "pending",
@@ -2531,10 +2687,11 @@
       });
     }
     uploadPdf().then(saveQuote).then(function () {
-      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons, lastVendorNotes: jobNotes });
+      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons, lastVendorNotes: jobNotes, vendorMaterialsCost: materialsCost, vendorMaterialsBy: materialsBy, vendorLaborCost: laborCost, vendorEarliestStart: earliestStart, vendorCustomerNote: customerNote });
     }).then(function () {
       okEl.classList.remove("hidden");
       $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-jobnotes").value = ""; $("q-pdf").value = "";
+      $("q-materials").value = ""; $("q-materials-by").value = "vendor"; $("q-earliest").value = ""; $("q-custnote").value = "";
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-check"), function (c) { c.checked = false; });
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-price"), function (p) { p.value = ""; });
       btn.disabled = false; btn.textContent = t("q_submit");
