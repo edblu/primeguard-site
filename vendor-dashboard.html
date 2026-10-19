@@ -219,6 +219,17 @@
           <label>¿Cuánto tiempo toma?<input type="text" id="q-duration" placeholder="1 day"></label>
         </div>
         <label>Detalles del precio<textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..."></textarea></label>
+        <div id="q-addons" style="margin:4px 0 12px">
+          <p style="font-weight:700;margin:0 0 4px">Maximiza la visita: ¿qué más necesita esta propiedad?</p>
+          <p style="font-size:.82rem;color:var(--muted);margin:0 0 10px">Revisa toda la propiedad. Marca cada servicio extra que necesita y pon tu precio por cada uno. La oficina los suma a tu cotización.</p>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Hedge and bush trimming" style="width:20px;height:20px;flex:none"><span style="flex:1">Recorte de arbustos y setos</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Flower bed cleanup and weed removal" style="width:20px;height:20px;flex:none"><span style="flex:1">Limpieza de canteros y maleza</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Mulch or decorative rock" style="width:20px;height:20px;flex:none"><span style="flex:1">Mulch nuevo o piedra decorativa</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Palm and small tree trimming" style="width:20px;height:20px;flex:none"><span style="flex:1">Recorte de palmas y árboles pequeños</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Full yard cleanup" style="width:20px;height:20px;flex:none"><span style="flex:1">Limpieza general del patio</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Pressure washing (driveway and sidewalks)" style="width:20px;height:20px;flex:none"><span style="flex:1">Lavado a presión (driveway y aceras)</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+          <div class="q-addon-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" class="q-addon-check" data-label="Edging and full front finish" style="width:20px;height:20px;flex:none"><span style="flex:1">Bordes y acabado completo del frente</span><input type="text" class="q-addon-price" inputmode="decimal" placeholder="$" style="width:90px"></div>
+        </div>
         <label>Adjunta tu cotización formal <span style="color:var(--muted);font-weight:400">(optional)</span>
           <input type="file" id="q-pdf" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px">
         </label>
@@ -358,7 +369,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=19"></script>
+<script src="vendor-dashboard.js?v=20"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

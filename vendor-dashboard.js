@@ -1236,6 +1236,19 @@
     var pdfFile = $("q-pdf").files[0] || null;
     var btn = this.querySelector('button[type="submit"]');
     btn.disabled = true; btn.textContent = pdfFile ? "Uploading quote..." : "Submitting...";
+    function collectAddons() {
+      var out = [];
+      Array.prototype.forEach.call(document.querySelectorAll(".q-addon-row"), function (row) {
+        var chk = row.querySelector(".q-addon-check");
+        var priceEl = row.querySelector(".q-addon-price");
+        if (!chk || !chk.checked) return;
+        var p = parseFloat(String(priceEl.value || "").replace(/[^0-9.]/g, ""));
+        if (!(p > 0)) return;
+        out.push({ label: chk.dataset.label, price: p });
+      });
+      return out;
+    }
+    var quoteAddons = collectAddons();
     function saveQuote(pdfUrl) {
       return db.collection("quotes").add({
         workOrderId: woId,
@@ -1245,6 +1258,7 @@
         price: $("q-price").value.trim(),
         duration: $("q-duration").value.trim(),
         notes: $("q-notes").value.trim(),
+        addons: quoteAddons,
         quotePdfUrl: pdfUrl || null,
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1268,10 +1282,12 @@
       });
     }
     uploadPdf().then(saveQuote).then(function () {
-      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true });
+      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons });
     }).then(function () {
       okEl.classList.remove("hidden");
       $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-pdf").value = "";
+      Array.prototype.forEach.call(document.querySelectorAll(".q-addon-check"), function (c) { c.checked = false; });
+      Array.prototype.forEach.call(document.querySelectorAll(".q-addon-price"), function (p) { p.value = ""; });
       btn.disabled = false; btn.textContent = "Submit quote";
       loadAll();
     }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = "Submit quote"; });

@@ -3883,6 +3883,16 @@
       if (woId) inner += '<span style="display:inline-flex;gap:6px;align-items:center;margin-top:4px"><input class="wo-price-in" type="number" min="0" step="1" placeholder="Job price $" value="' + (price > 0 ? price : "") + '" style="width:110px;padding:5px 8px;border:1px solid var(--m-line,#ddd);border-radius:8px;font:inherit;font-size:.85rem"><button type="button" class="mini hlq-action hlq-action-ghost" data-wopricesave="' + esc(woId) + '">Save price</button></span>';
       html += row("Job costing", inner);
     })();
+    // Vendor add-on scan (Oct 19): extras the vendor flagged on site with
+    // HIS prices; Natasha marks them up in the customer quote builder.
+    if (Array.isArray(w.vendorAddons) && w.vendorAddons.length) {
+      var vaTotal = 0;
+      var vaHtml = w.vendorAddons.map(function (a) {
+        var p = parseFloat(a.price) || 0; vaTotal += p;
+        return esc(a.label || "Add-on") + " <strong>$" + Math.round(p) + "</strong>";
+      }).join(" · ");
+      html += row("Add-on scan (vendor)", vaHtml + '<br><span style="color:#7a7668">Vendor total for extras: $' + Math.round(vaTotal) + ". These prefill the customer quote builder as optional add-ons.</span>");
+    }
     if (when) html += row("Scheduled", fmtWhen(when));
     // Vendor checklist progress (Oct 18): same per-service lists as the
     // vendor portal; keep the two in sync.
@@ -4463,6 +4473,24 @@
       else { row.querySelector(".cq-item-label").value = ""; row.querySelector(".cq-item-amount").value = ""; }
       cqRecalc();
     });
+    // Prefill optional add-ons from the vendor's on-site scan (Oct 19):
+    // vendor prices land in the rows as the starting point; staff raise
+    // them to customer prices before saving. Source: the quote's addons,
+    // falling back to the work order's vendorAddons.
+    (function () {
+      var scan = (q && Array.isArray(q.addons) && q.addons.length) ? q.addons : ((wo && Array.isArray(wo.vendorAddons)) ? wo.vendorAddons : []);
+      if (!scan.length) return;
+      scan.forEach(function (a) {
+        var div = document.createElement("div");
+        div.innerHTML = cqAddonRowHtml(a.label || "", a.price != null ? a.price : (a.amount != null ? a.amount : ""));
+        $("cq-addons").appendChild(div.firstChild);
+      });
+      var hint = document.createElement("p");
+      hint.className = "sr-faint";
+      hint.style.margin = "6px 0 0";
+      hint.textContent = "Prefilled from the vendor's add-on scan at HIS prices. Raise each amount to the customer price before saving.";
+      $("cq-addons").appendChild(hint);
+    })();
     cqRecalc();
   }
 
