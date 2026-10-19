@@ -875,20 +875,14 @@
     }).catch(function (err) { errEl.textContent = friendlyAuthError(err); show(errEl); });
   });
 
-  // Staff-only "Admin dashboard" role option in the login chooser: visible
-  // when a staff/{uid} doc exists or for the owner account (the same check
-  // the admin itself uses); stays hidden for regular vendors and on any error.
+  // "Admin dashboard" role option in the login chooser: ALWAYS visible
+  // (role-always-visible, Edwin, Oct 19: he could not see the admin side
+  // at login because it only appeared after a staff sign-in). Access is
+  // still enforced by admin.html itself, which rejects non-staff accounts.
   function checkStaffEntry(user) {
     var btn = $("vdRoleAdmin");
     if (!btn) return;
-    btn.style.display = "none";
-    if (!user) return;
-    try {
-      if (user.email === "edblucorp@gmail.com") { btn.style.display = ""; return; }
-      db.collection("staff").doc(user.uid).get().then(function (snap) {
-        if (snap && snap.exists) btn.style.display = "";
-      }).catch(function () { /* leave hidden */ });
-    } catch (e) { /* leave hidden */ }
+    btn.style.display = "";
   }
 
   auth.onAuthStateChanged(function (user) {

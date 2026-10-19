@@ -241,7 +241,7 @@
     .promo-banner { flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 84px; }
   }
 </style>
-<link rel="stylesheet" href="portal.css?v=5">
+<link rel="stylesheet" href="portal.css?v=6">
 </head>
 <body class="acct-page">
 <header class="site-header">
@@ -300,7 +300,7 @@
         <div class="role-toggle" aria-label="Choose your portal">
           <a class="role-btn active" href="account.html" aria-current="page" data-i18n="role_customer">I'm a customer</a>
           <a class="role-btn" href="vendor-dashboard.html" data-i18n="role_vendor">I'm a vendor</a>
-          <a class="role-btn" href="admin.html" id="acRoleAdmin" style="display:none" data-i18n="role_admin">Admin dashboard</a>
+          <a class="role-btn" href="admin.html" id="acRoleAdmin" data-i18n="role_admin">Admin dashboard</a>
         </div>
         <div class="auth-tabs">
           <button id="tab-login" class="auth-tab active" type="button" data-i18n="tab_login">Log in</button>
@@ -608,7 +608,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=20"></script>
+<script src="account.js?v=21"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

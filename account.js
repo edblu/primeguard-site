@@ -597,23 +597,25 @@
   function checkStaffEntry(user) {
     var btn = $("pgAdminBtn");
     var roleBtn = $("acRoleAdmin");
-    if (!btn && !roleBtn) return;
-    // The buttons are hidden with an inline style="display:none" in the HTML,
-    // so toggle the inline style directly — the class-based show()/hide()
-    // helpers cannot override it (that mismatch kept the button invisible).
-    if (btn) btn.style.display = "none";
-    if (roleBtn) roleBtn.style.display = "none";
+    // The login chooser's Admin role option is ALWAYS visible
+    // (role-always-visible, Edwin, Oct 19: he could not see the admin side
+    // at login because it only appeared after a staff sign-in). Access is
+    // still enforced by admin.html itself, which rejects non-staff accounts.
+    if (roleBtn) roleBtn.style.display = "";
+    if (!btn) return;
+    // The in-dashboard admin button keeps the staff-only behavior. It is
+    // hidden with an inline style="display:none" in the HTML, so toggle
+    // the inline style directly.
+    btn.style.display = "none";
     if (!user) return;
     try {
       if (user.email === "edblucorp@gmail.com") {
-        if (btn) btn.style.display = "";
-        if (roleBtn) roleBtn.style.display = "";
+        btn.style.display = "";
         return;
       }
       db.collection("staff").doc(user.uid).get().then(function (snap) {
         if (snap && snap.exists) {
-          if (btn) btn.style.display = "";
-          if (roleBtn) roleBtn.style.display = "";
+          btn.style.display = "";
         }
       }).catch(function () { /* leave hidden */ });
     } catch (e) { /* leave hidden */ }

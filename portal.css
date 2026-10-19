@@ -474,23 +474,28 @@
   background-position: center;
   box-shadow: var(--dl-sh-panel);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
 }
 .acct-page .login-banner-panel {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
+  width: 100%;
   background: rgba(255, 255, 255, .88);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, .95);
   border-radius: 14px;
-  padding: 12px 18px 12px 14px;
-  text-align: left;
+  padding: 16px 18px;
+  text-align: center;
 }
 .acct-page .login-banner-logo { width: 74px; height: 74px; object-fit: contain; flex: none; }
-.acct-page .login-banner-panel h2 { margin: 0; font-size: 1.35rem; color: var(--dl-ink); }
+.acct-page .login-banner-panel h2 { margin: 0; font-size: 1.35rem; color: var(--dl-ink); text-align: center; }
+.acct-page .login-banner-panel p { text-align: center; }
+/* login-center-v1: banner title block centered (Edwin, Oct 19) */
 .acct-page .login-banner-panel p { margin: 2px 0 0; font-size: .92rem; color: var(--dl-body); }
 .acct-page .role-toggle {
   display: flex;
@@ -554,6 +559,20 @@
 .ccal-chip.done{background:#2e7d32;color:#fff}
 .ccal-photos{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .ccal-photos img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #eee3cb}
+/* Live visit tracker (2026-10-17): stage steps for today's visit */
+.ccal-track{background:#fffdf7;border:1px solid #e3d3a3;border-radius:14px;padding:12px 14px;margin:0 0 14px}
+.ccal-track h4{margin:0 0 2px;color:#3a2f16;font-size:1rem}
+.ccal-track .ct-sub{color:#8a7a52;font-size:.85rem;margin:0 0 10px}
+.ct-steps{display:flex;gap:0;margin:8px 0 4px}
+.ct-step{flex:1;text-align:center;position:relative;padding-top:20px;font-size:.72rem;font-weight:700;color:#a08c55;letter-spacing:.02em}
+.ct-step::before{content:"";position:absolute;top:5px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:#e7dcbc;border:2px solid #d8c88f}
+.ct-step::after{content:"";position:absolute;top:11px;left:calc(-50% + 9px);right:calc(50% + 9px);height:2px;background:#e7dcbc}
+.ct-step:first-child::after{display:none}
+.ct-step.on{color:#3a2f16}
+.ct-step.on::before{background:#c9a227;border-color:#c9a227}
+.ct-step.on::after{background:#c9a227}
+.ct-step.now::before{background:#2e7d32;border-color:#2e7d32;box-shadow:0 0 0 4px rgba(46,125,50,.18)}
+.ct-live{font-size:.85rem;color:#3a2f16;margin:6px 0 0}
 .ccal-connect{margin-top:16px;border-top:1px dashed #e3d3a3;padding-top:12px}
 .ccal-connect h4{margin:0 0 4px;color:#3a2f16}
 .ccal-connect-sub{color:#8a7a52;font-size:.88rem;margin:0 0 10px}
