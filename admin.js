@@ -38,6 +38,28 @@
   });
   try { if (localStorage.getItem("pg_wo_form_collapsed")) setWoFormCollapsed(true); } catch (e) {}
 
+  // ---------- Nav emoji icons (Edwin, Oct 19: he loves the emoji tabs on
+  // the vendor portal and wants the same treatment on the admin nav) ----
+  (function navEmoji() {
+    var EMOJI = {
+      home: "\u{1F3E0}", hotleads: "\u{1F525}", work: "\u{1F4BC}",
+      quotes: "\u{1F4DD}", vendors: "\u{1F477}", followups: "\u2705",
+      customers: "\u{1F465}", contracts: "\u{1F4C4}", calendar: "\u{1F4C5}",
+      team: "\u{1F91D}", activity: "\u{1F440}", referrals: "\u{1F381}"
+    };
+    document.querySelectorAll("[data-atab]").forEach(function (b) {
+      if (b.dataset.emojiDone) return;
+      var ic = EMOJI[b.getAttribute("data-atab")];
+      if (!ic) return;
+      b.dataset.emojiDone = "1";
+      var s = document.createElement("span");
+      s.className = "tab-emoji";
+      s.setAttribute("aria-hidden", "true");
+      s.textContent = ic + " ";
+      b.insertBefore(s, b.firstChild);
+    });
+  })();
+
   // ---------- Light / dark theme toggle ----------
   var themeBtn = $("ad-theme");
   function syncThemeBtn() {
