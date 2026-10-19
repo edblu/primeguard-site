@@ -17,6 +17,53 @@
 <meta name="apple-mobile-web-app-title" content="PG Vendor">
 <link rel="stylesheet" href="vendor.css?v=4">
 <link rel="stylesheet" href="vendor-dash.css?v=5">
+<style>
+/* ---------- View navigation + Inicio (Mi semana) home view ----------
+   Same Golden Hour design tokens as vendor-dash.css: gold gradient,
+   warm cream cards, soft gold shadows. Views only toggle visibility;
+   nothing about the existing look changes. */
+[data-view].vd-view-off { display: none !important; }
+.vhome-card { background:#fffdf7; border:1px solid #eadfc6; border-radius:18px; padding:18px; box-shadow:var(--vd-sh-sm); }
+.vhome-week-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:12px; }
+.vhome-week-label { font-size:.78rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#6d5c26; }
+.vhome-week-n { font-size:.82rem; font-weight:700; color:var(--gold-deep); white-space:nowrap; }
+.vhome-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.vhome-day-cell { border:1px solid transparent; background:transparent; border-radius:12px; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:#3a2f16; padding:7px 0 6px; }
+.vhome-dow { font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#a08c5a; }
+.vhome-dnum { font-size:1rem; font-weight:700; line-height:1.1; }
+.vhome-dots { display:flex; gap:3px; height:6px; }
+.vhome-dots i { width:6px; height:6px; border-radius:50%; background:#c9a227; display:block; }
+.vhome-day-cell.today { border-color:#e0aa26; }
+.vhome-day-cell.today .vhome-dnum { font-weight:800; }
+.vhome-day-cell.sel { background:var(--vd-gold-grad); }
+.vhome-day-cell.sel .vhome-dow { color:#6d5c26; }
+.vhome-day-cell.sel .vhome-dots i { background:#3a2f16; }
+.vhome-day { margin-top:14px; border-top:1px solid #f0e6cd; padding-top:6px; }
+.vhome-ev { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f5edd8; }
+.vhome-ev:last-child { border-bottom:none; }
+.vhome-ev-tx { flex:1; display:flex; flex-direction:column; min-width:0; }
+.vhome-ev-tx strong { color:var(--text); }
+.vhome-ev-tx small { color:#8a7a52; }
+.vhome-ev-btn { padding:9px 15px; font-size:.85rem; font-weight:800; white-space:nowrap; border:none; border-radius:999px; background:var(--vd-gold-grad); color:var(--text); cursor:pointer; font-family:inherit; box-shadow:0 6px 16px rgba(185,138,29,.3); }
+.vhome-band { margin-top:12px; background:var(--vd-gold-grad); border:1px solid rgba(255,255,255,.5); border-radius:18px; box-shadow:0 12px 26px rgba(185,138,29,.28); padding:14px 16px; display:flex; gap:14px; }
+.vhome-band > div { flex:1 1 0; min-width:0; }
+.vhome-band small { display:block; font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#6d5c26; }
+.vhome-band strong { display:block; font-size:1.55rem; font-weight:800; line-height:1.1; margin-top:2px; color:var(--text); }
+.vhome-band span { display:block; font-size:.78rem; font-weight:700; color:#6d5c26; margin-top:2px; }
+.vhome-band-r { text-align:right; }
+.vhome-band-r small, .vhome-band-r span { text-align:right; }
+.vhome-qa { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+.vhome-qa-tile { background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.95); border-radius:16px; box-shadow:var(--vd-sh-sm); padding:13px 4px 11px; display:flex; flex-direction:column; align-items:center; gap:6px; font-family:inherit; font-size:.78rem; font-weight:800; color:var(--text); cursor:pointer; }
+.vhome-qa-tile svg { width:23px; height:23px; color:var(--gold-deep); }
+.vhome-opp { margin-top:12px; width:100%; background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.95); border-radius:18px; box-shadow:var(--vd-sh-sm); padding:14px 16px; display:flex; align-items:center; gap:12px; font-family:inherit; cursor:pointer; text-align:left; }
+.vhome-opp-tx { flex:1; min-width:0; display:flex; flex-direction:column; }
+.vhome-opp-tx strong { font-size:1rem; font-weight:800; color:var(--text); }
+.vhome-opp-tx span { font-size:.82rem; color:var(--muted); margin-top:2px; }
+.vhome-opp-n { font-size:1.7rem; font-weight:800; color:var(--gold-deep); line-height:1; }
+.vhome-opp-arrow { font-size:1.3rem; font-weight:800; color:var(--gold-deep); }
+.vd-flash { outline:3px solid var(--gold); outline-offset:2px; transition:outline-color .4s ease; }
+.vd-paydate { display:block; font-size:.8rem; font-weight:700; color:var(--gold-deep); margin-top:2px; }
+</style>
 </head>
 <body>
 <div class="vwrap hidden" id="vd-topbar">
@@ -143,8 +190,32 @@
     </div>
   </aside>
 
+  <!-- Inicio: Mi semana home view (default landing) -->
+  <section class="vsec" id="sec-inicio" data-view="home" style="padding-top:10px">
+    <div class="vhome-card">
+      <div class="vhome-week-top"><span class="vhome-week-label" id="vhome-week-label"></span><span class="vhome-week-n" id="vhome-week-n"></span></div>
+      <div class="vhome-strip" id="vhome-strip"></div>
+      <div class="vhome-day" id="vhome-day"></div>
+    </div>
+    <div class="vhome-band">
+      <div><small data-i18n="ms_month">Este mes</small><strong id="vhome-month">$0</strong></div>
+      <div class="vhome-band-r"><small data-i18n="home_onway">En camino</small><strong id="vhome-onway">$0</strong><span id="vhome-nextpay"></span></div>
+    </div>
+    <div class="vhome-qa">
+      <button type="button" class="vhome-qa-tile" data-goto="#sec-cotizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.3 9.3a1 1 0 0 0 1.4 0l8.6-8.6a1 1 0 0 0 0-1.4Z"/><circle cx="7" cy="7" r="1.4"/></svg><span data-i18n="qa_quote">Cotizar</span></button>
+      <button type="button" class="vhome-qa-tile" data-goto="#sec-mistrabajos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span data-i18n="qa_photos">Fotos</span></button>
+      <button type="button" class="vhome-qa-tile" data-goto="#sec-calendario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="qa_map">Mapa</span></button>
+      <button type="button" class="vhome-qa-tile" data-goto="#vd-w9-sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span data-i18n="qa_docs">Documentos</span></button>
+    </div>
+    <button type="button" class="vhome-opp" data-goto="#sec-disponibles">
+      <span class="vhome-opp-tx"><strong data-i18n="ms_open">Oportunidades abiertas</strong><span data-i18n="home_opps_sub">Solicitudes esperando tu precio</span></span>
+      <span class="vhome-opp-n" id="vhome-opp-n">0</span>
+      <span class="vhome-opp-arrow">&rsaquo;</span>
+    </button>
+  </section>
+
   <!-- Mi dinero: money strip + mini stats -->
-  <section class="vsec" id="sec-dinero" style="padding-top:10px">
+  <section class="vsec" id="sec-dinero" data-view="money" style="padding-top:10px">
     <div class="vd-money">
       <div class="vd-tile"><small data-i18n="ms_pending">Por cobrar</small><strong id="st-pending">$0</strong><span class="vd-tile-n" id="st-pending-n"></span></div>
       <div class="vd-tile plain"><small data-i18n="ms_month">Este mes</small><strong id="st-month">$0</strong><span class="vd-tile-n" id="st-month-n"></span></div>
@@ -157,7 +228,7 @@
   </section>
 
   <!-- App promo (Concept A · gold banner, right under the money strip) -->
-  <section class="vd-promo" aria-label="PrimeGuard app">
+  <section class="vd-promo" data-view="home" aria-label="PrimeGuard app">
     <div class="vd-promo-row">
       <div class="vd-promo-ico"><img src="assets/icon-192.png" alt="PrimeGuard app"></div>
       <div class="vd-promo-txt">
@@ -171,35 +242,35 @@
   </section>
 
   <!-- Tu próximo trabajo: next accepted job hero -->
-  <section class="vsec" id="sec-proximo">
+  <section class="vsec" id="sec-proximo" data-view="my">
     <div class="vd-sect"><h2 data-i18n="sec_next">Tu próximo trabajo</h2><span class="cnt" id="vd-hero-cnt"></span></div>
     <div id="vd-hero"></div>
   </section>
 
   <!-- Documents needed: upload alert, only when action is required -->
-  <section class="vsec hidden" id="vd-docs-sec">
+  <section class="vsec hidden" id="vd-docs-sec" data-view="more">
     <h2 data-i18n="sec_docs">Documentos necesarios</h2>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px" id="vd-docs-sub" data-i18n="docs_sub">Sube estos documentos para seguir recibiendo trabajos pagados.</p>
     <div id="vd-docs-list"></div>
   </section>
 
-  <section class="vsec" id="sec-disponibles">
+  <section class="vsec" id="sec-disponibles" data-view="jobs">
     <div class="vd-sect"><h2 data-i18n="sec_available">Trabajos disponibles</h2><span class="cnt" id="cnt-qr"></span></div>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px" data-i18n="available_sub">PrimeGuard publica los detalles y las fotos del trabajo. Revísalos, acepta la visita de evaluación y envía tu precio.</p>
     <div class="vjobs" id="list-qr"></div>
   </section>
 
-  <section class="vsec" id="sec-jobs">
+  <section class="vsec" id="sec-jobs" data-view="jobs">
     <div class="vd-sect"><h2 data-i18n="sec_direct">Trabajos directos</h2><span class="cnt" id="cnt-jobs"></span></div>
     <div class="vjobs" id="list-jobs"></div>
   </section>
 
-  <section class="vsec" id="sec-mistrabajos">
+  <section class="vsec" id="sec-mistrabajos" data-view="my">
     <div class="vd-sect"><h2 data-i18n="sec_my">Mis trabajos</h2><span class="cnt" id="cnt-active"></span></div>
     <div class="vjobs" id="list-active"></div>
   </section>
 
-  <section class="vsec" id="sec-calendario">
+  <section class="vsec" id="sec-calendario" data-view="cal">
     <div class="vd-sect"><h2 data-i18n="sec_calendar">Calendario</h2><span class="cnt" id="cnt-cal"></span></div>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px" data-i18n="cal_sub">Tus visitas programadas. Toca un día para ver los trabajos de ese día.</p>
     <div class="vcal-card">
@@ -222,7 +293,7 @@
     </div>
   </section>
 
-  <section class="vsec" id="sec-cotizar">
+  <section class="vsec" id="sec-cotizar" data-view="jobs">
     <div class="vd-sect"><h2 data-i18n="sec_quote">Enviar mi precio</h2></div>
     <p style="color:var(--muted);font-size:.9rem;margin:2px 0 12px" data-i18n="quote_sub">Cotiza el trabajo con las fotos, los videos y las notas de la orden de trabajo.</p>
     <div class="vjob" style="max-width:720px">
@@ -257,13 +328,13 @@
     </div>
   </section>
 
-  <section class="vsec" id="sec-done">
+  <section class="vsec" id="sec-done" data-view="my">
     <div class="vd-sect"><h2 data-i18n="sec_done">Trabajos terminados</h2><span class="cnt" id="cnt-done"></span></div>
     <div class="vhist" id="list-done"></div>
   </section>
 
   <!-- Más: documents, alerts, app, profile -->
-  <section class="vsec" id="sec-mas" style="padding-bottom:20px">
+  <section class="vsec" id="sec-mas" data-view="more" style="padding-bottom:20px">
     <div class="vd-sect"><h2 data-i18n="sec_more">Más</h2></div>
 
     <div id="vd-setup"></div>
@@ -320,11 +391,15 @@
   <!-- Bottom tab bar: anchor navigation (Mock B) -->
   <nav class="vd-tabs" aria-label="Vendor dashboard" data-i18n-aria="tabs_label">
     <div class="vd-tabs-in">
+      <a class="vd-tab" href="#sec-inicio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+        <span data-i18n="tab_home">Inicio</span>
+      </a>
       <a class="vd-tab" href="#sec-disponibles">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
         <span data-i18n="tab_jobs">Trabajos</span>
       </a>
-      <a class="vd-tab active" href="#sec-mistrabajos">
+      <a class="vd-tab" href="#sec-mistrabajos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span data-i18n="tab_my">Mis trabajos</span>
       </a>
@@ -391,7 +466,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=21"></script>
+<script src="vendor-dashboard.js?v=22"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

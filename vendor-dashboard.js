@@ -174,6 +174,17 @@
       tab_cal: "Calendar",
       tab_money: "My money",
       tab_more: "More",
+      tab_home: "Home",
+      home_week: "WEEK OF {a} TO {b}",
+      home_jobs: "{n} jobs this week",
+      home_onway: "On the way",
+      home_next_pay: "Next pay: {date}",
+      home_opps_sub: "Price requests waiting for your quote",
+      qa_quote: "Quote",
+      qa_photos: "Photos",
+      qa_map: "Map",
+      qa_docs: "Documents",
+      pay_release: "Pay: {date} (3-day rule)",
       signed_in: "You're signed in",
       noprofile_pre: "You're signed in as",
       noprofile_post: ", but this account doesn't have a vendor profile yet — that's why there's no vendor dashboard to show. If you run a crew, create your vendor account right here with this same Google sign-in, no new password needed, it takes about two minutes. If you're a customer, your portal is on the customer side.",
@@ -461,6 +472,17 @@
       tab_cal: "Calendario",
       tab_money: "Mi dinero",
       tab_more: "Más",
+      tab_home: "Inicio",
+      home_week: "SEMANA DEL {a} AL {b}",
+      home_jobs: "{n} trabajos esta semana",
+      home_onway: "En camino",
+      home_next_pay: "Próximo pago: {date}",
+      home_opps_sub: "Solicitudes esperando tu precio",
+      qa_quote: "Cotizar",
+      qa_photos: "Fotos",
+      qa_map: "Mapa",
+      qa_docs: "Documentos",
+      pay_release: "Pago: {date} (regla de 3 dias)",
       signed_in: "Ya iniciaste sesión",
       noprofile_pre: "Iniciaste sesión como",
       noprofile_post: ", pero esta cuenta aún no tiene un perfil de vendedor: por eso no hay un panel para mostrar. Si tienes un equipo, crea tu cuenta de vendedor aquí mismo con este mismo inicio de sesión de Google, sin contraseña nueva, toma unos dos minutos. Si eres cliente, tu portal está en el lado del cliente.",
@@ -670,6 +692,10 @@
   var openQRs = [];     // open quote requests visible to me (for quote form dropdown)
   var myQuoted = {};    // workOrderId -> true, quote requests I already submitted a quote for
   var sessionPhotosByWo = {}; // workOrderId -> [urls] uploaded from this device during this portal session (grouped into visitLog on Mark complete)
+  var homeDayKey = "";        // selected day (vcalKey) on the Inicio week strip; "" = today
+  var myReviewJobs = [];      // my jobs in status "review" (vendor-complete, pay pending release)
+  var currentView = "home";   // active portal view: home | jobs | my | cal | money | more
+  var VD_VIEWS = ["home", "jobs", "my", "cal", "money", "more"];
 
   var _yr = document.getElementById("vd-year");
   if (_yr) _yr.textContent = new Date().getFullYear();
@@ -713,9 +739,8 @@
   document.addEventListener("keydown", function (e) {
     if ((e.key === "Escape" || e.key === "Esc") && drawerOpen()) closeDrawer();
   });
-  // Drawer links: close first, then glide to the section (the page
-  // already smooth-scrolls anchors via CSS; scrollIntoView keeps the
-  // behavior identical after the drawer closes).
+  // Drawer links: close first, switch to the section's view, then
+  // glide to the section inside that view.
   if (drawerEl) drawerEl.querySelectorAll(".vd-drawer-link").forEach(function (a) {
     a.addEventListener("click", function (e) {
       var href = a.getAttribute("href") || "";
@@ -724,7 +749,7 @@
       if (!target) return;
       e.preventDefault();
       closeDrawer();
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      goTo(target);
     });
   });
   // Drawer "Salir": one logout behavior only — fire the hero's
@@ -1206,6 +1231,21 @@
     return raw.indexOf("$") >= 0 ? raw : "$" + raw;
   }
 
+  // 3-day pay rule: pay releases 3 days after the vendor completed the
+  // job (completedAt + 3 days). Null when there is no completion date.
+  function payReleaseDate(w) {
+    var cd = parseDate(w && w.completedAt);
+    if (!cd) return null;
+    var d = new Date(cd.getTime());
+    d.setDate(d.getDate() + 3);
+    return d;
+  }
+  function payReleaseText(w) {
+    var d = payReleaseDate(w);
+    if (!d) return "";
+    return t("pay_release").replace("{date}", fmtDateEs(d));
+  }
+
   function heroPhoto(w) {
     if (w.photos && w.photos.length) return w.photos[0];
     var s = ((w.category || "") + " " + (w.title || "")).toLowerCase();
@@ -1325,7 +1365,7 @@
       ? '<div><small>' + esc(t("pay_word")) + '</small><span class="vd-pay">' + esc(pay) + '</span></div><span class="vd-paynote">' + t("pay_note") + '</span>'
       : '<div><small>' + esc(t("pay_word")) + '</small><span class="vd-pay vd-pay-tqp">' + esc(t("tqp")) + '</span></div>';
     var when = jobWhen(w);
-    box.innerHTML = '<article class="vd-hero">' +
+    box.innerHTML = '<article class="vd-hero" data-job-row="' + w.id + '">' +
       '<div class="vd-hero-photo"><img src="' + esc(heroPhoto(w)) + '" alt="">' +
       '<span class="vd-badge">' + esc(statusLabelEs(w)) + "</span></div>" +
       '<div class="vd-hero-body"><h3>' + esc(w.title) + "</h3>" +
@@ -1367,6 +1407,9 @@
     return st === "archived" || st === "rejected";
   }
   function renderInactivePanel() {
+    // The explanation panel lives in the quote-request list (jobs view):
+    // land there so an inactive vendor actually sees it.
+    showView("jobs");
     ["list-qr", "list-jobs", "list-active", "list-done", "vd-hero"].forEach(function (id) {
       var el = $(id); if (el) el.innerHTML = "";
     });
@@ -1447,6 +1490,7 @@
       $("cnt-jobs").textContent = jobs.length + t("cnt_avail");
       $("st-open").textContent = jobs.length + qrs.length;
       buildQuoteSelect();
+      renderHome();
     });
     db.collection("work_orders").where("vendorId", "==", me.uid).get().then(function (qs) {
       var active = [], done = [], earned = 0, pending = 0, pendingN = 0;
@@ -1479,6 +1523,7 @@
       });
       var mEl = $("st-month"); if (mEl) mEl.textContent = "$" + mSum.toLocaleString();
       var mnEl = $("st-month-n"); if (mnEl) mnEl.textContent = mCount ? mCount + (mCount === 1 ? t("mn_one") : t("mn_many")) : "";
+      myReviewJobs = active.filter(function (w) { return w.status === "review"; });
       var heroJob = pickHero(active);
       renderHero(heroJob);
       renderActive(active, heroJob ? heroJob.id : null);
@@ -1487,6 +1532,7 @@
       renderVendorCal();
       renderCalConnect();
       writeCalFeedSnapshot();
+      renderHome();
       $("st-done").textContent = done.length;
       $("st-earned").textContent = "$" + earned.toLocaleString();
       $("st-pending").textContent = "$" + pending.toLocaleString();
@@ -1605,6 +1651,16 @@
         var loc = w.address || w.area || "";
         if (loc) lines.push("LOCATION:" + escT(loc));
         lines.push("DESCRIPTION:" + escT("Trabajo de PrimeGuard. Estado: " + statusLabelEs(w)));
+        // Reminders in the subscribed phone calendar: a day before and
+        // two hours before the visit.
+        lines.push("BEGIN:VALARM");
+        lines.push("ACTION:DISPLAY");
+        lines.push("TRIGGER:-P1D");
+        lines.push("END:VALARM");
+        lines.push("BEGIN:VALARM");
+        lines.push("ACTION:DISPLAY");
+        lines.push("TRIGGER:-PT2H");
+        lines.push("END:VALARM");
         lines.push("END:VEVENT");
       });
     });
@@ -1714,8 +1770,20 @@
                 step(false, t("step_work")) +
                 step(w.status === "review" || w.status === "done", t("step_after"));
       }
-      return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
+      // Completed jobs (in review) carry their pay + the release date
+      // under the 3-day rule, right where the vendor looks for it.
+      var payLine = "";
+      if (w.status === "review") {
+        var rp = fmtPay(w);
+        var rel = payReleaseText(w);
+        if (rp || rel) {
+          payLine = '<div class="vd-payline">' + (rp ? "<small>" + esc(t("pay_word")) + "</small><strong>" + esc(rp) + "</strong>" : "") +
+            (rel ? '<span class="vd-paydate" style="display:inline;margin:0">' + esc(rel) + "</span>" : "") + "</div>";
+        }
+      }
+      return '<div class="vjob" data-job-row="' + w.id + '"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) + videoLinks(w) +
+        payLine +
         '<ul class="vsteps">' + steps + "</ul>" +
         (w.kind !== "quote_request" ? checklistHtml(w) : "") +
         '<button class="btn btn-gold" data-upload="' + w.id + '">' + esc(t("btn_upload")) + '</button>' +
@@ -1736,9 +1804,133 @@
     var box = $("list-done");
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("done_none2")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
-      return '<div class="vhrow"><div class="info"><strong>' + esc(w.title) + '</strong><span>' + esc(w.area || "") + " · " + esc(w.completedAt || "") + "</span></div>" +
-        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>" + esc(t("paid_per")) + "</small></div></div>";
+      var rel = payReleaseText(w);
+      return '<div class="vhrow" data-job-row="' + w.id + '"><div class="info"><strong>' + esc(w.title) + '</strong><span>' + esc(w.area || "") + " · " + esc(w.completedAt || "") + "</span></div>" +
+        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>" + esc(t("paid_per")) + "</small>" +
+        (rel ? '<span class="vd-paydate">' + esc(rel) + "</span>" : "") + "</div></div>";
     }).join("");
+  }
+
+  // ---------- Inicio: "Mi semana" home view ----------
+  // Monday-first week for the home strip (the month calendar keeps its
+  // Sunday-first grid, untouched). Days, jobs and money all come from
+  // data the portal already loads: vcalMap, the money strip, my jobs.
+  function homeWeekDates() {
+    var now = new Date();
+    var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+    var out = [];
+    for (var i = 0; i < 7; i++) out.push(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
+    return out;
+  }
+
+  function renderHome() {
+    var strip = $("vhome-strip");
+    if (!strip) return;
+    if (!homeDayKey) homeDayKey = vcalKey(new Date());
+    renderHomeWeek();
+    renderHomeDay();
+    // Money band: this month mirrors the Mi dinero tile. "On the way"
+    // is the pay sitting in review, with its earliest release date.
+    var mEl = $("vhome-month");
+    if (mEl) { var sm = $("st-month"); mEl.textContent = sm ? sm.textContent : "$0"; }
+    var sum = 0, next = null;
+    myReviewJobs.forEach(function (w) {
+      sum += parseFloat(w.payAgreed || w.pay || 0) || 0;
+      var d = payReleaseDate(w);
+      if (d && (!next || d < next)) next = d;
+    });
+    var oEl = $("vhome-onway");
+    if (oEl) oEl.textContent = "$" + sum.toLocaleString();
+    var nEl = $("vhome-nextpay");
+    if (nEl) nEl.textContent = next ? t("home_next_pay").replace("{date}", fmtDateEs(next)) : (myReviewJobs.length ? "" : t("pend_none"));
+    var opp = $("vhome-opp-n");
+    if (opp) opp.textContent = openQRs.length;
+  }
+
+  function renderHomeWeek() {
+    var strip = $("vhome-strip");
+    if (!strip) return;
+    var dates = homeWeekDates();
+    var keys = dates.map(function (d) { return vcalKey(d); });
+    if (keys.indexOf(homeDayKey) < 0) homeDayKey = vcalKey(new Date());
+    var lbl = $("vhome-week-label");
+    if (lbl) lbl.textContent = t("home_week").replace("{a}", fmtDate(dates[0])).replace("{b}", fmtDate(dates[6]));
+    var n = 0;
+    keys.forEach(function (k) { n += (vcalMap[k] || []).length; });
+    var nEl = $("vhome-week-n");
+    if (nEl) nEl.textContent = t("home_jobs").replace("{n}", n);
+    var todayK = vcalKey(new Date());
+    strip.innerHTML = dates.map(function (d) {
+      var k = vcalKey(d);
+      var has = (vcalMap[k] || []).length > 0;
+      return '<button type="button" class="vhome-day-cell' + (k === homeDayKey ? " sel" : "") + (k === todayK ? " today" : "") + '" data-home-day="' + k + '">' +
+        '<span class="vhome-dow">' + esc(d.toLocaleDateString(localeTag(), { weekday: "narrow" })) + '</span>' +
+        '<span class="vhome-dnum">' + d.getDate() + '</span>' +
+        '<span class="vhome-dots">' + (has ? "<i></i>" : "") + "</span></button>";
+    }).join("");
+  }
+
+  function renderHomeDay() {
+    var box = $("vhome-day");
+    if (!box) return;
+    var evs = (vcalMap[homeDayKey] || []).slice().sort(function (a, b) { return a.date - b.date; });
+    if (!evs.length) {
+      box.innerHTML = '<p class="vcal-none" style="padding:8px 0 4px">' + esc(t("cal_none_day")) + "</p>";
+      return;
+    }
+    box.innerHTML = evs.map(function (ev) {
+      var w = ev.w;
+      var meta = [vcalTime(w), w.address || w.area || "", statusLabelEs(w)].filter(Boolean).join(" · ");
+      return '<div class="vhome-ev"><div class="vhome-ev-tx"><strong>' + esc(w.title || w.category || t("job_word")) + "</strong>" +
+        (meta ? "<small>" + esc(meta) + "</small>" : "") + "</div>" +
+        '<button type="button" class="vhome-ev-btn" data-home-job="' + w.id + '">' + esc(t("view_job")) + "</button></div>";
+    }).join("");
+  }
+
+  // Jump to one of my job cards: switch to its view first, then scroll
+  // to the card and flash its outline so the eye lands on it.
+  function goToJob(id) {
+    showView("my");
+    setTimeout(function () {
+      var card = document.querySelector('[data-job-row="' + id + '"]');
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("vd-flash");
+        setTimeout(function () { card.classList.remove("vd-flash"); }, 2400);
+      } else {
+        var sec = $("sec-mistrabajos");
+        if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 40);
+  }
+
+  // ---------- View navigation ----------
+  // Every dashboard section carries data-view; only the active view's
+  // sections are visible. Tabs, the drawer, in-page anchors and the
+  // home quick actions all funnel through goTo()/showView().
+  function viewOfEl(el) {
+    var n = el && el.closest ? el.closest("[data-view]") : null;
+    return n ? n.getAttribute("data-view") : "home";
+  }
+  function showView(view) {
+    currentView = VD_VIEWS.indexOf(view) >= 0 ? view : "home";
+    document.querySelectorAll("#vd-dash [data-view]").forEach(function (sec) {
+      sec.classList.toggle("vd-view-off", sec.getAttribute("data-view") !== currentView);
+    });
+    document.querySelectorAll(".vd-tab").forEach(function (a) {
+      var href = a.getAttribute("href") || "";
+      var tgt = href.charAt(0) === "#" ? document.querySelector(href) : null;
+      a.classList.toggle("active", !!tgt && viewOfEl(tgt) === currentView);
+    });
+  }
+  function goTo(target) {
+    var el = typeof target === "string" ? document.querySelector(target) : target;
+    if (!el) return;
+    showView(viewOfEl(el));
+    document.querySelectorAll(".vd-drawer-link").forEach(function (a) {
+      a.classList.toggle("active", !!el.id && a.getAttribute("href") === "#" + el.id);
+    });
+    setTimeout(function () { el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 40);
   }
 
   // ---------- Actions (event delegation) ----------
@@ -1793,7 +1985,7 @@
       var qsel = $("q-workorder");
       if (qsel) qsel.value = t.dataset.giveQuote;
       var qform = $("vd-quoteform");
-      if (qform) qform.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (qform) goTo(qform);
       setTimeout(function () {
         var qp = $("q-price");
         if (qp) qp.focus({ preventScroll: true });
@@ -1916,25 +2108,60 @@
     }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = t("q_submit"); });
   });
 
-  // ---------- Bottom tab bar: scroll-spy (presentation only) ----------
-  // The tabs themselves are plain anchors; this only moves the gold
-  // "active" state to the tab whose section is on screen.
+  // ---------- Bottom tab bar + view navigation bindings ----------
+  // Tabs switch views (no more one long scroll): each tab funnels into
+  // goTo(), which shows the target's view and glides to it. The gold
+  // "active" state is owned by showView(). Any other in-page anchor
+  // inside the dashboard (the calendar's "Ver trabajo", the setup Go
+  // buttons) gets the same treatment: correct view first, then anchor.
   (function () {
-    var tabs = Array.prototype.slice.call(document.querySelectorAll(".vd-tab"));
-    if (!tabs.length) return;
-    var map = [
-      ["sec-dinero", "#sec-dinero"],
-      ["sec-proximo", "#sec-mistrabajos"],
-      ["vd-docs-sec", "#sec-disponibles"],
-      ["sec-disponibles", "#sec-disponibles"],
-      ["sec-jobs", "#sec-disponibles"],
-      ["sec-mistrabajos", "#sec-mistrabajos"],
-      ["sec-cotizar", "#sec-disponibles"],
-      ["sec-done", "#sec-mistrabajos"],
-      ["sec-mas", "#sec-mas"]
-    ];
-    // Drawer links spy on their own sections (same walk, own hrefs);
-    // sections without a drawer entry keep the previous drawer state.
+    document.querySelectorAll(".vd-tab").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        var href = a.getAttribute("href") || "";
+        if (href.charAt(0) !== "#") return;
+        var target = document.querySelector(href);
+        if (!target) return;
+        e.preventDefault();
+        goTo(target);
+      });
+    });
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      if (!a) return;
+      if (a.classList.contains("vd-drawer-link") || a.classList.contains("vd-tab")) return; // own handlers above / at the drawer
+      var dash = $("vd-dash");
+      if (!dash || !dash.contains(a)) return;
+      var href = a.getAttribute("href") || "";
+      if (href.length < 2) return;
+      var target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      goTo(target);
+    });
+    // Inicio quick actions + the open-opportunities card.
+    document.querySelectorAll("[data-goto]").forEach(function (b) {
+      b.addEventListener("click", function () { goTo(b.getAttribute("data-goto")); });
+    });
+    // Inicio week strip: tapping a day selects it; a day job's button
+    // opens that job's card in Mis trabajos.
+    var strip = $("vhome-strip");
+    if (strip) strip.addEventListener("click", function (e) {
+      var cell = e.target.closest ? e.target.closest("[data-home-day]") : null;
+      if (!cell) return;
+      homeDayKey = cell.getAttribute("data-home-day");
+      renderHomeWeek();
+      renderHomeDay();
+    });
+    var dayBox = $("vhome-day");
+    if (dayBox) dayBox.addEventListener("click", function (e) {
+      var btn = e.target.closest ? e.target.closest("[data-home-job]") : null;
+      if (!btn) return;
+      goToJob(btn.getAttribute("data-home-job"));
+    });
+    // Drawer scroll-spy, kept from the single-scroll page and scoped
+    // to the current view: within a multi-section view (Mis trabajos,
+    // Trabajos, Más) the drawer link for the section on screen lights
+    // up. Tab active state stays view-level, owned by showView().
     var drawerLinks = Array.prototype.slice.call(document.querySelectorAll(".vd-drawer-link"));
     var drawerMap = [
       ["sec-dinero", "#vd-topbar"],
@@ -1942,6 +2169,7 @@
       ["sec-disponibles", "#sec-disponibles"],
       ["sec-jobs", "#sec-jobs"],
       ["sec-mistrabajos", "#sec-mistrabajos"],
+      ["sec-calendario", "#sec-calendario"],
       ["sec-cotizar", "#sec-cotizar"],
       ["sec-done", "#sec-done"],
       ["vd-w9-sec", "#vd-w9-sec"],
@@ -1954,27 +2182,19 @@
       ticking = false;
       var dash = $("vd-dash");
       if (!dash || dash.classList.contains("hidden")) return;
-      var current = "#sec-mistrabajos";
-      for (var i = 0; i < map.length; i++) {
-        var el = document.getElementById(map[i][0]);
-        if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= 160) current = map[i][1];
+      var dCurrent = null;
+      for (var j = 0; j < drawerMap.length; j++) {
+        var dEl = document.getElementById(drawerMap[j][0]);
+        if (dEl && dEl.offsetParent !== null && viewOfEl(dEl) === currentView && dEl.getBoundingClientRect().top <= 160) dCurrent = drawerMap[j][1];
       }
-      tabs.forEach(function (t) {
-        t.classList.toggle("active", t.getAttribute("href") === current);
+      if (dCurrent === null) return;
+      drawerLinks.forEach(function (a) {
+        a.classList.toggle("active", a.getAttribute("href") === dCurrent);
       });
-      if (drawerLinks.length) {
-        var dCurrent = "#vd-topbar";
-        for (var j = 0; j < drawerMap.length; j++) {
-          var dEl = document.getElementById(drawerMap[j][0]);
-          if (dEl && dEl.offsetParent !== null && dEl.getBoundingClientRect().top <= 160) dCurrent = drawerMap[j][1];
-        }
-        drawerLinks.forEach(function (t) {
-          t.classList.toggle("active", t.getAttribute("href") === dCurrent);
-        });
-      }
     }
     window.addEventListener("scroll", function () {
       if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
     }, { passive: true });
+    showView("home");
   })();
 })();
