@@ -697,6 +697,34 @@
   var currentView = "home";   // active portal view: home | jobs | my | cal | money | more
   var VD_VIEWS = ["home", "jobs", "my", "cal", "money", "more"];
 
+  /* ---------- Live data: Firestore snapshot listeners ----------
+     Each main list registers ONE onSnapshot listener (first loadAll
+     call); later changes re-render automatically, no page refresh.
+     Repeat loadAll() calls replay the cached snapshot into the same
+     render path, which keeps language toggles and post-action
+     re-renders working exactly like the old one-time fetches did. */
+  var liveSubs = {}, liveCache = {};
+  function liveOn(key, query, onData, onErr) {
+    if (liveSubs[key]) {
+      if (liveCache[key] && onData) onData(liveCache[key]);
+      return;
+    }
+    try {
+      liveSubs[key] = query.onSnapshot(function (qs) {
+        liveCache[key] = qs;
+        if (onData) onData(qs);
+      }, function (err) {
+        delete liveSubs[key];
+        if (onErr) onErr(err);
+      });
+    } catch (e) { if (onErr) onErr(e); }
+  }
+  function liveOffAll() {
+    Object.keys(liveSubs).forEach(function (k) { try { liveSubs[k](); } catch (e) {} });
+    liveSubs = {};
+    liveCache = {};
+  }
+
   var _yr = document.getElementById("vd-year");
   if (_yr) _yr.textContent = new Date().getFullYear();
 
@@ -815,7 +843,7 @@
 
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); hide($("vd-loading")); return; }
+    if (!user) { liveOffAll(); show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); hide($("vd-loading")); return; }
     // Signed in: hide the login, but keep the dashboard (and its fixed
     // burger) hidden until the profile result is known — showing it here
     // and hiding it again for no-profile accounts was the hamburger
@@ -1452,31 +1480,32 @@
   function loadAll() {
     if (vendorInactive()) { renderInactivePanel(); return; }
     if (burgerEl) burgerEl.classList.remove("hidden");
-    db.collection("quotes").where("vendorId", "==", me.uid).get().then(function (qs) {
+    liveOn("vd-quotes", db.collection("quotes").where("vendorId", "==", me.uid), function (qs) {
       myQuoted = {};
       qs.forEach(function (d) {
         var q = d.data();
         if (q.workOrderId) myQuoted[q.workOrderId] = true;
       });
-    }).catch(function () { myQuoted = {}; }).then(function () {
+      buildQuoteSelect();
+    }, function () { myQuoted = {}; });
     // Scoped board queries (privacy hardening, 2026-10-16): the database
     // rules only let a vendor read broadcast jobs or jobs sent to them,
     // so the board asks for exactly those two sets instead of every open
     // work order. A missing broadcast flag now means private.
-    var boardSeen = {}, boardDocs = [];
-    function boardCollect(qs) {
-      qs.forEach(function (d) {
-        if (boardSeen[d.id]) return;
-        boardSeen[d.id] = 1;
-        var w = d.data(); w.id = d.id;
-        if (w.status !== "open") return;
-        boardDocs.push(w);
-      });
-    }
-    Promise.all([
-      db.collection("work_orders").where("broadcast", "==", true).get().then(boardCollect).catch(function () {}),
-      db.collection("work_orders").where("vendorNotifyTarget", "==", me.uid).get().then(boardCollect).catch(function () {})
-    ]).then(function () {
+    function boardRender() {
+      var boardSeen = {}, boardDocs = [];
+      function boardCollect(qs) {
+        if (!qs) return;
+        qs.forEach(function (d) {
+          if (boardSeen[d.id]) return;
+          boardSeen[d.id] = 1;
+          var w = d.data(); w.id = d.id;
+          if (w.status !== "open") return;
+          boardDocs.push(w);
+        });
+      }
+      boardCollect(liveCache["vd-board-a"]);
+      boardCollect(liveCache["vd-board-b"]);
       var jobs = [], qrs = [];
       boardDocs.forEach(function (w) {
         if (!woVisibleToMe(w)) return; // not sent to me and not posted as available work
@@ -1491,8 +1520,10 @@
       $("st-open").textContent = jobs.length + qrs.length;
       buildQuoteSelect();
       renderHome();
-    });
-    db.collection("work_orders").where("vendorId", "==", me.uid).get().then(function (qs) {
+    }
+    liveOn("vd-board-a", db.collection("work_orders").where("broadcast", "==", true), boardRender, function () {});
+    liveOn("vd-board-b", db.collection("work_orders").where("vendorNotifyTarget", "==", me.uid), boardRender, function () {});
+    liveOn("vd-mine", db.collection("work_orders").where("vendorId", "==", me.uid), function (qs) {
       var active = [], done = [], earned = 0, pending = 0, pendingN = 0;
       myEvals = [];
       qs.forEach(function (d) {
@@ -1541,7 +1572,6 @@
       setDrawerBadge("vd-nav-badge-active", active.length);
       $("cnt-done").textContent = done.length + t("cnt_jobs");
       buildQuoteSelect();
-    });
     });
   }
 

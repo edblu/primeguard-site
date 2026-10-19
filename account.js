@@ -13,6 +13,37 @@
   try { var __pgl = localStorage.getItem("pg-lang"); if (__pgl === "en" || __pgl === "es") currentLang = __pgl; } catch (e) {}
   var pgUser = null;   // set in onAuthStateChanged; used by re-renders on language toggle
   var pgName = "";     // set in onAuthStateChanged; used by renderGreeting
+
+  /* ---------- Live data: Firestore snapshot listeners ----------
+     Each main list registers ONE onSnapshot listener; later changes
+     re-render automatically, no page refresh. Repeat calls replay the
+     cached snapshot into the same render path, which keeps language
+     toggles and post-action re-renders working like the old fetches. */
+  var liveSubs = {}, liveCache = {};
+  function liveOn(key, query, onData, onErr) {
+    if (liveSubs[key]) {
+      if (liveCache[key] && onData) onData(liveCache[key]);
+      return;
+    }
+    try {
+      liveSubs[key] = query.onSnapshot(function (qs) {
+        liveCache[key] = qs;
+        if (onData) onData(qs);
+      }, function (err) {
+        delete liveSubs[key];
+        if (onErr) onErr(err);
+      });
+    } catch (e) { if (onErr) onErr(e); }
+  }
+  function liveOffAll() {
+    Object.keys(liveSubs).forEach(function (k) { try { liveSubs[k](); } catch (e) {} });
+    liveSubs = {};
+    liveCache = {};
+    // Per-work-order tracker listeners (ccalLiveIds) hold their
+    // unsubscribe functions; release them too.
+    Object.keys(ccalLiveIds).forEach(function (id) { try { if (typeof ccalLiveIds[id] === "function") ccalLiveIds[id](); } catch (e) {} });
+    ccalLiveIds = {};
+  }
   var I18N = { en: {
     page_title: "My Account | PrimeGuard",
     meta_desc: "Track your PrimeGuard requests, schedules, and photos in your account.",
@@ -606,6 +637,9 @@
       });
       loadRequests(user.uid); loadJobs(user.uid); loadExtras(user); loadCustomerQuotes(user); loadCustCalendar(user);
     } else {
+      liveOffAll();
+      ccalLiveIds = {};
+      ccalWos = [];
       pgUser = null; pgName = "";
       show(authForms); show($("account-hero-static")); hide(dashboard);
       checkStaffEntry(null);
@@ -624,8 +658,7 @@
 
   function loadRequests(uid) {
     // (no orderBy: composite index not guaranteed. Sort client-side)
-    db.collection("service_requests").where("uid", "==", uid).limit(25).get()
-      .then(function (qs) {
+    liveOn("req:" + uid, db.collection("service_requests").where("uid", "==", uid).limit(25), function (qs) {
         var box = $("requests-list");
         var active = 0;
         var docs = [];
@@ -679,15 +712,14 @@
           renderQuotes(quotes);
         }
         $("stat-requests").textContent = active;
-      }).catch(function () {
+      }, function () {
         emptyState($("requests-list"), t("load_err_requests"), null, null);
       });
   }
 
   function loadJobs(uid) {
     // (no orderBy: composite index not guaranteed. Sort client-side)
-    db.collection("jobs").where("uid", "==", uid).limit(25).get()
-      .then(function (qs) {
+    liveOn("jobs:" + uid, db.collection("jobs").where("uid", "==", uid).limit(25), function (qs) {
         var box = $("jobs-list");
         var done = 0;
         var docs = [];
@@ -723,7 +755,7 @@
         }
         $("stat-jobs").textContent = done;
         badgeCtx.jobsDone = done; renderBadges();
-      }).catch(function () {
+      }, function () {
         emptyState($("jobs-list"), t("load_err_jobs"), null, null);
       });
   }
@@ -1057,44 +1089,43 @@
     function collect(qs) {
       qs.forEach(function (doc) {
         var d = doc.data();
-        if (d.workOrderId && !seen[d.workOrderId]) { seen[d.workOrderId] = 1; woIds.push(d.workOrderId); }
+        if (d.workOrderId && !seen[d.workOrderId]) { seen[d.workOrderId] = 1; woIds.push(d.workOrderId); addWo(d.workOrderId); }
       });
     }
-    var p1 = db.collection("customer_quotes").where("customerEmail", "==", email).limit(25).get().then(collect).catch(function () {});
-    var p2 = db.collection("customer_quotes").where("contact", "==", email).limit(25).get().then(collect).catch(function () {});
-    Promise.all([p1, p2]).then(function () {
-      if (!woIds.length) { ccalWos = []; ccalBuild([]); renderCcal(); return; }
-      var gets = woIds.map(function (id) {
-        return db.collection("work_orders").doc(id).get().then(function (s) {
-          return s.exists ? Object.assign({ id: s.id }, s.data()) : null;
-        }).catch(function () { return null; });
-      });
-      Promise.all(gets).then(function (rows) {
-        ccalWos = rows.filter(Boolean);
+    // Each newly discovered work order is fetched once, added to the
+    // calendar rows, and then kept current by a per-doc snapshot
+    // listener (the vendor's On my way tap and automatic arrival land
+    // here within seconds, no refresh needed). The two quote queries
+    // above are live listeners too, so a brand-new quote's work order
+    // joins the calendar on its own.
+    function addWo(id) {
+      db.collection("work_orders").doc(id).get().then(function (s) {
+        if (s.exists) {
+          var row0 = Object.assign({ id: s.id }, s.data());
+          var found0 = false;
+          ccalWos = ccalWos.map(function (r) { if (r.id === id) { found0 = true; return row0; } return r; });
+          if (!found0) ccalWos.push(row0);
+        }
         ccalBuild(ccalWos);
         renderCcal();
         writeCustCalFeedSnapshot();
-        // Live updates: one snapshot listener per work order keeps the
-        // calendar and the live tracker current while this page is
-        // open (the vendor's On my way tap and automatic arrival land
-        // here within seconds, no refresh needed).
-        woIds.forEach(function (id) {
-          if (ccalLiveIds[id]) return;
-          ccalLiveIds[id] = true;
-          try {
-            db.collection("work_orders").doc(id).onSnapshot(function (s) {
-              if (!s.exists) return;
-              var row = Object.assign({ id: s.id }, s.data());
-              var found = false;
-              ccalWos = ccalWos.map(function (r) { if (r.id === id) { found = true; return row; } return r; });
-              if (!found) ccalWos.push(row);
-              ccalBuild(ccalWos);
-              renderCcal();
-            }, function () {});
-          } catch (e) {}
-        });
-      });
-    }).catch(function () {});
+        if (ccalLiveIds[id]) return;
+        ccalLiveIds[id] = 1;
+        try {
+          ccalLiveIds[id] = db.collection("work_orders").doc(id).onSnapshot(function (s2) {
+            if (!s2.exists) return;
+            var row = Object.assign({ id: s2.id }, s2.data());
+            var found = false;
+            ccalWos = ccalWos.map(function (r) { if (r.id === id) { found = true; return row; } return r; });
+            if (!found) ccalWos.push(row);
+            ccalBuild(ccalWos);
+            renderCcal();
+          }, function () {});
+        } catch (e) {}
+      }).catch(function () {});
+    }
+    liveOn("ccal-q1:" + email, db.collection("customer_quotes").where("customerEmail", "==", email).limit(25), collect, function () {});
+    liveOn("ccal-q2:" + email, db.collection("customer_quotes").where("contact", "==", email).limit(25), collect, function () {});
   }
 
   // "Your quotes": the formal customer quotes staff built from a vendor
@@ -1104,8 +1135,7 @@
   function loadCustomerQuotes(u) {
     var sec = $("custQuotesSection"), box = $("cust-quotes-list");
     if (!sec || !box || !u || !u.email) return;
-    db.collection("customer_quotes").where("customerEmail", "==", String(u.email).toLowerCase()).limit(25).get()
-      .then(function (qs) {
+    liveOn("cq:" + String(u.email).toLowerCase(), db.collection("customer_quotes").where("customerEmail", "==", String(u.email).toLowerCase()).limit(25), function (qs) {
         var docs = [];
         qs.forEach(function (doc) { docs.push(doc); });
         docs.sort(function (a, b) { return tsMillis(b.data().createdAt) - tsMillis(a.data().createdAt); });
@@ -1132,8 +1162,8 @@
           el.querySelector(".q-price").textContent = "$" + (Number(d.total) || 0).toLocaleString();
           box.appendChild(el);
         });
-      })
-      .catch(function () { hide(sec); });
+      },
+      function () { hide(sec); });
   }
 
   // One-tap reorder: opens the request window with a service preselected.

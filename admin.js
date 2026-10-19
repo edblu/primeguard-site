@@ -188,7 +188,7 @@
 
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { show($("ad-loginwrap")); hide($("ad-dash")); document.body.classList.remove("pg-nav-on"); setNavOpen(false, false); return; }
+    if (!user) { liveOffAll(); show($("ad-loginwrap")); hide($("ad-dash")); document.body.classList.remove("pg-nav-on"); setNavOpen(false, false); return; }
     isAdmin = (user.email === ADMIN_EMAIL);
     var check = isAdmin
       ? Promise.resolve({ ok: true, role: "owner" })
@@ -220,6 +220,34 @@
       startTracking();
     });
   });
+
+  /* ---------- Live data: Firestore snapshot listeners ----------
+     Each main list registers ONE onSnapshot listener (first load
+     call); later changes re-render automatically, no page refresh.
+     Repeat load calls replay the cached snapshot into the same
+     render path, so every existing "reload after save" call site
+     keeps working exactly like the old one-time fetches did. */
+  var liveSubs = {}, liveCache = {};
+  function liveOn(key, query, onData, onErr) {
+    if (liveSubs[key]) {
+      if (liveCache[key] && onData) onData(liveCache[key]);
+      return;
+    }
+    try {
+      liveSubs[key] = query.onSnapshot(function (qs) {
+        liveCache[key] = qs;
+        if (onData) onData(qs);
+      }, function (err) {
+        delete liveSubs[key];
+        if (onErr) onErr(err);
+      });
+    } catch (e) { if (onErr) onErr(e); }
+  }
+  function liveOffAll() {
+    Object.keys(liveSubs).forEach(function (k) { try { liveSubs[k](); } catch (e) {} });
+    liveSubs = {};
+    liveCache = {};
+  }
 
   function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); }
 
@@ -276,7 +304,7 @@
     if (!isAdmin) return;
     var nowD = new Date();
     var dayStart = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime();
-    db.collection("staff_sessions").orderBy("loginAt", "desc").limit(60).get().then(function (qs) {
+    liveOn("act-sessions", db.collection("staff_sessions").orderBy("loginAt", "desc").limit(60), function (qs) {
       var byUser = {}, history = [];
       qs.forEach(function (d) {
         var s = d.data();
@@ -317,11 +345,11 @@
           hbox.appendChild(row);
         });
       }
-    }).catch(function () {
+    }, function () {
       var sb = $("ad-act-status");
       if (sb) sb.innerHTML = '<p style="color:var(--faint)">Activity tracking is built in, but the database rules update has not been applied yet, so no data can be saved or read.</p>';
     });
-    db.collection("staff_activity").orderBy("at", "desc").limit(30).get().then(function (qs) {
+    liveOn("act-feed", db.collection("staff_activity").orderBy("at", "desc").limit(30), function (qs) {
       var box = $("ad-act-feed");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No activity yet.</p>'; return; }
       box.innerHTML = "";
@@ -331,7 +359,7 @@
         row.innerHTML = '<div class="grow"><strong>' + esc(a.action) + "</strong><small>" + esc(a.email) + " · " + fmtClock(a.at) + "</small></div>";
         box.appendChild(row);
       });
-    }).catch(function () {});
+    }, function () {});
   }
 
   /* ---------- Shared notes, call log, and follow-ups ---------- */
@@ -430,20 +458,25 @@
   }
 
   var tkEntityFilter = "all"; // Tasks page entity filter (chips)
+  var fuSnaps = { open: null, done: null, tasks: null };
+  var FU_EMPTY_SNAP = { forEach: function () {}, empty: true, size: 0 };
   function loadFollowUps() {
     var box = $("ad-fu-list");
     if (!box) return;
-    var today = localDateKey(new Date());
-    var statsBox = $("ad-task-stats");
-    var emptySnap = { forEach: function () {}, empty: true };
-    // Standalone tasks and the done-notes read are best-effort: if either
-    // collection is not readable yet, the queue still shows open follow-ups.
-    var pNotesDone = db.collection("item_notes").where("followUpDone", "==", true).limit(100).get()
-      .catch(function () { return emptySnap; });
-    var pTasks = db.collection("tasks").limit(200).get()
-      .catch(function () { return emptySnap; });
-    var pNotesOpen = db.collection("item_notes").where("followUpDone", "==", false).limit(200).get();
-    Promise.all([pNotesOpen, pNotesDone, pTasks]).then(function (res) {
+    // Live listeners on the three sources; the merged queue re-renders
+    // whenever any of them changes. The done-notes and tasks reads stay
+    // best-effort: an error there just yields an empty set, exactly
+    // like the one-time reads did. An error on the open-notes read
+    // shows the same message the old load failure did.
+    liveOn("fu-done", db.collection("item_notes").where("followUpDone", "==", true).limit(100), function (qs) { fuSnaps.done = qs; renderFollowUps(); }, function () { fuSnaps.done = FU_EMPTY_SNAP; renderFollowUps(); });
+    liveOn("fu-tasks", db.collection("tasks").limit(200), function (qs) { fuSnaps.tasks = qs; renderFollowUps(); }, function () { fuSnaps.tasks = FU_EMPTY_SNAP; renderFollowUps(); });
+    liveOn("fu-open", db.collection("item_notes").where("followUpDone", "==", false).limit(200), function (qs) { fuSnaps.open = qs; renderFollowUps(); }, function () { box.innerHTML = '<p style="color:var(--faint)">Tasks could not load yet. The database rules update may still need to be published.</p>'; });
+    renderFollowUps();
+    function renderFollowUps() {
+      if (!fuSnaps.open || !fuSnaps.done || !fuSnaps.tasks) return;
+      var today = localDateKey(new Date());
+      var statsBox = $("ad-task-stats");
+      var res = [fuSnaps.open, fuSnaps.done, fuSnaps.tasks];
       var open = [], done = [];
       res[0].forEach(function (d) {
         var n = d.data();
@@ -531,9 +564,7 @@
         box.appendChild(dh);
         done.slice(0, 20).forEach(function (it) { box.appendChild(tkRow(it, today, true)); });
       }
-    }).catch(function () {
-      box.innerHTML = '<p style="color:var(--faint)">Tasks could not load yet. The database rules update may still need to be published.</p>';
-    });
+    }
   }
 
   function fmtTaskTime(v) {
@@ -1076,13 +1107,13 @@
   function loadHotLeads() {
     var box = $("ad-hl-list");
     if (!box) return;
-    db.collection("hot_leads").orderBy("createdAt", "desc").limit(100).get().then(function (qs) {
+    liveOn("hl", db.collection("hot_leads").orderBy("createdAt", "desc").limit(100), function (qs) {
       hlLeads = [];
       qs.forEach(function (d) { hlLeads.push({ id: d.id, d: d.data() }); });
       renderHotLeads();
       updateHotLeadBadges();
       renderBellPanel();
-    }).catch(function () {
+    }, function () {
       box.innerHTML = '<p style="color:var(--faint)">Hot leads could not load yet. The database rules update may still need to be published.</p>';
     });
   }
@@ -1867,7 +1898,9 @@
   function loadCustomers() {
     var box = $("ad-cust-list");
     if (!box) return;
-    db.collection("customers").limit(200).get().then(function (qs) {
+    function renderFromCache() {
+      var qs = liveCache["cust"];
+      if (!qs) return;
       custRows = [];
       qs.forEach(function (doc) {
         var d = doc.data();
@@ -1884,17 +1917,18 @@
         if (bm) return 1;
         return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
       });
-      // One extra read of hot_leads feeds the numbers strip on this page
+      // A live read of hot_leads feeds the numbers strip on this page
       // (leads this month, top source, lead -> job conversion). Best
-      // effort: if it fails, the strip just shows the customer counts.
-      return db.collection("hot_leads").limit(500).get().then(function (hqs) {
-        custHotLeads = [];
-        hqs.forEach(function (doc) { custHotLeads.push(doc.data()); });
-      }).catch(function () { custHotLeads = []; });
-    }).then(function () {
+      // effort: if it has not landed yet, the strip just shows the
+      // customer counts.
+      custHotLeads = [];
+      var hqs = liveCache["custhl"];
+      if (hqs) hqs.forEach(function (doc) { custHotLeads.push(doc.data()); });
       renderCustomers();
       renderHomeDash();
-    }).catch(function () {
+    }
+    liveOn("custhl", db.collection("hot_leads").limit(500), function () { renderFromCache(); }, function () { renderFromCache(); });
+    liveOn("cust", db.collection("customers").limit(200), function () { renderFromCache(); }, function () {
       box.innerHTML = '<p style="color:var(--faint)">CRM could not load yet. The database rules update may still need to be published.</p>';
     });
   }
@@ -3491,7 +3525,7 @@
 
   function loadReferrals() {
     var box = $("ad-ref-list");
-    db.collection("referral_codes").orderBy("createdAt", "desc").limit(50).get().then(function (qs) {
+    liveOn("refs", db.collection("referral_codes").orderBy("createdAt", "desc").limit(50), function (qs) {
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No referral codes yet.</p>'; return; }
       box.innerHTML = "";
       var done = 0, rows = [];
@@ -3509,7 +3543,7 @@
         }).catch(function () {});
         done++;
       });
-    }).catch(function () {
+    }, function () {
       box.innerHTML = '<p style="color:var(--faint)">Couldn\'t load referral codes.</p>';
     });
   }
@@ -3746,13 +3780,13 @@
     var sec = $("ad-vendor-archived-sec");
     if (!sec) return;
     if (!isAdmin) { sec.classList.add("hidden"); return; }
-    db.collection("vendors").get().then(function (qs) {
+    liveOn("varch", db.collection("vendors"), function (qs) {
       archivedVendors = [];
       qs.forEach(function (d) { var v = d.data(); if (v.status === "archived" || v.status === "rejected") archivedVendors.push({ id: d.id, v: v }); });
       archivedVendors.sort(function (a, b) { return (tsMs(b.v.archivedAt) || tsMs(b.v.createdAt)) - (tsMs(a.v.archivedAt) || tsMs(a.v.createdAt)); });
       sec.classList.remove("hidden");
       renderArchivedVendors();
-    }).catch(function () {});
+    }, function () {});
   }
   function renderArchivedVendors() {
     var btn = $("ad-vendor-archived-toggle"), box = $("ad-vendor-archived-list");
@@ -3781,13 +3815,13 @@
   });
 
   function loadStats() {
-    db.collection("work_orders").get().then(function (qs) {
+    liveOn("stats-wo", db.collection("work_orders"), function (qs) {
       var open = 0, active = 0;
       qs.forEach(function (d) { var s = d.data().status; if (s === "open") open++; else if (s !== "done") active++; });
       $("as-open").textContent = open; $("as-active").textContent = active;
     });
-    db.collection("quotes").where("status", "==", "pending").get().then(function (qs) { $("as-quotes").textContent = qs.size; var mb = $("pg-nav-b-quotes"); if (mb) mb.textContent = qs.size; });
-    db.collection("push_tokens").limit(500).get().then(function (qs) {
+    liveOn("stats-q", db.collection("quotes").where("status", "==", "pending"), function (qs) { $("as-quotes").textContent = qs.size; var mb = $("pg-nav-b-quotes"); if (mb) mb.textContent = qs.size; });
+    liveOn("stats-push", db.collection("push_tokens").limit(500), function (qs) {
       var inst = 0, on = 0, instC = 0, instV = 0, onC = 0, onV = 0;
       qs.forEach(function (doc) {
         var d = doc.data() || {};
@@ -3796,8 +3830,8 @@
       });
       var a1 = $("as-apps"); if (a1) a1.innerHTML = inst + ' <small style="font-size:.62em;color:var(--muted);font-weight:600">' + instC + " cust · " + instV + " vend</small>";
       var a2 = $("as-pushon"); if (a2) a2.innerHTML = on + ' <small style="font-size:.62em;color:var(--muted);font-weight:600">' + onC + " cust · " + onV + " vend</small>";
-    }).catch(function () {});
-    db.collection("vendors").get().then(function (qs) { var n = 0; qs.forEach(function (d) { var s = d.data().status; if (s !== "archived" && s !== "rejected") n++; }); $("as-vendors").textContent = n; var mb = $("pg-nav-b-vendors"); if (mb) mb.textContent = n; });
+    }, function () {});
+    liveOn("stats-v", db.collection("vendors"), function (qs) { var n = 0; qs.forEach(function (d) { var s = d.data().status; if (s !== "archived" && s !== "rejected") n++; }); $("as-vendors").textContent = n; var mb = $("pg-nav-b-vendors"); if (mb) mb.textContent = n; });
   }
 
   function pill(s) {
@@ -4086,7 +4120,7 @@
     });
   }
   function loadWorkOrders() {
-    db.collection("work_orders").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
+    liveOn("wo", db.collection("work_orders").orderBy("createdAt", "desc").limit(30), function (qs) {
       woOrders = [];
       qs.forEach(function (d) { woOrders.push({ id: d.id, d: d.data() }); });
       renderWorkOrders();
@@ -4349,7 +4383,7 @@
 
   function loadQuotes() {
     loadCustomerQuotes();
-    db.collection("quotes").orderBy("createdAt", "desc").limit(30).get().then(function (qs) {
+    liveOn("quotes", db.collection("quotes").orderBy("createdAt", "desc").limit(30), function (qs) {
       var box = $("ad-quote-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No quotes submitted yet.</p>'; return; }
       box.innerHTML = "";
@@ -4686,8 +4720,7 @@
   // the section stays quiet until the customer_quotes rules publish).
   function loadCustomerQuotes() {
     var box = $("ad-cq-signed-list");
-    db.collection("customer_quotes").orderBy("createdAt", "desc").limit(50).get()
-      .then(function (qs) {
+    liveOn("cq", db.collection("customer_quotes").orderBy("createdAt", "desc").limit(50), function (qs) {
         var signed = [], awaiting = [];
         qs.forEach(function (d) {
           var q = d.data();
@@ -4725,8 +4758,8 @@
           }
         }
         signed.forEach(function (it) { cqHandleSigned(it.id, it.q); });
-      })
-      .catch(function () {});
+      },
+      function () {});
   }
 
   function cqHandleSigned(cqId, q) {
@@ -4772,14 +4805,13 @@
   function loadContracts() {
     var box = $("ad-contracts-list");
     if (!box) return;
-    db.collection("customer_quotes").orderBy("createdAt", "desc").limit(100).get()
-      .then(function (qs) {
+    liveOn("contracts", db.collection("customer_quotes").orderBy("createdAt", "desc").limit(100), function (qs) {
         var signed = [];
         qs.forEach(function (d) { var q = d.data(); if (q && q.status === "signed") signed.push({ id: d.id, q: q }); });
         var badge = $("pg-nav-b-contracts");
         if (badge) { badge.textContent = signed.length; badge.style.display = signed.length ? "" : "none"; }
         if (!signed.length) { box.innerHTML = '<p style="color:var(--faint)">No signed contracts yet. The first signed agreement lands here.</p>'; return; }
-        return db.collection("customers").limit(300).get().then(function (cs) {
+        db.collection("customers").limit(300).get().then(function (cs) {
           var byEmail = {}, byName = {};
           cs.forEach(function (cd) {
             var c = cd.data() || {};
@@ -4791,7 +4823,7 @@
           var woGets = signed.map(function (it) {
             return it.q.workOrderId ? db.collection("work_orders").doc(it.q.workOrderId).get().catch(function () { return null; }) : Promise.resolve(null);
           });
-          return Promise.all(woGets).then(function (wos) {
+          Promise.all(woGets).then(function (wos) {
             box.innerHTML = "";
             signed.forEach(function (it, ix) {
               var q = it.q;
@@ -4825,13 +4857,13 @@
               });
             });
           });
-        });
-      })
-      .catch(function () { box.innerHTML = '<p style="color:var(--faint)">Contracts could not load just now.</p>'; });
+        }).catch(function () { box.innerHTML = '<p style="color:var(--faint)">Contracts could not load just now.</p>'; });
+      },
+      function () { box.innerHTML = '<p style="color:var(--faint)">Contracts could not load just now.</p>'; });
   }
 
   function loadVendors() {
-    db.collection("vendors").orderBy("createdAt", "desc").limit(50).get().then(function (qs) {
+    liveOn("vendors", db.collection("vendors").orderBy("createdAt", "desc").limit(50), function (qs) {
       var box = $("ad-vendor-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
       box.innerHTML = "";
@@ -4854,7 +4886,9 @@
 
   function loadTeam() {
     if (!isAdmin) return;
-    db.collection("staff").get().then(function (qs) {
+    function renderTeamFromCache() {
+      var qs = liveCache["team"], iq = liveCache["teaminv"];
+      if (!qs) return;
       var box = $("ad-team-list");
       box.innerHTML = "<h4 style='margin-bottom:8px'>Team</h4>";
       if (qs.empty) box.innerHTML += '<p style="color:var(--faint)">No acquisition managers yet.</p>';
@@ -4865,19 +4899,18 @@
           ' <button class="mini danger" data-staffdel="' + d.id + '">Remove</button>';
         box.appendChild(row);
       });
-    });
-    db.collection("staff_invites").get().then(function (qs) {
-      if (qs.empty) return;
-      var box = $("ad-team-list");
+      if (!iq || iq.empty) return;
       box.innerHTML += "<h4 style='margin:12px 0 8px'>Pending invites</h4>";
-      qs.forEach(function (d) {
+      iq.forEach(function (d) {
         var inv = d.data() || {};
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(d.id) + "</strong><small>" + esc(roleLabel(inv.role)) + " · pending</small></div>" +
           ' <button class="mini danger" data-invdel="' + d.id + '">Cancel</button>';
         box.appendChild(row);
       });
-    });
+    }
+    liveOn("team", db.collection("staff"), function () { renderTeamFromCache(); });
+    liveOn("teaminv", db.collection("staff_invites"), function () { renderTeamFromCache(); });
   }
 
   var woVendorCache = [];
@@ -4899,7 +4932,7 @@
     });
   }
   function loadVendorOptions() {
-    db.collection("vendors").get().then(function (qs) {
+    liveOn("vopts", db.collection("vendors"), function (qs) {
       var sel = $("wo-assign");
       sel.innerHTML = '<option value="broadcast">All vendors (broadcast)</option>';
       qs.forEach(function (d) {
