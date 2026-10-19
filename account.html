@@ -251,15 +251,19 @@
     </button>
     <a class="brand" href="index.html"><img src="assets/primeguard-logo-gold-badge.png" alt="PrimeGuard Preservation logo" class="brand-logo"><span class="brand-text">PrimeGuard <span>Preservation LLC</span></span></a>
     <nav class="main-nav" id="mainNav">
-      <a href="index.html#services">Services</a>
-      <a href="plans.html">Plans</a>
-      <a href="work.html">Work</a>
-      <a href="reviews.html">Reviews</a>
-      <a href="index.html#about">About</a>
-      <a href="index.html#contact">Contact</a>
+      <a href="index.html#services" data-i18n="nav_services">Services</a>
+      <a href="plans.html" data-i18n="nav_plans">Plans</a>
+      <a href="work.html" data-i18n="nav_work">Work</a>
+      <a href="reviews.html" data-i18n="nav_reviews">Reviews</a>
+      <a href="index.html#about" data-i18n="nav_about">About</a>
+      <a href="index.html#contact" data-i18n="nav_contact">Contact</a>
     </nav>
     <div class="header-actions">
-      <a class="btn btn-gold" href="index.html#contact">Book now</a>
+      <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria="lang_label">
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="es">ES</button>
+      </div>
+      <a class="btn btn-gold" href="index.html#contact" data-i18n="book_now">Book now</a>
     </div>
   </div>
 </header>
@@ -268,9 +272,9 @@
   <!-- Static hero (shown when logged out) -->
   <section class="account-hero" id="account-hero-static">
     <div class="container">
-      <p class="section-kicker">Customer portal</p>
-      <h1 class="grad-text">My account</h1>
-      <p class="section-lead">Manage your profile, request services, and track your jobs in one place.</p>
+      <p class="section-kicker" data-i18n="portal_kicker">Customer portal</p>
+      <h1 class="grad-text" data-i18n="my_account">My account</h1>
+      <p class="section-lead" data-i18n="hero_lead">Manage your profile, request services, and track your jobs in one place.</p>
     </div>
   </section>
 
@@ -278,8 +282,8 @@
     <div class="container">
       <!-- Shown when Firebase is not configured yet -->
       <div id="account-coming-soon" class="card hidden">
-        <h2>Accounts are launching soon</h2>
-        <p>We're putting the finishing touches on customer accounts. Check back shortly, or <a href="index.html#contact">request service</a> right now, no account needed.</p>
+        <h2 data-i18n="coming_title">Accounts are launching soon</h2>
+        <p data-i18n-html="coming_body_html">We're putting the finishing touches on customer accounts. Check back shortly, or <a href="index.html#contact">request service</a> right now, no account needed.</p>
       </div>
 
       <!-- Auth forms (logged out) -->
@@ -288,49 +292,49 @@
           <div class="login-banner-panel">
             <img class="login-banner-logo" src="assets/logo-transparent.png" alt="PrimeGuard Preservation LLC logo">
             <div>
-              <h2>Welcome to PrimeGuard</h2>
-              <p>Your home, handled — requests, jobs and quotes in one place.</p>
+              <h2 data-i18n="welcome_pg">Welcome to PrimeGuard</h2>
+              <p data-i18n="login_banner_sub">Your home, handled — requests, jobs and quotes in one place.</p>
             </div>
           </div>
         </div>
         <div class="role-toggle" aria-label="Choose your portal">
-          <a class="role-btn active" href="account.html" aria-current="page">I'm a customer</a>
-          <a class="role-btn" href="vendor-dashboard.html">I'm a vendor</a>
+          <a class="role-btn active" href="account.html" aria-current="page" data-i18n="role_customer">I'm a customer</a>
+          <a class="role-btn" href="vendor-dashboard.html" data-i18n="role_vendor">I'm a vendor</a>
         </div>
         <div class="auth-tabs">
-          <button id="tab-login" class="auth-tab active" type="button">Log in</button>
-          <button id="tab-signup" class="auth-tab" type="button">Sign up</button>
+          <button id="tab-login" class="auth-tab active" type="button" data-i18n="tab_login">Log in</button>
+          <button id="tab-signup" class="auth-tab" type="button" data-i18n="tab_signup">Sign up</button>
         </div>
 
         <form id="form-login" class="card auth-card">
-          <h2>Welcome back</h2>
-          <label>Email<input type="email" id="login-email" required autocomplete="email"></label>
-          <label>Password<input type="password" id="login-password" required autocomplete="current-password"></label>
+          <h2 data-i18n="welcome_back">Welcome back</h2>
+          <label><span data-i18n="email">Email</span><input type="email" id="login-email" required autocomplete="email"></label>
+          <label><span data-i18n="password">Password</span><input type="password" id="login-password" required autocomplete="current-password"></label>
           <p class="form-error hidden" id="login-error"></p>
-          <button class="btn btn-gold" type="submit">Log in</button>
-          <button class="btn btn-ghost" type="button" id="google-login">Continue with Google</button>
-          <p style="margin-top:10px;text-align:center"><a href="#" id="login-forgot" style="font-size:13px">Forgot password?</a></p>
+          <button class="btn btn-gold" type="submit" data-i18n="login_btn">Log in</button>
+          <button class="btn btn-ghost" type="button" id="google-login" data-i18n="google_btn">Continue with Google</button>
+          <p style="margin-top:10px;text-align:center"><a href="#" id="login-forgot" style="font-size:13px" data-i18n="forgot">Forgot password?</a></p>
           <p class="form-ok hidden" id="login-reset-ok" style="font-size:13px;text-align:center"></p>
         </form>
 
         <form id="form-signup" class="card auth-card hidden">
-          <h2>Create your account</h2>
-          <label>Full name<input type="text" id="signup-name" required autocomplete="name"></label>
-          <label>Email<input type="email" id="signup-email" required autocomplete="email"></label>
-          <label>Phone<input type="tel" id="signup-phone" autocomplete="tel" placeholder="(305) 555-1234"></label>
-          <label>Password<input type="password" id="signup-password" required minlength="6" autocomplete="new-password"></label>
+          <h2 data-i18n="create_account">Create your account</h2>
+          <label><span data-i18n="full_name">Full name</span><input type="text" id="signup-name" required autocomplete="name"></label>
+          <label><span data-i18n="email">Email</span><input type="email" id="signup-email" required autocomplete="email"></label>
+          <label><span data-i18n="phone">Phone</span><input type="tel" id="signup-phone" autocomplete="tel" placeholder="(305) 555-1234"></label>
+          <label><span data-i18n="password">Password</span><input type="password" id="signup-password" required minlength="6" autocomplete="new-password"></label>
           <p class="form-error hidden" id="signup-error"></p>
-          <button class="btn btn-gold" type="submit">Create account</button>
-          <button class="btn btn-ghost" type="button" id="google-signup">Continue with Google</button>
+          <button class="btn btn-gold" type="submit" data-i18n="signup_btn">Create account</button>
+          <button class="btn btn-ghost" type="button" id="google-signup" data-i18n="google_btn">Continue with Google</button>
         </form>
 
         <div class="login-help">
-          <h3>How to log in</h3>
+          <h3 data-i18n="help_title">How to log in</h3>
           <ol>
-            <li>Pick <strong>Customer</strong> or <strong>Vendor</strong> above — customers land here; vendors use the vendor side.</li>
-            <li>Use the same email and password you signed up with, or tap <strong>Continue with Google</strong>.</li>
-            <li>New vendor? <a href="vendor-register.html">Register your crew</a> first, then come back and log in.</li>
-            <li>Forgot your password? Tap <strong>Forgot password?</strong> under the Log in button and we'll email you a reset link.</li>
+            <li data-i18n-html="help_1_html">Pick <strong>Customer</strong> or <strong>Vendor</strong> above — customers land here; vendors use the vendor side.</li>
+            <li data-i18n-html="help_2_html">Use the same email and password you signed up with, or tap <strong>Continue with Google</strong>.</li>
+            <li data-i18n-html="help_3_html">New vendor? <a href="vendor-register.html">Register your crew</a> first, then come back and log in.</li>
+            <li data-i18n-html="help_4_html">Forgot your password? Tap <strong>Forgot password?</strong> under the Log in button and we'll email you a reset link.</li>
           </ol>
         </div>
       </div>
@@ -339,13 +343,13 @@
       <div id="account-dashboard" class="hidden">
         <section class="acct-hero">
           <div class="container acct-hero-inner">
-            <span class="acct-kicker">Customer portal</span>
+            <span class="acct-kicker" data-i18n="portal_kicker">Customer portal</span>
             <h1><span id="dashboard-greeting">Hello</span>, <span class="gold-text" id="dashboard-name">there</span></h1>
-            <p class="acct-sub">Your home, cared for. Track requests, revisit past jobs, and manage everything in one sunny place.</p>
+            <p class="acct-sub" data-i18n="dash_sub">Your home, cared for. Track requests, revisit past jobs, and manage everything in one sunny place.</p>
             <div class="acct-stats">
-              <div class="tile-wrap tile-hex"><div class="acct-stat"><div class="t-ico">⬣</div><div class="v" id="stat-requests">0</div><div class="l">Active requests</div></div></div>
-              <div class="tile-wrap tile-round"><div class="acct-stat"><div class="t-ico">✓</div><div class="v" id="stat-jobs">0</div><div class="l">Jobs completed</div></div></div>
-              <div class="tile-wrap tile-pill"><div class="acct-stat"><div class="t-ico">★</div><div class="v" id="stat-since">-</div><div class="l">Member since</div></div></div>
+              <div class="tile-wrap tile-hex"><div class="acct-stat"><div class="t-ico">⬣</div><div class="v" id="stat-requests">0</div><div class="l" data-i18n="stat_active">Active requests</div></div></div>
+              <div class="tile-wrap tile-round"><div class="acct-stat"><div class="t-ico">✓</div><div class="v" id="stat-jobs">0</div><div class="l" data-i18n="stat_done">Jobs completed</div></div></div>
+              <div class="tile-wrap tile-pill"><div class="acct-stat"><div class="t-ico">★</div><div class="v" id="stat-since">-</div><div class="l" data-i18n="stat_since">Member since</div></div></div>
             </div>
           </div>
         </section>
@@ -359,35 +363,35 @@
 
         <div class="container">
           <section class="acct-card acct-action hidden" id="quoteSection">
-            <div class="acct-card-head"><h3>⚡ Action needed</h3><span class="pill pill-new" id="quoteCount"></span></div>
+            <div class="acct-card-head"><h3 data-i18n="action_needed">⚡ Action needed</h3><span class="pill pill-new" id="quoteCount"></span></div>
             <div id="quotes-list"></div>
           </section>
         </div>
 
         <div class="container">
           <section class="acct-card hidden" id="custQuotesSection">
-            <div class="acct-card-head"><h3>Your quotes</h3><span class="pill pill-new" id="custQuoteCount"></span></div>
+            <div class="acct-card-head"><h3 data-i18n="your_quotes">Your quotes</h3><span class="pill pill-new" id="custQuoteCount"></span></div>
             <div id="cust-quotes-list"></div>
           </section>
         </div>
 
         <div class="container">
           <section class="acct-card hidden" id="custCalSection">
-            <div class="acct-card-head"><h3>📅 Your calendar</h3><span class="pill pill-new" id="ccalNext"></span></div>
+            <div class="acct-card-head"><h3 data-i18n="your_calendar">📅 Your calendar</h3><span class="pill pill-new" id="ccalNext"></span></div>
             <!-- Live visit tracker (2026-10-17): appears when the crew
                  starts the trip; stages update live from the work order. -->
             <div id="ccalTracker"></div>
             <div class="ccal-nav">
-              <button type="button" class="ccal-navbtn" id="ccalPrev" aria-label="Previous month">‹</button>
+              <button type="button" class="ccal-navbtn" id="ccalPrev" aria-label="Previous month" data-i18n-aria="prev_month">‹</button>
               <strong id="ccalTitle"></strong>
-              <button type="button" class="ccal-navbtn" id="ccalNextBtn" aria-label="Next month">›</button>
+              <button type="button" class="ccal-navbtn" id="ccalNextBtn" aria-label="Next month" data-i18n-aria="next_month">›</button>
             </div>
-            <div class="ccal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+            <div class="ccal-dow"><span data-i18n="dow_0">Su</span><span data-i18n="dow_1">Mo</span><span data-i18n="dow_2">Tu</span><span data-i18n="dow_3">We</span><span data-i18n="dow_4">Th</span><span data-i18n="dow_5">Fr</span><span data-i18n="dow_6">Sa</span></div>
             <div class="ccal-grid" id="ccalGrid"></div>
             <div id="ccalDay"></div>
             <div class="ccal-connect">
-              <h4>Connect my calendar</h4>
-              <p class="ccal-connect-sub">See your PrimeGuard visits right inside Google Calendar or your iPhone calendar. We keep this link updated for you.</p>
+              <h4 data-i18n="connect_title">Connect my calendar</h4>
+              <p class="ccal-connect-sub" data-i18n="connect_sub">See your PrimeGuard visits right inside Google Calendar or your iPhone calendar. We keep this link updated for you.</p>
               <div id="ccalConnectBody"></div>
             </div>
           </section>
@@ -397,66 +401,66 @@
           <div class="acct-grid">
             <div class="acct-card">
               <div class="acct-card-head">
-                <h3>Service requests</h3>
-                <button class="btn btn-gold btn-sm" id="reqNewBtn" type="button">New request</button>
+                <h3 data-i18n="svc_requests">Service requests</h3>
+                <button class="btn btn-gold btn-sm" id="reqNewBtn" type="button" data-i18n="new_request">New request</button>
               </div>
               <div id="requests-list"></div>
             </div>
             <div class="acct-card">
               <div class="acct-card-head">
-                <h3>Job history</h3>
+                <h3 data-i18n="job_history">Job history</h3>
               </div>
               <div id="jobs-list"></div>
             </div>
           </div>
 
           <section class="acct-settings-cta">
-            <button class="btn btn-ghost btn-sm" id="settingsOpenBtn" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)">⚙ Settings</button>
+            <button class="btn btn-ghost btn-sm" id="settingsOpenBtn" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)" data-i18n="settings_btn">⚙ Settings</button>
             <button class="btn btn-ghost btn-sm" id="pgPushBtn" type="button">🔔 Turn on notifications</button>
-            <a class="btn btn-ghost btn-sm" id="pgAdminBtn" href="/admin.html" style="display:none">Admin dashboard</a>
+            <a class="btn btn-ghost btn-sm" id="pgAdminBtn" href="/admin.html" style="display:none" data-i18n="admin_dash">Admin dashboard</a>
           </section>
         </div>
 
         <div class="container">
           <div class="acct-grid">
             <div class="acct-card">
-              <div class="acct-card-head"><h3>🎁 Referrals</h3></div>
+              <div class="acct-card-head"><h3 data-i18n="referrals">🎁 Referrals</h3></div>
               <div id="referral-body">
-                <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px">Give $20, get $20. Share your code with friends.</p>
-                <div class="ref-code-row"><code id="refCodeVal">…</code><button class="btn btn-gold btn-sm" id="refCopy" type="button">Copy</button></div>
-                <p style="color:#a89a7d;font-size:.85rem;margin:8px 0 4px">Or send your personal link, the credit applies automatically:</p>
-                <div class="ref-code-row"><code id="refLinkVal">…</code><button class="btn btn-ghost btn-sm" id="refLinkCopy" type="button">Copy link</button></div>
+                <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px" data-i18n="ref_intro">Give $20, get $20. Share your code with friends.</p>
+                <div class="ref-code-row"><code id="refCodeVal">…</code><button class="btn btn-gold btn-sm" id="refCopy" type="button" data-i18n="copy">Copy</button></div>
+                <p style="color:#a89a7d;font-size:.85rem;margin:8px 0 4px" data-i18n="ref_link_intro">Or send your personal link, the credit applies automatically:</p>
+                <div class="ref-code-row"><code id="refLinkVal">…</code><button class="btn btn-ghost btn-sm" id="refLinkCopy" type="button" data-i18n="copy_link">Copy link</button></div>
                 <div class="ref-stats hidden" id="refStats">
-                  <div><strong id="refUses">0</strong><span>friends joined</span></div>
-                  <div><strong id="refCredit">$0</strong><span>credit earned</span></div>
+                  <div><strong id="refUses">0</strong><span data-i18n="friends_joined">friends joined</span></div>
+                  <div><strong id="refCredit">$0</strong><span data-i18n="credit_earned">credit earned</span></div>
                 </div>
               </div>
             </div>
             <div class="acct-card">
-              <div class="acct-card-head"><h3>💎 My plan</h3></div>
-              <div id="plan-body"><p style="color:#a89a7d">Loading…</p></div>
+              <div class="acct-card-head"><h3 data-i18n="my_plan">💎 My plan</h3></div>
+              <div id="plan-body"><p style="color:#a89a7d" data-i18n="loading">Loading…</p></div>
             </div>
             <div class="acct-card">
-              <div class="acct-card-head"><h3>🏠 My properties</h3></div>
+              <div class="acct-card-head"><h3 data-i18n="my_props">🏠 My properties</h3></div>
               <div id="props-list"></div>
               <div class="prop-add">
-                <input id="propLabel" placeholder="Label (e.g. Rental on 8th St)" aria-label="Property label">
-                <input id="propAddr" placeholder="Street, City, ZIP" aria-label="Property address">
-                <button class="btn btn-ghost btn-sm" id="propAdd" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)">Add</button>
+                <input id="propLabel" placeholder="Label (e.g. Rental on 8th St)" aria-label="Property label" data-i18n-ph="prop_label_ph" data-i18n-aria="prop_label_aria">
+                <input id="propAddr" placeholder="Street, City, ZIP" aria-label="Property address" data-i18n-ph="prop_addr_ph" data-i18n-aria="prop_addr_aria">
+                <button class="btn btn-ghost btn-sm" id="propAdd" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)" data-i18n="add">Add</button>
               </div>
             </div>
             <div class="acct-card">
-              <div class="acct-card-head"><h3>🌴 <span id="seasonMonth">This month</span> in Miami</h3></div>
+              <div class="acct-card-head"><h3>🌴 <span id="seasonMonth">This month</span> <span data-i18n="season_in_miami">in Miami</span></h3></div>
               <p id="seasonTip" class="season-tip"></p>
-              <button class="btn btn-ghost btn-sm" data-again="Lawn Care" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4);margin-top:10px">Get seasonal service</button>
+              <button class="btn btn-ghost btn-sm" data-again="Lawn Care" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4);margin-top:10px" data-i18n="seasonal_btn">Get seasonal service</button>
             </div>
             <div class="acct-card">
-              <div class="acct-card-head"><h3>🏅 Achievements</h3><span class="pill pill-new" id="badgeCount"></span></div>
+              <div class="acct-card-head"><h3 data-i18n="achievements">🏅 Achievements</h3><span class="pill pill-new" id="badgeCount"></span></div>
               <div class="badge-grid" id="badgeGrid"></div>
             </div>
           </div>
           <div class="acct-card hidden" id="galleryCard" style="margin-bottom:70px">
-            <div class="acct-card-head"><h3>📸 My home gallery</h3></div>
+            <div class="acct-card-head"><h3 data-i18n="gallery_title">📸 My home gallery</h3></div>
             <div class="gallery-strip" id="gallery-strip"></div>
           </div>
         </div>
@@ -476,64 +480,64 @@
       <button class="rw-x" id="reqClose" aria-label="Close">×</button>
     </div>
     <div class="rw-steps" id="rwSteps">
-      <div class="rw-st active" data-s="1"><div class="dot">1</div>Service</div>
-      <div class="rw-st" data-s="2"><div class="dot">2</div>Details</div>
-      <div class="rw-st" data-s="3"><div class="dot">3</div>Review</div>
+      <div class="rw-st active" data-s="1"><div class="dot">1</div><span data-i18n="step_service">Service</span></div>
+      <div class="rw-st" data-s="2"><div class="dot">2</div><span data-i18n="step_details">Details</span></div>
+      <div class="rw-st" data-s="3"><div class="dot">3</div><span data-i18n="step_review">Review</span></div>
     </div>
     <div class="rw-body">
       <!-- STEP 1: pick a service -->
       <section id="rwStep1">
-        <h2>What does your home need?</h2>
-        <p class="rw-sub">Choose a service to see exactly what's included. Then request it right here.</p>
+        <h2 data-i18n="rw_h2">What does your home need?</h2>
+        <p class="rw-sub" data-i18n="rw_sub">Choose a service to see exactly what's included. Then request it right here.</p>
         <div id="rwSvcList"></div>
-        <p class="rw-fine">Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
+        <p class="rw-fine" data-i18n-html="rw_fine_html">Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
       </section>
       <!-- STEP 2: details -->
       <section id="rwStep2" class="hidden">
-        <button class="rw-backlink" id="rwBack2" type="button">← All services</button>
+        <button class="rw-backlink" id="rwBack2" type="button" data-i18n="back_services">← All services</button>
         <div class="rw-dhero">
           <img id="rwImg" src="" alt="">
-          <div class="cap"><h3 id="rwName"></h3><span class="pr">from <strong id="rwPrice"></strong></span></div>
+          <div class="cap"><h3 id="rwName"></h3><span class="pr"><span data-i18n="from_word">from</span> <strong id="rwPrice"></strong></span></div>
         </div>
-        <div class="rw-bene"><h4>What's included</h4><ul id="rwBenefits"></ul></div>
-        <div class="rw-how">📌 <strong>How it works:</strong> send your request here → we confirm details &amp; price with you → nothing is scheduled until you approve it.</div>
+        <div class="rw-bene"><h4 data-i18n="whats_included">What's included</h4><ul id="rwBenefits"></ul></div>
+        <div class="rw-how" data-i18n-html="how_it_works_html">📌 <strong>How it works:</strong> send your request here → we confirm details &amp; price with you → nothing is scheduled until you approve it.</div>
         <div class="rw-panel">
-          <label class="rw-f" for="rwDetails" style="margin-top:0">Tell us exactly what you want done</label>
-          <textarea id="rwDetails" rows="6" placeholder="Tell us exactly what you want done: what needs doing, where on the property, how big the area is, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote."></textarea>
-          <label class="rw-f">Show us <span class="opt">(optional)</span></label>
-          <p class="rw-hint">Show us: add photos or a short video of the area so we can see exactly what you mean.</p>
-          <button class="rw-photo-btn" id="rwPhotoBtn" type="button">📷 &nbsp;Add photos</button>
+          <label class="rw-f" for="rwDetails" style="margin-top:0" data-i18n="details_label">Tell us exactly what you want done</label>
+          <textarea id="rwDetails" rows="6" placeholder="Tell us exactly what you want done: what needs doing, where on the property, how big the area is, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote." data-i18n-ph="details_ph"></textarea>
+          <label class="rw-f"><span data-i18n="show_us">Show us</span> <span class="opt" data-i18n="optional">(optional)</span></label>
+          <p class="rw-hint" data-i18n="show_hint">Show us: add photos or a short video of the area so we can see exactly what you mean.</p>
+          <button class="rw-photo-btn" id="rwPhotoBtn" type="button" data-i18n="add_photos">📷 &nbsp;Add photos</button>
           <input type="file" id="rwPhotos" accept="image/*" multiple class="hidden">
           <div class="rw-thumbs" id="rwPreview"></div>
-          <button class="rw-photo-btn" id="rwVideoBtn" type="button" style="margin-top:10px">🎬 &nbsp;Add a video</button>
+          <button class="rw-photo-btn" id="rwVideoBtn" type="button" style="margin-top:10px" data-i18n="add_video">🎬 &nbsp;Add a video</button>
           <input type="file" id="rwVideos" accept="video/*" multiple class="hidden">
           <div class="rw-vid-list" id="rwVideoList"></div>
           <p class="rw-vid-msg hidden" id="rwVideoMsg"></p>
-          <label class="rw-f" for="rwVideoLink">Or paste a video link <span class="opt">(optional)</span></label>
-          <input type="text" id="rwVideoLink" placeholder="Or paste a video link (Google Photos, iCloud, YouTube…)">
-          <h4 style="margin-top:18px">How often?</h4>
-          <p class="rw-hint">One-time is perfect for trying us out.</p>
+          <label class="rw-f" for="rwVideoLink"><span data-i18n="video_link_label">Or paste a video link</span> <span class="opt" data-i18n="optional">(optional)</span></label>
+          <input type="text" id="rwVideoLink" placeholder="Or paste a video link (Google Photos, iCloud, YouTube…)" data-i18n-ph="video_link_ph">
+          <h4 style="margin-top:18px" data-i18n="how_often">How often?</h4>
+          <p class="rw-hint" data-i18n="freq_hint">One-time is perfect for trying us out.</p>
           <div class="rw-chips" id="rwFreq">
-            <button class="rw-chip active" data-freq="One-time" type="button">One-time</button>
-            <button class="rw-chip" data-freq="Weekly" type="button">Weekly</button>
-            <button class="rw-chip" data-freq="Biweekly" type="button">Biweekly</button>
-            <button class="rw-chip" data-freq="Monthly" type="button">Monthly</button>
+            <button class="rw-chip active" data-freq="One-time" type="button" data-i18n="freq_once">One-time</button>
+            <button class="rw-chip" data-freq="Weekly" type="button" data-i18n="freq_weekly">Weekly</button>
+            <button class="rw-chip" data-freq="Biweekly" type="button" data-i18n="freq_biweekly">Biweekly</button>
+            <button class="rw-chip" data-freq="Monthly" type="button" data-i18n="freq_monthly">Monthly</button>
           </div>
         </div>
         <p class="form-error hidden" id="reqError"></p>
         <div class="rw-btnrow">
-          <button class="btn-ghost-w" id="rwBack2b" type="button">Back</button>
-          <button class="btn btn-gold" id="rwToReview" type="button">Review →</button>
+          <button class="btn-ghost-w" id="rwBack2b" type="button" data-i18n="back">Back</button>
+          <button class="btn btn-gold" id="rwToReview" type="button" data-i18n="review_btn">Review →</button>
         </div>
       </section>
       <!-- STEP 3: review -->
       <section id="rwStep3" class="hidden">
-        <button class="rw-backlink" id="rwBack3" type="button">← Back</button>
-        <h2>Review your request</h2>
-        <p class="rw-sub">Requesting as <strong id="rwRevName"></strong> · <span id="rwRevContact"></span></p>
+        <button class="rw-backlink" id="rwBack3" type="button" data-i18n="back_plain">← Back</button>
+        <h2 data-i18n="review_h2">Review your request</h2>
+        <p class="rw-sub"><span data-i18n="requesting_as">Requesting as</span> <strong id="rwRevName"></strong> · <span id="rwRevContact"></span></p>
         <div class="rw-rev" id="rwRevBox"></div>
-        <button class="btn btn-gold btn-lg" id="rwSend" type="button" style="width:100%">Send my request</button>
-        <p class="rw-fine">You pay nothing today. We confirm the details and price with you before anything is scheduled.<br>Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
+        <button class="btn btn-gold btn-lg" id="rwSend" type="button" style="width:100%" data-i18n="send_request">Send my request</button>
+        <p class="rw-fine" data-i18n-html="send_fine_html">You pay nothing today. We confirm the details and price with you before anything is scheduled.<br>Prefer to talk? Call <a href="tel:+17864229674">(786) 422-9674</a></p>
       </section>
       <!-- DONE -->
       <section id="rwDone" class="hidden">
@@ -541,8 +545,8 @@
           <div class="rw-bigcheck">✓</div>
           <h2 id="rwDoneTitle">Request received!</h2>
           <p id="rwDoneSummary"></p>
-          <p><strong>What happens next:</strong><br>1. We confirm your details and price (usually same day).<br>2. You approve it. Nothing scheduled without your OK.<br>3. Our crew gets it done. You get before &amp; after photos.</p>
-          <div class="rw-btnrow"><button class="btn-ghost-w" id="rwDoneBtn" type="button">Done</button></div>
+          <p data-i18n-html="next_steps_html"><strong>What happens next:</strong><br>1. We confirm your details and price (usually same day).<br>2. You approve it. Nothing scheduled without your OK.<br>3. Our crew gets it done. You get before &amp; after photos.</p>
+          <div class="rw-btnrow"><button class="btn-ghost-w" id="rwDoneBtn" type="button" data-i18n="done_btn">Done</button></div>
         </div>
       </section>
     </div>
@@ -553,20 +557,20 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <aside class="settings-panel" id="settingsPanel" aria-label="Settings">
   <div class="settings-head">
-    <h3>Settings</h3>
-    <button class="settings-close" id="settingsClose" aria-label="Close settings">×</button>
+    <h3 data-i18n="settings">Settings</h3>
+    <button class="settings-close" id="settingsClose" aria-label="Close settings" data-i18n-aria="close_settings">×</button>
   </div>
   <div class="acct-settings">
     <form id="profile-form">
-      <label>Full name<input type="text" id="profile-name" autocomplete="name"></label>
-      <label>Phone<input type="tel" id="profile-phone" autocomplete="tel"></label>
-      <label>Service address<input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP"></label>
+      <label><span data-i18n="full_name">Full name</span><input type="text" id="profile-name" autocomplete="name"></label>
+      <label><span data-i18n="phone">Phone</span><input type="tel" id="profile-phone" autocomplete="tel"></label>
+      <label><span data-i18n="service_address">Service address</span><input type="text" id="profile-address" autocomplete="street-address" placeholder="Street, City, ZIP" data-i18n-ph="addr_ph"></label>
       <p class="form-error hidden" id="profile-error"></p>
-      <p class="form-ok hidden" id="profile-ok">Profile saved.</p>
-      <button class="btn btn-gold" type="submit">Save profile</button>
+      <p class="form-ok hidden" id="profile-ok" data-i18n="profile_saved">Profile saved.</p>
+      <button class="btn btn-gold" type="submit" data-i18n="save_profile">Save profile</button>
     </form>
     <div class="acct-logout-row">
-      <button class="btn btn-ghost" type="button" id="logout-btn" style="color:#8a5d14;border-color:#e0d2b0">Log out</button>
+      <button class="btn btn-ghost" type="button" id="logout-btn" style="color:#8a5d14;border-color:#e0d2b0" data-i18n="logout">Log out</button>
     </div>
   </div>
 </aside>
@@ -580,22 +584,22 @@
     <div class="footer-contact">
       <a href="tel:+17864229674">(786) 422-9674</a>
       <a href="mailto:primeguardllc.office@pgpbiz.com">primeguardllc.office@pgpbiz.com</a>
-      <span>Mon-Fri, 8:00&nbsp;AM - 5:00&nbsp;PM · Sat, 8:00&nbsp;AM - 12:00&nbsp;PM</span>
+      <span data-i18n="footer_hours">Mon-Fri, 8:00&nbsp;AM - 5:00&nbsp;PM · Sat, 8:00&nbsp;AM - 12:00&nbsp;PM</span>
     </div>
     <nav class="footer-links" aria-label="Footer">
-      <a href="index.html#services">Services</a>
-      <a href="plans.html">Plans</a>
-      <a href="work.html">Work</a>
-      <a href="reviews.html">Reviews</a>
-      <a href="faq.html">FAQ</a>
-      <a href="referrals.html">Referrals</a>
-      <a href="government.html">Government</a>
-      <a href="index.html#about">About</a>
-      <a href="index.html#contact">Contact</a>
-      <a href="careers.html">Careers</a>
-      <a href="#" class="pg-get-app">📲 Get the app</a>
+      <a href="index.html#services" data-i18n="nav_services">Services</a>
+      <a href="plans.html" data-i18n="nav_plans">Plans</a>
+      <a href="work.html" data-i18n="nav_work">Work</a>
+      <a href="reviews.html" data-i18n="nav_reviews">Reviews</a>
+      <a href="faq.html" data-i18n="nav_faq">FAQ</a>
+      <a href="referrals.html" data-i18n="nav_referrals">Referrals</a>
+      <a href="government.html" data-i18n="nav_government">Government</a>
+      <a href="index.html#about" data-i18n="nav_about">About</a>
+      <a href="index.html#contact" data-i18n="nav_contact">Contact</a>
+      <a href="careers.html" data-i18n="nav_careers">Careers</a>
+      <a href="#" class="pg-get-app" data-i18n="get_app">📲 Get the app</a>
     </nav>
-    <p class="footer-copy">© <span id="acct-year"></span> PrimeGuard Preservation LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="acct-year"></span> PrimeGuard Preservation LLC. <span data-i18n="rights">All rights reserved.</span></p>
   </div>
 </footer>
 
@@ -603,7 +607,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=16"></script>
+<script src="account.js?v=17"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

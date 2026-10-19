@@ -14,18 +14,18 @@
   function friendlyAuthError(err) {
     var code = (err && err.code) || "";
     var map = {
-      "auth/invalid-credential": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
-      "auth/wrong-password": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
-      "auth/user-not-found": "That email and password don't match our records. Check for typos — or if you signed up with Google, use Continue with Google.",
-      "auth/email-already-in-use": "That email already has an account. Try logging in instead.",
-      "auth/weak-password": "Password needs at least 6 characters.",
-      "auth/too-many-requests": "Too many attempts. Wait a minute and try again, or reset your password.",
-      "auth/network-request-failed": "Connection problem. Check your internet and try again."
+      "auth/invalid-credential": "err_invalid_long",
+      "auth/wrong-password": "err_invalid_long",
+      "auth/user-not-found": "err_invalid_long",
+      "auth/email-already-in-use": "err_inuse",
+      "auth/weak-password": "err_weak",
+      "auth/too-many-requests": "err_many2",
+      "auth/network-request-failed": "err_network2"
     };
-    if (map[code]) return map[code];
-    var msg = (err && err.message) || "Something went wrong. Please try again.";
+    if (map[code]) return t(map[code]);
+    var msg = (err && err.message) || t("err_generic");
     msg = msg.replace(/^Firebase:\s*/i, "").replace(/\s*\(auth\/[a-z0-9-]+\)\.?$/i, "").trim();
-    return msg || "Something went wrong. Please try again.";
+    return msg || t("err_generic");
   }
 
   // Busy state so a submit click never looks dead.
@@ -40,6 +40,629 @@
     }
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  // ---- EN/ES i18n (mirrors the main site pattern: site.js t() + applyI18n) ----
+  // Language is shared with the main site via localStorage "pg-lang"; the vendor
+  // portal defaults to Spanish when nothing is saved (vendors are Spanish-first).
+  var currentLang = "es";
+  try {
+    var savedLang = localStorage.getItem("pg-lang");
+    if (savedLang === "en" || savedLang === "es") currentLang = savedLang;
+  } catch (e) { /* storage blocked: keep the Spanish default */ }
+  function localeTag() { return currentLang === "es" ? "es-US" : "en-US"; }
+
+  var I18N = {
+    en: {
+      page_title: "Vendor Dashboard | PrimeGuard Preservation",
+      lang_label: "Language",
+      portal: "Vendor portal",
+      portal_kicker: "Vendor Portal",
+      hello: "Hello",
+      logout: "Log out",
+      login_banner_line: "Your jobs, your quotes, your pay — per job completed.",
+      role_customer: "I'm a customer",
+      role_vendor: "I'm a vendor",
+      login: "Log in",
+      login_sub_pre: "Log in with your vendor account to see your jobs and submit quotes. New here?",
+      login_register_link: "Register your crew",
+      email: "Email",
+      password: "Password",
+      google_btn: "Continue with Google",
+      forgot: "Forgot password?",
+      new_here: "New to PrimeGuard?",
+      create_account: "Create your vendor account",
+      how_login: "How to log in",
+      help_customer: "Customer",
+      help_vendor: "Vendor",
+      help_1a: "Pick",
+      help_1b: "or",
+      help_1c: "above — vendors land here; customers use the customer side.",
+      help_2a: "Use the same email and password you registered with, or tap",
+      help_2b: ".",
+      help_3a: "New vendor?",
+      help_3b: "first, then come back and log in.",
+      help_4a: "Forgot your password? Tap",
+      help_4b: "under the Log in button and we'll email you a reset link.",
+      loading_panel: "Loading your dashboard…",
+      open_menu: "Open menu",
+      close_menu: "Close menu",
+      menu_label: "Portal menu",
+      tabs_label: "Vendor dashboard",
+      nav_home: "Home",
+      nav_next: "Your next job",
+      nav_available: "Available jobs",
+      nav_direct: "Direct jobs",
+      nav_my: "My jobs",
+      nav_calendar: "Calendar",
+      nav_quote: "Submit my price",
+      nav_done: "Done",
+      nav_account: "Account",
+      nav_pay: "Payment: how we pay you",
+      nav_w9: "W-9 documents",
+      nav_agreements: "Agreements",
+      nav_alerts: "Alerts",
+      nav_profile: "My profile",
+      ms_pending: "To collect",
+      ms_month: "This month",
+      ms_done: "Jobs finished",
+      ms_earned: "Earned",
+      ms_open: "Open opportunities",
+      app_title: "Your PrimeGuard app",
+      app_sub: "New jobs reach your phone instantly.",
+      app_install: "Install the app",
+      sec_next: "Your next job",
+      sec_docs: "Documents needed",
+      docs_sub: "Upload these documents to keep receiving paid jobs.",
+      sec_available: "Available jobs",
+      available_sub: "PrimeGuard posts the job details and photos. Review them, accept the evaluation visit, and submit your price.",
+      sec_direct: "Direct jobs",
+      sec_my: "My jobs",
+      sec_calendar: "Calendar",
+      cal_sub: "Your scheduled visits. Tap a day to see that day's jobs.",
+      prev_month: "Previous month",
+      next_month: "Next month",
+      dow_0: "S", dow_1: "M", dow_2: "T", dow_3: "W", dow_4: "T", dow_5: "F", dow_6: "S",
+      cal_connect: "Connect your calendar",
+      cal_connect_p: "Add your PrimeGuard jobs to your Google Calendar or iPhone calendar with your personal link. It updates on its own when a new job comes in.",
+      cal_copy: "Copy link",
+      cal_fine: "Google Calendar: Settings, Add calendar, From a URL, paste your link. iPhone: Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar, paste your link.",
+      cal_regen: "Generate a new link",
+      sec_quote: "Submit my price",
+      quote_sub: "Quote the job using the photos, videos and notes in the work order.",
+      q_for: "Which request is this price for?",
+      q_pick: "Select a quote request...",
+      q_price: "Your price ($)",
+      q_duration: "How long does it take?",
+      q_duration_ph: "1 day",
+      q_details: "Price details",
+      q_notes_ph: "Labor, materials, haul-away included...",
+      addon_title: "Maximize the visit: what else does this property need?",
+      addon_hint: "Walk the whole property. Check every extra service it needs and put your price for each one. The office adds them to your quote.",
+      addon_hedge: "Hedge and bush trimming",
+      addon_beds: "Flower bed cleanup and weed removal",
+      addon_mulch: "New mulch or decorative rock",
+      addon_palm: "Palm and small tree trimming",
+      addon_cleanup: "Full yard cleanup (leaves, branches, debris)",
+      addon_pressure: "Pressure washing (driveway and sidewalks)",
+      addon_edging: "Edging and full front finish",
+      q_attach: "Attach your formal quote",
+      q_optional: "(optional)",
+      q_branded: "Got a branded quote with your logo? Attach it here. It makes your bid look professional and helps you win the job.",
+      q_ok: "Quote submitted. PrimeGuard will review it.",
+      q_submit: "Submit quote",
+      sec_done: "Finished jobs",
+      sec_more: "More",
+      documents: "Documents",
+      doc_w9_form: "Form W-9",
+      w9_explainer: "Every vendor must submit a completed IRS Form W-9 within 7 days of registration. Payment can be held until it's in.",
+      w9_download: "Download blank W-9 (fillable PDF)",
+      w9_fine: "Already filled yours out? Upload it in the \"Documents needed\" section above and the office will mark it received.",
+      agreements: "Agreements",
+      agr_pdf: "PDF document",
+      agr_view: "View",
+      agr_nda_label: "I have read and agree to the Non-Circumvention, Non-Solicitation and Confidentiality Agreement",
+      agr_ica_label: "I have read and agree to the Independent Contractor Services Agreement",
+      agr_name: "Full legal name (your electronic signature)",
+      agr_name_ph: "Your full legal name",
+      agr_sign: "Sign agreements",
+      alerts: "Alerts",
+      alerts_t: "Job alerts",
+      alerts_sub: "We alert this phone when a new job or a price request comes in.",
+      alerts_btn: "🔔 Turn on alerts",
+      profile: "My profile",
+      tab_jobs: "Jobs",
+      tab_my: "My jobs",
+      tab_cal: "Calendar",
+      tab_money: "My money",
+      tab_more: "More",
+      signed_in: "You're signed in",
+      noprofile_pre: "You're signed in as",
+      noprofile_post: ", but this account doesn't have a vendor profile yet — that's why there's no vendor dashboard to show. If you run a crew, create your vendor account right here with this same Google sign-in, no new password needed, it takes about two minutes. If you're a customer, your portal is on the customer side.",
+      create_vendor_account: "Create your vendor account",
+      goto_customer: "Go to the customer portal",
+      foot_hours: "Mon-Fri, 8:00 AM - 5:00 PM · Sat, 8:00 AM - 12:00 PM",
+      foot_main: "Main site",
+      foot_services: "Services",
+      foot_contact: "Contact",
+      foot_app: "📲 Get the app",
+      foot_note: "How pay works: finish the job, send before and after photos, and payment is released per job completed after PrimeGuard confirms the work.",
+      foot_rights: "PrimeGuard Preservation LLC. All rights reserved.",
+      // Dynamic strings (rendered by JS)
+      there: "there",
+      vendor_word: "Vendor",
+      signing_in: "Signing in...",
+      err_generic: "Something went wrong. Please try again.",
+      err_invalid_long: "That email and password don't match our records. Check for typos, or if you signed up with Google, use Continue with Google.",
+      err_inuse: "That email already has an account. Try logging in instead.",
+      err_weak: "Password needs at least 6 characters.",
+      err_many2: "Too many attempts. Wait a minute and try again, or reset your password.",
+      err_network2: "Connection problem. Check your internet and try again.",
+      forgot_noemail2: "Type your email above first.",
+      reset_sent_pre: "Reset link sent to ",
+      profile_snag: "We hit a snag loading your vendor profile. Check your connection and try refreshing the page.",
+      st_approved: "APPROVED",
+      st_rejected: "NOT APPROVED",
+      st_pending: "PENDING REVIEW",
+      banner_rejected: "Your registration was not approved. Contact PrimeGuard at (786) 422-9674 if you think this is a mistake.",
+      banner_pending: "Your registration is under review. You'll be able to accept jobs once approved.",
+      pill_approved: "✓ Approved",
+      pill_review: "Under review",
+      pf_business: "Business",
+      pf_contact: "Contact",
+      pf_phone: "Phone",
+      pf_email: "Email",
+      pf_services: "Services",
+      pf_areas: "Areas",
+      pf_crew: "Crew size",
+      pf_equip: "Equipment",
+      coi_received_line: "Certificate of insurance (COI): received ✓, on file with the office.",
+      doc_due_asap: "as soon as possible",
+      doc_overdue: "overdue: upload now",
+      doc_w9_t2: "W-9 form",
+      doc_coi_t2: "Certificate of insurance",
+      doc_coi_req: "Required since you carry general liability",
+      upload_btn: "Upload",
+      doc_choose: "Choose the file first.",
+      doc_setup: "Uploads are being set up. Please text the document to us for now.",
+      doc_received: "Document received. Thank you.",
+      doc_failed: "Upload failed. Please try again.",
+      agr_signed_h: "Agreements signed ✓",
+      agr_onfile: "On file: ",
+      agr_resign_h: "Updated agreements: please re-sign",
+      agr_resign_p: "We updated our vendor agreements. Please read the new versions below, check both boxes, and sign with your full legal name. It takes about a minute.",
+      agr_signing: "Signing...",
+      agr_thanks: "Thank you: your updated agreements are signed and on file.",
+      agr_err_pre: "Something went wrong saving your signature: ",
+      agr_err_post: " Please try again.",
+      w9_received: "W-9: received ✓",
+      w9_onfile_span: " — on file with the office.",
+      w9_submitted: "W-9: submitted ✓",
+      w9_sub_span: " — received, on file with the office.",
+      w9_pending: "W-9: pending",
+      w9_due_word: " — due ",
+      w9_pending_span: " — download the blank form below, fill it in, and upload it in the \"Documents needed\" section above.",
+      setup_title2: "Finish your setup",
+      setup_complete: "Your setup is complete ✓",
+      of_word: "of",
+      setup_done_suffix: "done",
+      setup_pay_label: "Payment information: how we pay you",
+      setup_pay_hint: "Add your Zelle, bank transfer, or check details below so the office can pay you per job completed.",
+      setup_onfile: "On file with the office.",
+      setup_w9_label: "W-9 form",
+      setup_w9_hint: "Still needed. Download the blank form and upload it in Documents needed.",
+      setup_agr_label: "Signed agreements (NDA + contractor agreement)",
+      setup_agr_hint: "Review and sign in the Agreements section.",
+      setup_agr_done: "Signed and on file.",
+      setup_coi_label: "Certificate of insurance",
+      setup_coi_hint: "Upload it in the Documents needed section.",
+      upd_btn: "Update",
+      add_btn: "Add",
+      go_btn: "Go",
+      pay_method: "Payment method",
+      method_zelle: "Zelle (fastest)",
+      method_ach2: "Bank transfer (ACH)",
+      method_check2: "Check by mail",
+      pay_label_zelle2: "Zelle phone or email",
+      pay_label_name: "Name on the account",
+      pay_label_bank: "Bank name",
+      pay_label_routing: "Routing number",
+      pay_label_acct: "Account number",
+      check_note_pre: "Checks are mailed to your business address on file: ",
+      pay_save_btn: "Save payment info",
+      alerts_line: "Job alerts: turn on notifications so you never miss a new job.",
+      alerts_btn2: "Turn on notifications",
+      val_zelle: "Add your Zelle phone or email and the name on the account.",
+      val_ach: "Add your bank, routing, account number, and the name on the account.",
+      val_missing: "Something is missing.",
+      setup_saved2: "Payment info saved. The office can now pay you per job completed.",
+      save_failed: "Save failed. Please try again.",
+      ps_bank: "Bank transfer",
+      ps_bank_word: "bank",
+      ps_check: "Check by mail",
+      accepted_on: "Accepted on",
+      status_accepted: "Accepted",
+      status_eval_accepted: "Evaluation accepted",
+      checklist_h: "Checklist",
+      ck_pressure: ["Before photos uploaded", "Full surface washed", "Area rinsed and clean", "After photos uploaded"],
+      ck_lawn: ["Before photos uploaded", "Lawn fully mowed", "Edging and trimming done", "Entry, driveway and sidewalks blown clean", "Gate closed and property secure", "After photos uploaded"],
+      ck_default: ["Before photos uploaded", "Work completed as ordered", "Area clean when finished", "After photos uploaded"],
+      hero_none_h: "No accepted jobs yet",
+      hero_none_p: "When you accept a job, here you'll see the address, the schedule, and the buttons to get directions, upload photos, and mark it done. Check the available jobs below.",
+      pay_word: "Pay",
+      pay_note: "Paid on completion,<br>with the photos",
+      tqp: "You set the price",
+      btn_directions: "Get directions",
+      btn_upload: "Upload photos",
+      btn_complete2: "Mark complete",
+      btn_price: "Give my price",
+      btn_price_sent: "Price sent ✓",
+      ina_h: "Your account isn't active",
+      ina_call: "Call PrimeGuard at",
+      ina_h_alt: "Tu cuenta no está activa",
+      ina_call_alt: "Llama a PrimeGuard al",
+      cnt_new1: " NEW",
+      cnt_newn: " NEW",
+      cnt_avail: " AVAILABLE",
+      cnt_active: " IN PROGRESS",
+      cnt_jobs: " JOBS",
+      cnt_day: " DAY",
+      cnt_days: " DAYS",
+      mn_one: " job finished",
+      mn_many: " jobs finished",
+      pend_n: " job(s) waiting for confirmation",
+      pend_none: "Nothing waiting for confirmation",
+      cal_none_day: "No jobs this day.",
+      job_word: "Job",
+      view_job: "View job",
+      cal_err2: "Could not create your link. Check your connection and try again.",
+      cal_copied_btn: "Copied!",
+      cal_regen_err: "Could not generate the new link.",
+      watch_video: "▶ Watch video",
+      list_empty: "Nothing here right now. New jobs appear here automatically.",
+      btn_accept_eval2: "Accept evaluation",
+      btn_accept_job: "Accept job",
+      active_none: "No active work. Accept a job above to get started.",
+      step_eval: "Evaluation visit accepted",
+      step_price: "Price sent",
+      step_wo: "Work order received",
+      step_before: "Before photos uploaded",
+      step_work: "Work finished",
+      step_after: "After photos uploaded: payment is released",
+      done_none2: "You haven't finished any jobs yet.",
+      paid_per: "Paid per job",
+      confirm_complete: "Mark this job complete? Make sure your after photos are uploaded.",
+      alert_checklist_pre: "Complete the checklist before marking the job complete. Missing ",
+      alert_checklist_post: " step(s).",
+      photo_setup: "Photo upload is being set up. Please send photos by text for now.",
+      upload_failed: "Upload failed",
+      q_pick_first: "Pick the quote request first.",
+      q_uploading: "Uploading quote...",
+      q_submitting: "Submitting..."
+    },
+    es: {
+      page_title: "Panel del Vendedor | PrimeGuard Preservation",
+      lang_label: "Idioma",
+      portal: "Portal de vendedores",
+      portal_kicker: "Portal de Vendedores",
+      hello: "Hola",
+      logout: "Salir",
+      login_banner_line: "Tus trabajos, tus cotizaciones, tu pago: por trabajo terminado.",
+      role_customer: "Soy cliente",
+      role_vendor: "Soy vendedor",
+      login: "Iniciar sesión",
+      login_sub_pre: "Inicia sesión con tu cuenta de vendedor para ver tus trabajos y enviar precios. ¿Nuevo aquí?",
+      login_register_link: "Registra tu equipo",
+      email: "Correo electrónico",
+      password: "Contraseña",
+      google_btn: "Continuar con Google",
+      forgot: "¿Olvidaste tu contraseña?",
+      new_here: "¿Nuevo en PrimeGuard?",
+      create_account: "Crea tu cuenta de vendedor",
+      how_login: "Cómo iniciar sesión",
+      help_customer: "Cliente",
+      help_vendor: "Vendedor",
+      help_1a: "Elige",
+      help_1b: "o",
+      help_1c: "arriba: los vendedores entran aquí; los clientes usan el lado del cliente.",
+      help_2a: "Usa el mismo correo y contraseña con los que te registraste, o toca",
+      help_2b: ".",
+      help_3a: "¿Vendedor nuevo?",
+      help_3b: "primero, y luego vuelve e inicia sesión.",
+      help_4a: "¿Olvidaste tu contraseña? Toca",
+      help_4b: "debajo del botón de iniciar sesión y te enviamos un enlace para restablecerla.",
+      loading_panel: "Cargando tu panel…",
+      open_menu: "Abrir menú",
+      close_menu: "Cerrar menú",
+      menu_label: "Menú del portal",
+      tabs_label: "Panel del vendedor",
+      nav_home: "Inicio",
+      nav_next: "Tu próximo trabajo",
+      nav_available: "Trabajos disponibles",
+      nav_direct: "Trabajos directos",
+      nav_my: "Mis trabajos",
+      nav_calendar: "Calendario",
+      nav_quote: "Enviar mi precio",
+      nav_done: "Terminados",
+      nav_account: "Cuenta",
+      nav_pay: "Pago: cómo te pagamos",
+      nav_w9: "Documentos W-9",
+      nav_agreements: "Acuerdos",
+      nav_alerts: "Avisos",
+      nav_profile: "Mi perfil",
+      ms_pending: "Por cobrar",
+      ms_month: "Este mes",
+      ms_done: "Trabajos terminados",
+      ms_earned: "Ganado",
+      ms_open: "Oportunidades abiertas",
+      app_title: "Tu app de PrimeGuard",
+      app_sub: "Los trabajos nuevos te llegan al teléfono al instante.",
+      app_install: "Instalar la app",
+      sec_next: "Tu próximo trabajo",
+      sec_docs: "Documentos necesarios",
+      docs_sub: "Sube estos documentos para seguir recibiendo trabajos pagados.",
+      sec_available: "Trabajos disponibles",
+      available_sub: "PrimeGuard publica los detalles y las fotos del trabajo. Revísalos, acepta la visita de evaluación y envía tu precio.",
+      sec_direct: "Trabajos directos",
+      sec_my: "Mis trabajos",
+      sec_calendar: "Calendario",
+      cal_sub: "Tus visitas programadas. Toca un día para ver los trabajos de ese día.",
+      prev_month: "Mes anterior",
+      next_month: "Mes siguiente",
+      dow_0: "D", dow_1: "L", dow_2: "M", dow_3: "M", dow_4: "J", dow_5: "V", dow_6: "S",
+      cal_connect: "Conecta tu calendario",
+      cal_connect_p: "Agrega tus trabajos de PrimeGuard a tu Google Calendar o al calendario de tu iPhone con tu enlace personal. Se actualiza solo cuando entra un trabajo nuevo.",
+      cal_copy: "Copiar enlace",
+      cal_fine: "Google Calendar: Configuración, Agregar calendario, Desde una URL, pega tu enlace. iPhone: Ajustes, Calendario, Cuentas, Agregar cuenta, Otro, Agregar calendario suscrito, pega tu enlace.",
+      cal_regen: "Generar un enlace nuevo",
+      sec_quote: "Enviar mi precio",
+      quote_sub: "Cotiza el trabajo con las fotos, los videos y las notas de la orden de trabajo.",
+      q_for: "¿Para qué solicitud es este precio?",
+      q_pick: "Selecciona una solicitud...",
+      q_price: "Tu precio ($)",
+      q_duration: "¿Cuánto tiempo toma?",
+      q_duration_ph: "1 día",
+      q_details: "Detalles del precio",
+      q_notes_ph: "Mano de obra, materiales, recogida de escombros...",
+      addon_title: "Maximiza la visita: ¿qué más necesita esta propiedad?",
+      addon_hint: "Revisa toda la propiedad. Marca cada servicio extra que necesita y pon tu precio por cada uno. La oficina los suma a tu cotización.",
+      addon_hedge: "Recorte de arbustos y setos",
+      addon_beds: "Limpieza de canteros y maleza",
+      addon_mulch: "Mulch nuevo o piedra decorativa",
+      addon_palm: "Recorte de palmas y árboles pequeños",
+      addon_cleanup: "Limpieza general del patio (hojas, ramas, escombros)",
+      addon_pressure: "Lavado a presión (driveway y aceras)",
+      addon_edging: "Bordes y acabado completo del frente",
+      q_attach: "Adjunta tu cotización formal",
+      q_optional: "(opcional)",
+      q_branded: "¿Tienes una cotización con tu logo? Adjúntala aquí. Tu precio se ve más profesional y te ayuda a ganar el trabajo.",
+      q_ok: "Cotización enviada. PrimeGuard la revisará.",
+      q_submit: "Enviar cotización",
+      sec_done: "Trabajos terminados",
+      sec_more: "Más",
+      documents: "Documentos",
+      doc_w9_form: "Formulario W-9",
+      w9_explainer: "Todo vendedor debe entregar el formulario W-9 del IRS completo dentro de los 7 días del registro. El pago puede retenerse hasta que lo recibamos.",
+      w9_download: "Descargar W-9 en blanco (PDF rellenable)",
+      w9_fine: "¿Ya lo llenaste? Súbelo en la sección \"Documentos necesarios\" arriba y la oficina lo marca como recibido.",
+      agreements: "Acuerdos",
+      agr_pdf: "Documento PDF",
+      agr_view: "Ver",
+      agr_nda_label: "He leído y acepto el Acuerdo de No Elusión, No Captación y Confidencialidad",
+      agr_ica_label: "He leído y acepto el Acuerdo de Servicios de Contratista Independiente",
+      agr_name: "Nombre legal completo (tu firma electrónica)",
+      agr_name_ph: "Tu nombre legal completo",
+      agr_sign: "Firmar acuerdos",
+      alerts: "Avisos",
+      alerts_t: "Avisos de trabajos",
+      alerts_sub: "Te avisamos en este teléfono cuando entre un trabajo nuevo o una solicitud de precio.",
+      alerts_btn: "🔔 Activar avisos",
+      profile: "Mi perfil",
+      tab_jobs: "Trabajos",
+      tab_my: "Mis trabajos",
+      tab_cal: "Calendario",
+      tab_money: "Mi dinero",
+      tab_more: "Más",
+      signed_in: "Ya iniciaste sesión",
+      noprofile_pre: "Iniciaste sesión como",
+      noprofile_post: ", pero esta cuenta aún no tiene un perfil de vendedor: por eso no hay un panel para mostrar. Si tienes un equipo, crea tu cuenta de vendedor aquí mismo con este mismo inicio de sesión de Google, sin contraseña nueva, toma unos dos minutos. Si eres cliente, tu portal está en el lado del cliente.",
+      create_vendor_account: "Crea tu cuenta de vendedor",
+      goto_customer: "Ir al portal del cliente",
+      foot_hours: "lun-vie, 8:00 AM - 5:00 PM · sáb, 8:00 AM - 12:00 PM",
+      foot_main: "Sitio principal",
+      foot_services: "Servicios",
+      foot_contact: "Contacto",
+      foot_app: "📲 Descarga la app",
+      foot_note: "Cómo funciona el pago: termina el trabajo, envía fotos del antes y el después, y el pago se libera por trabajo terminado después de que PrimeGuard confirma el trabajo.",
+      foot_rights: "PrimeGuard Preservation LLC. Todos los derechos reservados.",
+      there: "amigo",
+      vendor_word: "Vendedor",
+      signing_in: "Iniciando sesión...",
+      err_generic: "Algo salió mal. Inténtalo de nuevo.",
+      err_invalid_long: "Ese correo y contraseña no coinciden con nuestros registros. Revisa que no haya errores, o si te registraste con Google, usa Continuar con Google.",
+      err_inuse: "Ese correo ya tiene una cuenta. Intenta iniciar sesión.",
+      err_weak: "La contraseña necesita al menos 6 caracteres.",
+      err_many2: "Demasiados intentos. Espera un minuto e inténtalo de nuevo, o restablece tu contraseña.",
+      err_network2: "Problema de conexión. Revisa tu internet e inténtalo de nuevo.",
+      forgot_noemail2: "Escribe tu correo arriba primero.",
+      reset_sent_pre: "Enlace de restablecimiento enviado a ",
+      profile_snag: "Hubo un problema cargando tu perfil de vendedor. Revisa tu conexión e intenta refrescar la página.",
+      st_approved: "APROBADO",
+      st_rejected: "NO APROBADO",
+      st_pending: "EN REVISIÓN",
+      banner_rejected: "Tu registro no fue aprobado. Comunícate con PrimeGuard al (786) 422-9674 si crees que es un error.",
+      banner_pending: "Tu registro está en revisión. Podrás aceptar trabajos en cuanto seas aprobado.",
+      pill_approved: "✓ Aprobado",
+      pill_review: "En revisión",
+      pf_business: "Negocio",
+      pf_contact: "Contacto",
+      pf_phone: "Teléfono",
+      pf_email: "Correo",
+      pf_services: "Servicios",
+      pf_areas: "Áreas",
+      pf_crew: "Tamaño del equipo",
+      pf_equip: "Equipo",
+      coi_received_line: "Certificado de seguro (COI): recibido ✓, en archivo con la oficina.",
+      doc_due_asap: "lo antes posible",
+      doc_overdue: "vencido: súbelo ahora",
+      doc_w9_t2: "Formulario W-9",
+      doc_coi_t2: "Certificado de seguro",
+      doc_coi_req: "Requerido porque tienes seguro de responsabilidad general",
+      upload_btn: "Subir",
+      doc_choose: "Elige el archivo primero.",
+      doc_setup: "Las subidas se están configurando. Por ahora envíanos el documento por mensaje de texto.",
+      doc_received: "Documento recibido. Gracias.",
+      doc_failed: "La subida falló. Inténtalo de nuevo.",
+      agr_signed_h: "Acuerdos firmados ✓",
+      agr_onfile: "En archivo: ",
+      agr_resign_h: "Acuerdos actualizados: vuelve a firmar",
+      agr_resign_p: "Actualizamos nuestros acuerdos de vendedor. Lee las versiones nuevas abajo, marca ambas casillas y firma con tu nombre legal completo. Toma un minuto.",
+      agr_signing: "Firmando...",
+      agr_thanks: "Gracias: tus acuerdos actualizados están firmados y en archivo.",
+      agr_err_pre: "Algo salió mal al guardar tu firma: ",
+      agr_err_post: " Inténtalo de nuevo.",
+      w9_received: "W-9: recibido ✓",
+      w9_onfile_span: " — en archivo con la oficina.",
+      w9_submitted: "W-9: enviado ✓",
+      w9_sub_span: " — recibido, en archivo con la oficina.",
+      w9_pending: "W-9: pendiente",
+      w9_due_word: " — vence ",
+      w9_pending_span: " — descarga el formulario en blanco abajo, llénalo y súbelo en la sección \"Documentos necesarios\" de arriba.",
+      setup_title2: "Termina tu configuración",
+      setup_complete: "Tu configuración está completa ✓",
+      of_word: "de",
+      setup_done_suffix: "listos",
+      setup_pay_label: "Datos de pago: cómo te pagamos",
+      setup_pay_hint: "Agrega tus datos de Zelle, transferencia bancaria o cheque abajo para que la oficina te pague por trabajo terminado.",
+      setup_onfile: "En archivo con la oficina.",
+      setup_w9_label: "Formulario W-9",
+      setup_w9_hint: "Todavía falta. Descarga el formulario en blanco y súbelo en Documentos necesarios.",
+      setup_agr_label: "Acuerdos firmados (NDA + acuerdo de contratista)",
+      setup_agr_hint: "Revisa y firma en la sección Acuerdos.",
+      setup_agr_done: "Firmados y en archivo.",
+      setup_coi_label: "Certificado de seguro",
+      setup_coi_hint: "Súbelo en la sección Documentos necesarios.",
+      upd_btn: "Actualizar",
+      add_btn: "Agregar",
+      go_btn: "Ir",
+      pay_method: "Método de pago",
+      method_zelle: "Zelle (el más rápido)",
+      method_ach2: "Transferencia bancaria (ACH)",
+      method_check2: "Cheque por correo",
+      pay_label_zelle2: "Teléfono o correo de Zelle",
+      pay_label_name: "Nombre en la cuenta",
+      pay_label_bank: "Nombre del banco",
+      pay_label_routing: "Número de ruta (routing)",
+      pay_label_acct: "Número de cuenta",
+      check_note_pre: "Los cheques se envían por correo a la dirección de tu negocio en archivo: ",
+      pay_save_btn: "Guardar datos de pago",
+      alerts_line: "Avisos de trabajos: activa las notificaciones para no perderte ningún trabajo nuevo.",
+      alerts_btn2: "Activar notificaciones",
+      val_zelle: "Agrega tu teléfono o correo de Zelle y el nombre en la cuenta.",
+      val_ach: "Agrega tu banco, número de ruta, número de cuenta y el nombre en la cuenta.",
+      val_missing: "Falta algo.",
+      setup_saved2: "Datos de pago guardados. La oficina ya puede pagarte por trabajo terminado.",
+      save_failed: "No se pudo guardar. Inténtalo de nuevo.",
+      ps_bank: "Transferencia bancaria",
+      ps_bank_word: "banco",
+      ps_check: "Cheque por correo",
+      accepted_on: "Aceptado el",
+      status_accepted: "Aceptado",
+      status_eval_accepted: "Evaluación aceptada",
+      checklist_h: "Lista de verificación",
+      ck_pressure: ["Fotos de antes subidas", "Superficie lavada completa", "Área enjuagada y limpia", "Fotos de después subidas"],
+      ck_lawn: ["Fotos de antes subidas", "Césped cortado completo", "Bordes y trimming hechos", "Entrada, driveway y aceras soplados", "Portón cerrado y propiedad segura", "Fotos de después subidas"],
+      ck_default: ["Fotos de antes subidas", "Trabajo completado según la orden", "Área limpia al terminar", "Fotos de después subidas"],
+      hero_none_h: "Sin trabajos aceptados todavía",
+      hero_none_p: "Cuando aceptes un trabajo, aquí verás la dirección, el horario y los botones para llegar, subir las fotos y marcarlo terminado. Revisa los trabajos disponibles abajo.",
+      pay_word: "Paga",
+      pay_note: "Pago al terminar,<br>con las fotos",
+      tqp: "Tú pones el precio",
+      btn_directions: "Cómo llegar",
+      btn_upload: "Subir fotos",
+      btn_complete2: "Marcar terminado",
+      btn_price: "Dar mi precio",
+      btn_price_sent: "Precio enviado ✓",
+      ina_h: "Tu cuenta no está activa",
+      ina_call: "Llama a PrimeGuard al",
+      ina_h_alt: "Your account isn't active",
+      ina_call_alt: "Call PrimeGuard at",
+      cnt_new1: " NUEVA",
+      cnt_newn: " NUEVAS",
+      cnt_avail: " DISPONIBLES",
+      cnt_active: " EN CURSO",
+      cnt_jobs: " TRABAJOS",
+      cnt_day: " DÍA",
+      cnt_days: " DÍAS",
+      mn_one: " trabajo terminado",
+      mn_many: " trabajos terminados",
+      pend_n: " trabajo(s) esperando confirmación",
+      pend_none: "Nada esperando confirmación",
+      cal_none_day: "Sin trabajos este día.",
+      job_word: "Trabajo",
+      view_job: "Ver trabajo",
+      cal_err2: "No se pudo crear tu enlace. Revisa tu conexión e inténtalo de nuevo.",
+      cal_copied_btn: "¡Copiado!",
+      cal_regen_err: "No se pudo generar el enlace nuevo.",
+      watch_video: "▶ Ver video",
+      list_empty: "Nada por aquí ahora. Los trabajos nuevos aparecen aquí automáticamente.",
+      btn_accept_eval2: "Aceptar evaluación",
+      btn_accept_job: "Aceptar trabajo",
+      active_none: "Sin trabajo activo. Acepta un trabajo arriba para empezar.",
+      step_eval: "Visita de evaluación aceptada",
+      step_price: "Precio enviado",
+      step_wo: "Orden de trabajo recibida",
+      step_before: "Fotos de antes subidas",
+      step_work: "Trabajo terminado",
+      step_after: "Fotos de después subidas: se libera el pago",
+      done_none2: "Todavía no terminas trabajos.",
+      paid_per: "Pagado por trabajo",
+      confirm_complete: "¿Marcar este trabajo como terminado? Asegúrate de que las fotos del después ya estén subidas.",
+      alert_checklist_pre: "Completa la lista de verificación antes de marcar terminado. Faltan ",
+      alert_checklist_post: " paso(s).",
+      photo_setup: "La subida de fotos se está configurando. Por ahora envía las fotos por mensaje de texto.",
+      upload_failed: "La subida falló",
+      q_pick_first: "Elige primero la solicitud de cotización.",
+      q_uploading: "Subiendo cotización...",
+      q_submitting: "Enviando..."
+    }
+  };
+
+  function t(key) {
+    var dict = I18N[currentLang] || I18N.es;
+    if (Object.prototype.hasOwnProperty.call(dict, key)) return dict[key];
+    if (Object.prototype.hasOwnProperty.call(I18N.es, key)) return I18N.es[key];
+    return key;
+  }
+
+  // Static strings: [data-i18n] text, [data-i18n-ph] placeholders, [data-i18n-aria]
+  // aria-labels, exactly like the main site's applyI18n. Then re-render the dynamic
+  // content from the already-loaded data (no page reload).
+  var tr = t; // alias for scopes where a local "t" (event target) shadows t()
+  function applyI18n() {
+    document.documentElement.lang = currentLang;
+    document.title = t("page_title");
+    document.querySelectorAll("[data-i18n]").forEach(function (n) { n.textContent = t(n.getAttribute("data-i18n")); });
+    document.querySelectorAll("[data-i18n-ph]").forEach(function (n) { n.setAttribute("placeholder", t(n.getAttribute("data-i18n-ph"))); });
+    document.querySelectorAll("[data-i18n-aria]").forEach(function (n) { n.setAttribute("aria-label", t(n.getAttribute("data-i18n-aria"))); });
+    document.querySelectorAll(".lang-toggle button").forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-lang") === currentLang); });
+    if (vendor) {
+      renderHeader(); renderProfile(); renderDocs(); renderAgreements(); renderW9(); renderSetup();
+      loadAll();
+    }
+  }
+
+  document.querySelectorAll(".lang-toggle button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var lang = b.getAttribute("data-lang");
+      if ((lang === "en" || lang === "es") && lang !== currentLang) {
+        currentLang = lang;
+        try { localStorage.setItem("pg-lang", lang); } catch (e) { /* storage blocked */ }
+        applyI18n();
+      }
+    });
+  });
+  applyI18n();
+  // ---- end i18n ----
+
 
   var me = null;       // firebase user
   var vendor = null;    // vendors/{uid} data
@@ -57,7 +680,7 @@
     var errEl = $("vd-login-error");
     hide(errEl);
     var btn = e.target.querySelector('button[type="submit"]');
-    setBusy(btn, true, "Signing in...");
+    setBusy(btn, true, t("signing_in"));
     auth.signInWithEmailAndPassword($("vd-login-email").value.trim(), $("vd-login-password").value.trim())
       .then(function () { setBusy(btn, false); })
       .catch(function (err) { setBusy(btn, false); errEl.textContent = friendlyAuthError(err); show(errEl); });
@@ -158,9 +781,9 @@
     e.preventDefault();
     var errEl = $("vd-login-error"); hide(errEl); hide($("vd-reset-ok"));
     var email = $("vd-login-email").value.trim();
-    if (!email) { errEl.textContent = "Type your email above first."; show(errEl); return; }
+    if (!email) { errEl.textContent = t("forgot_noemail2"); show(errEl); return; }
     auth.sendPasswordResetEmail(email).then(function () {
-      $("vd-reset-ok").textContent = "Reset link sent to " + email + ".";
+      $("vd-reset-ok").textContent = t("reset_sent_pre") + email + ".";
       show($("vd-reset-ok"));
     }).catch(function (err) { errEl.textContent = friendlyAuthError(err); show(errEl); });
   });
@@ -200,23 +823,23 @@
       hide($("vd-loading")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile"));
       show($("vd-loginwrap"));
       var errEl = $("vd-login-error");
-      errEl.textContent = "We hit a snag loading your vendor profile. Check your connection and try refreshing the page.";
+      errEl.textContent = t("profile_snag");
       show(errEl);
     });
   });
 
   function renderHeader() {
-    $("vd-biz").textContent = vendor.business || "Vendor";
+    $("vd-biz").textContent = vendor.business || t("vendor_word");
     // Photo hero sub-line shows the primary area, plus "+n" when the
     // vendor covers more (profile section still lists them all).
     var areas = vendor.areas || [];
     $("vd-area").textContent = areas.length ? areas[0] + (areas.length > 1 ? " +" + (areas.length - 1) : "") : "";
-    $("vd-hello").textContent = (vendor.name || "there").split(" ")[0];
+    $("vd-hello").textContent = (vendor.name || t("there")).split(" ")[0];
     // Drawer header mirrors the same identity: business name + an
     // initials avatar (first letters of the first two words of the
     // business, falling back to the contact name).
     var dBiz = $("vd-drawer-biz");
-    if (dBiz) dBiz.textContent = vendor.business || vendor.name || "Vendor";
+    if (dBiz) dBiz.textContent = vendor.business || vendor.name || t("vendor_word");
     var dIni = $("vd-drawer-initials");
     if (dIni) {
       var words = String(vendor.business || vendor.name || "PrimeGuard").split(/\s+/).filter(Boolean);
@@ -227,7 +850,7 @@
   function renderProfile() {
     var v = vendor;
     var st = v.status || (v.verified ? "approved" : "pending");
-    var stTxt = st === "approved" ? "APPROVED" : st === "rejected" ? "NOT APPROVED" : "PENDING REVIEW";
+    var stTxt = st === "approved" ? t("st_approved") : st === "rejected" ? t("st_rejected") : t("st_pending");
     $("cnt-verified").textContent = stTxt;
     var banner = $("vd-status-banner");
     if (!banner) {
@@ -245,27 +868,27 @@
       banner.style.background = "rgba(212,168,67,.08)";
       banner.style.color = "#f5d67b";
       banner.textContent = st === "rejected"
-        ? "Your registration was not approved. Contact PrimeGuard at (786) 422-9674 if you think this is a mistake."
-        : "Your registration is under review. You'll be able to accept jobs once approved.";
+        ? t("banner_rejected")
+        : t("banner_pending");
     }
     // Photo hero status pill: same status the profile/banners already
     // compute — gold for approved, frosted for everything else.
     var pill = $("vd-status-pill");
     if (pill) {
-      if (st === "approved") { pill.className = "vd-ph-pill"; pill.textContent = "✓ Aprobado"; }
-      else if (st === "pending") { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = "En revisión"; }
+      if (st === "approved") { pill.className = "vd-ph-pill"; pill.textContent = t("pill_approved"); }
+      else if (st === "pending") { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = t("pill_review"); }
       else { pill.className = "vd-ph-pill vd-ph-pill-frost"; pill.textContent = stTxt; }
     }
     // Drawer header status line: same computed status, Spanish labels.
     var dStatus = $("vd-drawer-status");
     if (dStatus) {
-      dStatus.textContent = st === "approved" ? "✓ Aprobado" : st === "pending" ? "En revisión" : stTxt;
+      dStatus.textContent = st === "approved" ? t("pill_approved") : st === "pending" ? t("pill_review") : stTxt;
     }
     $("vd-profile").innerHTML = [
-      ["Business", v.business], ["Contact", v.name], ["Phone", v.phone],
-      ["Email", v.email], ["Services", (v.services || []).join(", ")],
-      ["Areas", (v.areas || []).join(", ")], ["Crew size", v.crewSize],
-      ["Equipment", v.equipment || "-"]
+      [t("pf_business"), v.business], [t("pf_contact"), v.name], [t("pf_phone"), v.phone],
+      [t("pf_email"), v.email], [t("pf_services"), (v.services || []).join(", ")],
+      [t("pf_areas"), (v.areas || []).join(", ")], [t("pf_crew"), v.crewSize],
+      [t("pf_equip"), v.equipment || "-"]
     ].map(function (f) {
       return '<div class="vfield"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1] || "-") + '</strong></div>';
     }).join("");
@@ -279,7 +902,7 @@
     var coiLine = $("vd-coi-line");
     if (coiLine) {
       if (v.insured === "yes" && v.coiStatus === "received") {
-        coiLine.innerHTML = "<strong>Certificado de seguro (COI): recibido ✓</strong> — en archivo con la oficina.";
+        coiLine.innerHTML = "<strong>" + esc(t("coi_received_line")) + "</strong>";
         coiLine.classList.remove("hidden");
       } else {
         coiLine.innerHTML = "";
@@ -294,17 +917,17 @@
     if (needW9) {
       var due = v.w9Due ? new Date(v.w9Due) : null;
       var days = due ? Math.ceil((due - Date.now()) / 86400000) : null;
-      var dueTxt = days === null ? "as soon as possible" : days > 0 ? days + " day" + (days === 1 ? "" : "s") + " left" : "overdue - upload now";
+      var dueTxt = days === null ? t("doc_due_asap") : days > 0 ? (currentLang === "es" ? "quedan " + days + (days === 1 ? " día" : " días") : days + (days === 1 ? " day" : " days") + " left") : t("doc_overdue");
       html += '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">' +
-        '<div style="flex:1;min-width:200px"><strong>W-9 form</strong><div style="font-size:.85rem;color:var(--muted)">' + dueTxt + '</div></div>' +
+        '<div style="flex:1;min-width:200px"><strong>' + esc(t("doc_w9_t2")) + '</strong><div style="font-size:.85rem;color:var(--muted)">' + dueTxt + '</div></div>' +
         '<input type="file" id="vd-w9-file" accept=".pdf,.jpg,.jpeg,.png" style="font-size:.85rem">' +
-        '<button class="btn btn-gold" id="vd-w9-btn" style="padding:10px 18px;font-size:.9rem">Upload</button></div>';
+        '<button class="btn btn-gold" id="vd-w9-btn" style="padding:10px 18px;font-size:.9rem">' + esc(t("upload_btn")) + '</button></div>';
     }
     if (needCoi) {
       html += '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.25)">' +
-        '<div style="flex:1;min-width:200px"><strong>Certificate of insurance</strong><div style="font-size:.85rem;color:var(--muted)">Required since you carry general liability</div></div>' +
+        '<div style="flex:1;min-width:200px"><strong>' + esc(t("doc_coi_t2")) + '</strong><div style="font-size:.85rem;color:var(--muted)">' + esc(t("doc_coi_req")) + '</div></div>' +
         '<input type="file" id="vd-coi-file" accept=".pdf,.jpg,.jpeg,.png" style="font-size:.85rem">' +
-        '<button class="btn btn-gold" id="vd-coi-btn" style="padding:10px 18px;font-size:.9rem">Upload</button></div>';
+        '<button class="btn btn-gold" id="vd-coi-btn" style="padding:10px 18px;font-size:.9rem">' + esc(t("upload_btn")) + '</button></div>';
     }
     list.innerHTML = html;
     var w9b = $("vd-w9-btn");
@@ -315,9 +938,9 @@
 
   function uploadVendorDoc(inputId, folder, update) {
     var f = $(inputId).files[0];
-    if (!f) { alert("Choose the file first."); return; }
+    if (!f) { alert(t("doc_choose")); return; }
     var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
-    if (!endpoint) { alert("Uploads are being set up. Please text the document to us for now."); return; }
+    if (!endpoint) { alert(t("doc_setup")); return; }
     var fr = new FileReader();
     fr.onload = function () {
       fetch(endpoint, {
@@ -330,8 +953,8 @@
         return db.collection("vendors").doc(me.uid).get();
       }).then(function (snap) {
         vendor = snap.data(); renderDocs(); renderW9(); renderSetup();
-        alert("Document received. Thank you.");
-      }).catch(function () { alert("Upload failed. Please try again."); });
+        alert(t("doc_received"));
+      }).catch(function () { alert(t("doc_failed")); });
     };
     fr.readAsDataURL(f);
   }
@@ -347,7 +970,7 @@
     if (!d || isNaN(d.getTime())) return "";
     var opts = { month: "short", day: "numeric" };
     if (withYear) opts.year = "numeric";
-    return d.toLocaleDateString("en-US", opts);
+    return d.toLocaleDateString(localeTag(), opts);
   }
 
   function renderAgreements() {
@@ -361,16 +984,16 @@
       hide(form);
       var when = fmtDate(ag.signedAt, true);
       statusEl.innerHTML =
-        '<p style="font-size:.95rem;margin-bottom:10px"><strong style="color:var(--gold-bright)">Agreements signed ✓</strong> — ' +
+        '<p style="font-size:.95rem;margin-bottom:10px"><strong style="color:var(--gold-bright)">' + esc(t("agr_signed_h")) + '</strong> — ' +
         esc(ag.signedName || "") + (when ? ", " + esc(when) : "") + "</p>" +
-        '<p style="font-size:.9rem;color:var(--muted)">On file: ' +
+        '<p style="font-size:.9rem;color:var(--muted)">' + esc(t("agr_onfile")) +
         '<a href="' + NDA_URL + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">Non-Circumvention, Non-Solicitation and Confidentiality Agreement</a> · ' +
         '<a href="' + ICA_URL + '" target="_blank" rel="noopener" style="color:var(--gold-bright)">Independent Contractor Services Agreement</a></p>';
       return;
     }
     statusEl.innerHTML =
-      '<h3 style="font-size:1.05rem;margin-bottom:6px">Updated agreements — please re-sign</h3>' +
-      '<p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">We updated our vendor agreements. Please read the new versions below, check both boxes, and sign with your full legal name. It takes about a minute.</p>';
+      '<h3 style="font-size:1.05rem;margin-bottom:6px">' + esc(t("agr_resign_h")) + '</h3>' +
+      '<p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px">' + esc(t("agr_resign_p")) + '</p>';
     var nameEl = $("va-name");
     if (nameEl && !nameEl.value) nameEl.value = ag.signedName || vendor.name || "";
     show(form);
@@ -397,7 +1020,7 @@
     hide(errEl); hide(okEl);
     var old = (vendor && vendor.agreements) || {};
     var btn = $("va-sign");
-    btn.disabled = true; btn.textContent = "Signing...";
+    btn.disabled = true; btn.textContent = t("agr_signing");
     db.collection("vendors").doc(me.uid).update({
       agreements: {
         nda: true,
@@ -412,12 +1035,12 @@
     }).then(function (snap) {
       vendor = snap.data();
       renderAgreements();
-      okEl.textContent = "Thank you — your updated agreements are signed and on file.";
+      okEl.textContent = t("agr_thanks");
       show(okEl);
     }).catch(function (err) {
-      errEl.textContent = "Something went wrong saving your signature: " + (err.message || err) + " Please try again.";
+      errEl.textContent = t("agr_err_pre") + (err.message || err) + t("agr_err_post");
       show(errEl);
-      btn.disabled = false; btn.textContent = "Sign agreements";
+      btn.disabled = false; btn.textContent = t("agr_sign");
       vaValidate();
     });
   });
@@ -431,12 +1054,12 @@
     var w9Sec = $("vd-w9-sec");
     if (w9Sec) w9Sec.classList.toggle("vd-doc-done", st === "received" || st === "approved" || st === "submitted");
     if (st === "received" || st === "approved") {
-      el.innerHTML = '<strong style="color:var(--gold-bright)">W-9: received ✓</strong> <span style="color:var(--muted)">— on file with the office.</span>';
+      el.innerHTML = '<strong style="color:var(--gold-bright)">' + esc(t("w9_received")) + '</strong> <span style="color:var(--muted)">' + esc(t("w9_onfile_span")) + '</span>';
     } else if (st === "submitted") {
-      el.innerHTML = '<strong style="color:var(--gold-bright)">W-9: submitted ✓</strong> <span style="color:var(--muted)">— received, on file with the office.</span>';
+      el.innerHTML = '<strong style="color:var(--gold-bright)">' + esc(t("w9_submitted")) + '</strong> <span style="color:var(--muted)">' + esc(t("w9_sub_span")) + '</span>';
     } else {
       var due = fmtDate(vendor.w9Due, false);
-      el.innerHTML = '<strong style="color:#f5d67b">W-9: pending' + (due ? " — due " + esc(due) : "") + '</strong> <span style="color:var(--muted)">— download the blank form below, fill it in, and upload it in the "Documents needed" section above.</span>';
+      el.innerHTML = '<strong style="color:#f5d67b">' + esc(t("w9_pending")) + (due ? esc(t("w9_due_word")) + esc(due) : "") + '</strong> <span style="color:var(--muted)">' + esc(t("w9_pending_span")) + '</span>';
     }
   }
 
@@ -456,8 +1079,8 @@
   }
   function payoutSummary(v) {
     if (v.payoutMethod === "zelle") return "Zelle \u00b7 " + (v.payoutZelle || "") + (v.payoutName ? " (" + v.payoutName + ")" : "");
-    if (v.payoutMethod === "ach") return "Bank transfer \u00b7 " + (v.payoutBankName || "bank") + " \u2026" + String(v.payoutAccount || "").slice(-4) + (v.payoutName ? " (" + v.payoutName + ")" : "");
-    if (v.payoutMethod === "check") return "Check by mail \u00b7 " + (v.address || "");
+    if (v.payoutMethod === "ach") return t("ps_bank") + " \u00b7 " + (v.payoutBankName || t("ps_bank_word")) + " \u2026" + String(v.payoutAccount || "").slice(-4) + (v.payoutName ? " (" + v.payoutName + ")" : "");
+    if (v.payoutMethod === "check") return t("ps_check") + " \u00b7 " + (v.address || "");
     return "";
   }
   var setupPayOpen = false;
@@ -471,39 +1094,39 @@
     var agreeDone = !!(v.agreements && v.agreements.version === AGREEMENTS_VERSION);
     var payDone = payoutComplete(v);
     var items = [
-      { label: "Payment information: how we pay you", done: payDone, hint: payDone ? payoutSummary(v) : "Add your Zelle, bank transfer, or check details below so the office can pay you per job completed.", anchor: null, pay: true },
-      { label: "W-9 form", done: w9Done, hint: w9Done ? "On file with the office." : "Still needed. Download the blank form and upload it in Documents needed.", anchor: "#vd-w9-sec" },
-      { label: "Signed agreements (NDA + contractor agreement)", done: agreeDone, hint: agreeDone ? "Signed and on file." : "Review and sign in the Acuerdos section.", anchor: "#vd-agreements" }
+      { label: t("setup_pay_label"), done: payDone, hint: payDone ? payoutSummary(v) : t("setup_pay_hint"), anchor: null, pay: true },
+      { label: t("setup_w9_label"), done: w9Done, hint: w9Done ? t("setup_onfile") : t("setup_w9_hint"), anchor: "#vd-w9-sec" },
+      { label: t("setup_agr_label"), done: agreeDone, hint: agreeDone ? t("setup_agr_done") : t("setup_agr_hint"), anchor: "#vd-agreements" }
     ];
     if (v.insured === "yes") {
       var coiDone = String(v.coiStatus || "").toLowerCase() === "received";
-      items.push({ label: "Certificate of insurance", done: coiDone, hint: coiDone ? "On file with the office." : "Upload it in the Documents needed section.", anchor: "#vd-w9-sec" });
+      items.push({ label: t("setup_coi_label"), done: coiDone, hint: coiDone ? t("setup_onfile") : t("setup_coi_hint"), anchor: "#vd-w9-sec" });
     }
     var doneN = items.filter(function (i) { return i.done; }).length;
-    var html = '<div class="vd-doccard" style="margin-bottom:18px"><div class="t">Finish your setup</div>' +
-      '<h4>' + (doneN === items.length ? "Your setup is complete \u2713" : doneN + " of " + items.length + " done") + "</h4>";
+    var html = '<div class="vd-doccard" style="margin-bottom:18px"><div class="t">' + esc(t("setup_title2")) + '</div>' +
+      '<h4>' + (doneN === items.length ? esc(t("setup_complete")) : doneN + " " + t("of_word") + " " + items.length + " " + t("setup_done_suffix")) + "</h4>";
     items.forEach(function (it) {
       html += '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.09)">' +
         '<span style="font-size:1.05rem;line-height:1.3">' + (it.done ? "\u2705" : "\u2b1c") + "</span>" +
         '<div style="flex:1"><strong style="font-size:.95rem">' + esc(it.label) + '</strong><div style="font-size:.84rem;color:var(--muted)">' + esc(it.hint) + "</div></div>" +
-        (it.pay ? '<button class="btn btn-gold" id="vd-pay-toggle" type="button" style="padding:8px 16px;font-size:.85rem">' + (it.done ? "Update" : "Add") + "</button>"
-                 : (!it.done && it.anchor ? '<a class="btn btn-ghost" href="' + it.anchor + '" style="padding:8px 16px;font-size:.85rem;text-decoration:none">Go</a>' : "")) +
+        (it.pay ? '<button class="btn btn-gold" id="vd-pay-toggle" type="button" style="padding:8px 16px;font-size:.85rem">' + (it.done ? t("upd_btn") : t("add_btn")) + "</button>"
+                 : (!it.done && it.anchor ? '<a class="btn btn-ghost" href="' + it.anchor + '" style="padding:8px 16px;font-size:.85rem;text-decoration:none">' + esc(t("go_btn")) + '</a>' : "")) +
         "</div>";
     });
     var showForm = setupPayOpen || !payDone;
     html += '<form id="vd-pay-form" class="vform' + (showForm ? "" : " hidden") + '" style="margin-top:14px;max-width:640px">' +
-      '<label>Payment method<select id="vd-paymethod" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">' +
-      '<option value="zelle">Zelle (fastest)</option><option value="ach">Bank transfer (ACH)</option><option value="check">Check by mail</option></select></label>' +
-      '<div id="vd-pay-zelle"><label>Zelle phone or email<input type="text" id="vd-zelle" value="' + esc(v.payoutZelle || "") + '"></label>' +
-      '<label>Name on the account<input type="text" id="vd-payname" value="' + esc(v.payoutName || "") + '"></label></div>' +
-      '<div id="vd-pay-ach" class="hidden"><label>Bank name<input type="text" id="vd-bankname" value="' + esc(v.payoutBankName || "") + '"></label>' +
-      '<label>Routing number<input type="text" id="vd-routing" inputmode="numeric" value="' + esc(v.payoutRouting || "") + '"></label>' +
-      '<label>Account number<input type="text" id="vd-account" inputmode="numeric" value="' + esc(v.payoutAccount || "") + '"></label>' +
-      '<label>Name on the account<input type="text" id="vd-achname" value="' + esc(v.payoutName || "") + '"></label></div>' +
-      '<p id="vd-pay-check" class="hidden" style="font-size:.88rem;color:var(--muted)">Checks are mailed to your business address on file: ' + esc(v.address || "") + ".</p>" +
+      '<label>' + esc(t("pay_method")) + '<select id="vd-paymethod" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#141417;color:var(--text);font-size:1rem;margin-top:6px">' +
+      '<option value="zelle">' + esc(t("method_zelle")) + '</option><option value="ach">' + esc(t("method_ach2")) + '</option><option value="check">' + esc(t("method_check2")) + '</option></select></label>' +
+      '<div id="vd-pay-zelle"><label>' + esc(t("pay_label_zelle2")) + '<input type="text" id="vd-zelle" value="' + esc(v.payoutZelle || "") + '"></label>' +
+      '<label>' + esc(t("pay_label_name")) + '<input type="text" id="vd-payname" value="' + esc(v.payoutName || "") + '"></label></div>' +
+      '<div id="vd-pay-ach" class="hidden"><label>' + esc(t("pay_label_bank")) + '<input type="text" id="vd-bankname" value="' + esc(v.payoutBankName || "") + '"></label>' +
+      '<label>' + esc(t("pay_label_routing")) + '<input type="text" id="vd-routing" inputmode="numeric" value="' + esc(v.payoutRouting || "") + '"></label>' +
+      '<label>' + esc(t("pay_label_acct")) + '<input type="text" id="vd-account" inputmode="numeric" value="' + esc(v.payoutAccount || "") + '"></label>' +
+      '<label>' + esc(t("pay_label_name")) + '<input type="text" id="vd-achname" value="' + esc(v.payoutName || "") + '"></label></div>' +
+      '<p id="vd-pay-check" class="hidden" style="font-size:.88rem;color:var(--muted)">' + esc(t("check_note_pre")) + esc(v.address || "") + ".</p>" +
       '<p id="vd-pay-msg" style="font-size:.88rem;margin:8px 0"></p>' +
-      '<button class="btn btn-gold" id="vd-pay-save" type="submit" style="padding:11px 22px">Save payment info</button></form>';
-    html += '<p style="font-size:.84rem;color:var(--muted);margin-top:12px">Job alerts: turn on notifications so you never miss a new job. <button class="btn btn-ghost" id="vd-setup-push" type="button" style="padding:7px 14px;font-size:.82rem;margin-left:6px">Turn on notifications</button></p>';
+      '<button class="btn btn-gold" id="vd-pay-save" type="submit" style="padding:11px 22px">' + esc(t("pay_save_btn")) + '</button></form>';
+    html += '<p style="font-size:.84rem;color:var(--muted);margin-top:12px">' + esc(t("alerts_line")) + ' <button class="btn btn-ghost" id="vd-setup-push" type="button" style="padding:7px 14px;font-size:.82rem;margin-left:6px">' + esc(t("alerts_btn2")) + '</button></p>';
     html += "</div>";
     box.innerHTML = html;
     var sel = $("vd-paymethod");
@@ -539,7 +1162,7 @@
       var probe = Object.assign({}, vendor, data);
       if (!payoutComplete(probe)) {
         msg.style.color = "#e8a33d";
-        msg.textContent = m === "zelle" ? "Add your Zelle phone or email and the name on the account." : m === "ach" ? "Add your bank, routing, account number, and the name on the account." : "Something is missing.";
+        msg.textContent = m === "zelle" ? t("val_zelle") : m === "ach" ? t("val_ach") : t("val_missing");
         return;
       }
       $("vd-pay-save").disabled = true;
@@ -548,9 +1171,9 @@
       }).then(function (snap) {
         vendor = snap.data(); setupPayOpen = false;
         renderSetup(); renderDrawerDots();
-        alert("Payment info saved. The office can now pay you per job completed.");
+        alert(t("setup_saved2"));
       }).catch(function () {
-        msg.style.color = "#e88"; msg.textContent = "Save failed. Please try again.";
+        msg.style.color = "#e88"; msg.textContent = t("save_failed");
         $("vd-pay-save").disabled = false;
       });
     });
@@ -572,7 +1195,7 @@
   }
 
   function fmtDateEs(d) {
-    try { return d.toLocaleDateString("es-US", { weekday: "short", month: "short", day: "numeric" }); }
+    try { return d.toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }); }
     catch (e) { return fmtDate(d); }
   }
 
@@ -609,14 +1232,14 @@
       if (dd) return fmtDateEs(dd);
     }
     var acc = parseDate(w.acceptedAt);
-    if (acc) return "Aceptado el " + fmtDateEs(acc);
+    if (acc) return t("accepted_on") + " " + fmtDateEs(acc);
     return "";
   }
 
   function statusLabelEs(w) {
     if (!w) return "";
-    if (w.status === "accepted") return "Aceptado";
-    if (w.status === "evaluation_accepted") return "Evaluación aceptada";
+    if (w.status === "accepted") return t("status_accepted");
+    if (w.status === "evaluation_accepted") return t("status_eval_accepted");
     return String(w.status || "").replace(/_/g, " ");
   }
 
@@ -654,15 +1277,15 @@
   // ticks off; Mark complete is blocked until every step is checked.
   function checklistFor(w) {
     var cat = ((w.category || "") + " " + (w.title || "")).toLowerCase();
-    if (/pressure|presión|presion|wash/.test(cat)) return ["Fotos de antes subidas", "Superficie lavada completa", "Área enjuagada y limpia", "Fotos de después subidas"];
-    if (/lawn|landscap|césped|cesped|jardín|jardin|grass|mow|cut|corte/.test(cat)) return ["Fotos de antes subidas", "Césped cortado completo", "Bordes y trimming hechos", "Entrada, driveway y aceras soplados", "Portón cerrado y propiedad segura", "Fotos de después subidas"];
-    return ["Fotos de antes subidas", "Trabajo completado según la orden", "Área limpia al terminar", "Fotos de después subidas"];
+    if (/pressure|presión|presion|wash/.test(cat)) return t("ck_pressure");
+    if (/lawn|landscap|césped|cesped|jardín|jardin|grass|mow|cut|corte/.test(cat)) return t("ck_lawn");
+    return t("ck_default");
   }
   function checklistState(w) { return (w && w.checklist && typeof w.checklist === "object") ? w.checklist : {}; }
   function checklistDoneCount(w) { var st = checklistState(w); return checklistFor(w).filter(function (_, i) { return !!st[i]; }).length; }
   function checklistBarHtml(w) {
     var items = checklistFor(w), n = checklistDoneCount(w), pct = Math.round(n / items.length * 100);
-    return '<div class="vd-checkbar"><div class="vd-checkbar-top"><span>Lista de verificación</span><strong>' + n + "/" + items.length + '</strong></div><div class="vd-checktrack"><i style="width:' + pct + '%"></i></div></div>';
+    return '<div class="vd-checkbar"><div class="vd-checkbar-top"><span>' + esc(t("checklist_h")) + '</span><strong>' + n + "/" + items.length + '</strong></div><div class="vd-checktrack"><i style="width:' + pct + '%"></i></div></div>';
   }
   function checklistHtml(w) {
     var items = checklistFor(w), st = checklistState(w);
@@ -678,29 +1301,29 @@
     if (cnt) cnt.textContent = w ? statusLabelEs(w) : "";
     if (!w) {
       box.innerHTML = '<div class="vd-hero vd-hero-empty"><div class="vd-hero-body">' +
-        "<h3>Sin trabajos aceptados todavía</h3>" +
-        '<p class="vd-addr">Cuando aceptes un trabajo, aquí verás la dirección, el horario y los botones para llegar, subir las fotos y marcarlo terminado. Revisa los trabajos disponibles abajo.</p>' +
+        "<h3>" + esc(t("hero_none_h")) + "</h3>" +
+        '<p class="vd-addr">' + esc(t("hero_none_p")) + '</p>' +
         "</div></div>";
       return;
     }
     var dest = w.address || (w.area ? w.area + ", Miami, FL" : "");
     var mapsBtn = dest
-      ? '<a class="vd-btn vd-btn-gold" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '">' + SVG_NAV + "Cómo llegar</a>"
+      ? '<a class="vd-btn vd-btn-gold" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '">' + SVG_NAV + esc(t("btn_directions")) + "</a>"
       : "";
     // Third action mirrors what this job kind already allows in the
     // active list — no new writes are invented here.
     var third;
     if (w.kind !== "quote_request") {
-      third = '<button class="vd-btn vd-btn-dark" type="button" data-complete="' + w.id + '">' + SVG_CHECK + "Marcar terminado</button>";
+      third = '<button class="vd-btn vd-btn-dark" type="button" data-complete="' + w.id + '">' + SVG_CHECK + esc(t("btn_complete2")) + "</button>";
     } else if (!w.quoteSubmitted) {
-      third = '<button class="vd-btn vd-btn-dark" type="button" data-give-quote="' + w.id + '">Dar mi precio</button>';
+      third = '<button class="vd-btn vd-btn-dark" type="button" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>';
     } else {
-      third = '<button class="vd-btn vd-btn-outline" type="button" disabled>Precio enviado ✓</button>';
+      third = '<button class="vd-btn vd-btn-outline" type="button" disabled>' + esc(t("btn_price_sent")) + '</button>';
     }
     var pay = fmtPay(w);
     var payHtml = pay
-      ? '<div><small>Paga</small><span class="vd-pay">' + esc(pay) + '</span></div><span class="vd-paynote">Pago al terminar,<br>con las fotos</span>'
-      : '<div><small>Paga</small><span class="vd-pay vd-pay-tqp">Tú pones el precio</span></div>';
+      ? '<div><small>' + esc(t("pay_word")) + '</small><span class="vd-pay">' + esc(pay) + '</span></div><span class="vd-paynote">' + t("pay_note") + '</span>'
+      : '<div><small>' + esc(t("pay_word")) + '</small><span class="vd-pay vd-pay-tqp">' + esc(t("tqp")) + '</span></div>';
     var when = jobWhen(w);
     box.innerHTML = '<article class="vd-hero">' +
       '<div class="vd-hero-photo"><img src="' + esc(heroPhoto(w)) + '" alt="">' +
@@ -712,7 +1335,7 @@
         (w.details ? "<br>" + esc(w.details) : "") + "</p>" +
       '<div class="vd-payrow">' + payHtml + "</div>" +
       mapsBtn +
-      '<button class="vd-btn vd-btn-outline" type="button" data-upload="' + w.id + '">' + SVG_CAM + "Subir fotos</button>" +
+      '<button class="vd-btn vd-btn-outline" type="button" data-upload="' + w.id + '">' + SVG_CAM + esc(t("btn_upload")) + "</button>" +
       third +
       (w.kind !== "quote_request" ? checklistBarHtml(w) : "") +
       '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
@@ -756,12 +1379,12 @@
     setDrawerBadge("vd-nav-badge-active", 0);
     openQRs = [];
     var sel = $("q-workorder");
-    if (sel) sel.innerHTML = '<option value="">Select a quote request...</option>';
+    if (sel) sel.innerHTML = '<option value="">' + esc(t("q_pick")) + '</option>';
     var qr = $("list-qr");
     if (qr) {
-      qr.innerHTML = '<div class="vjob" style="max-width:720px"><h3>Tu cuenta no está activa</h3>' +
-        '<p>Llama a PrimeGuard al <a href="tel:+17864229674">(786) 422-9674</a>.</p>' +
-        '<p style="color:var(--muted)">Your account isn\'t active. Call PrimeGuard at (786) 422-9674.</p></div>';
+      qr.innerHTML = '<div class="vjob" style="max-width:720px"><h3>' + esc(t("ina_h")) + '</h3>' +
+        '<p>' + esc(t("ina_call")) + ' <a href="tel:+17864229674">(786) 422-9674</a>.</p>' +
+        '<p style="color:var(--muted)">' + esc(t("ina_h_alt")) + '. ' + esc(t("ina_call_alt")) + ' (786) 422-9674.</p></div>';
     }
   }
 
@@ -777,7 +1400,7 @@
       seenQ[w.id] = true;
       quotable.push(w);
     });
-    sel.innerHTML = '<option value="">Select a quote request...</option>' + quotable.map(function (w) {
+    sel.innerHTML = '<option value="">' + esc(t("q_pick")) + '</option>' + quotable.map(function (w) {
       return '<option value="' + w.id + '">' + esc(w.title) + " - " + esc(w.area) + "</option>";
     }).join("");
     if (cur) sel.value = cur;
@@ -819,9 +1442,9 @@
       openQRs = qrs;
       renderList($("list-qr"), qrs, "quote_request");
       renderList($("list-jobs"), jobs, "job");
-      $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? " NUEVA" : " NUEVAS");
+      $("cnt-qr").textContent = qrs.length + (qrs.length === 1 ? t("cnt_new1") : t("cnt_newn"));
       setDrawerBadge("vd-nav-badge-avail", qrs.length);
-      $("cnt-jobs").textContent = jobs.length + " DISPONIBLES";
+      $("cnt-jobs").textContent = jobs.length + t("cnt_avail");
       $("st-open").textContent = jobs.length + qrs.length;
       buildQuoteSelect();
     });
@@ -855,7 +1478,7 @@
         }
       });
       var mEl = $("st-month"); if (mEl) mEl.textContent = "$" + mSum.toLocaleString();
-      var mnEl = $("st-month-n"); if (mnEl) mnEl.textContent = mCount ? mCount + (mCount === 1 ? " trabajo terminado" : " trabajos terminados") : "";
+      var mnEl = $("st-month-n"); if (mnEl) mnEl.textContent = mCount ? mCount + (mCount === 1 ? t("mn_one") : t("mn_many")) : "";
       var heroJob = pickHero(active);
       renderHero(heroJob);
       renderActive(active, heroJob ? heroJob.id : null);
@@ -867,10 +1490,10 @@
       $("st-done").textContent = done.length;
       $("st-earned").textContent = "$" + earned.toLocaleString();
       $("st-pending").textContent = "$" + pending.toLocaleString();
-      $("st-pending-n").textContent = pendingN ? pendingN + " trabajo(s) esperando confirmación" : "Nada esperando confirmación";
-      $("cnt-active").textContent = active.length + " EN CURSO";
+      $("st-pending-n").textContent = pendingN ? pendingN + t("pend_n") : t("pend_none");
+      $("cnt-active").textContent = active.length + t("cnt_active");
       setDrawerBadge("vd-nav-badge-active", active.length);
-      $("cnt-done").textContent = done.length + " TRABAJOS";
+      $("cnt-done").textContent = done.length + t("cnt_jobs");
       buildQuoteSelect();
     });
     });
@@ -887,7 +1510,7 @@
   function vcalTime(w) {
     for (var i = 0; i < WO_DATE_FIELDS.length; i++) {
       var dd = parseDate(w[WO_DATE_FIELDS[i]]);
-      if (dd && (dd.getHours() || dd.getMinutes())) return dd.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit" });
+      if (dd && (dd.getHours() || dd.getMinutes())) return dd.toLocaleTimeString(localeTag(), { hour: "numeric", minute: "2-digit" });
     }
     return "";
   }
@@ -919,14 +1542,14 @@
       }
     });
     var cnt = $("cnt-cal");
-    if (cnt) { var n = Object.keys(vcalMap).length; cnt.textContent = n ? n + (n === 1 ? " DÍA" : " DÍAS") : ""; }
+    if (cnt) { var n = Object.keys(vcalMap).length; cnt.textContent = n ? n + (n === 1 ? t("cnt_day") : t("cnt_days")) : ""; }
   }
   function renderVendorCal() {
     var grid = $("vcal-grid"); if (!grid) return;
     if (!vcalCursor) { var now = new Date(); vcalCursor = new Date(now.getFullYear(), now.getMonth(), 1); }
     var y = vcalCursor.getFullYear(), m = vcalCursor.getMonth();
     var titleEl = $("vcal-title");
-    if (titleEl) titleEl.textContent = vcalCursor.toLocaleDateString("es", { month: "long", year: "numeric" });
+    if (titleEl) titleEl.textContent = vcalCursor.toLocaleDateString(localeTag(), { month: "long", year: "numeric" });
     var firstDow = new Date(y, m, 1).getDay();
     var dim = new Date(y, m + 1, 0).getDate();
     var todayK = vcalKey(new Date());
@@ -947,17 +1570,17 @@
     var box = $("vcal-day"); if (!box) return;
     var evs = (vcalMap[vcalSelected] || []).slice().sort(function (a, b) { return a.date - b.date; });
     var dObj = parseDate(vcalSelected + "T12:00:00");
-    var head = dObj ? dObj.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" }) : vcalSelected;
+    var head = dObj ? dObj.toLocaleDateString(localeTag(), { weekday: "long", day: "numeric", month: "long" }) : vcalSelected;
     if (!evs.length) {
-      box.innerHTML = '<div class="vcal-dayh">' + esc(head) + '</div><p class="vcal-none">Sin trabajos este día.</p>';
+      box.innerHTML = '<div class="vcal-dayh">' + esc(head) + '</div><p class="vcal-none">' + esc(t("cal_none_day")) + '</p>';
       return;
     }
     box.innerHTML = '<div class="vcal-dayh">' + esc(head) + "</div>" + evs.map(function (ev) {
       var w = ev.w;
       var meta = [vcalTime(w), w.address || w.area || "", statusLabelEs(w)].filter(Boolean).join(" · ");
-      return '<div class="vcal-ev"><div class="vcal-ev-tx"><strong>' + esc(w.title || w.category || "Trabajo") + "</strong>" +
+      return '<div class="vcal-ev"><div class="vcal-ev-tx"><strong>' + esc(w.title || w.category || t("job_word")) + "</strong>" +
         (meta ? "<small>" + esc(meta) + "</small>" : "") + "</div>" +
-        '<a class="btn btn-ghost vcal-ev-btn" href="#sec-mistrabajos">Ver trabajo</a></div>';
+        '<a class="btn btn-ghost vcal-ev-btn" href="#sec-mistrabajos">' + esc(t("view_job")) + '</a></div>';
     }).join("");
   }
   function vcalNewToken() {
@@ -1006,7 +1629,7 @@
     db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
       vendor.calendarToken = tok; showLink(); writeCalFeedSnapshot();
     }).catch(function () {
-      if (err) { err.textContent = "No se pudo crear tu enlace. Revisa tu conexión e inténtalo de nuevo."; err.classList.remove("hidden"); }
+      if (err) { err.textContent = t("cal_err2"); err.classList.remove("hidden"); }
     });
   }
   (function bindVcal() {
@@ -1018,7 +1641,7 @@
     if (copy) copy.addEventListener("click", function () {
       var inp = $("vcal-link"); if (!inp || !inp.value) return;
       inp.select();
-      function done() { copy.textContent = "\u00a1Copiado!"; setTimeout(function () { copy.textContent = "Copiar enlace"; }, 2000); }
+      function done() { copy.textContent = t("cal_copied_btn"); setTimeout(function () { copy.textContent = t("cal_copy"); }, 2000); }
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done).catch(function () { try { document.execCommand("copy"); } catch (e) {} done(); });
       else { try { document.execCommand("copy"); } catch (e) {} done(); }
     });
@@ -1030,7 +1653,7 @@
       db.collection("vendors").doc(me.uid).update({ calendarToken: tok }).then(function () {
         vendor.calendarToken = tok; renderCalConnect(); writeCalFeedSnapshot();
         if (oldTok && oldTok !== tok) { try { db.collection("calendar_feeds").doc(oldTok).delete().catch(function () {}); } catch (e) {} }
-      }).catch(function () { var err = $("vcal-err"); if (err) { err.textContent = "No se pudo generar el enlace nuevo."; err.classList.remove("hidden"); } });
+      }).catch(function () { var err = $("vcal-err"); if (err) { err.textContent = t("cal_regen_err"); err.classList.remove("hidden"); } });
     });
   })();
 
@@ -1051,24 +1674,24 @@
     });
     if (!vids.length) return "";
     return '<div class="vvids">' + vids.map(function (u) {
-      return '<a href="' + esc(u) + '" target="_blank" rel="noopener">▶ Watch video</a>';
+      return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(t("watch_video")) + '</a>';
     }).join("") + "</div>";
   }
 
   function renderList(box, arr, kind) {
-    if (!arr.length) { box.innerHTML = '<div class="vempty">Nada por aquí ahora. Los trabajos nuevos aparecen aquí automáticamente.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("list_empty")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       // Same actions the portal has always had (data-* hooks unchanged):
       // quote requests -> accept evaluation / give a quote; direct jobs
       // -> accept job. Labels are Spanish-first in the My Day skin.
       var btn = kind === "quote_request"
-        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">Aceptar evaluación</button>' +
-          (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '">Dar mi precio</button>')
-        : '<button class="btn btn-gold" data-accept-job="' + w.id + '">Aceptar trabajo</button>';
+        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">' + esc(t("btn_accept_eval2")) + '</button>' +
+          (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>')
+        : '<button class="btn btn-gold" data-accept-job="' + w.id + '">' + esc(t("btn_accept_job")) + '</button>';
       var pay = fmtPay(w);
       var payHtml = pay
-        ? '<div class="vd-payline"><small>Paga</small><strong>' + esc(pay) + "</strong></div>"
-        : '<div class="vd-payline"><span class="vd-tqp">Tú pones el precio</span></div>';
+        ? '<div class="vd-payline"><small>' + esc(t("pay_word")) + '</small><strong>' + esc(pay) + "</strong></div>"
+        : '<div class="vd-payline"><span class="vd-tqp">' + esc(t("tqp")) + '</span></div>';
       return '<div class="vjob"><div class="t">' + esc(w.category || w.kind) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" +
         photoThumbs(w) + videoLinks(w) +
@@ -1079,25 +1702,25 @@
 
   function renderActive(arr, heroId) {
     var box = $("list-active");
-    if (!arr.length) { box.innerHTML = '<div class="vempty">Sin trabajo activo. Acepta un trabajo arriba para empezar.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("active_none")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       var steps;
       if (w.kind === "quote_request") {
-        steps = step(w.status !== "open", "Visita de evaluación aceptada") +
-                step(w.quoteSubmitted, "Precio enviado");
+        steps = step(w.status !== "open", t("step_eval")) +
+                step(w.quoteSubmitted, t("step_price"));
       } else {
-        steps = step(true, "Orden de trabajo recibida") +
-                step((w.beforePhotos || []).length > 0, "Fotos de antes subidas") +
-                step(false, "Trabajo terminado") +
-                step(w.status === "review" || w.status === "done", "Fotos de después subidas — se libera el pago");
+        steps = step(true, t("step_wo")) +
+                step((w.beforePhotos || []).length > 0, t("step_before")) +
+                step(false, t("step_work")) +
+                step(w.status === "review" || w.status === "done", t("step_after"));
       }
       return '<div class="vjob"><div class="t">' + esc(w.status.replace(/_/g, " ").toUpperCase()) + '</div>' +
         "<h3>" + esc(w.title) + "</h3><p>" + esc(w.details || "") + "</p>" + photoThumbs(w) + videoLinks(w) +
         '<ul class="vsteps">' + steps + "</ul>" +
         (w.kind !== "quote_request" ? checklistHtml(w) : "") +
-        '<button class="btn btn-gold" data-upload="' + w.id + '">Subir fotos</button>' +
-        (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">Marcar terminado</button>' : "") +
-        (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">Dar mi precio</button>' : "") +
+        '<button class="btn btn-gold" data-upload="' + w.id + '">' + esc(t("btn_upload")) + '</button>' +
+        (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">' + esc(t("btn_complete2")) + '</button>' : "") +
+        (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>' : "") +
         // The hero card carries this job's one file input; skip the
         // duplicate here so #up-{id} exists exactly once per job.
         (w.id === heroId ? "" : '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">') +
@@ -1111,10 +1734,10 @@
 
   function renderDone(arr) {
     var box = $("list-done");
-    if (!arr.length) { box.innerHTML = '<div class="vempty">Todavía no terminas trabajos.</div>'; return; }
+    if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("done_none2")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       return '<div class="vhrow"><div class="info"><strong>' + esc(w.title) + '</strong><span>' + esc(w.area || "") + " · " + esc(w.completedAt || "") + "</span></div>" +
-        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>Pagado por trabajo</small></div></div>";
+        '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>" + esc(t("paid_per")) + "</small></div></div>";
     }).join("");
   }
 
@@ -1134,7 +1757,7 @@
       }).then(loadAll);
     }
     if (t.dataset.complete) {
-      if (!confirm("Mark this job complete? Make sure your after photos are uploaded.")) return;
+      if (!confirm(tr("confirm_complete"))) return;
       var cWoId = t.dataset.complete;
       var cRef = db.collection("work_orders").doc(cWoId);
       cRef.get().then(function (snap) {
@@ -1143,7 +1766,7 @@
         if (jw && jw.kind !== "quote_request") {
           var cItems = checklistFor(jw), cSt = checklistState(jw);
           var cMissing = cItems.filter(function (_, i) { return !cSt[i]; }).length;
-          if (cMissing > 0) { alert("Completa la lista de verificación antes de marcar terminado. Faltan " + cMissing + " paso(s)."); return null; }
+          if (cMissing > 0) { alert(tr("alert_checklist_pre") + cMissing + tr("alert_checklist_post")); return null; }
         }
         var nowIso = new Date().toISOString();
         var visitEntry = {
@@ -1195,7 +1818,7 @@
   // ---------- Photo upload via Apps Script + Drive ----------
   function uploadPhotos(woId, files) {
     var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
-    if (!endpoint) { alert("Photo upload is being set up. Please send photos by text for now."); return; }
+    if (!endpoint) { alert(t("photo_setup")); return; }
     var readers = Array.prototype.map.call(files, function (f) {
       return new Promise(function (res) {
         var img = new Image();
@@ -1223,7 +1846,7 @@
       return db.collection("work_orders").doc(woId).update({
         photos: firebase.firestore.FieldValue.arrayUnion.apply(null, out.urls)
       });
-    }).then(loadAll).catch(function (err) { alert("Upload failed: " + err.message); });
+    }).then(loadAll).catch(function (err) { alert(t("upload_failed") + ": " + err.message); });
   }
 
   // ---------- Quote form ----------
@@ -1232,10 +1855,10 @@
     var errEl = $("q-error"), okEl = $("q-ok");
     errEl.classList.add("hidden"); okEl.classList.add("hidden");
     var woId = $("q-workorder").value;
-    if (!woId) { errEl.textContent = "Pick the quote request first."; errEl.classList.remove("hidden"); return; }
+    if (!woId) { errEl.textContent = t("q_pick_first"); errEl.classList.remove("hidden"); return; }
     var pdfFile = $("q-pdf").files[0] || null;
     var btn = this.querySelector('button[type="submit"]');
-    btn.disabled = true; btn.textContent = pdfFile ? "Uploading quote..." : "Submitting...";
+    btn.disabled = true; btn.textContent = pdfFile ? t("q_uploading") : t("q_submitting");
     function collectAddons() {
       var out = [];
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-row"), function (row) {
@@ -1288,9 +1911,9 @@
       $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-pdf").value = "";
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-check"), function (c) { c.checked = false; });
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-price"), function (p) { p.value = ""; });
-      btn.disabled = false; btn.textContent = "Submit quote";
+      btn.disabled = false; btn.textContent = t("q_submit");
       loadAll();
-    }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = "Submit quote"; });
+    }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = t("q_submit"); });
   });
 
   // ---------- Bottom tab bar: scroll-spy (presentation only) ----------
