@@ -4556,6 +4556,81 @@
     if (wo) out += quoteWoPhotosHtml(wo);
     return out;
   }
+  // v79: in the Quotes to Review LIST the office info above made every
+  // row very long, so it now sits behind a collapsed toggle (Edwin,
+  // Oct 19). The Build Customer Quote modal keeps calling
+  // quoteOfficeInfoHtml directly and stays fully expanded.
+  // Photo count exactly as quoteOfficeInfoHtml would render it: the
+  // quote's own photos plus the work order's visit + property photos,
+  // deduped by URL. wo is null in list rows until photos hydrate.
+  function quoteOfficePhotoCount(q, wo) {
+    var seen = {}, n = 0;
+    var add = function (u) {
+      if (typeof u === "string" && /^https?:\/\//i.test(u) && !seen[u]) { seen[u] = true; n += 1; }
+    };
+    if (q && Array.isArray(q.photos)) q.photos.forEach(add);
+    if (wo) {
+      if (Array.isArray(wo.photos)) wo.photos.forEach(add);
+      (Array.isArray(wo.visitLog) ? wo.visitLog : []).forEach(function (e) {
+        if (e && Array.isArray(e.photos)) e.photos.forEach(add);
+      });
+    }
+    return n;
+  }
+  // The non-photo part of the toggle summary ("notes", "customer note").
+  function quoteOfficeNotesPart(q) {
+    var bits = [];
+    if (q && ((q.vendorNotes && String(q.vendorNotes).trim()) || (q.notes && String(q.notes).trim()))) bits.push("notes");
+    if (q && q.customerNote && String(q.customerNote).trim()) bits.push("customer note");
+    return bits.join(" · ");
+  }
+  function quoteOfficeSummaryText(q, wo) {
+    var parts = [];
+    var pc = quoteOfficePhotoCount(q, wo);
+    if (pc) parts.push(pc + (pc === 1 ? " photo" : " photos"));
+    var np = quoteOfficeNotesPart(q);
+    if (np) parts.push(np);
+    return parts.join(" · ");
+  }
+  // Collapsed-by-default wrapper used ONLY by the Quotes to Review
+  // list. The body carries data-qwo so fillQuotePhotos keeps hydrating
+  // work-order photos into it exactly as before (hidden until opened).
+  function quoteOfficeInfoListHtml(q) {
+    var inner = quoteOfficeInfoHtml(q, null);
+    // Nothing on the quote itself and no work order to hydrate photos
+    // from: render nothing at all, same as before v79.
+    if (!inner && !(q && q.workOrderId)) return "";
+    var sum = quoteOfficeSummaryText(q, null);
+    return '<button type="button" class="mini q-office-toggle" data-qofficetoggle aria-expanded="false" style="margin-top:8px">' +
+        '<span class="q-office-chev" style="display:inline-block;transition:transform .15s ease">▸</span> Vendor info &amp; photos' +
+        '<span class="q-office-sum" data-notes="' + esc(quoteOfficeNotesPart(q)) + '">' + (sum ? " · " + esc(sum) : "") + "</span>" +
+      "</button>" +
+      '<div class="q-office-body" style="display:none"' + (q.workOrderId ? ' data-qwo="' + esc(q.workOrderId) + '"' : "") + ">" + inner + "</div>";
+  }
+  function pgToggleOfficeInfo(btn) {
+    var wrap = btn && btn.parentNode;
+    var body = wrap && wrap.querySelector ? wrap.querySelector(".q-office-body") : null;
+    if (!body) return;
+    var open = body.style.display === "none";
+    body.style.display = open ? "" : "none";
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    var chev = btn.querySelector ? btn.querySelector(".q-office-chev") : null;
+    if (chev) chev.style.transform = open ? "rotate(90deg)" : "";
+  }
+  // Work-order photos hydrate into the collapsed body after first
+  // render; refresh the header count from the thumbs actually inside
+  // so it stays truthful (the notes part never changes on hydration).
+  function pgRefreshOfficeSummary(bodyEl) {
+    var wrap = bodyEl && bodyEl.parentNode;
+    var sumEl = wrap && wrap.querySelector ? wrap.querySelector(".q-office-sum") : null;
+    if (!sumEl) return;
+    var pc = bodyEl.querySelectorAll ? bodyEl.querySelectorAll(".woq-thumb-btn").length : 0;
+    var parts = [];
+    if (pc) parts.push(pc + (pc === 1 ? " photo" : " photos"));
+    var np = sumEl.getAttribute("data-notes");
+    if (np) parts.push(np);
+    sumEl.textContent = parts.length ? " · " + parts.join(" · ") : "";
+  }
   // Quotes to Review renders from the quotes listener alone; the work
   // order (and its photos) is resolved per quote from the in-memory
   // woOrders first, then a one-time fetch, cached across re-renders.
@@ -4563,11 +4638,17 @@
   var quoteWoFetching = {};
   function fillQuotePhotos(woId, wo) {
     var html = quoteWoPhotosHtml(wo);
-    if (!html) return;
     Array.prototype.forEach.call(document.querySelectorAll('[data-qwo="' + woId + '"]'), function (el) {
       if (el.getAttribute("data-photos-done")) return;
       el.setAttribute("data-photos-done", "1");
-      el.insertAdjacentHTML("beforeend", html);
+      if (html) {
+        el.insertAdjacentHTML("beforeend", html);
+        pgRefreshOfficeSummary(el);
+      } else if (el.classList && el.classList.contains("q-office-body") && !el.innerHTML && el.parentNode && el.parentNode.parentNode) {
+        // v79: no work-order photos and nothing else inside, so drop
+        // the empty collapsible block instead of leaving a dead toggle.
+        el.parentNode.parentNode.removeChild(el.parentNode);
+      }
     });
   }
   function hydrateQuotePhotos(q) {
@@ -4603,10 +4684,10 @@
         box.appendChild(row);
         // v77: vendor job notes + price details render under the row,
         // and the work order's photos hydrate into the same block.
+        // v79: the block is collapsed behind a toggle in list rows.
         var info = document.createElement("div");
         info.className = "q-office-info";
-        if (q.workOrderId) info.setAttribute("data-qwo", q.workOrderId);
-        info.innerHTML = quoteOfficeInfoHtml(q, null);
+        info.innerHTML = quoteOfficeInfoListHtml(q);
         box.appendChild(info);
         hydrateQuotePhotos(q);
       });
@@ -5384,6 +5465,8 @@
     if (woOpenEl) d = woOpenEl.dataset;
     var woPhotoEl = t.closest ? t.closest("[data-wophoto]") : null;
     if (woPhotoEl) d = woPhotoEl.dataset;
+    var qOfficeEl = t.closest ? t.closest("[data-qofficetoggle]") : null;
+    if (qOfficeEl) d = qOfficeEl.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
     var custVisitEl = t.closest ? t.closest("[data-custvisit]") : null;
@@ -5444,6 +5527,7 @@
     if (d.woprevconfirm) confirmWoSend(woPrevEl || t);
     if (d.woprevcancel) closeWoSendPreview();
     if (d.custvisit) openCustVisitDetail(d.custvisit);
+    if (qOfficeEl) pgToggleOfficeInfo(qOfficeEl);
     if (d.wophoto) openPhotoLightbox(d.wophoto, d.wophotoorig);
     if (t.closest && t.closest("#pgLightbox")) closePhotoLightbox();
     if (t.id === "woPrevClose" || t.id === "woPrevModal") closeWoSendPreview();
