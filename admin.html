@@ -258,6 +258,20 @@
   .pg-light .hl-chip { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .pg-light .hl-chip.active { background:#1b1b1b; border-color:#1b1b1b; color:#ffffff; }
   .pg-light .hl-chip.active .cnt { color:#e8bd4e; }
+  /* Vendor profile editor (v82) */
+  .vdp-namelink { background:none; border:none; padding:0; font:inherit; font-weight:800; color:inherit; cursor:pointer; text-align:left; }
+  .vdp-namelink:hover { color:var(--gold-bright); text-decoration:underline; }
+  .vdp-chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 4px; min-height:28px; }
+  .vdp-chip { display:inline-flex; align-items:center; gap:7px; padding:5px 6px 5px 11px; border-radius:999px; border:1px solid rgba(201,162,39,.45); background:rgba(201,162,75,.10); font-size:.82rem; font-weight:700; }
+  .vdp-chip button { border:none; background:rgba(140,140,140,.35); color:inherit; width:18px; height:18px; border-radius:50%; cursor:pointer; line-height:1; font-size:.85rem; padding:0; }
+  .vdp-addrow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .vdp-addrow select, .vdp-addrow input[type="text"] { flex:1 1 150px; margin-top:6px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-size:.95rem; font-family:inherit; }
+  .pg-light .vdp-addrow select, .pg-light .vdp-addrow input[type="text"] { background:#fffdf8; border-color:#e0d3ae; color:#2b2416; }
+  .pg-light .vdp-chip { background:#fdf6dd; border-color:#d9c894; color:#7a6414; }
+  .vdp-check { display:inline-flex; align-items:center; gap:8px; cursor:pointer; margin:0 12px 8px 0; font-size:.92rem; }
+  .vdp-check input { width:19px; height:19px; accent-color:#c9a227; }
+  .vdp-paper { padding:7px 0; border-bottom:1px solid rgba(140,140,140,.16); }
+  .vdp-paper:last-of-type { border-bottom:none; }
   .hl-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:linear-gradient(135deg,#e8bd4e,#c9982f); margin-right:8px; box-shadow:0 0 8px rgba(201,162,75,.8); vertical-align:1px; }
   .hl-stage-sel { padding:7px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-size:.8rem; font-family:inherit; cursor:pointer; }
   .pg-light .hl-stage-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
@@ -641,12 +655,12 @@
 
 <div class="awrap hidden" id="ad-dash">
   <section class="astats">
-    <div class="astat"><div class="l">Open work orders</div><div class="v" id="as-open">0</div></div>
-    <div class="astat"><div class="l">Active jobs</div><div class="v" id="as-active">0</div></div>
-    <div class="astat"><div class="l">Quotes to review</div><div class="v" id="as-quotes">0</div></div>
-    <div class="astat"><div class="l">Vendors</div><div class="v" id="as-vendors">0</div></div>
-    <div class="astat"><div class="l">App installs</div><div class="v" id="as-apps">0</div></div>
-    <div class="astat"><div class="l">Push notifications on</div><div class="v" id="as-pushon">0</div></div>
+    <div class="astat pg-tile" data-pgtile="wo-open" role="button" tabindex="0" title="Open work orders: go to quote requests"><div class="l">Open work orders</div><div class="v" id="as-open">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
+    <div class="astat pg-tile" data-pgtile="wo-active" role="button" tabindex="0" title="Active jobs: go to the board"><div class="l">Active jobs</div><div class="v" id="as-active">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
+    <div class="astat pg-tile" data-pgtile="quotes" role="button" tabindex="0" title="Quotes to review: open the quotes tab"><div class="l">Quotes to review</div><div class="v" id="as-quotes">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
+    <div class="astat pg-tile" data-pgtile="vendors" role="button" tabindex="0" title="Vendors: open the vendors tab"><div class="l">Vendors</div><div class="v" id="as-vendors">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
+    <div class="astat pg-tile" data-pgtile="apps" role="button" tabindex="0" title="App installs: see who has the app"><div class="l">App installs</div><div class="v" id="as-apps">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
+    <div class="astat pg-tile" data-pgtile="push" role="button" tabindex="0" title="Push notifications: see who has them on"><div class="l">Push notifications on</div><div class="v" id="as-pushon">0</div><span class="pg-tile-go" aria-hidden="true">&#8250;</span></div>
   </section>
 
   <nav class="atabs">
@@ -656,6 +670,7 @@
 
   
   <div id="atab-home">
+  <div class="pg-pagehead" id="pghead-home"></div>
   <section class="asec" style="padding-top:6px">
     <div class="home-hero">
       <img class="bg" src="assets/bg-guarantee-crew.jpg" alt="">
@@ -726,6 +741,7 @@
   </div>
 
 <div id="atab-work" class="hidden">
+  <div class="pg-pagehead" id="pghead-work"></div>
   <section class="asec">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
       <h2 id="wo-form-title" style="margin:0">Create work order</h2>
@@ -821,7 +837,6 @@
   </section>
 
   <section class="asec">
-    <h2>Work orders</h2>
     <div id="ad-wo-filters" class="hl-filters"></div>
     <div class="acard"><div id="ad-wo-list"></div></div>
   </section>
@@ -921,10 +936,67 @@
     <img id="pgLightboxImg" alt="Work order photo">
   </div>
 
+  <!-- App installs / push detail (v83): who exactly the Home tiles count -->
+  <div class="modal-overlay hidden" id="pgPeopleModal">
+    <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="pgPeopleTitle">
+      <button class="modal-close" id="pgPeopleClose" aria-label="Close">×</button>
+      <div id="pgPeopleBody"></div>
+    </div>
+  </div>
+  <style>
+    /* ---------- Page heads + clickable Home tiles (v83) ----------
+       One Daylight header band at the top of every admin section:
+       gold kicker, serif title, one-line purpose, and live count
+       chips that filter or jump. Warm cream in light, deep ink +
+       gold hairline in dark, Books tokens throughout. */
+    .pg-pagehead { margin:22px 0 4px; padding:18px 20px 14px; border-radius:14px; position:relative; overflow:hidden;
+      background:linear-gradient(180deg,#19191c,#101012); border:1px solid rgba(201,162,75,.22);
+      box-shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25); }
+    .pg-pagehead::before { content:""; position:absolute; top:0; left:0; right:0; height:3px;
+      background:linear-gradient(90deg,#c9a227,#f5c542,#c9a227); }
+    .pg-light .pg-pagehead { background:linear-gradient(180deg,#fdf6dd,#fbf8ec); border-color:#e5e2d8;
+      box-shadow:0 1px 3px rgba(20,20,20,.07), 0 4px 14px rgba(20,20,20,.05); }
+    .pg-ph-kick { font-size:.68rem; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-bright); }
+    .pg-light .pg-ph-kick { color:#8a6d14; }
+    .pg-ph-title { font-family:Georgia,'Times New Roman',serif; font-size:1.65rem; font-weight:700; letter-spacing:-.01em; line-height:1.12; margin-top:3px; color:var(--text); }
+    .pg-light .pg-ph-title { color:#141414; }
+    .pg-ph-tag { color:var(--muted); font-size:.9rem; line-height:1.45; margin-top:4px; max-width:640px; }
+    .pg-light .pg-ph-tag { color:#55534a; }
+    .pg-ph-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+    .pg-ph-chip { padding:7px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04);
+      color:var(--text); font-size:.8rem; font-weight:700; font-family:inherit; cursor:pointer; transition:all .18s ease; }
+    .pg-ph-chip .cnt { color:var(--faint); font-weight:400; }
+    .pg-ph-chip:hover { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.20); }
+    .pg-ph-chip:active { transform:scale(.97); }
+    .pg-ph-chip.active { border-color:var(--gold); color:var(--gold-bright); background:rgba(201,162,75,.14); }
+    .pg-light .pg-ph-chip { background:#ffffff; border-color:#d8d2c0; color:#1b1b1b; }
+    .pg-light .pg-ph-chip.active { background:#1b1b1b; border-color:#1b1b1b; color:#ffffff; }
+    .pg-light .pg-ph-chip.active .cnt { color:#e8bd4e; }
+    /* Home stat tiles become doors (v83) */
+    .pg-tile { position:relative; cursor:pointer; transition:all .18s ease; }
+    .pg-tile:hover { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.20), 0 8px 22px rgba(201,162,75,.28); transform:translateY(-1px); }
+    .pg-tile:active { transform:scale(.985); }
+    .pg-tile:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+    .pg-tile-go { position:absolute; top:10px; right:14px; font-size:1.15rem; line-height:1; color:var(--gold); opacity:.55; font-weight:700; }
+    .pg-tile:hover .pg-tile-go { opacity:1; }
+    /* People detail rows (installs / push modal) */
+    .pg-pp-row { display:flex; align-items:center; gap:12px; padding:11px 2px; border-bottom:1px solid rgba(255,255,255,.06); font-size:.92rem; }
+    .pg-pp-row:last-child { border-bottom:none; }
+    .pg-light .pg-pp-row { border-bottom-color:#f2f0e8; }
+    .pg-pp-row .grow { flex:1; min-width:0; }
+    .pg-pp-row small { color:var(--faint); display:block; font-size:.78rem; }
+    .pg-pp-flag { font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; border-radius:999px; padding:4px 10px; white-space:nowrap; }
+    .pg-pp-flag.on { background:rgba(140,220,150,.14); color:#a9e6b2; }
+    .pg-pp-flag.off { background:rgba(255,255,255,.05); color:var(--faint); }
+    .pg-light .pg-pp-flag.on { background:#d9f2e3; color:#1e6b34; }
+    .pg-light .pg-pp-flag.off { background:#f1eee4; color:#71767a; }
+    @media (max-width:640px){ .pg-ph-title{font-size:1.4rem} .pg-pagehead{padding:15px 16px 12px} }
+  </style>
+
   <div id="atab-hotleads" class="hidden">
+  <div class="pg-pagehead" id="pghead-hotleads"></div>
   <section class="asec">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <h2 style="margin:0">Hot Leads</h2>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:14px">
       <button class="btn btn-gold btn-sm" type="button" id="hl-add">Add lead</button>
     </div>
     <div id="ad-hl-filters" class="hl-filters"></div>
@@ -933,8 +1005,8 @@
   </div>
 
   <div id="atab-quotes" class="hidden">
+  <div class="pg-pagehead" id="pghead-quotes"></div>
   <section class="asec">
-    <h2>Quotes to review</h2>
     <div class="acard"><div id="ad-quote-list"></div></div>
   </section>
   <section class="asec">
@@ -944,8 +1016,8 @@
   </div>
 
   <div id="atab-contracts" class="hidden">
+  <div class="pg-pagehead" id="pghead-contracts"></div>
   <section class="asec">
-    <h2>Contracts</h2>
     <p style="color:var(--muted);margin:-6px 0 14px">Every signed agreement lives here. Open one to jump to the customer's full record in the CRM.</p>
     <div class="acard"><div id="ad-contracts-list"><p style="color:var(--faint)">Loading\u2026</p></div></div>
   </section>
@@ -959,8 +1031,8 @@
   </div>
 
   <div id="atab-vendors" class="hidden">
+  <div class="pg-pagehead" id="pghead-vendors"></div>
   <section class="asec">
-    <h2>Vendors</h2>
     <div class="acard"><div id="ad-vendor-list"></div></div>
   </section>
   <section class="asec hidden" id="ad-vendor-archived-sec">
@@ -973,9 +1045,9 @@
   </div>
 
   <div id="atab-followups" class="hidden">
+  <div class="pg-pagehead" id="pghead-followups"></div>
   <section class="asec" style="padding-bottom:60px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <h2 style="margin:0">Tasks</h2>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:14px">
       <button class="btn btn-gold btn-sm" type="button" id="tk-add">New task</button>
     </div>
     <div id="ad-task-stats"></div>
@@ -987,10 +1059,10 @@
   </div>
 
   <div id="atab-customers" class="hidden">
+  <div class="pg-pagehead" id="pghead-customers"></div>
   <section class="asec">
     <div id="ad-cust-stats"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <h2 style="margin:0">CRM</h2>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:14px">
       <button class="btn btn-gold btn-sm" type="button" id="cust-add">Add customer</button>
     </div>
     <div id="ad-cust-filters" class="hl-filters"></div>
@@ -1048,8 +1120,8 @@
   </aside>
 
   <div id="atab-calendar" class="hidden">
+  <div class="pg-pagehead" id="pghead-calendar"></div>
   <section class="asec" style="padding-bottom:60px">
-    <h2>Calendar</h2>
     <div class="acard">
       <div class="cal2-head">
         <button type="button" class="btn btn-ghost btn-sm" id="cal2-today">Today</button>
@@ -1057,17 +1129,29 @@
         <button type="button" class="cal2-nav" id="cal2-next" aria-label="Next month">&#8250;</button>
         <h3 id="cal2-title" style="margin:0">Calendar</h3>
         <button type="button" class="btn btn-ghost btn-sm" id="cal2-refresh">Refresh</button>
+        <button type="button" class="btn btn-gold btn-sm" id="cal2-add">+ Add appointment</button>
       </div>
-      <p class="sub" id="cal2-status" style="margin:8px 0">Tap any day to add an appointment. Tap an appointment to edit or delete it. Everything saves to the real PrimeGuard Google calendar, so it also shows in the Google Calendar app.</p>
-      <div class="cal2-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
-      <div id="cal2-grid" class="cal2-grid"></div>
-      <div class="cal2-legend">
-        <span><i style="background:#188038"></i>Lawn care</span>
-        <span><i style="background:#039be5"></i>Pressure washing</span>
-        <span><i style="background:#f6bf26"></i>Home maintenance</span>
-        <span><i style="background:#f4511e"></i>Free estimate</span>
-        <span><i style="background:#8e24aa"></i>Vendor / crew</span>
-        <span><i style="background:#616161"></i>Other</span>
+      <p class="sub" id="cal2-status" style="margin:8px 0">Tap a day to see its appointments. Tap an appointment for details. Everything saves to the real PrimeGuard Google calendar, so it also shows in the Google Calendar app.</p>
+      <div id="cal2-banner" class="cal2-banner hidden"></div>
+      <div class="cal2-viewbar">
+        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn active" id="cal2-view-agenda">Up next</button>
+        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn" id="cal2-view-month">Month</button>
+      </div>
+      <div id="cal2-wrap">
+        <h4 class="cal2-agenda-title">Up next</h4>
+        <div id="cal2-agenda"></div>
+        <div id="cal2-gridwrap">
+          <div class="cal2-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+          <div id="cal2-grid" class="cal2-grid"></div>
+          <div class="cal2-legend">
+            <span><i style="background:#188038"></i>Lawn care</span>
+            <span><i style="background:#039be5"></i>Pressure washing</span>
+            <span><i style="background:#f6bf26"></i>Home maintenance</span>
+            <span><i style="background:#f4511e"></i>Free estimate</span>
+            <span><i style="background:#8e24aa"></i>Vendor / crew</span>
+            <span><i style="background:#616161"></i>Other</span>
+          </div>
+        </div>
       </div>
       <div id="cal2-daylist"></div>
     </div>
@@ -1117,6 +1201,25 @@
       </form>
     </div>
   </div>
+
+  <div id="cal2Detail" class="cal2-modal hidden">
+    <div class="cal2-modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <h3 id="cal2-d-title" style="margin:0">Appointment</h3>
+        <button type="button" class="btn btn-ghost btn-sm" id="cal2-d-close">&times; Close</button>
+      </div>
+      <p id="cal2-d-when" style="margin:10px 0 2px;font-weight:600"></p>
+      <p id="cal2-d-where" class="sub" style="margin:2px 0"></p>
+      <p id="cal2-d-notes" style="margin:8px 0;white-space:pre-wrap"></p>
+      <p id="cal2-d-recur" class="sub hidden" style="margin:8px 0">This is a repeating event. To change or delete it, open the Google Calendar app so the whole series stays in sync.</p>
+      <div id="cal2-d-link" style="margin:10px 0"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        <button type="button" class="btn btn-gold" id="cal2-d-edit">Edit</button>
+        <button type="button" class="btn btn-ghost" id="cal2-d-delete">Delete</button>
+      </div>
+      <p id="cal2-d-msg" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
   <style>
     .cal2-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .cal2-head h3{font-size:20px;margin-right:auto}
@@ -1139,6 +1242,21 @@
     .cal2-modal-card{background:#1d1d20;color:#f2f2f2;border-radius:16px;max-width:520px;width:100%;padding:20px;border:1px solid rgba(201,162,39,.35)}
     .pg-light .cal2-modal-card{background:#ffffff;color:#1b1b1b}
     @media (max-width:640px){.cal2-cell{min-height:78px;padding:4px}.cal2-ev{font-size:10.5px}}
+    .cal2-banner{margin:10px 0;padding:10px 12px;border-radius:10px;font-size:14px;border:1px solid rgba(140,140,140,.35)}
+    .cal2-banner.hidden{display:none}
+    .cal2-banner.loading{border-color:rgba(201,162,39,.55);background:rgba(201,162,39,.10)}
+    .cal2-banner.error{border-color:rgba(214,69,69,.65);background:rgba(214,69,69,.10);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .cal2-viewbar{display:none;gap:8px;align-items:center;margin:10px 0 2px}
+    .cal2-viewbtn.active{border-color:#c9a227;color:#c9a227}
+    .cal2-agenda-title{margin:14px 0 2px}
+    .cal2-cell.sel{outline:2px solid #c9a227;outline-offset:-2px}
+    @media (max-width:640px){
+      .cal2-viewbar{display:flex}
+      #cal2-wrap #cal2-gridwrap{display:none}
+      #cal2-wrap.show-month #cal2-gridwrap{display:block}
+      #cal2-wrap.show-month #cal2-agenda{display:none}
+      #cal2-wrap.show-month .cal2-agenda-title{display:none}
+    }
   </style>
 
   <div id="atab-team" class="hidden">
@@ -1192,8 +1310,8 @@
   </div><!-- /atab-activity -->
 
   <div id="atab-traffic" class="hidden">
+  <div class="pg-pagehead" id="pghead-traffic"></div>
   <section class="asec" style="padding-top:6px">
-    <h2>Website traffic</h2>
     <div class="acard">
       <p class="sub">Owner only: this tab, its button, and its data exist only for the owner account. Live from the website tracker: page views, clicks, and visitor journeys for the last 30 days.</p>
       <div class="astats" style="margin:0">
@@ -1238,7 +1356,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=79"></script>
+<script src="admin.js?v=83"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];
