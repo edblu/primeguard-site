@@ -1742,7 +1742,10 @@
       var opt = $("hl-cv-assign").selectedOptions[0];
       if (opt) wo.vendorBusiness = opt.textContent.split(" - ")[0];
     }
-    db.collection("work_orders").add(wo).then(function (ref) {
+    geocodeAddress(wo.address).then(function (g) {
+      if (g) { wo.propertyLat = g.lat; wo.propertyLng = g.lng; }
+      return db.collection("work_orders").add(wo);
+    }).then(function (ref) {
       return db.collection("hot_leads").doc(leadId).update({
         stage: "quoted",
         convertedWorkOrderId: ref.id,
@@ -3851,7 +3854,46 @@
     return w.customerName || w.sourceLeadName || w.customer || "";
   }
   function woIsActiveJobStatus(status) {
-    return ["accepted", "evaluation_accepted", "in_progress", "scheduled", "review"].indexOf(status) >= 0;
+    return ["accepted", "evaluation_accepted", "in_progress", "scheduled", "en_route", "arrived", "review"].indexOf(status) >= 0;
+  }
+  // Live tracking stage chip (2026-10-17 build, rebased 2026-10-19):
+  // the same stages the customer watches in their portal tracker
+  // (Scheduled, On the way, Arrived, In review, Done), plus a live map
+  // link while the crew is en route or on site and a position has
+  // been stamped.
+  function woStageChip(w) {
+    if (!w) return "";
+    var st = woStatusValue(w);
+    var label = null, cls = "p-acc";
+    if (st === "en_route") label = "On the way";
+    else if (st === "arrived") label = "Arrived";
+    else if (st === "review") { label = "In review"; cls = "p-rev"; }
+    else if (st === "done") { label = "Done"; cls = "p-done"; }
+    else if (woIsActiveJobStatus(st) || w.vendorId) { label = "Scheduled"; cls = "p-pend"; }
+    if (!label) return "";
+    var html = '<span class="pill ' + cls + '" title="Live tracking stage">' + label + "</span>";
+    if ((st === "en_route" || st === "arrived") && typeof w.lastLat === "number" && typeof w.lastLng === "number") {
+      html += ' <a class="mini hlq-action hlq-action-ghost" target="_blank" rel="noopener" href="https://www.google.com/maps?q=' + w.lastLat + "," + w.lastLng + '">See on map</a>';
+    }
+    return html;
+  }
+  // Property coordinates for live arrival tracking: geocode the work
+  // order address once, when the office creates the work order, via
+  // the free Nominatim endpoint, and keep propertyLat/propertyLng on
+  // the doc. The vendor portal measures arrival against these. Fail
+  // soft: no result means that job has no automatic arrival (the
+  // vendor's photo upload and the office still close the loop).
+  function geocodeAddress(address) {
+    var q = String(address || "").trim();
+    if (!q) return Promise.resolve(null);
+    return fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), {
+      headers: { "Accept": "application/json" }
+    }).then(function (r) { return r.json(); }).then(function (rows) {
+      if (rows && rows.length && rows[0].lat && rows[0].lon) {
+        return { lat: parseFloat(rows[0].lat), lng: parseFloat(rows[0].lon) };
+      }
+      return null;
+    }).catch(function () { return null; });
   }
   function woBucket(w) {
     var status = woStatusValue(w);
@@ -3950,6 +3992,12 @@
       html += row("Add-on scan (vendor)", vaHtml + '<br><span style="color:#7a7668">Vendor total for extras: $' + Math.round(vaTotal) + ". These prefill the customer quote builder as optional add-ons.</span>");
     }
     if (when) html += row("Scheduled", fmtWhen(when));
+    if (w.enRouteAt) html += row("On the way", fmtWhen(w.enRouteAt));
+    if (w.arrivedAt) html += row("Arrived", fmtWhen(w.arrivedAt));
+    if (w.trackingStoppedAt) html += row("Tracking stopped", fmtWhen(w.trackingStoppedAt));
+    if (typeof w.lastLat === "number" && typeof w.lastLng === "number") {
+      html += row("Live position", '<a href="https://www.google.com/maps?q=' + w.lastLat + "," + w.lastLng + '" target="_blank" rel="noopener">See on map</a>' + (w.lastLocAt ? " · updated " + fmtWhen(w.lastLocAt) : ""));
+    }
     // Vendor checklist progress (Oct 18): same per-service lists as the
     // vendor portal; keep the two in sync.
     if (w.kind !== "quote_request" && (w.vendorId || w.status !== "open")) {
@@ -4098,7 +4146,7 @@
         '<div class="hlq-head"><button type="button" class="hlq-name" data-wonotes="' + it.id + '">' +
           esc(title + (customer && title.indexOf(customer) < 0 ? " · " + customer : "")) + "</button>" +
           '<span class="hlq-head-right"><button type="button" class="mini woq-open-btn" data-woopen="' + it.id + '" aria-expanded="' + (isOpen ? "true" : "false") + '">' + (isOpen ? "Close" : "Open") + "</button>" +
-          pill(w.status) + "</span></div>" +
+          pill(w.status) + woStageChip(w) + "</span></div>" +
         (metaLine || mediaHtml ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + "</div>" : "") +
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
         '<div class="hlq-actions">' +
@@ -4993,6 +5041,10 @@
       var opt = $("wo-assign").selectedOptions[0];
       wo.vendorBusiness = opt.textContent.split(" - ")[0];
     }
+    // Geocode the property once at save so live arrival tracking has
+    // coordinates to measure against (edits included: a corrected
+    // address refreshes the pin).
+    var geoP = geocodeAddress(wo.address);
 
     function save(urls) {
       if (isEdit) {
@@ -5015,7 +5067,11 @@
         .then(function (r) { return r.json(); }).then(function (out) { return out.urls || []; })
       : Promise.resolve([]);
 
-    uploadP.then(save).then(function () {
+    Promise.all([uploadP, geoP]).then(function (res) {
+      if (res[1]) { wo.propertyLat = res[1].lat; wo.propertyLng = res[1].lng; }
+      else if (!wo.address) { wo.propertyLat = null; wo.propertyLng = null; }
+      return save(res[0]);
+    }).then(function () {
       logActivity(isEdit ? "Edited a work order" : "Created a work order");
     }).then(function () {
       okEl.classList.remove("hidden");

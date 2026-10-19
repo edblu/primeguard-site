@@ -61,6 +61,7 @@
       login_banner_line: "Your jobs, your quotes, your pay — per job completed.",
       role_customer: "I'm a customer",
       role_vendor: "I'm a vendor",
+      role_admin: "Admin dashboard",
       login: "Log in",
       login_sub_pre: "Log in with your vendor account to see your jobs and submit quotes. New here?",
       login_register_link: "Register your crew",
@@ -347,7 +348,23 @@
       upload_failed: "Upload failed",
       q_pick_first: "Pick the quote request first.",
       q_uploading: "Uploading quote...",
-      q_submitting: "Submitting..."
+      q_submitting: "Submitting...",
+      status_enroute: "On the way",
+      status_arrived: "Arrived",
+      btn_enroute: "🚗 On my way",
+      track_enroute_line: "On my way. Your location is shared with the office and the customer until you mark the job complete.",
+      track_arrived_line: "Arrived. The customer can see you are at the property.",
+      track_consent_note: "The first time, a short location consent appears for you to accept.",
+      step_enroute: "On the way (location shared)",
+      step_arrived: "Arrived at the property",
+      setup_consent_label: "Location tracking consent",
+      setup_consent_done: "Accepted and on file. Live arrival tracking is active on your jobs.",
+      setup_consent_hint: "You accept it the first time you tap On my way on a job.",
+      consent_h: "Location sharing for this trip",
+      consent_body: "When you tap Accept and start, this portal shares your phone's location only while this job is in progress, from your On my way tap until you mark the job complete. It is used to confirm your arrival at the property and to show the customer your visit progress (on the way, arrived). Sharing stops automatically when you mark the job complete. Nothing is collected before you start or after you finish.",
+      consent_accept: "Accept and start",
+      consent_cancel: "Not now",
+      enroute_failed: "The trip could not be started. Please try again."
     },
     es: {
       page_title: "Panel del Vendedor | PrimeGuard Preservation",
@@ -359,6 +376,7 @@
       login_banner_line: "Tus trabajos, tus cotizaciones, tu pago: por trabajo terminado.",
       role_customer: "Soy cliente",
       role_vendor: "Soy vendedor",
+      role_admin: "Panel de administración",
       login: "Iniciar sesión",
       login_sub_pre: "Inicia sesión con tu cuenta de vendedor para ver tus trabajos y enviar precios. ¿Nuevo aquí?",
       login_register_link: "Registra tu equipo",
@@ -644,7 +662,23 @@
       upload_failed: "La subida falló",
       q_pick_first: "Elige primero la solicitud de cotización.",
       q_uploading: "Subiendo cotización...",
-      q_submitting: "Enviando..."
+      q_submitting: "Enviando...",
+      status_enroute: "En camino",
+      status_arrived: "Llegó",
+      btn_enroute: "🚗 Voy en camino",
+      track_enroute_line: "En camino. Tu ubicación se comparte con la oficina y la clienta hasta que marques el trabajo terminado.",
+      track_arrived_line: "Llegaste. La clienta ya ve que estás en la propiedad.",
+      track_consent_note: "La primera vez aparece un consentimiento corto de ubicación para que lo aceptes.",
+      step_enroute: "En camino (ubicación compartida)",
+      step_arrived: "Llegó a la propiedad",
+      setup_consent_label: "Consentimiento de ubicación",
+      setup_consent_done: "Aceptado y en archivo. El seguimiento de llegada está activo en tus trabajos.",
+      setup_consent_hint: "Lo aceptas la primera vez que tocas Voy en camino en un trabajo.",
+      consent_h: "Ubicación para este viaje",
+      consent_body: "Al tocar Aceptar y empezar, este portal comparte la ubicación de tu teléfono solo mientras este trabajo está en curso, desde que tocas Voy en camino hasta que marcas el trabajo terminado. Se usa para confirmar tu llegada a la propiedad y mostrarle a la clienta el progreso de la visita (en camino, llegó). El envío se detiene automáticamente cuando marcas el trabajo terminado. No se recoge nada antes de empezar ni después de terminar.",
+      consent_accept: "Aceptar y empezar",
+      consent_cancel: "Ahora no",
+      enroute_failed: "No se pudo iniciar el viaje. Inténtalo de nuevo."
     }
   };
 
@@ -841,9 +875,26 @@
     }).catch(function (err) { errEl.textContent = friendlyAuthError(err); show(errEl); });
   });
 
+  // Staff-only "Admin dashboard" role option in the login chooser: visible
+  // when a staff/{uid} doc exists or for the owner account (the same check
+  // the admin itself uses); stays hidden for regular vendors and on any error.
+  function checkStaffEntry(user) {
+    var btn = $("vdRoleAdmin");
+    if (!btn) return;
+    btn.style.display = "none";
+    if (!user) return;
+    try {
+      if (user.email === "edblucorp@gmail.com") { btn.style.display = ""; return; }
+      db.collection("staff").doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) btn.style.display = "";
+      }).catch(function () { /* leave hidden */ });
+    } catch (e) { /* leave hidden */ }
+  }
+
   auth.onAuthStateChanged(function (user) {
     me = user;
-    if (!user) { liveOffAll(); show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); hide($("vd-loading")); return; }
+    if (!user) { checkStaffEntry(null); liveOffAll(); stopWatch(); trackWoId = null; show($("vd-loginwrap")); hide($("vd-dash")); hide($("vd-topbar")); hide($("vd-noprofile")); hide($("vd-loading")); return; }
+    checkStaffEntry(user);
     // Signed in: hide the login, but keep the dashboard (and its fixed
     // burger) hidden until the profile result is known — showing it here
     // and hiding it again for no-profile accounts was the hamburger
@@ -1017,6 +1068,17 @@
   var NDA_URL = "https://primeguardmia.com/assets/PrimeGuard-NDA-NonCircumvention.pdf";
   var ICA_URL = "https://primeguardmia.com/assets/PrimeGuard-Independent-Contractor-Agreement.pdf";
 
+  // Location tracking consent (2026-10-17 build, short in-app version):
+  // its own version, separate from the NDA/ICA version above. The
+  // vendor accepts the short one-screen notice the first time they tap
+  // "On my way"; the acceptance is stored on the vendor doc as
+  // locationConsent {accepted, acceptedAt, version} and is what
+  // activates live tracking on their jobs.
+  var CONSENT_VERSION = "2026-10-17";
+  function consentSigned() {
+    return !!(vendor && vendor.locationConsent && vendor.locationConsent.version === CONSENT_VERSION);
+  }
+
   function fmtDate(x, withYear) {
     if (!x) return "";
     var d = (x && typeof x.toDate === "function") ? x.toDate() : new Date(x);
@@ -1149,7 +1211,8 @@
     var items = [
       { label: t("setup_pay_label"), done: payDone, hint: payDone ? payoutSummary(v) : t("setup_pay_hint"), anchor: null, pay: true },
       { label: t("setup_w9_label"), done: w9Done, hint: w9Done ? t("setup_onfile") : t("setup_w9_hint"), anchor: "#vd-w9-sec" },
-      { label: t("setup_agr_label"), done: agreeDone, hint: agreeDone ? t("setup_agr_done") : t("setup_agr_hint"), anchor: "#vd-agreements" }
+      { label: t("setup_agr_label"), done: agreeDone, hint: agreeDone ? t("setup_agr_done") : t("setup_agr_hint"), anchor: "#vd-agreements" },
+      { label: t("setup_consent_label"), done: consentSigned(), hint: consentSigned() ? t("setup_consent_done") : t("setup_consent_hint"), anchor: null }
     ];
     if (v.insured === "yes") {
       var coiDone = String(v.coiStatus || "").toLowerCase() === "received";
@@ -1308,6 +1371,8 @@
     if (!w) return "";
     if (w.status === "accepted") return t("status_accepted");
     if (w.status === "evaluation_accepted") return t("status_eval_accepted");
+    if (w.status === "en_route") return t("status_enroute");
+    if (w.status === "arrived") return t("status_arrived");
     return String(w.status || "").replace(/_/g, " ");
   }
 
@@ -1402,12 +1467,187 @@
         (w.address ? " · " + esc(w.address) : "") +
         (w.details ? "<br>" + esc(w.details) : "") + "</p>" +
       '<div class="vd-payrow">' + payHtml + "</div>" +
+      trackHtml(w, "vd-btn vd-btn-gold") +
       mapsBtn +
       '<button class="vd-btn vd-btn-outline" type="button" data-upload="' + w.id + '">' + SVG_CAM + esc(t("btn_upload")) + "</button>" +
       third +
       (w.kind !== "quote_request" ? checklistBarHtml(w) : "") +
       '<input type="file" accept="image/*" multiple class="hidden" id="up-' + w.id + '">' +
       "</div></article>";
+  }
+
+  /* ---------- Live job tracking (2026-10-17 build, rebased 2026-10-19) ----------
+     ONE tap: the vendor taps "On my way" and that tap starts
+     everything. The first tap shows the short location consent (one
+     screen, accepted in the moment); the acceptance is saved on the
+     vendor doc and the button never asks again. There is no "I
+     arrived" button: while en route the portal watches this phone's
+     location (throttled Firestore writes, about one per 45 seconds)
+     and when two consecutive fixes land within TRACK_RADIUS_M of the
+     property coordinates the job flips itself to "arrived". Tracking
+     keeps running until the vendor marks the job complete, which
+     stamps trackingStoppedAt and clears the watch. Fallbacks for
+     arrival, whichever fires first: a one-shot location check when
+     the portal loads with an en-route job on screen, and the phone's
+     location at the first photo upload while en route. */
+  var TRACK_RADIUS_M = 120;
+  var TRACK_WRITE_MS = 45 * 1000;
+  var trackWatchId = null;
+  var trackWoId = null;
+  var trackLastWrite = 0;
+  var trackStreak = 0;
+  var myJobsById = {};   // my accepted jobs by id, rebuilt by loadAll
+
+  function haversineM(lat1, lng1, lat2, lng2) {
+    var R = 6371000, rad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  // Arrival test for one fix. force = accept a single in-radius fix
+  // (photo-upload fallback: a photo at the property is strong proof).
+  // Otherwise two consecutive in-radius fixes are required, so driving
+  // past the street never marks a false arrival.
+  function trackCheckArrival(w, lat, lng, force) {
+    if (!w || w.status !== "en_route") return;
+    if (typeof w.propertyLat !== "number" || typeof w.propertyLng !== "number") return;
+    var d = haversineM(lat, lng, w.propertyLat, w.propertyLng);
+    if (d > TRACK_RADIUS_M) { trackStreak = 0; return; }
+    trackStreak++;
+    if (trackStreak < 2 && !force) return;
+    trackStreak = 0;
+    w.status = "arrived";
+    db.collection("work_orders").doc(w.id).update({
+      status: "arrived",
+      arrivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastLat: lat, lastLng: lng,
+      lastLocAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(loadAll).catch(function () {});
+  }
+
+  function trackOnPosition(pos) {
+    if (!trackWoId) return;
+    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+    var w = myJobsById[trackWoId];
+    if (w) { w.lastLat = lat; w.lastLng = lng; }
+    trackCheckArrival(w, lat, lng, false);
+    var now = Date.now();
+    if (now - trackLastWrite < TRACK_WRITE_MS) return;
+    trackLastWrite = now;
+    db.collection("work_orders").doc(trackWoId).update({
+      lastLat: lat, lastLng: lng,
+      lastLocAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function () {});
+  }
+
+  function startWatch(woId) {
+    if (!("geolocation" in navigator)) return;
+    if (trackWatchId !== null && trackWoId === woId) return;
+    stopWatch();
+    trackWoId = woId;
+    trackStreak = 0;
+    trackLastWrite = 0;
+    try {
+      trackWatchId = navigator.geolocation.watchPosition(trackOnPosition, function () {}, {
+        enableHighAccuracy: true, maximumAge: 15000, timeout: 25000
+      });
+    } catch (e) { trackWatchId = null; }
+  }
+
+  function stopWatch() {
+    if (trackWatchId !== null && "geolocation" in navigator) {
+      try { navigator.geolocation.clearWatch(trackWatchId); } catch (e) {}
+    }
+    trackWatchId = null;
+  }
+
+  // Short in-app consent: a single screen shown before the FIRST
+  // tracking start. Accepting saves locationConsent on the vendor doc
+  // and then starts the trip the vendor asked for; cancelling (or
+  // tapping outside) starts nothing.
+  var consentPendingWo = null;
+  function closeConsentPrompt() {
+    var ov = $("vd-consent-modal");
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    consentPendingWo = null;
+  }
+  function showConsentPrompt(woId) {
+    closeConsentPrompt();
+    consentPendingWo = woId;
+    var ov = document.createElement("div");
+    ov.id = "vd-consent-modal";
+    ov.setAttribute("style", "position:fixed;inset:0;z-index:1200;background:rgba(24,20,10,.55);display:flex;align-items:center;justify-content:center;padding:18px");
+    ov.innerHTML =
+      '<div style="background:#fffdf6;border:1px solid #d9ab2b;border-radius:16px;max-width:430px;width:100%;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.35)">' +
+      '<h3 style="font-size:1.08rem;margin-bottom:8px">📍 ' + esc(t("consent_h")) + "</h3>" +
+      '<p style="font-size:.92rem;line-height:1.5;color:#4c4636">' + esc(t("consent_body")) + "</p>" +
+      '<div style="display:flex;gap:10px;margin-top:16px">' +
+      '<button type="button" class="vd-btn vd-btn-gold" id="vd-consent-accept" style="flex:1">' + esc(t("consent_accept")) + "</button>" +
+      '<button type="button" class="vd-btn vd-btn-outline" id="vd-consent-cancel" style="flex:1">' + esc(t("consent_cancel")) + "</button>" +
+      "</div></div>";
+    document.body.appendChild(ov);
+    $("vd-consent-cancel").addEventListener("click", closeConsentPrompt);
+    ov.addEventListener("click", function (e) { if (e.target === ov) closeConsentPrompt(); });
+    $("vd-consent-accept").addEventListener("click", function () {
+      var btn = this;
+      btn.disabled = true;
+      var woId2 = consentPendingWo;
+      db.collection("vendors").doc(me.uid).update({
+        locationConsent: {
+          accepted: true,
+          acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          version: CONSENT_VERSION
+        }
+      }).then(function () {
+        if (vendor) vendor.locationConsent = { accepted: true, version: CONSENT_VERSION };
+        closeConsentPrompt();
+        renderSetup();
+        if (woId2) startEnRoute(woId2);
+      }).catch(function () {
+        btn.disabled = false;
+        alert(t("enroute_failed"));
+      });
+    });
+  }
+
+  function startEnRoute(woId) {
+    var w = myJobsById[woId];
+    if (!w) return;
+    if (!consentSigned()) { showConsentPrompt(woId); return; }
+    db.collection("work_orders").doc(woId).update({
+      status: "en_route",
+      enRouteAt: firebase.firestore.FieldValue.serverTimestamp(),
+      trackingConsentVersion: CONSENT_VERSION,
+      trackingStoppedAt: null
+    }).then(function () {
+      w.status = "en_route";
+      startWatch(woId);
+      loadAll();
+    }).catch(function (err) {
+      alert(t("enroute_failed") + " (" + (err.message || err) + ")");
+    });
+  }
+
+  // The tracking block on a job card (hero and active list): the one
+  // big button before the job starts, then a plain status line once
+  // tracking is live. Before the consent is accepted the button still
+  // renders active: the tap itself opens the short consent.
+  function trackHtml(w, btnCls) {
+    if (!w || w.kind === "quote_request") return "";
+    if (w.status === "en_route") {
+      return '<p style="font-size:.9rem;font-weight:600;margin:10px 0 2px">🚗 ' + esc(t("track_enroute_line")) + "</p>";
+    }
+    if (w.status === "arrived") {
+      return '<p style="font-size:.9rem;font-weight:600;margin:10px 0 2px">📍 ' + esc(t("track_arrived_line")) + "</p>";
+    }
+    if (["accepted", "scheduled", "in_progress"].indexOf(w.status) < 0) return "";
+    var btn = '<button class="' + btnCls + '" type="button" data-enroute="' + w.id + '">' + esc(t("btn_enroute")) + "</button>";
+    if (!consentSigned()) {
+      btn += '<p style="font-size:.82rem;color:var(--muted);margin:6px 0 2px">' + esc(t("track_consent_note")) + "</p>";
+    }
+    return btn;
   }
 
   // ---------- Work orders ----------
@@ -1555,6 +1795,24 @@
       var mEl = $("st-month"); if (mEl) mEl.textContent = "$" + mSum.toLocaleString();
       var mnEl = $("st-month-n"); if (mnEl) mnEl.textContent = mCount ? mCount + (mCount === 1 ? t("mn_one") : t("mn_many")) : "";
       myReviewJobs = active.filter(function (w) { return w.status === "review"; });
+      // Live tracking state: cache my jobs for the tracking engine,
+      // and if a job is already en route (the page reloaded mid-drive,
+      // say), resume its location watch instead of losing the trip.
+      myJobsById = {};
+      active.concat(done).forEach(function (w) { myJobsById[w.id] = w; });
+      var liveJob = null;
+      active.forEach(function (w) { if (!liveJob && (w.status === "en_route" || w.status === "arrived")) liveJob = w; });
+      if (liveJob) {
+        startWatch(liveJob.id);
+        // Arrival fallback: one location check as the job card opens.
+        if (liveJob.status === "en_route" && "geolocation" in navigator) {
+          try {
+            navigator.geolocation.getCurrentPosition(function (pos) {
+              trackCheckArrival(liveJob, pos.coords.latitude, pos.coords.longitude, false);
+            }, function () {}, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
+          } catch (e) {}
+        }
+      }
       var heroJob = pickHero(active);
       renderHero(heroJob);
       renderActive(active, heroJob ? heroJob.id : null);
@@ -1796,6 +2054,8 @@
                 step(w.quoteSubmitted, t("step_price"));
       } else {
         steps = step(true, t("step_wo")) +
+                step(w.status === "en_route" || w.status === "arrived" || w.status === "review" || w.status === "done", t("step_enroute")) +
+                step(w.status === "arrived" || w.status === "review" || w.status === "done", t("step_arrived")) +
                 step((w.beforePhotos || []).length > 0, t("step_before")) +
                 step(false, t("step_work")) +
                 step(w.status === "review" || w.status === "done", t("step_after"));
@@ -1816,6 +2076,7 @@
         payLine +
         '<ul class="vsteps">' + steps + "</ul>" +
         (w.kind !== "quote_request" ? checklistHtml(w) : "") +
+        trackHtml(w, "btn btn-gold") +
         '<button class="btn btn-gold" data-upload="' + w.id + '">' + esc(t("btn_upload")) + '</button>' +
         (w.kind !== "quote_request" ? '<button class="btn btn-ghost" data-complete="' + w.id + '">' + esc(t("btn_complete2")) + '</button>' : "") +
         (w.kind === "quote_request" && !w.quoteSubmitted ? '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>' : "") +
@@ -1978,6 +2239,9 @@
         acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(loadAll);
     }
+    if (t.dataset.enroute) {
+      startEnRoute(t.dataset.enroute);
+    }
     if (t.dataset.complete) {
       if (!confirm(tr("confirm_complete"))) return;
       var cWoId = t.dataset.complete;
@@ -1990,6 +2254,9 @@
           var cMissing = cItems.filter(function (_, i) { return !cSt[i]; }).length;
           if (cMissing > 0) { alert(tr("alert_checklist_pre") + cMissing + tr("alert_checklist_post")); return null; }
         }
+        // Tracking stops the moment the job is marked complete.
+        var stopTrack = !!(jw && (jw.status === "en_route" || jw.status === "arrived" || jw.enRouteAt));
+        if (stopTrack && trackWoId === cWoId) { stopWatch(); trackWoId = null; }
         var nowIso = new Date().toISOString();
         var visitEntry = {
           visitDate: nowIso,
@@ -2004,6 +2271,7 @@
           completedAt: firebase.firestore.FieldValue.serverTimestamp(),
           visitLog: firebase.firestore.FieldValue.arrayUnion(visitEntry)
         };
+        if (stopTrack) cupd.trackingStoppedAt = firebase.firestore.FieldValue.serverTimestamp();
         return cRef.update(cupd);
       }).then(loadAll);
     }
@@ -2068,6 +2336,19 @@
       return db.collection("work_orders").doc(woId).update({
         photos: firebase.firestore.FieldValue.arrayUnion.apply(null, out.urls)
       });
+    }).then(function () {
+      // Arrival fallback: a photo uploaded while en route checks this
+      // phone's location once. A fix inside the property radius
+      // confirms arrival even if the live watch missed it (the photo
+      // itself was taken at the property).
+      var w = myJobsById[woId];
+      if (w && w.status === "en_route" && "geolocation" in navigator) {
+        try {
+          navigator.geolocation.getCurrentPosition(function (pos) {
+            trackCheckArrival(w, pos.coords.latitude, pos.coords.longitude, true);
+          }, function () {}, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
+        } catch (e) {}
+      }
     }).then(loadAll).catch(function (err) { alert(t("upload_failed") + ": " + err.message); });
   }
 

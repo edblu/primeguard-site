@@ -57,7 +57,7 @@
     coming_body_html: "One quick call or tap and we take it from there. Reach us at <a href=\"tel:+17864229674\">(786) 422-9674</a>, or leave your details on the contact form and we call you back.",
     welcome_pg: "Welcome to PrimeGuard",
     login_banner_sub: "Log in or create your free account to see your visits, photos and plan.",
-    role_customer: "👋 I'm a customer", role_vendor: "🧰 I'm a vendor",
+    role_customer: "👋 I'm a customer", role_vendor: "🧰 I'm a vendor", role_admin: "Admin dashboard",
     tab_login: "Log in", tab_signup: "Create account",
     welcome_back: "Welcome back",
     email: "Email", password: "Password", login_btn: "Log in", google_btn: "Continue with Google", forgot: "Forgot password?",
@@ -202,7 +202,7 @@
     coming_body_html: "Una llamada o un toque y nosotros nos encargamos. Llámanos al <a href=\"tel:+17864229674\">(786) 422-9674</a>, o déjanos tus datos en el formulario de contacto y te llamamos de vuelta.",
     welcome_pg: "Bienvenido a PrimeGuard",
     login_banner_sub: "Inicia sesión o crea tu cuenta gratis para ver tus visitas, fotos y plan.",
-    role_customer: "👋 Soy cliente", role_vendor: "🧰 Soy proveedor",
+    role_customer: "👋 Soy cliente", role_vendor: "🧰 Soy proveedor", role_admin: "Panel de administración",
     tab_login: "Iniciar sesión", tab_signup: "Crear cuenta",
     welcome_back: "Bienvenido de nuevo",
     email: "Correo electrónico", password: "Contraseña", login_btn: "Iniciar sesión", google_btn: "Continuar con Google", forgot: "¿Olvidaste tu contraseña?",
@@ -591,20 +591,30 @@
     } catch (e) { return 0; }
   }
 
-  // Staff-only "Admin dashboard" entry: visible when a staff/{uid} doc exists
+  // Staff-only "Admin dashboard" entry (the dashboard button and the login
+  // chooser's Admin role option): visible when a staff/{uid} doc exists
   // or for the owner account; stays hidden for regular customers and on any error.
   function checkStaffEntry(user) {
     var btn = $("pgAdminBtn");
-    if (!btn) return;
-    // The button is hidden with an inline style="display:none" in the HTML,
+    var roleBtn = $("acRoleAdmin");
+    if (!btn && !roleBtn) return;
+    // The buttons are hidden with an inline style="display:none" in the HTML,
     // so toggle the inline style directly — the class-based show()/hide()
     // helpers cannot override it (that mismatch kept the button invisible).
-    btn.style.display = "none";
+    if (btn) btn.style.display = "none";
+    if (roleBtn) roleBtn.style.display = "none";
     if (!user) return;
     try {
-      if (user.email === "edblucorp@gmail.com") { btn.style.display = ""; return; }
+      if (user.email === "edblucorp@gmail.com") {
+        if (btn) btn.style.display = "";
+        if (roleBtn) roleBtn.style.display = "";
+        return;
+      }
       db.collection("staff").doc(user.uid).get().then(function (snap) {
-        if (snap && snap.exists) btn.style.display = "";
+        if (snap && snap.exists) {
+          if (btn) btn.style.display = "";
+          if (roleBtn) roleBtn.style.display = "";
+        }
       }).catch(function () { /* leave hidden */ });
     } catch (e) { /* leave hidden */ }
   }
