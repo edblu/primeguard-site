@@ -241,3 +241,14 @@ label{ color:var(--m-muted) !important; }
 }
 .modal-close::after{ content:" Close"; }
 .pg-light .modal-close:hover, .modal-close:hover{ background:var(--m-gold) !important; color:#fff !important; border-color:var(--m-gold) !important; box-shadow:0 4px 14px rgba(201,162,75,.35) !important; }
+
+/* v7: header cleanup (Edwin, Oct 18): signed-in email hidden, View site is a real button */
+#ad-who{ display:none !important; }
+.atop-site{
+  display:inline-flex !important; align-items:center; gap:6px;
+  background:var(--m-gold) !important; color:#fff !important;
+  font-size:.85rem !important; font-weight:600; text-decoration:none !important;
+  padding:8px 16px; border-radius:999px; line-height:1;
+  box-shadow:0 2px 8px rgba(201,162,75,.35);
+}
+.atop-site:hover{ background:var(--m-gold-deep) !important; color:#fff !important; }
