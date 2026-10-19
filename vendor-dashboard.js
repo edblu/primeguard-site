@@ -137,6 +137,8 @@
       q_duration_ph: "1 day",
       q_details: "Price details",
       q_notes_ph: "Labor, materials, haul-away included...",
+      q_jobnotes: "Job notes for the office",
+      q_jobnotes_ph: "What does this job require? What did the customer ask for? Anything the office should know...",
       addon_title: "Maximize the visit: what else does this property need?",
       addon_hint: "Walk the whole property. Check every extra service it needs and put your price for each one. The office adds them to your quote.",
       addon_hedge: "Hedge and bush trimming",
@@ -464,6 +466,8 @@
       q_duration_ph: "1 día",
       q_details: "Detalles del precio",
       q_notes_ph: "Mano de obra, materiales, recogida de escombros...",
+      q_jobnotes: "Notas del trabajo",
+      q_jobnotes_ph: "¿Qué requiere este trabajo? ¿Qué pidió el cliente? ¿Algo que la oficina debe saber?...",
       addon_title: "Maximiza la visita: ¿qué más necesita esta propiedad?",
       addon_hint: "Revisa toda la propiedad. Marca cada servicio extra que necesita y pon tu precio por cada uno. La oficina los suma a tu cotización.",
       addon_hedge: "Recorte de arbustos y setos",
@@ -2488,6 +2492,11 @@
       return out;
     }
     var quoteAddons = collectAddons();
+    // Job notes (v28, Edwin Oct 19): the vendor's read on the job itself,
+    // what it requires and what the customer asked for. Saved on the quote
+    // as vendorNotes and mirrored on the work order as lastVendorNotes so
+    // the office sees them in Quotes to Review and the build-quote view.
+    var jobNotes = $("q-jobnotes").value.trim();
     function saveQuote(pdfUrl) {
       return db.collection("quotes").add({
         workOrderId: woId,
@@ -2497,6 +2506,7 @@
         price: $("q-price").value.trim(),
         duration: $("q-duration").value.trim(),
         notes: $("q-notes").value.trim(),
+        vendorNotes: jobNotes,
         addons: quoteAddons,
         quotePdfUrl: pdfUrl || null,
         status: "pending",
@@ -2521,10 +2531,10 @@
       });
     }
     uploadPdf().then(saveQuote).then(function () {
-      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons });
+      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons, lastVendorNotes: jobNotes });
     }).then(function () {
       okEl.classList.remove("hidden");
-      $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-pdf").value = "";
+      $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-jobnotes").value = ""; $("q-pdf").value = "";
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-check"), function (c) { c.checked = false; });
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-price"), function (p) { p.value = ""; });
       btn.disabled = false; btn.textContent = t("q_submit");

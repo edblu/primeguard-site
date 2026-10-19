@@ -4446,6 +4446,92 @@
     }).catch(function () { apply(null); });
   }
 
+  /* ----- Vendor quote office info: job notes + photos (v77) ----- */
+  // Edwin (Oct 19): the office could not see a vendor's job notes or any
+  // job photos from Quotes to Review or from the build-quote view. The
+  // quote doc carries vendorNotes (the vendor's read on the job: what it
+  // requires, what the customer asked for) and notes (his price details);
+  // the photos live on the work order (office property file plus vendor
+  // uploads from the job card / Records view, grouped into visitLog when
+  // a visit completes). One renderer feeds both surfaces so they never
+  // drift apart. Thumbs reuse the #pgLightbox via data-wophoto buttons.
+  function quoteThumbsHtml(urls, alt) {
+    return '<div class="athumbs woq-thumbs">' + urls.map(function (u) {
+      return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="' + esc(alt || "job photo") + '" loading="lazy"></button>';
+    }).join("") + "</div>";
+  }
+  function quoteWoPhotosHtml(wo) {
+    if (!wo) return "";
+    var out = "";
+    var woPhotos = (Array.isArray(wo.photos) ? wo.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var inVisit = {};
+    var groups = [];
+    (Array.isArray(wo.visitLog) ? wo.visitLog : []).forEach(function (e) {
+      if (!e || typeof e !== "object") return;
+      var vp = (Array.isArray(e.photos) ? e.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+      vp.forEach(function (u) { inVisit[u] = true; });
+      if (vp.length) groups.push({ e: e, photos: vp });
+    });
+    groups.forEach(function (g) {
+      var vMs = tsMs(g.e.visitDate) || tsMs(g.e.completedAt);
+      var label = "Vendor visit photos" + (vMs ? " · " + new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "") + " (" + g.photos.length + ")";
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:6px">' + esc(label) + "</div>" + quoteThumbsHtml(g.photos, "vendor visit photo") + "</div>";
+    });
+    var filePhotos = woPhotos.filter(function (u) { return !inVisit[u]; });
+    if (filePhotos.length) {
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:6px">Property photos (' + filePhotos.length + ')</div>' + quoteThumbsHtml(filePhotos, "property photo") + "</div>";
+    }
+    return out;
+  }
+  function quoteOfficeInfoHtml(q, wo) {
+    var out = "";
+    var vn = q && q.vendorNotes ? String(q.vendorNotes).trim() : "";
+    if (vn) {
+      out += '<div style="margin-top:10px;padding:10px 12px;border:1px solid var(--gold,#c9a227);border-radius:10px;background:rgba(201,162,39,.08)">' +
+        '<div style="font-weight:800;font-size:.85rem;margin-bottom:4px">Vendor notes' + (q.vendorBusiness ? " · " + esc(q.vendorBusiness) : "") + "</div>" +
+        "<div>" + esc(vn).replace(/\n/g, "<br>") + "</div></div>";
+    }
+    var pd = q && q.notes ? String(q.notes).trim() : "";
+    if (pd) {
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Price details (vendor)</div><div>' + esc(pd).replace(/\n/g, "<br>") + "</div></div>";
+    }
+    var qPhotos = q && Array.isArray(q.photos) ? q.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
+    if (qPhotos.length) {
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:6px">Photos sent with the quote (' + qPhotos.length + ")</div>" + quoteThumbsHtml(qPhotos, "quote photo") + "</div>";
+    }
+    if (wo) out += quoteWoPhotosHtml(wo);
+    return out;
+  }
+  // Quotes to Review renders from the quotes listener alone; the work
+  // order (and its photos) is resolved per quote from the in-memory
+  // woOrders first, then a one-time fetch, cached across re-renders.
+  var quoteWoCache = {};
+  var quoteWoFetching = {};
+  function fillQuotePhotos(woId, wo) {
+    var html = quoteWoPhotosHtml(wo);
+    if (!html) return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-qwo="' + woId + '"]'), function (el) {
+      if (el.getAttribute("data-photos-done")) return;
+      el.setAttribute("data-photos-done", "1");
+      el.insertAdjacentHTML("beforeend", html);
+    });
+  }
+  function hydrateQuotePhotos(q) {
+    if (!q || !q.workOrderId) return;
+    var woId = q.workOrderId;
+    var local = null;
+    woOrders.forEach(function (it) { if (it.id === woId) local = it.d; });
+    if (local) { fillQuotePhotos(woId, local); return; }
+    if (quoteWoCache[woId] !== undefined) { fillQuotePhotos(woId, quoteWoCache[woId]); return; }
+    if (quoteWoFetching[woId]) return;
+    quoteWoFetching[woId] = true;
+    db.collection("work_orders").doc(woId).get().then(function (s) {
+      quoteWoCache[woId] = s.exists ? s.data() : null;
+      delete quoteWoFetching[woId];
+      fillQuotePhotos(woId, quoteWoCache[woId]);
+    }).catch(function () { delete quoteWoFetching[woId]; });
+  }
+
   function loadQuotes() {
     loadCustomerQuotes();
     liveOn("quotes", db.collection("quotes").orderBy("createdAt", "desc").limit(30), function (qs) {
@@ -4461,6 +4547,14 @@
           ' <button class="mini" data-cqbuild="' + d.id + '">Build customer quote</button>' +
           (q.customerQuoteId ? ' <span class="sr-faint">Customer quote built ✓</span>' : "");
         box.appendChild(row);
+        // v77: vendor job notes + price details render under the row,
+        // and the work order's photos hydrate into the same block.
+        var info = document.createElement("div");
+        info.className = "q-office-info";
+        if (q.workOrderId) info.setAttribute("data-qwo", q.workOrderId);
+        info.innerHTML = quoteOfficeInfoHtml(q, null);
+        box.appendChild(info);
+        hydrateQuotePhotos(q);
       });
     });
   }
@@ -4546,6 +4640,9 @@
     $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3>' +
       '<p class="sr-faint" style="margin-bottom:14px">Vendor quote from ' + esc(q.vendorBusiness || "vendor") + ": <strong>" + esc(cqMoney(vendorAmount)) + "</strong>" +
       (q.duration ? " · " + esc(q.duration) : "") + ". Set the customer price below. The customer never sees the vendor number.</p>" +
+      // v77: the vendor's job notes, price details, and the work order's
+      // photos sit right here while staff price the job (Edwin, Oct 19).
+      quoteOfficeInfoHtml(q, wo) +
       '<form id="cqForm" class="aform">' +
       '<div class="row2"><label>Customer name<input type="text" id="cq-name" value="' + esc(name) + '" required></label>' +
       '<label>Contact (phone · email)<input type="text" id="cq-contact" value="' + esc(contact) + '"></label></div>' +
