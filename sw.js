@@ -1,5 +1,5 @@
 /* ============================================================
-   PrimeGuard service worker (pg-v4)
+   PrimeGuard service worker (pg-v5)
    ------------------------------------------------------------
    Deliberately conservative for a live business site:
    - Static assets (CSS/JS/images/fonts, anything under /assets/):
@@ -64,7 +64,7 @@ try {
   }
 } catch (e) { /* FCM is an enhancement; never break the worker over it. */ }
 
-var CACHE_NAME = "pg-v4";
+var CACHE_NAME = "pg-v5";
 
 /* Small app shell precached on install so the installed app can
    open offline. Everything else is runtime-cached on first use. */
