@@ -312,8 +312,19 @@
           <label><span data-i18n="q_price">Tu precio ($)</span><input type="text" id="q-price" placeholder="450" required></label>
           <label><span data-i18n="q_duration">¿Cuánto tiempo toma?</span><input type="text" id="q-duration" placeholder="1 day" data-i18n-ph="q_duration_ph"></label>
         </div>
+        <div class="row2">
+          <label><span data-i18n="q_materials">Costo de materiales ($)</span><input type="number" id="q-materials" min="0" step="0.01" inputmode="decimal" placeholder="0"></label>
+          <label><span data-i18n="q_materials_by">¿Quién trae los materiales?</span><select id="q-materials-by">
+            <option value="vendor" data-i18n="q_mat_vendor">Yo traigo los materiales</option>
+            <option value="customer" data-i18n="q_mat_customer">El cliente los trae</option>
+            <option value="office" data-i18n="q_mat_office">La oficina los trae</option>
+            <option value="none" data-i18n="q_mat_none">No se necesitan materiales</option>
+          </select></label>
+        </div>
+        <label><span data-i18n="q_earliest">Primer día que puedo empezar</span><input type="date" id="q-earliest"></label>
         <label><span data-i18n="q_details">Detalles del precio</span><textarea id="q-notes" rows="3" placeholder="Labor, materials, haul-away included..." data-i18n-ph="q_notes_ph"></textarea></label>
         <label><span data-i18n="q_jobnotes">Notas del trabajo</span><textarea id="q-jobnotes" rows="3" placeholder="¿Qué requiere este trabajo? ¿Qué pidió el cliente? ¿Algo que la oficina debe saber?..." data-i18n-ph="q_jobnotes_ph"></textarea></label>
+        <label><span data-i18n="q_custnote">Nota para el cliente (la oficina se la comparte)</span><textarea id="q-custnote" rows="2" placeholder="Hora de llegada, necesito el código de la puerta, lo que el cliente debe saber..." data-i18n-ph="q_custnote_ph"></textarea></label>
         <div id="q-addons" style="margin:4px 0 12px">
           <p style="font-weight:700;margin:0 0 4px" data-i18n="addon_title">Maximiza la visita: ¿qué más necesita esta propiedad?</p>
           <p style="font-size:.82rem;color:var(--muted);margin:0 0 10px" data-i18n="addon_hint">Revisa toda la propiedad. Marca cada servicio extra que necesita y pon tu precio por cada uno. La oficina los suma a tu cotización.</p>
@@ -403,6 +414,7 @@
 
     <div class="vd-sect" id="vd-perfil" style="margin-top:22px"><h3 class="vd-subhead" style="margin:0" data-i18n="profile">Mi perfil</h3><span class="cnt" id="cnt-verified"></span></div>
     <div class="vgrid2" id="vd-profile"></div>
+    <div id="vd-availability" style="margin-top:14px"></div>
   </section>
 
   <!-- Bottom tab bar: anchor navigation (Mock B) -->
@@ -483,7 +495,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=28"></script>
+<script src="vendor-dashboard.js?v=29"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
