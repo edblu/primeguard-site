@@ -56,8 +56,18 @@
       var s = document.createElement("span");
       s.className = "tab-emoji";
       s.setAttribute("aria-hidden", "true");
-      s.textContent = ic + " ";
+      s.textContent = ic;
       b.insertBefore(s, b.firstChild);
+    });
+    // Nav alignment (Edwin, Oct 19): sidebar items with no emoji of their
+    // own (the two external links) get an EMPTY slot span, so their labels
+    // start at the same x as every emoji item's label. No glyph is added.
+    document.querySelectorAll(".pg-nav-item").forEach(function (b) {
+      if (b.querySelector(".tab-emoji")) return;
+      var s2 = document.createElement("span");
+      s2.className = "tab-emoji";
+      s2.setAttribute("aria-hidden", "true");
+      b.insertBefore(s2, b.firstChild);
     });
   })();
 

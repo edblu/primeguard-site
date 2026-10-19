@@ -195,11 +195,20 @@
   #pgNavClose { margin-left:auto; flex:none; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.16); background:transparent; color:var(--text); font-size:17px; line-height:1; cursor:pointer; font-family:inherit; }
   #pgNavClose:hover { border-color:var(--gold); }
   .pg-nav-sec { font-size:.66rem; text-transform:uppercase; letter-spacing:.18em; color:var(--faint); padding:10px 8px 6px; }
-  .pg-nav-item { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; padding:12px 14px; margin-bottom:4px; border:1px solid transparent; background:transparent; color:var(--text); font-size:.94rem; font-weight:600; border-radius:12px; cursor:pointer; font-family:inherit; text-decoration:none; box-sizing:border-box; }
+  .pg-nav-item { display:flex; align-items:center; justify-content:flex-start; gap:12px; width:100%; text-align:left; padding:12px 14px; margin-bottom:4px; border:1px solid transparent; background:transparent; color:var(--text); font-size:.94rem; font-weight:600; border-radius:12px; cursor:pointer; font-family:inherit; text-decoration:none; box-sizing:border-box; }
   .pg-nav-item:hover { background:rgba(212,168,67,.12); }
   .pg-nav-item.active { background:rgba(201,162,75,.16); color:var(--gold-bright); border-color:rgba(212,168,67,.4); }
   .pg-nav-item .cnt-b { font-size:.75rem; background:rgba(212,168,67,.2); color:#f5d67b; border-radius:999px; padding:2px 8px; font-weight:700; }
   .pg-nav-item .arr { color:var(--gold); font-size:.85rem; }
+  /* Nav alignment (Edwin, Oct 19): ONE uniform row for every sidebar item.
+     The emoji lives in a fixed-width slot so every emoji shares one x and
+     every label starts at the same x right after it; badge and arrow pin
+     to the right edge via margin-left:auto instead of the old
+     space-between, which flung no-badge labels to the right edge and
+     floated badged labels mid-row. States change colors only, never layout. */
+  .pg-nav-item .tab-emoji { flex:0 0 1.75rem; width:1.75rem; text-align:center; font-size:1.05rem; line-height:1; }
+  .pg-nav-item .cnt-b { margin-left:auto; }
+  .pg-nav-item .arr { margin-left:auto; }
   .pg-nav-foot { margin-top:auto; padding:14px 8px 0; border-top:1px solid rgba(255,255,255,.08); color:var(--faint); font-size:.76rem; }
   /* Drawer in the light theme: clean white surface, same gold accents */
   .pg-light #pgNavDrawer { background:#ffffff; border-right-color:#dfe1e2; box-shadow:24px 0 60px rgba(0,0,0,.18); }
@@ -564,9 +573,9 @@
   .pg-light .tk-chip { background:#ffffff; border-color:#d9c894; color:#7a6414; }
   .pg-light .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#ffffff; border-color:transparent; }
 </style>
-<script>(function(){try{if(localStorage.getItem("pg_admin_theme")==="light")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
+<script>(function(){try{if(localStorage.getItem("pg_admin_theme")!=="dark")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin-modern.css?v=7">
+<link rel="stylesheet" href="admin-modern.css?v=8">
 </head>
 <body>
 <button id="pgNavToggle" type="button" aria-label="Open menu">&#9776;</button>
@@ -1229,7 +1238,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=75"></script>
+<script src="admin.js?v=76"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];

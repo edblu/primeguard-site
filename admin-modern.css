@@ -252,3 +252,123 @@ label{ color:var(--m-muted) !important; }
   box-shadow:0 2px 8px rgba(201,162,75,.35);
 }
 .atop-site:hover{ background:var(--m-gold-deep) !important; color:#fff !important; }
+
+/* ============================================================
+   Layer 3 (v8, Oct 19): DAYLIGHT AFTER DARK — the dark counterpart.
+   Bug this fixes: Layers 1-2 repainted every surface cream with
+   UNSCOPED !important rules and defined no dark rules at all, so
+   the #ad-theme toggle flipped the pg-light class + localStorage
+   + button label correctly and nothing on screen ever changed.
+   These rules key on the SAME signal the JS flips (pg-light on
+   <html>): dark = pg-light ABSENT. The :root:not(.pg-light)
+   prefix adds (0,2,0) specificity, so each dark rule beats its
+   unscoped !important light counterpart above. When pg-light is
+   present (light mode) none of these rules match and the light
+   theme stays pixel-identical to v7. Palette = the warmed dark
+   from the admin's inline "Daylight after dark" block.
+   ============================================================ */
+
+/* ---- Palette flip: every var(--m-*) / var(--bg) consumer follows ---- */
+:root:not(.pg-light){
+  --bg:#171310; --bg-2:#100d0a; --card:#1e1811;
+  --text:#f3ecdd; --muted:#b8ab90; --faint:#8a7d63;
+  --line:rgba(201,162,75,.30); --line-soft:rgba(201,162,75,.14);
+  --m-bg:#171310; --m-card:#1e1811; --m-line:rgba(201,162,75,.24); --m-line2:rgba(201,162,75,.12);
+  --m-ink:#f7f1e3; --m-text:#efe7d3; --m-muted:#b3a684; --m-faint:#877a5e;
+  --m-gold:#c9a24b; --m-gold-deep:#e3c878; --m-teal:#57c3cd; --m-teal-deep:#7fd1d9;
+  --m-red:#e5735f;
+}
+html:not(.pg-light){ background:#100d0a !important; }
+:root:not(.pg-light) body{
+  background:
+    radial-gradient(120% 40% at 50% -4%, rgba(201,162,75,.13), transparent 60%),
+    linear-gradient(180deg,#1d1712,#14100c 55%,#100d0a) !important;
+  color:var(--m-text) !important;
+}
+:root:not(.pg-light) h1, :root:not(.pg-light) h2, :root:not(.pg-light) h3, :root:not(.pg-light) h4{ color:var(--m-ink) !important; }
+:root:not(.pg-light) a{ color:#7fd1d9; }
+
+/* ---- Top bar, drawer, bell ---- */
+:root:not(.pg-light) .atop{ background:rgba(23,18,12,.92) !important; border-bottom:1px solid var(--m-line) !important; }
+:root:not(.pg-light) #pgNavDrawer{ background:linear-gradient(180deg,#1e1811,#120e09) !important; color:var(--m-text) !important; box-shadow:18px 0 44px rgba(0,0,0,.5) !important; }
+:root:not(.pg-light) .pg-nav-item:hover{ background:rgba(201,162,75,.12) !important; }
+:root:not(.pg-light) .pg-nav-item.active, :root:not(.pg-light) .pg-nav-item.pg-nav-on{ background:rgba(201,162,75,.20) !important; color:#e3c878 !important; border-color:rgba(201,162,75,.45) !important; }
+:root:not(.pg-light) .pg-nav-item .cnt-b{ background:rgba(201,162,75,.28) !important; color:#e3c878 !important; }
+:root:not(.pg-light) #pgNavToggle{ background:#1e1811 !important; color:var(--m-ink) !important; border:1px solid var(--m-line) !important; box-shadow:0 6px 16px rgba(0,0,0,.45) !important; }
+:root:not(.pg-light) #pgNavBackdrop{ background:rgba(5,3,1,.55) !important; }
+:root:not(.pg-light) #pgBellPanel{ background:linear-gradient(180deg,#1e1811,#120e09) !important; border:1px solid var(--m-line) !important; color:var(--m-text) !important; box-shadow:0 16px 34px rgba(0,0,0,.5) !important; }
+
+/* ---- Cards and surfaces (every view) ---- */
+:root:not(.pg-light) .acard, :root:not(.pg-light) .astat, :root:not(.pg-light) .auth-card,
+:root:not(.pg-light) .hlq-card, :root:not(.pg-light) .woq-card, :root:not(.pg-light) .sr-card,
+:root:not(.pg-light) .cust-tile, :root:not(.pg-light) .cust-contact-card, :root:not(.pg-light) .cal-frame,
+:root:not(.pg-light) .cal2-modal-card, :root:not(.pg-light) .modal, :root:not(.pg-light) .sr-modal,
+:root:not(.pg-light) .cal2-modal, :root:not(.pg-light) .tk-group-h{
+  background:linear-gradient(180deg,#1e1811,#171310) !important; border-color:var(--m-line) !important;
+  color:var(--m-text) !important;
+}
+:root:not(.pg-light) .acard, :root:not(.pg-light) .auth-card, :root:not(.pg-light) .hlq-card,
+:root:not(.pg-light) .woq-card, :root:not(.pg-light) .sr-card, :root:not(.pg-light) .cal-frame,
+:root:not(.pg-light) .cal2-modal-card{
+  border:1px solid var(--m-line) !important; box-shadow:0 10px 30px rgba(0,0,0,.45) !important;
+}
+:root:not(.pg-light) .astat{ border:1px solid var(--m-line) !important; border-top:3px solid #d9ab2b !important; box-shadow:0 6px 18px rgba(0,0,0,.4) !important; }
+:root:not(.pg-light) .arow{ background:#1e1811 !important; border:1px solid var(--m-line) !important; color:var(--m-text) !important; box-shadow:0 3px 10px rgba(0,0,0,.35) !important; }
+:root:not(.pg-light) .home-card{ background:#1e1811 !important; border-color:var(--m-line) !important; color:var(--m-text) !important; box-shadow:0 10px 30px rgba(0,0,0,.45) !important; }
+:root:not(.pg-light) .home-bar{ background:#2a2115; }
+:root:not(.pg-light) .home-qa-ghost{ background:#241c13; border-color:var(--m-line); color:var(--m-text); }
+:root:not(.pg-light) .note-form, :root:not(.pg-light) .note-follow{ background:#1e1811 !important; border-color:var(--m-line) !important; color:var(--m-text) !important; }
+:root:not(.pg-light) #custFilterPanel{ background:#1a1510 !important; color:var(--m-text) !important; border-left:1px solid var(--m-line) !important; box-shadow:-24px 0 60px rgba(0,0,0,.6) !important; }
+:root:not(.pg-light) .cfp-body{ background:#1a1510 !important; }
+:root:not(.pg-light) .cfp-x{ background:#241c13 !important; border-color:var(--m-line) !important; }
+:root:not(.pg-light) .cfp-sec h4{ color:var(--m-gold-deep); }
+:root:not(.pg-light) .cfp-foot{ background:#14100c !important; }
+
+/* ---- Calendar ---- */
+:root:not(.pg-light) .cal2-grid, :root:not(.pg-light) .cal2-cell{ background:#1e1811 !important; border-color:var(--m-line2) !important; color:var(--m-text) !important; }
+:root:not(.pg-light) .cal2-cell.today{ background:rgba(201,162,75,.14) !important; }
+:root:not(.pg-light) .cal-frame iframe{ background:#141417 !important; }
+
+/* ---- Tabs, chips, steppers, outcome buttons ---- */
+:root:not(.pg-light) .atab{ background:rgba(255,244,214,.05) !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; }
+:root:not(.pg-light) .atab.active{ background:rgba(201,162,75,.20) !important; color:#e3c878 !important; border-color:rgba(201,162,75,.5) !important; }
+:root:not(.pg-light) .atab .cnt-b{ background:rgba(201,162,75,.28) !important; color:#f3e3b3 !important; }
+:root:not(.pg-light) .hl-chip, :root:not(.pg-light) .tk-chip, :root:not(.pg-light) .tkf-chip, :root:not(.pg-light) .hl-stage-chip{ background:#241c13 !important; border:1px solid var(--m-line) !important; color:var(--m-text) !important; }
+:root:not(.pg-light) .outcome-btn{ background:#241c13 !important; border:1px solid var(--m-line) !important; color:var(--m-text) !important; }
+:root:not(.pg-light) .outcome-btn.active{ background:rgba(201,162,75,.20) !important; color:#e3c878 !important; border-color:rgba(201,162,75,.55) !important; }
+
+/* ---- Pills: same meanings, dark-readable text ---- */
+:root:not(.pg-light) .p-open{ background:rgba(87,195,205,.14) !important; color:#7fd1d9 !important; }
+:root:not(.pg-light) .p-acc{ background:rgba(201,162,75,.18) !important; color:#e3c878 !important; }
+:root:not(.pg-light) .p-rev{ background:rgba(229,115,95,.14) !important; color:#f0a08e !important; }
+:root:not(.pg-light) .p-done{ background:rgba(74,190,120,.14) !important; color:#8fd6a4 !important; }
+:root:not(.pg-light) .p-pend{ background:rgba(255,244,214,.08) !important; color:#b3a684 !important; }
+:root:not(.pg-light) .p-hot{ background:rgba(229,115,95,.16) !important; color:#f0a08e !important; }
+:root:not(.pg-light) .p-warm{ background:rgba(217,171,43,.20) !important; color:#e3c878 !important; }
+:root:not(.pg-light) .p-cold, :root:not(.pg-light) .p-gov{ background:rgba(87,195,205,.12) !important; color:#7fd1d9 !important; }
+:root:not(.pg-light) .hlq-temp-hot{ color:#f0a08e !important; }
+:root:not(.pg-light) .hlq-temp-warm{ color:#e3c878 !important; }
+:root:not(.pg-light) .hlq-temp-cold{ color:#7fd1d9 !important; }
+:root:not(.pg-light) .amber{ color:#e3c878 !important; }
+
+/* ---- Buttons + forms ---- */
+:root:not(.pg-light) .btn-ghost{ background:#241c13 !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; }
+:root:not(.pg-light) .mini{ background:#241c13 !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; }
+:root:not(.pg-light) .mini.danger{ color:#f0957f !important; }
+:root:not(.pg-light) .hlq-action, :root:not(.pg-light) .woq-action,
+:root:not(.pg-light) .hlq-manage-btn, :root:not(.pg-light) .woq-open-btn{ background:#241c13 !important; color:var(--m-text) !important; border:1px solid var(--m-line) !important; }
+:root:not(.pg-light) .hlq-action-ghost{ background:transparent !important; }
+:root:not(.pg-light) input, :root:not(.pg-light) select, :root:not(.pg-light) textarea,
+:root:not(.pg-light) .cust-sort-sel, :root:not(.pg-light) .hl-stage-sel{
+  background:#241c13 !important; color:var(--m-text) !important;
+  border:1px solid var(--m-line) !important; color-scheme:dark;
+}
+
+/* ---- Modals, overlays, misc hardcoded bits ---- */
+:root:not(.pg-light) .modal-overlay{ background:rgba(8,5,2,.62) !important; }
+:root:not(.pg-light) .modal{ box-shadow:0 24px 50px rgba(0,0,0,.6) !important; }
+:root:not(.pg-light) .modal-close{ background:#241c13 !important; color:var(--m-ink) !important; border:1px solid var(--m-line) !important; box-shadow:0 2px 8px rgba(0,0,0,.4) !important; }
+:root:not(.pg-light) .woq-thumb-btn, :root:not(.pg-light) .woprev-thumbs, :root:not(.pg-light) .athumbs{ background:rgba(255,244,214,.05) !important; border-color:var(--m-line2) !important; }
+:root:not(.pg-light) .tk-link{ color:#7fd1d9 !important; }
+:root:not(.pg-light) .tk-when.tk-future{ color:#7fd1d9; }
+:root:not(.pg-light) .tk-when.tk-today{ color:#e3c878; }
