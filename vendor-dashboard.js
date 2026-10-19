@@ -96,6 +96,7 @@
       nav_calendar: "Calendar",
       nav_quote: "Submit my price",
       nav_done: "Done",
+      nav_records: "My records",
       nav_account: "Account",
       nav_pay: "Payment: how we pay you",
       nav_w9: "W-9 documents",
@@ -340,6 +341,17 @@
       step_work: "Work finished",
       step_after: "After photos uploaded: payment is released",
       done_none2: "You haven't finished any jobs yet.",
+      sec_records: "My records",
+      rec_sub: "Every evaluation you accepted, every price you sent, and every job you finished. Your records stay here.",
+      rec_empty: "No records yet. When you accept an evaluation, send a price, or finish a job, it shows up here.",
+      rec_count: " RECORDS",
+      rec_your_price: "Your price",
+      rec_awaiting_office: "Price sent · waiting on the office",
+      rec_awaiting_price: "Waiting on your price",
+      rec_completed: "Completed",
+      rec_review: "Finished · in review with the office",
+      rec_quote_only: "Quote sent · the office closed the request",
+      rec_home_sub: "Prices you sent and jobs you finished",
       paid_per: "Paid per job",
       confirm_complete: "Mark this job complete? Make sure your after photos are uploaded.",
       alert_checklist_pre: "Complete the checklist before marking the job complete. Missing ",
@@ -411,6 +423,7 @@
       nav_calendar: "Calendario",
       nav_quote: "Enviar mi precio",
       nav_done: "Terminados",
+      nav_records: "Mis registros",
       nav_account: "Cuenta",
       nav_pay: "Pago: cómo te pagamos",
       nav_w9: "Documentos W-9",
@@ -654,6 +667,17 @@
       step_work: "Trabajo terminado",
       step_after: "Fotos de después subidas: se libera el pago",
       done_none2: "Todavía no terminas trabajos.",
+      sec_records: "Mis registros",
+      rec_sub: "Cada evaluación que aceptaste, cada precio que enviaste y cada trabajo que terminaste. Tus registros se quedan aquí.",
+      rec_empty: "Todavía no tienes registros. Cuando aceptes una evaluación, envíes un precio o termines un trabajo, aparece aquí.",
+      rec_count: " REGISTROS",
+      rec_your_price: "Tu precio",
+      rec_awaiting_office: "Precio enviado · esperando a la oficina",
+      rec_awaiting_price: "Esperando tu precio",
+      rec_completed: "Terminado",
+      rec_review: "Terminado · en revisión con la oficina",
+      rec_quote_only: "Cotización enviada · la oficina cerró la solicitud",
+      rec_home_sub: "Precios que enviaste y trabajos terminados",
       paid_per: "Pagado por trabajo",
       confirm_complete: "¿Marcar este trabajo como terminado? Asegúrate de que las fotos del después ya estén subidas.",
       alert_checklist_pre: "Completa la lista de verificación antes de marcar terminado. Faltan ",
@@ -725,11 +749,12 @@
   var myEvals = [];     // quote requests I accepted for evaluation (for quote form dropdown)
   var openQRs = [];     // open quote requests visible to me (for quote form dropdown)
   var myQuoted = {};    // workOrderId -> true, quote requests I already submitted a quote for
+  var myQuotes = {};    // workOrderId -> { price, createdAt, status, addons }, my submitted quotes (Records view)
   var sessionPhotosByWo = {}; // workOrderId -> [urls] uploaded from this device during this portal session (grouped into visitLog on Mark complete)
   var homeDayKey = "";        // selected day (vcalKey) on the Inicio week strip; "" = today
   var myReviewJobs = [];      // my jobs in status "review" (vendor-complete, pay pending release)
   var currentView = "home";   // active portal view: home | jobs | my | cal | money | more
-  var VD_VIEWS = ["home", "jobs", "my", "cal", "money", "more"];
+  var VD_VIEWS = ["home", "jobs", "my", "cal", "money", "more", "records"];
 
   /* ---------- Live data: Firestore snapshot listeners ----------
      Each main list registers ONE onSnapshot listener (first loadAll
@@ -1672,10 +1697,10 @@
     // The explanation panel lives in the quote-request list (jobs view):
     // land there so an inactive vendor actually sees it.
     showView("jobs");
-    ["list-qr", "list-jobs", "list-active", "list-done", "vd-hero"].forEach(function (id) {
+    ["list-qr", "list-jobs", "list-active", "list-done", "list-records", "vd-hero"].forEach(function (id) {
       var el = $(id); if (el) el.innerHTML = "";
     });
-    ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done", "vd-hero-cnt"].forEach(function (id) {
+    ["cnt-qr", "cnt-jobs", "cnt-active", "cnt-done", "cnt-records", "vd-hero-cnt"].forEach(function (id) {
       var el = $(id); if (el) el.textContent = "";
     });
     // No job board for inactive accounts: no menu entry point, no badges.
@@ -1716,12 +1741,17 @@
     if (burgerEl) burgerEl.classList.remove("hidden");
     liveOn("vd-quotes", db.collection("quotes").where("vendorId", "==", me.uid), function (qs) {
       myQuoted = {};
+      myQuotes = {};
       qs.forEach(function (d) {
         var q = d.data();
-        if (q.workOrderId) myQuoted[q.workOrderId] = true;
+        if (q.workOrderId) {
+          myQuoted[q.workOrderId] = true;
+          myQuotes[q.workOrderId] = { price: q.price, createdAt: q.createdAt, status: q.status, addons: q.addons || [] };
+        }
       });
       buildQuoteSelect();
-    }, function () { myQuoted = {}; });
+      renderRecords();
+    }, function () { myQuoted = {}; myQuotes = {}; });
     // Scoped board queries (privacy hardening, 2026-10-16): the database
     // rules only let a vendor read broadcast jobs or jobs sent to them,
     // so the board asks for exactly those two sets instead of every open
@@ -1824,6 +1854,7 @@
       setDrawerBadge("vd-nav-badge-active", active.length);
       $("cnt-done").textContent = done.length + t("cnt_jobs");
       buildQuoteSelect();
+      renderRecords();
     });
   }
 
@@ -2057,6 +2088,15 @@
       // Completed jobs (in review) carry their pay + the release date
       // under the 3-day rule, right where the vendor looks for it.
       var payLine = "";
+      if (w.kind === "quote_request" && w.quoteSubmitted) {
+        // A quoted evaluation is a record, not a dead end: show the
+        // price he sent and that it is with the office now (the quote
+        // form drops quoted requests to prevent double quotes; the
+        // full history lives in Mis registros).
+        var myQ = myQuotes[w.id];
+        payLine = '<div class="vd-payline"><small>' + esc(t("rec_your_price")) + '</small><strong>$' + esc(myQ && myQ.price != null ? String(myQ.price).replace(/^\$/, "") : "?") + '</strong>' +
+          '<span class="vd-paydate" style="display:inline;margin:0 0 0 8px">' + esc(t("rec_awaiting_office")) + "</span></div>";
+      }
       if (w.status === "review") {
         var rp = fmtPay(w);
         var rel = payReleaseText(w);
@@ -2093,6 +2133,85 @@
       return '<div class="vhrow" data-job-row="' + w.id + '"><div class="info"><strong>' + esc(w.title) + '</strong><span>' + esc(w.area || "") + " · " + esc(w.completedAt || "") + "</span></div>" +
         '<div class="vpaid">$' + esc(w.payAgreed || w.pay || "?") + "<small>" + esc(t("paid_per")) + "</small>" +
         (rel ? '<span class="vd-paydate">' + esc(rel) + "</span>" : "") + "</div></div>";
+    }).join("");
+  }
+
+  // ---------- Records (Mis registros) ----------
+  // The vendor's permanent history, built ONLY from data he already
+  // queries under the privacy rules: his own work orders (vd-mine:
+  // vendorId == me) and his own quotes (vd-quotes: vendorId == me).
+  // An accepted evaluation lands here the moment he takes it; after he
+  // submits his price it stays as a record with the price shown and a
+  // "price sent, waiting on the office" state (the quote form drops
+  // quoted requests on purpose, to prevent double quotes, and the
+  // board only lists status "open" — this view is where the record
+  // lives instead). When the office closes or converts the work
+  // order, the same row files as completed/in review with the rest of
+  // his history; if the office deletes the work order outright, his
+  // quote doc still leaves a record row behind.
+  function recDateOf(w, q) {
+    var d = (q && parseDate(q.createdAt)) || (w && (parseDate(w.completedAt) || parseDate(w.acceptedAt) || parseDate(w.createdAt)));
+    return d ? d.getTime() : 0;
+  }
+  function buildRecords() {
+    var byId = {}, order = [];
+    function put(id, w, q) {
+      if (!byId[id]) { byId[id] = { id: id, w: null, q: null }; order.push(id); }
+      if (w) byId[id].w = w;
+      if (q) byId[id].q = q;
+    }
+    Object.keys(myQuotes).forEach(function (id) { put(id, myJobsById[id] || null, myQuotes[id]); });
+    Object.keys(myJobsById).forEach(function (id) {
+      var w = myJobsById[id];
+      if (w.kind === "quote_request" || w.status === "done" || w.status === "review") put(id, w, null);
+    });
+    var recs = order.map(function (id) { return byId[id]; });
+    recs.sort(function (a, b) { return recDateOf(b.w, b.q) - recDateOf(a.w, a.q); });
+    return recs;
+  }
+  function renderRecords() {
+    var box = $("list-records");
+    var recs = buildRecords();
+    var cEl = $("cnt-records");
+    if (cEl) cEl.textContent = recs.length ? recs.length + t("rec_count") : "";
+    var nEl = $("vhome-rec-n");
+    if (nEl) nEl.textContent = recs.length;
+    var sEl = $("vhome-rec-sub");
+    if (sEl && recs.length && recs[0].w && recs[0].w.title) sEl.textContent = recs[0].w.title;
+    if (!box) return;
+    if (vendorInactive()) { box.innerHTML = ""; return; }
+    if (!recs.length) { box.innerHTML = '<div class="vempty">' + esc(t("rec_empty")) + '</div>'; return; }
+    box.innerHTML = recs.map(function (r) {
+      var w = r.w, q = r.q;
+      var dMs = recDateOf(w, q);
+      var when = dMs ? fmtDateEs(new Date(dMs)) : "";
+      var state, priceHtml = "", btns = "";
+      if (w && w.status === "done") {
+        state = t("rec_completed");
+        var dp = fmtPay(w);
+        if (dp) priceHtml = '<div class="vd-payline"><small>' + esc(t("pay_word")) + '</small><strong>' + esc(dp) + "</strong></div>";
+      } else if (q) {
+        state = w ? t("rec_awaiting_office") : t("rec_quote_only");
+        priceHtml = '<div class="vd-payline"><small>' + esc(t("rec_your_price")) + '</small><strong>$' + esc(String(q.price != null ? q.price : "?").replace(/^\$/, "")) + "</strong></div>";
+      } else if (w && w.status === "review") {
+        state = t("rec_review");
+        var rp2 = fmtPay(w);
+        if (rp2) priceHtml = '<div class="vd-payline"><small>' + esc(t("pay_word")) + '</small><strong>' + esc(rp2) + "</strong></div>";
+      } else {
+        state = t("rec_awaiting_price");
+      }
+      if (w && w.status !== "done") {
+        // Photo/paper upload stays available on the record itself:
+        // the file input for this job already exists exactly once in
+        // the hero or My Jobs card, and the shared data-upload
+        // delegation finds it by id.
+        btns += '<button class="btn btn-gold" data-upload="' + w.id + '">' + esc(t("btn_upload")) + '</button>';
+        if (w.kind === "quote_request" && !q) btns += '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>';
+      }
+      return '<div class="vjob" data-job-row="' + r.id + '"><div class="t">' + esc(state) + '</div>' +
+        "<h3>" + esc(w ? (w.title || w.category || t("job_word")) : t("rec_quote_only")) + "</h3>" +
+        '<div class="meta"><strong>' + esc(w ? (w.area || "") : "") + "</strong>" + (when ? " · " + esc(when) : "") + "</div>" +
+        priceHtml + btns + "</div>";
     }).join("");
   }
 

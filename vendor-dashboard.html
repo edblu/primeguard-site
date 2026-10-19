@@ -175,6 +175,7 @@
       <a class="vd-drawer-link" href="#sec-calendario" data-i18n="nav_calendar">Calendario</a>
       <a class="vd-drawer-link" href="#sec-cotizar" data-i18n="nav_quote">Enviar mi precio</a>
       <a class="vd-drawer-link" href="#sec-done" data-i18n="nav_done">Terminados</a>
+      <a class="vd-drawer-link" href="#sec-registros" data-i18n="nav_records">Mis registros</a>
       <div class="vd-drawer-group" data-i18n="nav_account">Cuenta</div>
       <a class="vd-drawer-link" href="#vd-setup"><span data-i18n="nav_pay">Pago: cómo te pagamos</span><span class="vd-drawer-dot hidden" id="vd-nav-dot-pay"></span></a>
       <a class="vd-drawer-link" href="#vd-w9-sec"><span data-i18n="nav_w9">Documentos W-9</span><span class="vd-drawer-dot hidden" id="vd-nav-dot-w9"></span></a>
@@ -211,6 +212,11 @@
     <button type="button" class="vhome-opp" data-goto="#sec-disponibles">
       <span class="vhome-opp-tx"><strong data-i18n="ms_open">Oportunidades abiertas</strong><span data-i18n="home_opps_sub">Solicitudes esperando tu precio</span></span>
       <span class="vhome-opp-n" id="vhome-opp-n">0</span>
+      <span class="vhome-opp-arrow">&rsaquo;</span>
+    </button>
+    <button type="button" class="vhome-opp" data-goto="#sec-registros">
+      <span class="vhome-opp-tx"><strong data-i18n="nav_records">Mis registros</strong><span id="vhome-rec-sub" data-i18n="rec_home_sub">Precios que enviaste y trabajos terminados</span></span>
+      <span class="vhome-opp-n" id="vhome-rec-n">0</span>
       <span class="vhome-opp-arrow">&rsaquo;</span>
     </button>
   </section>
@@ -332,6 +338,15 @@
   <section class="vsec" id="sec-done" data-view="my">
     <div class="vd-sect"><h2 data-i18n="sec_done">Trabajos terminados</h2><span class="cnt" id="cnt-done"></span></div>
     <div class="vhist" id="list-done"></div>
+  </section>
+
+  <!-- Mis registros: the vendor's permanent records (accepted evaluations,
+       prices he sent, finished jobs). Fed by renderRecords() in
+       vendor-dashboard.js from his own work orders + his own quotes. -->
+  <section class="vsec" id="sec-registros" data-view="records">
+    <div class="vd-sect"><h2 data-i18n="sec_records">Mis registros</h2><span class="cnt" id="cnt-records"></span></div>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;max-width:640px" data-i18n="rec_sub">Cada evaluación que aceptaste, cada precio que enviaste y cada trabajo que terminaste. Tus registros se quedan aquí.</p>
+    <div class="vjobs" id="list-records"></div>
   </section>
 
   <!-- Más: documents, alerts, app, profile -->
@@ -467,7 +482,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=26"></script>
+<script src="vendor-dashboard.js?v=27"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
