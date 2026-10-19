@@ -3571,6 +3571,24 @@
   // ---------- Vendor review ----------
   var vdId = null, vdData = null, vdOutcome = "";
   function vStatus(v) { return v.status || (v.verified ? "approved" : "pending"); }
+  // Vendor availability (v78): vendors/{id}.availability = { days:
+  // [1..7] with 1 = Monday .. 7 = Sunday, active: bool }, set from the
+  // vendor portal profile (v29). Missing field renders nothing.
+  function vendorAvailText(v) {
+    var av = v && v.availability;
+    if (!av || typeof av !== "object") return "";
+    if (av.active === false) return "Not accepting jobs";
+    var names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var days = (Array.isArray(av.days) ? av.days : []).filter(function (d) { return d >= 1 && d <= 7; })
+      .map(function (d) { return names[d - 1]; });
+    return days.length ? "Available: " + days.join(", ") : "";
+  }
+  function vendorAvailHtml(v) {
+    var txt = vendorAvailText(v);
+    if (!txt) return "";
+    if (v.availability && v.availability.active === false) return '<span style="color:#e8a33d;font-weight:700">' + esc(txt) + "</span>";
+    return esc(txt);
+  }
   function openVendor(id) {
     db.collection("vendors").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
@@ -3602,6 +3620,7 @@
       '<div class="sr-card"><h4>Coverage</h4>' +
       '<p><strong>Services:</strong> ' + esc((v.services || []).join(", ") || "-") + '</p>' +
       '<p><strong>Areas:</strong> ' + esc((v.areas || []).join(", ") || "-") + '</p>' +
+      (vendorAvailText(v) ? '<p><strong>Availability:</strong> ' + vendorAvailHtml(v) + '</p>' : '') +
       '<p><strong>Crew size:</strong> ' + esc(v.crewSize || "-") + '</p>' +
       (v.equipment ? '<p><strong>Equipment:</strong> ' + esc(v.equipment) + '</p>' : '') + '</div></div>' +
       '<div class="sr-actions" style="margin-bottom:14px">' +
@@ -4007,6 +4026,21 @@
         return esc(a.label || "Add-on") + " <strong>$" + Math.round(p) + "</strong>";
       }).join(" · ");
       html += row("Add-on scan (vendor)", vaHtml + '<br><span style="color:#7a7668">Vendor total for extras: $' + Math.round(vaTotal) + ". These prefill the customer quote builder as optional add-ons.</span>");
+    }
+    // Vendor info requests (v78): from the vendor's "I need more info"
+    // button on the job card (work_orders.infoRequests). Open ones sit
+    // in a gold alert until staff mark them answered (handler below,
+    // data-inforeq = woId|index, read-modify-write).
+    if (woId && Array.isArray(w.infoRequests) && w.infoRequests.length) {
+      var openReqs = w.infoRequests.map(function (r, i) { return { r: r, i: i }; }).filter(function (x) { return x.r && x.r.status === "open"; });
+      if (openReqs.length) {
+        var reqHtml = openReqs.map(function (x) {
+          var rWhen = x.r.at ? new Date(x.r.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+          return '<div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between;margin-top:6px"><div><strong>' + esc(x.r.vendorName || "Vendor") + ":</strong> " + esc(x.r.text || "") + (rWhen ? ' <span style="color:#7a7668">· ' + esc(rWhen) + "</span>" : "") + "</div>" +
+            '<button type="button" class="mini" data-inforeq="' + esc(woId) + "|" + x.i + '" style="flex:none">Mark answered</button></div>';
+        }).join("");
+        html += '<div style="margin:10px 0;padding:10px 12px;border:1px solid var(--gold,#c9a227);border-radius:10px;background:rgba(201,162,39,.10)"><div style="font-weight:800;font-size:.88rem">⚠ Vendor needs more info (' + openReqs.length + ")</div>" + reqHtml + "</div>";
+      }
     }
     if (when) html += row("Scheduled", fmtWhen(when));
     if (w.enRouteAt) html += row("On the way", fmtWhen(w.enRouteAt));
@@ -4494,6 +4528,26 @@
     var pd = q && q.notes ? String(q.notes).trim() : "";
     if (pd) {
       out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Price details (vendor)</div><div>' + esc(pd).replace(/\n/g, "<br>") + "</div></div>";
+    }
+    // v78: materials split, earliest start, and the vendor's note for
+    // the customer (vendor form v29). All defensive: quotes saved
+    // before v29 simply render nothing extra here.
+    if (q && (q.materialsBy || (q.materialsCost != null && Number(q.materialsCost) > 0))) {
+      var mcNum = Number(q.materialsCost) || 0;
+      var byLbl = { vendor: "vendor supplies", customer: "customer supplies", office: "office supplies", none: "no materials" }[q.materialsBy] || "";
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Materials</div><div>' +
+        (q.materialsBy === "none" ? "No materials needed" : "$" + mcNum + (byLbl ? " (" + byLbl + ")" : "")) +
+        (mcNum > 0 && q.laborCost != null ? " · Labor $" + q.laborCost : "") + "</div></div>";
+    }
+    if (q && q.earliestStart) {
+      var esTxt = typeof fmtFollowDate === "function" ? fmtFollowDate(q.earliestStart) : q.earliestStart;
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Earliest start</div><div>' + esc(esTxt || q.earliestStart) + "</div></div>";
+    }
+    var cn = q && q.customerNote ? String(q.customerNote).trim() : "";
+    if (cn) {
+      out += '<div style="margin-top:10px;padding:10px 12px;border:1px solid var(--gold,#c9a227);border-radius:10px;background:rgba(201,162,39,.08)">' +
+        '<div style="font-weight:800;font-size:.85rem;margin-bottom:4px">Note for the customer</div>' +
+        "<div>" + esc(cn).replace(/\n/g, "<br>") + "</div></div>";
     }
     var qPhotos = q && Array.isArray(q.photos) ? q.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
     if (qPhotos.length) {
@@ -5036,7 +5090,7 @@
         if (st === "archived" || st === "rejected") return; // removed vendors live in the Archived & rejected section below
         shown++;
         var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + "</small></div>" +
+        row.innerHTML = '<div class="grow"><strong>' + esc(v.business) + "</strong><small>" + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + (vendorAvailText(v) ? " · " + vendorAvailHtml(v) : "") + "</small></div>" +
           pill(st) +
           ' <button class="mini" data-vopen="' + d.id + '">' + (isAdmin ? "Review" : "Open") + "</button>" +
           (isAdmin ? ' <button class="mini" data-varchive="' + d.id + '">Archive</button>' : "");
@@ -5366,6 +5420,19 @@
         db.collection("work_orders").doc(woPriceEl.getAttribute("data-wopricesave")).update({ jobPrice: val }).then(function () { loadAll(); });
         logActivity("Set a job price for costing");
       }
+    }
+    var infoReqEl = t.closest ? t.closest("[data-inforeq]") : null;
+    if (infoReqEl) {
+      var irParts = String(infoReqEl.getAttribute("data-inforeq")).split("|");
+      var irRef = db.collection("work_orders").doc(irParts[0]);
+      irRef.get().then(function (snap) {
+        if (!snap.exists) return null;
+        var reqs = (Array.isArray(snap.data().infoRequests) ? snap.data().infoRequests : []).slice();
+        var irIdx = Number(irParts[1]);
+        if (reqs[irIdx]) reqs[irIdx] = Object.assign({}, reqs[irIdx], { status: "answered", answeredAt: new Date().toISOString() });
+        return irRef.update({ infoRequests: reqs });
+      }).then(function () { loadAll(); }, function () { loadAll(); });
+      logActivity("Marked a vendor info request answered");
     }
     if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
     if (d.woedit) enterEditMode(d.woedit);
