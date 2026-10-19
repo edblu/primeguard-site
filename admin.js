@@ -45,7 +45,8 @@
       home: "\u{1F3E0}", hotleads: "\u{1F525}", work: "\u{1F4BC}",
       quotes: "\u{1F4DD}", vendors: "\u{1F477}", followups: "\u2705",
       customers: "\u{1F465}", contracts: "\u{1F4C4}", calendar: "\u{1F4C5}",
-      team: "\u{1F91D}", activity: "\u{1F440}", referrals: "\u{1F381}"
+      team: "\u{1F91D}", activity: "\u{1F440}", referrals: "\u{1F381}",
+      traffic: "\u{1F4C8}"
     };
     document.querySelectorAll("[data-atab]").forEach(function (b) {
       if (b.dataset.emojiDone) return;
@@ -216,6 +217,12 @@
       $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
       if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
       if (!isAdmin) { var nab = $("pg-nav-activity"); if (nab) nab.style.display = "none"; }
+      // ownerOnlyTraffic: the Traffic tab is revealed and its data loads
+      // ONLY for the owner email. Staff accounts (even role "admin")
+      // never see the button and the visits listener never starts.
+      var tnb = $("pg-nav-traffic");
+      if (isAdmin) { if (tnb) tnb.style.display = ""; startTraffic(); }
+      else if (tnb) { tnb.style.display = "none"; }
       loadAll();
       startTracking();
     });
@@ -5441,6 +5448,214 @@
     if (!$("custModal").classList.contains("hidden")) closeCustomer();
     if (bellIsOpen()) setBellOpen(false);
     if (!modalOpen && navOpen) setNavOpen(false);
+  });
+
+  /* ============================================================
+     WEBSITE TRAFFIC — ownerOnlyTraffic (Edwin's hard rule, Oct 19)
+     ONLY the owner account (edblucorp@gmail.com = ADMIN_EMAIL) can
+     ever see website traffic. Not Natasha, not any staff account,
+     not even a staff doc with role "admin". Three locks:
+       1. The nav button ships hidden (style="display:none") and is
+          revealed in the auth handler ONLY when isAdmin is true,
+          which is set from user.email === ADMIN_EMAIL alone.
+       2. startTraffic() re-checks me.email === ADMIN_EMAIL before
+          the Firestore listener is ever created; for anyone else
+          the visits query never runs, so no traffic data is even
+          fetched into their browser.
+       3. renderTraffic() re-checks the same email before painting,
+          so even a forced-visible section stays empty for staff.
+     Data: the "visits" collection written by the site.js beacon
+     (type "view" pageviews + type "click" events, city-level geo).
+     Firestore rules mirror this gate: reads are owner-email-only.
+     ============================================================ */
+  var trafficStarted = false, trafficRows = [], trafficCities = [];
+  var trafficMap = null, trafficMarkers = null, trafficMapWanted = false;
+
+  function startTraffic() {
+    if (!me || me.email !== ADMIN_EMAIL) return; // ownerOnlyTraffic
+    if (trafficStarted) return;
+    trafficStarted = true;
+    var since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    liveOn("traffic",
+      db.collection("visits").where("ts", ">=", since).orderBy("ts", "desc").limit(5000),
+      function (qs) {
+        trafficRows = [];
+        qs.forEach(function (d) { trafficRows.push(d.data()); });
+        renderTraffic();
+      },
+      function () { /* collection may not exist yet; panel stays at zero */ });
+  }
+
+  // __AGG_BEGIN__ (extracted verbatim by the aggregation simulation)
+  function aggregateTraffic(rows, nowMs) {
+    var dayMs = 24 * 3600 * 1000;
+    var todayKey = new Date(nowMs).toISOString().slice(0, 10);
+    var cutoff30 = nowMs - 30 * dayMs, cutoff7 = nowMs - 7 * dayMs;
+    var tiles = { visitorsToday: 0, viewsToday: 0, views7: 0, views30: 0 };
+    var sessionsToday = {}, byDay = {}, byPage = {}, bySource = {}, byClick = {};
+    var cities = {}, sessions = {};
+    rows.forEach(function (r) {
+      var t = Date.parse(r.ts || "");
+      if (isNaN(t) || t < cutoff30) return;
+      var sid = r.session || "";
+      if (sid) {
+        if (!sessions[sid]) sessions[sid] = { events: [], source: "", city: "", region: "", start: r.ts, last: r.ts };
+        var s = sessions[sid];
+        s.events.push(r);
+        if (!s.source && r.source) s.source = r.source;
+        if (!s.city && r.city) { s.city = r.city; s.region = r.region || ""; }
+        if (String(r.ts) < String(s.start)) s.start = r.ts;
+        if (String(r.ts) > String(s.last)) s.last = r.ts;
+        if (r.city && isFinite(+r.lat) && isFinite(+r.lng)) {
+          var ck = r.city + "|" + (r.region || "");
+          if (!cities[ck]) cities[ck] = { city: r.city, region: r.region || "", country: r.country || "", lat: +r.lat, lng: +r.lng, sessions: {} };
+          cities[ck].sessions[sid] = 1;
+        }
+      }
+      if (r.type === "click") {
+        if (r.target) byClick[r.target] = (byClick[r.target] || 0) + 1;
+        return;
+      }
+      // pageview: type "view" (rows without a type count as views too)
+      if (String(r.ts).slice(0, 10) === todayKey) {
+        tiles.viewsToday++;
+        if (sid) sessionsToday[sid] = 1;
+      }
+      if (t >= cutoff7) tiles.views7++;
+      tiles.views30++;
+      var dk = String(r.ts).slice(0, 10);
+      byDay[dk] = (byDay[dk] || 0) + 1;
+      if (r.path) byPage[r.path] = (byPage[r.path] || 0) + 1;
+      var src = r.source || "Direct";
+      bySource[src] = (bySource[src] || 0) + 1;
+    });
+    tiles.visitorsToday = Object.keys(sessionsToday).length;
+    var series = [];
+    for (var i = 13; i >= 0; i--) {
+      var d = new Date(nowMs - i * dayMs), k = d.toISOString().slice(0, 10);
+      series.push({ day: k, label: (d.getMonth() + 1) + "/" + d.getDate(), views: byDay[k] || 0 });
+    }
+    function topN(map, n) {
+      return Object.keys(map).map(function (k) { return { k: k, v: map[k] }; })
+        .sort(function (a, b) { return (b.v - a.v) || (a.k < b.k ? -1 : 1); }).slice(0, n);
+    }
+    var cityList = Object.keys(cities).map(function (k) {
+      var c = cities[k];
+      return { city: c.city, region: c.region, country: c.country, lat: c.lat, lng: c.lng, visitors: Object.keys(c.sessions).length };
+    }).sort(function (a, b) { return b.visitors - a.visitors; });
+    var journeys = Object.keys(sessions).map(function (sid) {
+      var s = sessions[sid], views = 0, clicks = 0, segs = [];
+      var evs = s.events.slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
+      evs.forEach(function (e) {
+        if (e.type === "click") {
+          clicks++;
+          if (segs.length) segs[segs.length - 1].clicks.push(e.target || "");
+          else segs.push({ path: e.path || "/", clicks: [e.target || ""] });
+        } else { views++; segs.push({ path: e.path || "/", clicks: [] }); }
+      });
+      return { session: sid, start: s.start, last: s.last, source: s.source || "Direct",
+               city: s.city || "", region: s.region || "", views: views, clicks: clicks, segs: segs };
+    }).filter(function (j) { return j.views > 0; })
+      .sort(function (a, b) { return String(a.last) < String(b.last) ? 1 : -1; }).slice(0, 20);
+    return { tiles: tiles, series: series, topPages: topN(byPage, 8),
+             topSources: topN(bySource, 8), topClicks: topN(byClick, 8),
+             cities: cityList, journeys: journeys };
+  }
+  // __AGG_END__
+
+  function trafficBarList(list, color) {
+    if (!list.length) return '<p style="color:var(--faint)">No data yet.</p>';
+    var max = Math.max.apply(null, list.map(function (x) { return x.v; }).concat([1]));
+    return list.map(function (x) {
+      return homeBar(esc(x.k), String(x.v), x.v / max * 100, color);
+    }).join("");
+  }
+
+  function renderTraffic() {
+    if (!me || me.email !== ADMIN_EMAIL) return; // ownerOnlyTraffic
+    var agg = aggregateTraffic(trafficRows, Date.now());
+    trafficCities = agg.cities;
+    if ($("tr-visitors")) $("tr-visitors").textContent = agg.tiles.visitorsToday;
+    if ($("tr-views-today")) $("tr-views-today").textContent = agg.tiles.viewsToday;
+    if ($("tr-views-7")) $("tr-views-7").textContent = agg.tiles.views7;
+    if ($("tr-views-30")) $("tr-views-30").textContent = agg.tiles.views30;
+    var maxV = Math.max.apply(null, agg.series.map(function (s) { return s.views; }).concat([1]));
+    if ($("tr-chart")) $("tr-chart").innerHTML = agg.series.map(function (s) {
+      return homeBar(s.label, String(s.views), s.views / maxV * 100, "linear-gradient(90deg,#ffd968,#d9ab2b)");
+    }).join("");
+    if ($("tr-pages")) $("tr-pages").innerHTML = trafficBarList(agg.topPages, "linear-gradient(90deg,#0e7c86,#0b5560)");
+    if ($("tr-sources")) $("tr-sources").innerHTML = trafficBarList(agg.topSources, "linear-gradient(90deg,#0e7c86,#0b5560)");
+    if ($("tr-clicks")) $("tr-clicks").innerHTML = trafficBarList(agg.topClicks, "linear-gradient(90deg,#ffd968,#d9ab2b)");
+    if ($("tr-cities")) {
+      $("tr-cities").innerHTML = agg.cities.length
+        ? '<table style="width:100%;border-collapse:collapse;font-size:.9rem"><tr><th style="text-align:left;padding:6px 8px">City</th><th style="text-align:left;padding:6px 8px">Region</th><th style="text-align:right;padding:6px 8px">Visitors</th></tr>' +
+          agg.cities.map(function (c) {
+            return '<tr><td style="padding:6px 8px;border-top:1px solid var(--line,#e6dfca)">' + esc(c.city) + '</td><td style="padding:6px 8px;border-top:1px solid var(--line,#e6dfca)">' + esc(c.region) + '</td><td style="padding:6px 8px;border-top:1px solid var(--line,#e6dfca);text-align:right"><strong>' + c.visitors + '</strong></td></tr>';
+          }).join("") + "</table>"
+        : '<p style="color:var(--faint)">No visitor locations yet. Locations are city-level only, from the visitor\u2019s connection, and appear once the tracker has run for a while.</p>';
+    }
+    if ($("tr-journeys")) {
+      $("tr-journeys").innerHTML = agg.journeys.length
+        ? agg.journeys.map(function (j) {
+            var seq = j.segs.map(function (sg) {
+              var c = sg.clicks.filter(Boolean);
+              return esc(sg.path) + (c.length ? ' <span style="color:#8a6d2a">(clicked: ' + esc(c.join(", ")) + ')</span>' : "");
+            }).join(' <span style="color:var(--faint)">&#8250;</span> ');
+            var when = "";
+            try { when = new Date(j.start).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch (e) {}
+            var meta = [esc(j.source), j.city ? esc(j.city + (j.region ? ", " + j.region : "")) : "", when,
+                        j.views + (j.views === 1 ? " view" : " views"), j.clicks + (j.clicks === 1 ? " click" : " clicks")]
+                       .filter(Boolean).join(" · ");
+            return '<div style="padding:10px 0;border-top:1px solid var(--line,#e6dfca)"><div style="font-weight:600;line-height:1.5">' + seq + '</div><div style="font-size:.82rem;color:var(--faint)">' + meta + '</div></div>';
+          }).join("")
+        : '<p style="color:var(--faint)">No journeys yet.</p>';
+    }
+    if (trafficMapWanted) plotTrafficMap();
+  }
+
+  // Leaflet loads lazily, only when the owner first opens this tab,
+  // so the rest of the admin never pays for the map library.
+  function ensureLeaflet(cb) {
+    if (window.L) { cb(); return; }
+    if (!document.querySelector('link[data-leaflet-css]')) {
+      var lk = document.createElement("link");
+      lk.rel = "stylesheet"; lk.setAttribute("data-leaflet-css", "1");
+      lk.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(lk);
+    }
+    var sc = document.createElement("script");
+    sc.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    sc.onload = function () { cb(); };
+    sc.onerror = function () { /* map stays a blank panel; table still works */ };
+    document.head.appendChild(sc);
+  }
+  function plotTrafficMap() {
+    var el = $("tr-map");
+    if (!el || !window.L) return;
+    if (!trafficMap) {
+      trafficMap = L.map(el).setView([27.9, -81.6], 7); // centered on Florida
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18, attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(trafficMap);
+      trafficMarkers = L.layerGroup().addTo(trafficMap);
+    }
+    trafficMarkers.clearLayers();
+    trafficCities.forEach(function (c) {
+      L.circleMarker([c.lat, c.lng], {
+        radius: 5 + Math.min(11, c.visitors * 2), color: "#8a6d2a",
+        weight: 2, fillColor: "#d9ab2b", fillOpacity: 0.75
+      }).bindPopup("<strong>" + esc(c.city) + (c.region ? ", " + esc(c.region) : "") + "</strong><br>" +
+        c.visitors + (c.visitors === 1 ? " visitor" : " visitors")).addTo(trafficMarkers);
+    });
+    setTimeout(function () { try { trafficMap.invalidateSize(); } catch (e) {} }, 80);
+  }
+  document.querySelectorAll('[data-atab="traffic"]').forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (!me || me.email !== ADMIN_EMAIL) return; // ownerOnlyTraffic
+      trafficMapWanted = true;
+      ensureLeaflet(function () { plotTrafficMap(); });
+      setTimeout(function () { if (trafficMap) { try { trafficMap.invalidateSize(); } catch (e) {} } }, 300);
+    });
   });
 })();
 

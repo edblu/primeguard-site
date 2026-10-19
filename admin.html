@@ -589,6 +589,7 @@
   <button class="pg-nav-item" type="button" data-atab="calendar">Calendar</button>
   <button class="pg-nav-item" type="button" data-atab="team">Acquisition managers</button>
   <button class="pg-nav-item" type="button" data-atab="activity" id="pg-nav-activity">Staff activity</button>
+  <button class="pg-nav-item" type="button" data-atab="traffic" id="pg-nav-traffic" style="display:none">Traffic</button>
   <div class="pg-nav-sec">Open</div>
   <a class="pg-nav-item" href="https://earth.google.com/earth/d/1YGd8Uu_nKUiL_gTt5ErZoBf_ToK4e9--?usp=sharing" target="_blank" rel="noopener">Visual map (globe) <span class="arr">&#8599;</span></a>
   <a class="pg-nav-item" href="https://primeguard-books.web.app" target="_blank" rel="noopener">PrimeGuard Books <span class="arr">&#8599;</span></a>
@@ -1180,16 +1181,58 @@
     <div class="acard"><div id="ad-act-feed"><p style="color:var(--faint)">Loading…</p></div></div>
   </section>
   </div><!-- /atab-activity -->
+
+  <div id="atab-traffic" class="hidden">
+  <section class="asec" style="padding-top:6px">
+    <h2>Website traffic</h2>
+    <div class="acard">
+      <p class="sub">Owner only: this tab, its button, and its data exist only for the owner account. Live from the website tracker: page views, clicks, and visitor journeys for the last 30 days.</p>
+      <div class="astats" style="margin:0">
+        <div class="astat"><div class="l">Visitors today</div><div class="v" id="tr-visitors">0</div></div>
+        <div class="astat"><div class="l">Page views today</div><div class="v" id="tr-views-today">0</div></div>
+        <div class="astat"><div class="l">Views, last 7 days</div><div class="v" id="tr-views-7">0</div></div>
+        <div class="astat"><div class="l">Views, last 30 days</div><div class="v" id="tr-views-30">0</div></div>
+      </div>
+    </div>
+  </section>
+  <section class="asec">
+    <h2>Page views, last 14 days</h2>
+    <div class="acard"><div id="tr-chart"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  <section class="asec">
+    <h2>Where visitors are</h2>
+    <div class="acard">
+      <div id="tr-map" style="height:320px;border-radius:12px;overflow:hidden;background:#e9e4d6"></div>
+      <div id="tr-cities" style="margin-top:14px"><p style="color:var(--faint)">Loading…</p></div>
+    </div>
+  </section>
+  <section class="asec">
+    <h2>Visitor journeys</h2>
+    <div class="acard"><div id="tr-journeys"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  <section class="asec">
+    <h2>Top pages (30 days)</h2>
+    <div class="acard"><div id="tr-pages"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  <section class="asec">
+    <h2>Top sources (30 days)</h2>
+    <div class="acard"><div id="tr-sources"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  <section class="asec" style="padding-bottom:60px">
+    <h2>Top clicks (30 days)</h2>
+    <div class="acard"><div id="tr-clicks"><p style="color:var(--faint)">Loading…</p></div></div>
+  </section>
+  </div><!-- /atab-traffic -->
 </div><!-- /ad-dash -->
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=74"></script>
+<script src="admin.js?v=75"></script>
 <script>
 (function () {
-  var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity"];
+  var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
