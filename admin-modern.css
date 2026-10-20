@@ -372,3 +372,12 @@ html:not(.pg-light){ background:#100d0a !important; }
 :root:not(.pg-light) .tk-link{ color:#7fd1d9 !important; }
 :root:not(.pg-light) .tk-when.tk-future{ color:#7fd1d9; }
 :root:not(.pg-light) .tk-when.tk-today{ color:#e3c878; }
+
+/* v87 photo manager (lead + customer property photos) */
+.pg-photo-cell{ position:relative; display:block; }
+.pg-photo-cell .woq-thumb-btn{ display:block; width:100%; padding:0; border:0; background:none; cursor:pointer; }
+.pg-photo-x{ position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; border:1px solid rgba(0,0,0,.18); background:rgba(16,28,38,.85); color:#fff; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; padding:0; }
+.pg-photo-x:hover{ background:#b3261e; }
+.pg-photo-tools{ margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.pg-photo-tools label.btn{ margin:0; cursor:pointer; }
+.pg-photo-status{ font-size:.82rem; color:var(--muted); }

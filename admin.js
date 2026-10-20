@@ -1549,6 +1549,102 @@
   }
 
   /* ----- Calls & notes for a lead (item_notes, entityType "hot_lead") ----- */
+  /* ----- Photo manager (v87, Edwin 2026-10-19): per-photo delete + add on
+     the lead file, mirrored to the converted work order so the whole
+     property record stays together in one place. ----- */
+  function pgCompressPhotoFile(file) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var max = 1600, r = Math.min(1, max / Math.max(img.width, img.height));
+          var c = document.createElement("canvas");
+          c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          var url = c.toDataURL("image/jpeg", 0.82);
+          resolve({ filename: file.name, mimeType: "image/jpeg", data: url.split(",")[1] });
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { reject(new Error("Could not read that photo.")); };
+      var fr = new FileReader();
+      fr.onload = function () { img.src = fr.result; };
+      fr.onerror = function () { reject(new Error("Could not read that photo.")); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function pgUploadOnePhoto(payload) {
+    var endpoint = (window.SITE_CONFIG && window.SITE_CONFIG.photoEndpoint) || "";
+    if (!endpoint) return Promise.reject(new Error("Photo upload is not configured."));
+    // One photo per POST: the proven reliable pattern (a 9-photo batch
+    // timed out against the Apps Script endpoint on 2026-10-19).
+    return fetch(endpoint, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ type: "photo-upload", folder: "work-order-photos", photos: [payload] }) })
+      .then(function (r) { return r.json(); })
+      .then(function (out) { return (out.urls && out.urls[0]) || null; });
+  }
+  function pgLeadPhotosHtml(photos, locked, prefix) {
+    photos = Array.isArray(photos) ? photos : [];
+    var cells = photos.map(function (u) {
+      return '<span class="pg-photo-cell">' +
+        '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="property photo" loading="lazy"></button>' +
+        (locked ? "" : '<button type="button" class="pg-photo-x" data-pgphotodel="' + esc(u) + '" aria-label="Remove this photo" title="Remove this photo">×</button>') +
+        "</span>";
+    }).join("");
+    return '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4>' +
+      (photos.length ? '<div class="sr-photos">' + cells + "</div>" : '<p class="sr-faint">No photos on this file yet.</p>') +
+      (locked ? "" :
+        '<div class="pg-photo-tools"><label class="btn btn-ghost btn-sm" for="' + prefix + '-photo-add">Add photos</label>' +
+        '<input type="file" id="' + prefix + '-photo-add" accept="image/*" multiple class="hidden">' +
+        '<span class="pg-photo-status" id="' + prefix + '-photo-status"></span></div>') +
+      "</div>";
+  }
+  function pgMirrorWoPhotos(leadData, fn) {
+    var woId = leadData && leadData.convertedWorkOrderId;
+    if (!woId) return Promise.resolve();
+    return fn(db.collection("work_orders").doc(woId)).catch(function () { /* mirror is best-effort; the lead is the source of truth */ });
+  }
+  function pgWireLeadPhotos(box, leadId, leadData, prefix, rerender) {
+    if (!box || !leadId) return;
+    var status = document.getElementById(prefix + "-photo-status");
+    function say(msg) { if (status) status.textContent = msg; }
+    box.querySelectorAll("[data-pgphotodel]").forEach(function (b) {
+      b.addEventListener("click", function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        var url = b.getAttribute("data-pgphotodel");
+        if (!window.confirm("Remove this photo from the file?")) return;
+        b.disabled = true; say("Removing...");
+        var rm = firebase.firestore.FieldValue.arrayRemove(url);
+        db.collection("hot_leads").doc(leadId).update({ photos: rm, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+          .then(function () { return pgMirrorWoPhotos(leadData, function (ref) { return ref.update({ photos: rm }); }); })
+          .then(function () { logActivity("Removed a photo from lead " + ((leadData && leadData.name) || "")); rerender(); })
+          .catch(function (e) { say("Could not remove: " + (e.message || e)); b.disabled = false; });
+      });
+    });
+    var input = document.getElementById(prefix + "-photo-add");
+    if (input) input.addEventListener("change", function () {
+      var files = Array.prototype.slice.call(input.files || []);
+      if (!files.length) return;
+      input.disabled = true;
+      var done = 0, urls = [];
+      var chain = Promise.resolve();
+      files.forEach(function (f) {
+        chain = chain.then(function () {
+          say("Uploading " + (done + 1) + " of " + files.length + "...");
+          return pgCompressPhotoFile(f).then(pgUploadOnePhoto).then(function (u) { if (u) urls.push(u); done++; });
+        });
+      });
+      chain.then(function () {
+        if (!urls.length) throw new Error("No photos uploaded.");
+        var un = firebase.firestore.FieldValue.arrayUnion.apply(null, urls);
+        return db.collection("hot_leads").doc(leadId).update({ photos: un, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+          .then(function () { return pgMirrorWoPhotos(leadData, function (ref) { return ref.update({ photos: un }); }); });
+      }).then(function () {
+        logActivity("Added " + urls.length + " photo(s) to lead " + ((leadData && leadData.name) || ""));
+        rerender();
+      }).catch(function (e) { say("Could not add: " + (e.message || e)); input.disabled = false; });
+    });
+  }
+
   function openHotLeadNotes(id) {
     db.collection("hot_leads").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
@@ -1571,10 +1667,7 @@
         hlClaimCardHtml(id, d) +
         pgJobToolsHtml(hlToolsEntity) +
         (d.notes ? '<div class="sr-card"><h4>Lead notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
-        (photos.length ? '<div class="sr-card"><h4>Photos (' + photos.length + ')</h4><div class="sr-photos">' +
-          photos.map(function (u) {
-            return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="lead photo" loading="lazy"></button>';
-          }).join("") + "</div></div>" : "") +
+        pgLeadPhotosHtml(photos, !!lockedOther, "hl") +
         (mediaLinks.length ? '<div class="sr-card"><h4>Media links (' + mediaLinks.length + ')</h4><p>' +
           mediaLinks.map(function (u) {
             return /^https?:\/\//i.test(u)
@@ -1624,6 +1717,7 @@
       var hlnSaveBtn = $("hlnSave");
       if (hlnSaveBtn) hlnSaveBtn.addEventListener("click", saveHotLeadNote);
       wireJobTools(box, hlToolsEntity, function () { closeHotLeadNotes(); });
+      if (!lockedOther) pgWireLeadPhotos(box, id, d, "hl", function () { openHotLeadNotes(id); });
       $("hlNoteModal").classList.remove("hidden");
       document.body.style.overflow = "hidden";
       loadItemNotes("hot_lead", id, $("hlnNotes"));
@@ -2550,6 +2644,7 @@
         '<div class="sr-card"><h4>Property</h4>' +
         (d.address ? '<p style="margin:0 0 8px">' + esc(d.address) + '</p><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&amp;query=' + esc(encodeURIComponent(d.address)) + '">Open in Maps</a>' : '<p class="sr-faint">No address on file yet.</p>') +
         (d.leadId ? '<p class="sr-faint" style="margin-top:8px">Came in as a hot lead; the full lead history is in the timeline.</p>' : "") + "</div>" +
+        '<div id="cust-lead-photos"></div>' +
         (d.notes ? '<div class="sr-card"><h4>Customer notes</h4><p>' + esc(d.notes).replace(/\n/g, "<br>") + "</p></div>" : "") +
 
         "</div></div>";
@@ -2613,8 +2708,23 @@
         if (custId) loadCustOpenTasks(custId, custData || {});
       });
       loadCustProfileExtras(id, d);
+      loadCustLeadPhotos(id, d);
       loadCustOpenTasks(id, d);
     });
+  }
+
+  function loadCustLeadPhotos(forCustId, custData) {
+    var box = $("cust-lead-photos");
+    if (!box) return;
+    var leadId = custData && custData.leadId;
+    if (!leadId) { box.innerHTML = ""; return; }
+    db.collection("hot_leads").doc(leadId).get().then(function (snap) {
+      if (!snap.exists || custId !== forCustId) return;
+      var ld = snap.data() || {};
+      var locked = !!pgLeadLockedByOther(ld);
+      box.innerHTML = pgLeadPhotosHtml(ld.photos, locked, "cust");
+      if (!locked) pgWireLeadPhotos(box, leadId, ld, "cust", function () { loadCustLeadPhotos(forCustId, custData); });
+    }).catch(function () { box.innerHTML = ""; });
   }
   function closeCustomer() {
     $("custModal").classList.add("hidden");
