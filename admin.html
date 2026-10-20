@@ -1157,29 +1157,33 @@
         <button type="button" class="btn btn-ghost btn-sm" id="cal2-refresh">Refresh</button>
         <button type="button" class="btn btn-gold btn-sm" id="cal2-add">+ Add appointment</button>
       </div>
-      <p class="sub" id="cal2-status" style="margin:8px 0">Tap a day to see its appointments. Tap an appointment for details. Everything saves to the real PrimeGuard Google calendar, so it also shows in the Google Calendar app.</p>
+      <p class="sub" id="cal2-status" style="margin:8px 0">Tap a day to see its hours. Tap an hour to add an appointment at that time. Everything saves to the real PrimeGuard Google calendar, so it also shows in the Google Calendar app.</p>
       <div id="cal2-banner" class="cal2-banner hidden"></div>
       <div class="cal2-viewbar">
-        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn active" id="cal2-view-agenda">Up next</button>
-        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn" id="cal2-view-month">Month</button>
+        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn active" id="cal2-view-month">Month</button>
+        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn" id="cal2-view-week">Week</button>
+        <button type="button" class="btn btn-ghost btn-sm cal2-viewbtn" id="cal2-view-agenda">Up next</button>
       </div>
       <div id="cal2-wrap">
-        <h4 class="cal2-agenda-title">Up next</h4>
-        <div id="cal2-agenda"></div>
         <div id="cal2-gridwrap">
           <div class="cal2-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
           <div id="cal2-grid" class="cal2-grid"></div>
           <div class="cal2-legend">
             <span><i style="background:#188038"></i>Lawn care</span>
             <span><i style="background:#039be5"></i>Pressure washing</span>
-            <span><i style="background:#f6bf26"></i>Home maintenance</span>
-            <span><i style="background:#f4511e"></i>Free estimate</span>
-            <span><i style="background:#8e24aa"></i>Vendor / crew</span>
-            <span><i style="background:#616161"></i>Other</span>
+            <span><i style="background:#f4511e"></i>Home maintenance</span>
+            <span><i style="background:#f6bf26"></i>Junk removal</span>
+            <span><i style="background:#8e24aa"></i>Walkthrough / evaluation</span>
+            <span><i style="background:#616161"></i>Meeting / other</span>
           </div>
         </div>
+        <div id="cal2-weekwrap"><div id="cal2-week"></div></div>
       </div>
       <div id="cal2-daylist"></div>
+      <div id="cal2-agenda-block">
+        <button type="button" class="cal2-agenda-head" id="cal2-agenda-toggle"><h4>Up next</h4><span class="sub" id="cal2-agenda-count"></span><span id="cal2-agenda-chev" style="margin-left:auto">&#9656;</span></button>
+        <div id="cal2-agenda-body" class="hidden"><div id="cal2-agenda"></div></div>
+      </div>
     </div>
   </section>
   </div>
@@ -1198,10 +1202,10 @@
           <select id="cal2-f-type">
             <option value="10" selected>&#128994; Lawn care (green)</option>
             <option value="7">&#128309; Pressure washing (blue)</option>
-            <option value="5">&#128993; Home maintenance (yellow)</option>
-            <option value="6">&#128992; Free estimate (orange)</option>
-            <option value="3">&#128995; Vendor / crew (purple)</option>
-            <option value="8">&#9899; Other (gray)</option>
+            <option value="6">&#128992; Home maintenance (orange)</option>
+            <option value="5">&#128993; Junk removal (yellow)</option>
+            <option value="3">&#128995; Walkthrough / evaluation (purple)</option>
+            <option value="8">&#9899; Meeting / other (gray)</option>
           </select>
         </label>
         <label>Date
@@ -1215,6 +1219,9 @@
         </label>
         <label>Address
           <input type="text" id="cal2-f-addr" placeholder="Street, city">
+        </label>
+        <label>Guests (emails, comma separated; Google sends the invites)
+          <input type="text" id="cal2-f-guests" inputmode="email" placeholder="name@email.com, other@email.com">
         </label>
         <label>Notes
           <textarea id="cal2-f-notes" rows="2" placeholder="Gate code, customer phone, job details"></textarea>
@@ -1236,6 +1243,7 @@
       </div>
       <p id="cal2-d-when" style="margin:10px 0 2px;font-weight:600"></p>
       <p id="cal2-d-where" class="sub" style="margin:2px 0"></p>
+      <p id="cal2-d-guests" class="sub" style="margin:2px 0"></p>
       <p id="cal2-d-notes" style="margin:8px 0;white-space:pre-wrap"></p>
       <p id="cal2-d-recur" class="sub hidden" style="margin:8px 0">This is a repeating event. To change or delete it, open the Google Calendar app so the whole series stays in sync.</p>
       <div id="cal2-d-link" style="margin:10px 0"></div>
@@ -1272,17 +1280,27 @@
     .cal2-banner.hidden{display:none}
     .cal2-banner.loading{border-color:rgba(201,162,39,.55);background:rgba(201,162,39,.10)}
     .cal2-banner.error{border-color:rgba(214,69,69,.65);background:rgba(214,69,69,.10);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .cal2-viewbar{display:none;gap:8px;align-items:center;margin:10px 0 2px}
+    .cal2-viewbar{display:flex;gap:8px;align-items:center;margin:10px 0 2px;flex-wrap:wrap}
     .cal2-viewbtn.active{border-color:#c9a227;color:#c9a227}
-    .cal2-agenda-title{margin:14px 0 2px}
     .cal2-cell.sel{outline:2px solid #c9a227;outline-offset:-2px}
-    @media (max-width:640px){
-      .cal2-viewbar{display:flex}
-      #cal2-wrap #cal2-gridwrap{display:none}
-      #cal2-wrap.show-month #cal2-gridwrap{display:block}
-      #cal2-wrap.show-month #cal2-agenda{display:none}
-      #cal2-wrap.show-month .cal2-agenda-title{display:none}
-    }
+    #cal2-weekwrap{display:none}
+    #cal2-wrap.view-week #cal2-gridwrap{display:none}
+    #cal2-wrap.view-week #cal2-weekwrap{display:block}
+    .cal2-hourrow{display:flex;gap:10px;align-items:stretch;border-top:1px solid rgba(140,140,140,.25);padding:6px 4px;cursor:pointer}
+    .cal2-hourrow:hover{background:rgba(201,162,39,.07)}
+    .cal2-hourlab{flex:0 0 62px;font-size:12.5px;font-weight:600;opacity:.85;padding-top:8px;text-align:right}
+    .cal2-hourslot{flex:1;min-width:0}
+    .cal2-hourhint{font-size:12px;opacity:.45;padding:8px 2px}
+    .cal2-agenda-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid rgba(140,140,140,.35);margin-top:18px;padding:12px 2px 4px;cursor:pointer;color:inherit;font:inherit;text-align:left}
+    .cal2-agenda-head h4{margin:0}
+    .cal2-weekgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px}
+    .cal2-wcol{border:1px solid rgba(140,140,140,.35);border-radius:12px;padding:8px;min-height:120px}
+    .cal2-wcol.today{border-color:#c9a227;background:rgba(201,162,39,.07)}
+    .cal2-wday{font-size:12px;text-transform:uppercase;letter-spacing:.05em;opacity:.75;cursor:pointer}
+    .cal2-wdate{font-size:16px;font-weight:700;margin-bottom:6px;cursor:pointer}
+    .cal2-wev{display:block;width:100%;text-align:left;border:0;border-radius:8px;color:#fff;padding:5px 7px;margin-top:6px;font-size:12px;line-height:1.35;cursor:pointer}
+    .cal2-wev small{display:block;opacity:.85}
+    @media (max-width:640px){.cal2-weekgrid{grid-template-columns:1fr}.cal2-wcol{min-height:0}}
   </style>
 
   <div id="atab-team" class="hidden">
@@ -1384,7 +1402,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=87"></script>
+<script src="admin.js?v=88"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];

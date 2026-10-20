@@ -6842,6 +6842,7 @@
   var events = []; // backend events covering the grid window + the next 45 days
   var started = false, loading = false, loadError = null;
   var editingId = null, detailEv = null, selDay = null;
+  var calView = "month", weekAnchor = new Date(), agendaOpen = false;
   var fromExternal = false; // editor was opened via window.openApptEditor (another admin section)
 
   function $(id) { return document.getElementById(id); }
@@ -6890,10 +6891,11 @@
     var w = gridWindow();
     var today = new Date(); today.setHours(0, 0, 0, 0);
     var agendaEnd = new Date(today); agendaEnd.setDate(agendaEnd.getDate() + 45);
-    return {
-      start: w.start < today ? w.start : today,
-      end: w.end > agendaEnd ? w.end : agendaEnd,
-    };
+    var wkS = weekStartOf(weekAnchor);
+    var wkE = new Date(wkS); wkE.setDate(wkS.getDate() + 7);
+    var st = w.start < today ? w.start : today; if (wkS < st) st = wkS;
+    var en = w.end > agendaEnd ? w.end : agendaEnd; if (wkE > en) en = wkE;
+    return { start: st, end: en };
   }
   function loadEvents() {
     if (loading) return;
@@ -6906,7 +6908,7 @@
       loading = false;
       renderState();
       render();
-      status("Tap a day to see its appointments. Tap an appointment for details. Everything saves to the real PrimeGuard Google calendar.");
+      status("Tap a day to see its hours. Tap an hour to add an appointment at that time. Everything saves to the real PrimeGuard Google calendar.");
     }).catch(function (e) {
       events = [];
       loading = false;
@@ -6934,6 +6936,28 @@
     var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "PM" : "AM";
     h = h % 12; if (h === 0) h = 12;
     return h + (m ? ":" + pad(m) : "") + " " + ap;
+  }
+  function weekStartOf(d) {
+    var x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay());
+    return x;
+  }
+  function evRangeLabel(ev) {
+    if (!ev.start || !ev.start.dateTime) return "All day";
+    var a = evTimeStr(new Date(ev.start.dateTime));
+    if (!ev.end || !ev.end.dateTime) return a;
+    return a + " to " + evTimeStr(new Date(ev.end.dateTime));
+  }
+  function evDurLabel(ev) {
+    if (!ev.start || !ev.start.dateTime || !ev.end || !ev.end.dateTime) return "";
+    var mins = Math.round((new Date(ev.end.dateTime) - new Date(ev.start.dateTime)) / 60000);
+    if (mins <= 0) return "";
+    if (mins < 60) return mins + "m";
+    var h = mins / 60;
+    return (Math.round(h * 10) / 10).toString().replace(/\.0$/, "") + "h";
+  }
+  function hourLabel(h) {
+    var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12; if (hh === 0) hh = 12;
+    return hh + " " + ap;
   }
   function evWhenLabel(ev) {
     var d = evStart(ev);
@@ -6971,7 +6995,15 @@
 
   // ---- Render ----
   function render() {
-    $("cal2-title").textContent = MONTHS[viewM] + " " + viewY;
+    var wrapEl = $("cal2-wrap");
+    if (wrapEl) wrapEl.classList.toggle("view-week", calView === "week");
+    if (calView === "week") {
+      var ws0 = weekStartOf(weekAnchor), we0 = new Date(ws0); we0.setDate(ws0.getDate() + 6);
+      $("cal2-title").textContent = MONTHS[ws0.getMonth()].slice(0, 3) + " " + ws0.getDate() +
+        (ws0.getMonth() === we0.getMonth() ? " \u2013 " + we0.getDate() : " \u2013 " + MONTHS[we0.getMonth()].slice(0, 3) + " " + we0.getDate()) + ", " + we0.getFullYear();
+    } else {
+      $("cal2-title").textContent = MONTHS[viewM] + " " + viewY;
+    }
     var w = gridWindow();
     var byDay = {};
     events.forEach(function (ev) {
@@ -7010,11 +7042,12 @@
         if (ev) openDetail(ev);
       });
     });
+    if (calView === "week") renderWeek();
     renderAgenda();
   }
   function evButtonHtml(ev) {
     var c = COLORS[ev.colorId] || "#c9a227";
-    return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evWhenLabel(ev)) + "</span></button>";
+    return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evWhenLabel(ev)) + (evDurLabel(ev) ? " \u00b7 " + esc(evDurLabel(ev)) : "") + "</span></button>";
   }
   function bindEvButtons(scope) {
     scope.querySelectorAll(".cal2-dayitem").forEach(function (btn) {
@@ -7028,10 +7061,13 @@
     var box = $("cal2-agenda");
     if (!box) return;
     var t0 = new Date(); t0.setHours(0, 0, 0, 0);
-    var up = events.filter(function (ev) {
+    var allUp = events.filter(function (ev) {
       var s = evStart(ev);
       return s && s >= t0;
-    }).sort(function (a, b) { return evStart(a) - evStart(b); }).slice(0, 8);
+    }).sort(function (a, b) { return evStart(a) - evStart(b); });
+    var cntEl = $("cal2-agenda-count");
+    if (cntEl) cntEl.textContent = allUp.length ? allUp.length + " coming up" : "";
+    var up = allUp.slice(0, 8);
     if (!up.length) {
       box.innerHTML = '<p class="sub" style="margin:6px 0 0">Nothing coming up in the next 45 days. Use + Add appointment to schedule the next visit.</p>';
       return;
@@ -7045,12 +7081,82 @@
     list.sort(function (a, b) { return (evStart(a) || 0) - (evStart(b) || 0); });
     var parts = k.split("-");
     var label = MONTHS[Number(parts[1]) - 1] + " " + Number(parts[2]) + ", " + parts[0];
+    var allDay = list.filter(function (ev) { return ev.start && ev.start.date; });
+    var timed = list.filter(function (ev) { return ev.start && ev.start.dateTime; });
     var html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 4px"><h4 style="margin:0">' + esc(label) + '</h4><button type="button" class="btn btn-gold btn-sm" id="cal2-day-add">+ Add appointment</button></div>';
-    if (!list.length) html += '<p class="sub" style="margin:4px 0 0">No appointments this day.</p>';
-    list.forEach(function (ev) { html += evButtonHtml(ev); });
+    if (!list.length) html += '<p class="sub" style="margin:4px 0 8px">No appointments this day. Tap any hour to add one.</p>';
+    allDay.forEach(function (ev) { html += evButtonHtml(ev); });
+    function hourItem(ev) {
+      var c = COLORS[ev.colorId] || "#c9a227";
+      var dur = evDurLabel(ev);
+      return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '" style="margin-top:0;margin-bottom:6px"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">\u00b7 ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evRangeLabel(ev)) + (dur ? " \u00b7 " + esc(dur) : "") + "</span></button>";
+    }
+    for (var h = 6; h <= 20; h++) {
+      var inHour = timed.filter(function (ev) { return new Date(ev.start.dateTime).getHours() === h; });
+      html += '<div class="cal2-hourrow" data-hour="' + h + '"><div class="cal2-hourlab">' + hourLabel(h) + '</div><div class="cal2-hourslot">' +
+        (inHour.length ? inHour.map(hourItem).join("") : '<div class="cal2-hourhint">Tap to add</div>') +
+        "</div></div>";
+    }
+    var outside = timed.filter(function (ev) { var hh = new Date(ev.start.dateTime).getHours(); return hh < 6 || hh > 20; });
+    if (outside.length) {
+      html += '<h5 style="margin:12px 0 2px">Also this day</h5>';
+      outside.forEach(function (ev) { html += evButtonHtml(ev); });
+    }
     box.innerHTML = html;
     $("cal2-day-add").addEventListener("click", function () { openEditor(null, k); });
+    box.querySelectorAll(".cal2-hourrow").forEach(function (row) {
+      row.addEventListener("click", function (e) {
+        if (e.target && e.target.closest && e.target.closest("[data-ev]")) return;
+        openEditor(null, k, Number(row.getAttribute("data-hour")));
+      });
+    });
     bindEvButtons(box);
+  }
+  function renderWeek() {
+    var box = $("cal2-week");
+    if (!box) return;
+    var ws = weekStartOf(weekAnchor);
+    var todayK = dayKey(new Date());
+    var totalMin = 0;
+    var cols = "";
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(ws); d.setDate(ws.getDate() + i);
+      var k = dayKey(d);
+      var list = events.filter(function (ev) { return evDay(ev) === k; });
+      list.sort(function (a, b) { return (evStart(a) || 0) - (evStart(b) || 0); });
+      list.forEach(function (ev) {
+        if (ev.start && ev.start.dateTime && ev.end && ev.end.dateTime) {
+          totalMin += (new Date(ev.end.dateTime) - new Date(ev.start.dateTime)) / 60000;
+        }
+      });
+      cols += '<div class="cal2-wcol' + (k === todayK ? " today" : "") + '"><div class="cal2-wday" data-wday="' + k + '">' + DAYS[d.getDay()] + '</div><div class="cal2-wdate" data-wday="' + k + '">' + d.getDate() + "</div>" +
+        (list.length ? list.map(function (ev) {
+          var c = COLORS[ev.colorId] || "#c9a227";
+          var dur = evDurLabel(ev);
+          return '<button type="button" class="cal2-wev" data-ev="' + esc(ev.id) + '" style="background:' + c + '">' + esc(ev.summary || "(no title)") + "<small>" + esc(evRangeLabel(ev)) + (dur ? " \u00b7 " + esc(dur) : "") + "</small></button>";
+        }).join("") : '<div class="sub" style="font-size:12px">No appointments</div>') +
+        "</div>";
+    }
+    var hrs = (Math.round(totalMin / 6) / 10).toString().replace(/\.0$/, "");
+    box.innerHTML = '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h4 style="margin:10px 0 2px">Week of ' + MONTHS[ws.getMonth()].slice(0, 3) + " " + ws.getDate() + '</h4><span class="sub">' + (totalMin > 0 ? hrs + " h scheduled this week" : "Nothing scheduled this week") + '</span></div><div class="cal2-weekgrid">' + cols + "</div>";
+    box.querySelectorAll(".cal2-wev").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ev = findEv(b.getAttribute("data-ev"));
+        if (ev) openDetail(ev);
+      });
+    });
+    box.querySelectorAll("[data-wday]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var k = el.getAttribute("data-wday");
+        selDay = k;
+        var pp = k.split("-");
+        viewY = Number(pp[0]); viewM = Number(pp[1]) - 1;
+        setView("month");
+        renderDayList(k);
+        var dl = $("cal2-daylist");
+        if (dl && dl.scrollIntoView) dl.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   }
 
   // ---- Detail view (tap an event) ----
@@ -7061,6 +7167,12 @@
     var where = $("cal2-d-where");
     where.textContent = ev.location || "";
     where.style.display = ev.location ? "" : "none";
+    var guestsEl = $("cal2-d-guests");
+    if (guestsEl) {
+      var gl = (ev.guests || []).filter(function (x) { return !!x; });
+      guestsEl.textContent = gl.length ? "Guests: " + gl.join(", ") : "";
+      guestsEl.style.display = gl.length ? "" : "none";
+    }
     var notes = $("cal2-d-notes");
     notes.textContent = ev.description || "";
     notes.style.display = ev.description ? "" : "none";
@@ -7103,7 +7215,7 @@
   });
 
   // ---- Editor modal ----
-  function openEditor(ev, dateStr) {
+  function openEditor(ev, dateStr, hour) {
     fromExternal = false;
     editingId = ev ? ev.id : null;
     $("cal2-m-title").textContent = ev ? "Edit appointment" : "New appointment";
@@ -7119,11 +7231,15 @@
       var s = new Date(ev.start.dateTime), en = new Date(ev.end.dateTime);
       $("cal2-f-start").value = pad(s.getHours()) + ":" + pad(s.getMinutes());
       $("cal2-f-end").value = pad(en.getHours()) + ":" + pad(en.getMinutes());
+    } else if (hour != null) {
+      $("cal2-f-start").value = pad(hour) + ":00";
+      $("cal2-f-end").value = pad(Math.min(hour + 1, 23)) + ":00";
     } else {
       $("cal2-f-start").value = "09:00";
       $("cal2-f-end").value = "10:00";
     }
     $("cal2-f-addr").value = ev ? (ev.location || "") : "";
+    $("cal2-f-guests").value = ev && ev.guests ? ev.guests.join(", ") : "";
     $("cal2-f-notes").value = ev ? (ev.description || "") : "";
     $("cal2Modal").classList.remove("hidden");
   }
@@ -7165,6 +7281,8 @@
       start: { dateTime: date + "T" + startT + ":00", timeZone: "America/New_York" },
       end: { dateTime: date + "T" + endT + ":00", timeZone: "America/New_York" },
     };
+    var guestList = $("cal2-f-guests").value.split(/[,;]/).map(function (x) { return x.trim(); }).filter(function (x) { return !!x; });
+    if (guestList.length) evBody.guests = guestList;
     var btn = $("cal2-f-save"); btn.disabled = true;
     $("cal2-f-msg").textContent = "Saving...";
     var call = editingId
@@ -7202,25 +7320,43 @@
   });
 
   // ---- Header controls ----
-  $("cal2-prev").addEventListener("click", function () { viewM--; if (viewM < 0) { viewM = 11; viewY--; } $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
-  $("cal2-next").addEventListener("click", function () { viewM++; if (viewM > 11) { viewM = 0; viewY++; } $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
-  $("cal2-today").addEventListener("click", function () { var n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); $("cal2-daylist").innerHTML = ""; selDay = null; loadEvents(); });
+  function calNavReset() { $("cal2-daylist").innerHTML = ""; selDay = null; }
+  $("cal2-prev").addEventListener("click", function () { calNavReset(); if (calView === "week") { weekAnchor.setDate(weekAnchor.getDate() - 7); viewY = weekAnchor.getFullYear(); viewM = weekAnchor.getMonth(); } else { viewM--; if (viewM < 0) { viewM = 11; viewY--; } } loadEvents(); });
+  $("cal2-next").addEventListener("click", function () { calNavReset(); if (calView === "week") { weekAnchor.setDate(weekAnchor.getDate() + 7); viewY = weekAnchor.getFullYear(); viewM = weekAnchor.getMonth(); } else { viewM++; if (viewM > 11) { viewM = 0; viewY++; } } loadEvents(); });
+  $("cal2-today").addEventListener("click", function () { var n = new Date(); weekAnchor = n; viewY = n.getFullYear(); viewM = n.getMonth(); calNavReset(); loadEvents(); });
   $("cal2-refresh").addEventListener("click", loadEvents);
   var addBtn = $("cal2-add");
   if (addBtn) addBtn.addEventListener("click", function () { openEditor(null, selDay || dayKey(new Date())); });
 
-  // ---- Phone view toggle (Month / Up next; agenda is the phone default) ----
+  // ---- View controls: Month / Week switch; Up next lives at the bottom
+  // of the page, collapsed by default (Edwin's final calendar spec). ----
   var wrap = $("cal2-wrap");
-  var vAgenda = $("cal2-view-agenda"), vMonth = $("cal2-view-month");
-  function setPhoneView(month) {
-    if (!wrap) return;
-    wrap.classList.toggle("show-month", !!month);
-    if (vAgenda) vAgenda.classList.toggle("active", !month);
-    if (vMonth) vMonth.classList.toggle("active", !!month);
+  var vMonth = $("cal2-view-month"), vWeek = $("cal2-view-week"), vAgenda = $("cal2-view-agenda");
+  function setView(name) {
+    calView = name;
+    if (wrap) wrap.classList.toggle("view-week", name === "week");
+    if (vMonth) vMonth.classList.toggle("active", name === "month");
+    if (vWeek) vWeek.classList.toggle("active", name === "week");
+    render();
   }
-  if (vAgenda) vAgenda.addEventListener("click", function () { setPhoneView(false); });
-  if (vMonth) vMonth.addEventListener("click", function () { setPhoneView(true); });
-  setPhoneView(false);
+  function toggleAgenda(open) {
+    agendaOpen = open != null ? !!open : !agendaOpen;
+    var body = $("cal2-agenda-body");
+    if (body) body.classList.toggle("hidden", !agendaOpen);
+    var ch = $("cal2-agenda-chev");
+    if (ch) ch.innerHTML = agendaOpen ? "&#9662;" : "&#9656;";
+    if (vAgenda) vAgenda.classList.toggle("active", agendaOpen);
+    if (agendaOpen) {
+      var blk = $("cal2-agenda-block");
+      if (blk && blk.scrollIntoView) blk.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+  if (vMonth) vMonth.addEventListener("click", function () { setView("month"); });
+  if (vWeek) vWeek.addEventListener("click", function () { setView("week"); });
+  if (vAgenda) vAgenda.addEventListener("click", function () { toggleAgenda(); });
+  var agT = $("cal2-agenda-toggle");
+  if (agT) agT.addEventListener("click", function () { toggleAgenda(); });
+  setView("month");
 
   // ---- Start when the Calendar tab is first opened ----
   // Any [data-atab="calendar"] control counts (top bar, drawer, home rows):
