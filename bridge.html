@@ -50,6 +50,7 @@
     border-radius:999px; padding:6px 14px; font-size:.82rem; font-weight:700; cursor:pointer; font-family:inherit;
   }
   .bbtn:active{transform:scale(.97)}
+  .bbtn:disabled{opacity:.6; cursor:default;}
 
   /* Login card */
   .blogin{
@@ -122,6 +123,7 @@
     <div class="bwho hidden" id="br-who">
       <span class="who" id="br-who-text"></span>
       <button type="button" class="bbtn" id="br-logout">Sign out</button>
+      <button type="button" class="bbtn" id="br-push-btn">Enable Bridge notifications</button>
     </div>
   </header>
 
@@ -165,6 +167,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
+<script src="push.js?v=2"></script>
 <script>
 (function () {
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
@@ -304,6 +307,38 @@
 
   $("br-logout").addEventListener("click", function () { auth.signOut(); });
 
+  /* Bridge push notifications (push.js / window.PGpush). Fully
+     guarded: if push.js failed to load or push is unsupported,
+     the chat keeps working exactly as before. The button uses id
+     br-push-btn (not pgPushBtn) so push.js's own delegated wiring
+     does not also fire enable() on the same tap. */
+  var pushBtn = $("br-push-btn");
+  function markPushOn() {
+    if (!pushBtn) return;
+    pushBtn.textContent = "Notifications on";
+    pushBtn.disabled = true;
+  }
+  function refreshPushBtn() {
+    try {
+      if (!window.PGpush || typeof window.PGpush.state !== "function") return;
+      window.PGpush.state().then(function (st) {
+        if (st === "on") markPushOn();
+      }).catch(function () { /* push state is best effort only */ });
+    } catch (e) { /* push must never break the chat */ }
+  }
+  if (pushBtn) {
+    pushBtn.addEventListener("click", function () {
+      try {
+        if (!window.PGpush || typeof window.PGpush.enable !== "function") return;
+        pushBtn.disabled = true;
+        window.PGpush.enable("customer").then(function (ok) {
+          if (ok) { markPushOn(); }
+          else { pushBtn.disabled = false; refreshPushBtn(); }
+        }).catch(function () { pushBtn.disabled = false; });
+      } catch (e) { pushBtn.disabled = false; }
+    });
+  }
+
   /* Compose */
   var ta = $("br-text");
   function autoGrow() {
@@ -358,6 +393,7 @@
     myRole = roleFor(user);
     hide($("br-loginwrap"));
     show($("br-main")); show($("br-who"));
+    refreshPushBtn();
     var who = $("br-who-text");
     who.textContent = "";
     var b = document.createElement("b");
