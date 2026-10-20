@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=29">
-<link rel="stylesheet" href="daylight.css?v=7">
+<link rel="stylesheet" href="daylight.css?v=8">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b0b0d">
@@ -276,11 +276,14 @@
     </div>
 
     <p class="hero-hours reveal"><span data-hours></span> · <span data-area></span></p>
-    <div class="hero-cta reveal">
+    <div class="hero-cta hero-cta-b reveal">
       <button class="btn btn-gold btn-lg" data-book-open><span data-i18n="book_now">Book now</span></button>
-      <a href="#" class="btn btn-outline btn-lg pg-get-app">📲 Get the app</a>
+      <a class="fin-card" href="#financing">
+        <span class="fin-card-k" data-i18n="fin_card_k">Financing available</span>
+        <span class="fin-card-t" data-i18n="fin_card_t">Get it done today, pay over time</span>
+        <span class="fin-card-s"><span data-i18n="fin_card_s">Split any job into 4 payments with Klarna</span> &#8250;</span>
+      </a>
     </div>
-    <p class="hero-fin reveal"><a class="fin-pill" href="#financing"><span data-i18n="fin_pill">New: financing available. Get it done today, pay over time.</span></a></p>
     </div>
   </div>
   <a class="hero-scroll" href="#services" aria-label="Scroll to services">
@@ -699,7 +702,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=19"></script>
-<script src="site.js?v=41"></script>
+<script src="site.js?v=42"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">

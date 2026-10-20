@@ -869,3 +869,18 @@ footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-rig
   .promo-card{ align-items:center; text-align:center; }
   .promo-card .btn{ margin-left:auto; margin-right:auto; }
 }
+
+/* ---------- 17. Hero Option B (Oct 20, Edwin's pick): Book now + financing card ---------- */
+.hero-cta-b{ display:flex; flex-wrap:wrap; gap:14px; align-items:stretch; }
+.hero-cta-b .btn{ align-self:center; }
+.fin-card{
+  flex:1 1 280px; max-width:430px; background:#fff;
+  border:2px solid rgba(201,162,39,.75); border-radius:14px; padding:12px 18px;
+  text-decoration:none; color:#101c26; box-shadow:0 12px 26px rgba(201,162,39,.20);
+  display:flex; flex-direction:column; justify-content:center;
+}
+.fin-card:hover{ border-color:rgba(201,162,39,1); box-shadow:0 16px 32px rgba(201,162,39,.30); }
+.fin-card-k{ font-size:11.5px; font-weight:800; letter-spacing:.14em; color:#8a6d2a; text-transform:uppercase; }
+.fin-card-t{ font-size:17.5px; font-weight:800; margin:3px 0 2px; color:#101c26; }
+.fin-card-s{ font-size:14px; color:#44545f; }
+@media (max-width:640px){ .fin-card{ max-width:none; } }
