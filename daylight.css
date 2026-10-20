@@ -800,3 +800,40 @@ footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-rig
 .section.qhow{ padding:64px 0 0; }
 .qhow h2{ color:var(--ink); }
 .qhow .cx-steps{ margin-top:22px; }
+
+/* ---------- 15. Financing (Oct 20): hero pill, financing section, plans band ---------- */
+.hero-fin{ margin-top:14px; }
+.fin-pill{
+  display:inline-block; padding:9px 16px; border-radius:999px;
+  background:linear-gradient(120deg,#e9c766,#c9a227); color:#241a02;
+  font-weight:700; font-size:.92rem; text-decoration:none;
+  box-shadow:0 8px 20px rgba(201,162,39,.35);
+}
+.fin-pill:hover{ filter:brightness(1.05); }
+.fin-section{ background:linear-gradient(180deg,#fffdf6,#fdf6e0); }
+.fin-example{
+  margin-top:28px; background:#fff; border:1px solid rgba(201,162,39,.45);
+  border-radius:18px; padding:22px 24px; box-shadow:0 14px 30px rgba(120,90,10,.10);
+}
+.fin-ex-head{ display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between; }
+.fin-ex-kicker{ font-size:.72rem; text-transform:uppercase; letter-spacing:.18em; color:#8a6d2a; font-weight:700; }
+.fin-ex-total{ font-size:3rem; line-height:1; font-weight:800; color:#101c26; }
+.fin-ex-label{ color:#5c6a72; font-size:.95rem; }
+.fin-ex-right{ flex:1 1 260px; max-width:420px; }
+.fin-ex-split{ font-size:1.25rem; color:#101c26; margin-bottom:10px; }
+.fin-ex-split b{ font-size:1.6rem; color:#8a6d2a; }
+.fin-bar{ display:flex; gap:6px; }
+.fin-bar span{ flex:1; height:14px; border-radius:7px; background:linear-gradient(120deg,#e9c766,#c9a227); }
+.fin-bar-labels{ display:flex; gap:6px; margin-top:5px; }
+.fin-bar-labels span{ flex:1; text-align:center; font-size:.75rem; color:#8a6d2a; font-weight:700; }
+.fin-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:22px; }
+.fin-step{ background:#fff; border:1px solid rgba(16,28,38,.08); border-radius:14px; padding:18px; }
+.fin-step h3{ color:#101c26; font-size:1.05rem; margin-bottom:6px; }
+.fin-step p{ color:#44545f; font-size:.95rem; }
+.fin-cta{ margin-top:24px; text-align:center; }
+.fin-fine{ margin-top:12px; font-size:.82rem; color:#5c6a72; max-width:640px; margin-left:auto; margin-right:auto; }
+.fin-band{ background:linear-gradient(120deg,#fdf6e0,#fbeec4); border-top:1px solid rgba(201,162,39,.35); border-bottom:1px solid rgba(201,162,39,.35); padding:34px 0; }
+.fin-band-inner{ display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+.fin-band h2{ color:#101c26; }
+.fin-band p{ color:#44545f; }
+@media (max-width:720px){ .fin-steps{ grid-template-columns:1fr; } .fin-ex-total{ font-size:2.4rem; } }

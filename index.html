@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=29">
-<link rel="stylesheet" href="daylight.css?v=5">
+<link rel="stylesheet" href="daylight.css?v=6">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b0b0d">
@@ -280,6 +280,7 @@
       <button class="btn btn-gold btn-lg" data-book-open><span data-i18n="book_now">Book now</span></button>
       <a href="#" class="btn btn-outline btn-lg pg-get-app">📲 Get the app</a>
     </div>
+    <p class="hero-fin reveal"><a class="fin-pill" href="#financing"><span data-i18n="fin_pill">New: financing available. Get it done today, pay over time.</span></a></p>
     </div>
   </div>
   <a class="hero-scroll" href="#services" aria-label="Scroll to services">
@@ -324,6 +325,38 @@
       <p data-i18n="promo_sub">Every estimate is free and no-pressure. Tell us about your project and we'll reply with upfront pricing, usually the same day.</p>
     </div>
     <a class="btn btn-gold btn-lg" href="#contact"><span data-i18n="promo_cta">Get my free quote</span></a>
+  </div>
+</section>
+
+<!-- ================= FINANCING ================= -->
+<section class="section fin-section" id="financing">
+  <div class="wrap">
+    <p class="section-kicker reveal" data-i18n="fin_kicker">Financing</p>
+    <h2 class="reveal grad-text"><span data-i18n="fin_title_a">Get it done now.</span> <span data-i18n="fin_title_b">Pay over time.</span></h2>
+    <p class="section-lead reveal" data-i18n="fin_lead">Do not put off the cleanup, the landscaping, or the full reset because of the budget. Every PrimeGuard job can be financed through Klarna. Approve your quote, choose financing when you sign, and split the cost into smaller payments while your property gets handled right away.</p>
+    <div class="fin-example reveal">
+      <div class="fin-ex-head">
+        <div>
+          <p class="fin-ex-kicker" data-i18n="fin_ex_kicker">Example</p>
+          <p class="fin-ex-total">$390</p>
+          <p class="fin-ex-label" data-i18n="fin_ex_label">yard cleanup, financed</p>
+        </div>
+        <div class="fin-ex-right">
+          <p class="fin-ex-split"><b>4</b> <span data-i18n="fin_ex_payments">payments of</span> <b>$97.50</b></p>
+          <div class="fin-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div class="fin-bar-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="fin-steps reveal">
+      <div class="fin-step"><h3 data-i18n="fin_s1t">1. Get your free quote</h3><p data-i18n="fin_s1d">Tell us about the job. Your price is confirmed in writing before anything is scheduled.</p></div>
+      <div class="fin-step"><h3 data-i18n="fin_s2t">2. Sign and choose financing</h3><p data-i18n="fin_s2d">When you approve your quote, pick the financing option and split the total with Klarna.</p></div>
+      <div class="fin-step"><h3 data-i18n="fin_s3t">3. We work now, you pay over time</h3><p data-i18n="fin_s3d">Your crew gets scheduled right away. You pay in smaller payments while the work is already done.</p></div>
+    </div>
+    <div class="fin-cta reveal">
+      <a class="btn btn-gold btn-lg" href="#contact"><span data-i18n="promo_cta">Get my free quote</span></a>
+      <p class="fin-fine" data-i18n="fin_fine">Financing is offered through Klarna at signing, subject to eligibility and Klarna's terms. Paying in full by card or bank transfer is always available at the regular price.</p>
+    </div>
   </div>
 </section>
 
@@ -660,7 +693,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=19"></script>
-<script src="site.js?v=39"></script>
+<script src="site.js?v=40"></script>
 <!-- PrimeGuard Website Assistant chat (ElevenLabs, custom gold-circle launcher) -->
 <button id="pg-chat-launcher" class="chat-launcher" aria-label="Chat with us">
   <img src="assets/primeguard-logo-gold-badge.png" alt="Chat">
