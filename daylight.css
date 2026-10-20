@@ -837,3 +837,35 @@ footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-rig
 .fin-band h2{ color:#101c26; }
 .fin-band p{ color:#44545f; }
 @media (max-width:720px){ .fin-steps{ grid-template-columns:1fr; } .fin-ex-total{ font-size:2.4rem; } }
+
+/* ---------- 16. Promo band redesign (Oct 20): photo band + two glass cards ---------- */
+/* styles.css flattens .promo-band to a plain gold gradient late in the file;
+   Daylight restores the photographic band and splits it into two cards:
+   free quotes + financing, side by side. */
+.promo-band{
+  background:
+    linear-gradient(100deg, rgba(10,14,18,.88) 0%, rgba(10,14,18,.66) 52%, rgba(10,14,18,.42) 100%),
+    url("assets/promo-band.jpg") center/cover no-repeat;
+  padding:56px 0; color:#f5f1e6;
+  border-top:1px solid rgba(201,162,39,.4); border-bottom:1px solid rgba(201,162,39,.4);
+}
+.promo-band::before{ background:radial-gradient(700px 260px at 88% 12%, rgba(255,216,115,.20), transparent 70%); }
+.promo-band .promo-inner{
+  display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:stretch;
+}
+.promo-card{
+  background:rgba(16,24,32,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.16); border-radius:18px; padding:26px 28px;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+  display:flex; flex-direction:column; align-items:flex-start;
+}
+.promo-card .promo-kicker{ color:#ffd873; opacity:1; }
+.promo-card h2{ color:#fff; font-size:clamp(26px,3.4vw,38px); line-height:1.08; margin:0 0 10px; font-weight:800; letter-spacing:-.5px; }
+.promo-card p{ color:#e6e0cf; opacity:1; font-size:16px; margin:0 0 18px; font-weight:500; }
+.promo-card .btn{ margin-top:auto; }
+.promo-card-fin{ border-color:rgba(255,216,115,.65); box-shadow:0 18px 44px rgba(0,0,0,.4), 0 0 34px rgba(201,162,39,.22); }
+@media (max-width:820px){
+  .promo-band .promo-inner{ grid-template-columns:1fr; }
+  .promo-card{ align-items:center; text-align:center; }
+  .promo-card .btn{ margin-left:auto; margin-right:auto; }
+}
