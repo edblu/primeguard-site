@@ -495,6 +495,24 @@
   .pg-lightbox img { border:1px solid rgba(201,162,75,.45); border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.6); max-height:92vh; max-width:94vw; object-fit:contain; }
   .pg-light .pg-lightbox { background:rgba(0,0,0,.78); }
   .pg-light .pg-lightbox img { border-color:rgba(201,162,75,.4); box-shadow:0 30px 80px rgba(0,0,0,.45); }
+  /* v86: lightbox gallery controls, Daylight look (white discs, gold ring) */
+  .pg-lb-nav { position:absolute; top:50%; transform:translateY(-50%); z-index:2; width:56px; height:56px; border-radius:50%;
+    background:rgba(255,255,255,.94); border:1px solid rgba(201,162,75,.7); color:#7a5c10; font-size:2.1rem; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.4); padding:0 0 4px; }
+  .pg-lb-nav:hover { background:#fff; }
+  .pg-lb-prev { left:14px; }
+  .pg-lb-next { right:14px; }
+  .pg-lb-count { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:2;
+    background:rgba(24,21,14,.78); border:1px solid rgba(201,162,75,.55); border-radius:999px;
+    color:#f6ecd2; font-size:.85rem; font-weight:700; letter-spacing:.04em; padding:5px 15px; }
+  @media (max-width:640px) { .pg-lb-nav { width:52px; height:52px; } .pg-lb-prev { left:8px; } .pg-lb-next { right:8px; } }
+  /* v86: labeled Back control on detail modals (first row of the modal,
+     top-left; the x close stays top-right). Same close path as the x. */
+  .pg-backbtn { align-self:flex-start; margin:14px 0 0 18px; padding:7px 14px 8px 11px; border-radius:999px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(201,162,75,.55); color:var(--gold-bright);
+    font-size:.85rem; font-weight:700; line-height:1; cursor:pointer; }
+  .pg-backbtn:hover { background:rgba(201,162,75,.16); }
+  .pg-light .pg-backbtn { background:#ffffff; color:#7a5c10; border-color:rgba(201,162,75,.7); box-shadow:0 2px 8px rgba(20,20,20,.10); }
   @media (max-width:640px) {
     .hlq-stepper { flex-wrap:wrap; overflow-x:visible; row-gap:5px; }
     .hlq-step-line { flex-basis:10px; }
@@ -845,6 +863,7 @@
   <!-- Vendor review modal -->
   <div class="modal-overlay hidden" id="vdModal">
     <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="vdTitle">
+      <button type="button" class="pg-backbtn" id="vdBack" aria-label="Back to vendors">&#8249; Back</button>
       <button class="modal-close" id="vdClose" aria-label="Close">×</button>
       <div id="vdBody"></div>
     </div>
@@ -853,6 +872,7 @@
   <!-- Work order notes modal -->
   <div class="modal-overlay hidden" id="woNoteModal">
     <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="woNoteTitle">
+      <button type="button" class="pg-backbtn" id="woNoteBack" aria-label="Back to work orders">&#8249; Back</button>
       <button class="modal-close" id="woNoteClose" aria-label="Close">×</button>
       <div id="woNoteBody"></div>
     </div>
@@ -861,6 +881,7 @@
   <!-- Hot lead calls & notes modal -->
   <div class="modal-overlay hidden" id="hlNoteModal">
     <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="hlNoteTitle">
+      <button type="button" class="pg-backbtn" id="hlBack" aria-label="Back to hot leads">&#8249; Back</button>
       <button class="modal-close" id="hlNoteClose" aria-label="Close">×</button>
       <div id="hlNoteBody"></div>
     </div>
@@ -909,6 +930,7 @@
   <!-- Customer detail modal (service history, log service, calls & notes) -->
   <div class="modal-overlay hidden" id="custModal">
     <div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="custTitle">
+      <button type="button" class="pg-backbtn" id="custBack" aria-label="Back to customers">&#8249; Back</button>
       <button class="modal-close" id="custClose" aria-label="Close">×</button>
       <div id="custBody"></div>
     </div>
@@ -931,9 +953,13 @@
   </div>
 
   <!-- Photo lightbox: work order photos open in-page (Drive pages bounce to a Google sign-in wall) -->
+  <!-- v86: gallery nav (prev/next arrows, position counter); swipe + arrow keys wired in admin.js -->
   <div class="modal-overlay pg-lightbox hidden" id="pgLightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
     <button class="modal-close" id="pgLightboxClose" aria-label="Close">×</button>
+    <button type="button" class="pg-lb-nav pg-lb-prev hidden" id="pgLightboxPrev" data-lbnav="prev" aria-label="Previous photo">&#8249;</button>
     <img id="pgLightboxImg" alt="Work order photo">
+    <button type="button" class="pg-lb-nav pg-lb-next hidden" id="pgLightboxNext" data-lbnav="next" aria-label="Next photo">&#8250;</button>
+    <div class="pg-lb-count hidden" id="pgLightboxCount" aria-live="polite"></div>
   </div>
 
   <!-- App installs / push detail (v83): who exactly the Home tiles count -->
@@ -1263,6 +1289,7 @@
   <section class="asec" id="ad-teamsec" style="padding-bottom:60px">
     <h2>Acquisition managers</h2>
     <div class="acard">
+      <div id="ad-invitewrap">
       <p class="sub">Invite a team member by email. Pick their role, then send them the signup email. They log in at this page and get access automatically.</p>
       <form id="ad-inviteform" class="aform">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
@@ -1286,6 +1313,7 @@
           <button class="btn btn-ghost btn-sm" type="button" id="inv-copy">Copy invite text</button>
         </div>
       </div>
+      </div><!-- /ad-invitewrap -->
       <div id="ad-team-list" style="margin-top:16px"></div>
     </div>
   </section>
@@ -1356,7 +1384,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=83"></script>
+<script src="admin.js?v=86"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];

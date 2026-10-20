@@ -225,8 +225,9 @@
       document.body.classList.add("pg-nav-on");
       setNavOpen(!navStoredClosed(), false);
       $("ad-who").textContent = user.email + (isAdmin ? " (owner)" : " (" + roleLabel(myRole) + ")");
-      if (!(isAdmin || myRole === "admin")) hide($("ad-teamsec"));
+      if (!isStaff) hide($("ad-teamsec"));
       if (!isAdmin) { var nab = $("pg-nav-activity"); if (nab) nab.style.display = "none"; }
+      if (!isAdmin) hide($("ad-invitewrap"));
       // ownerOnlyTraffic: the Traffic tab is revealed and its data loads
       // ONLY for the owner email. Staff accounts (even role "admin")
       // never see the button and the visits listener never starts.
@@ -544,9 +545,14 @@
         return;
       }
       var tkTypes = [["all", "All"], ["hot_lead", "Hot leads"], ["work_order", "Work orders"], ["customer", "Customers"], ["customer_quote", "Quotes"], ["vendor", "Vendors"], ["", "Unlinked"]];
+      // v86 (Edwin, Oct 19): completed tasks DISAPPEAR from this list.
+      // Filter chips count open items only, so every number on screen
+      // matches the visible list. Done docs stay in Firestore untouched;
+      // the done set is still read for the "Done this week" stat above,
+      // which is a historical count, not a list.
       var tkCounts = {};
-      open.concat(done).forEach(function (it) { var k = it.entityType || ""; tkCounts[k] = (tkCounts[k] || 0) + 1; });
-      var tkAllCount = open.length + done.length;
+      open.forEach(function (it) { var k = it.entityType || ""; tkCounts[k] = (tkCounts[k] || 0) + 1; });
+      var tkAllCount = open.length;
       if (tkEntityFilter !== "all") {
         var tkFk = tkEntityFilter;
         open = open.filter(function (it) { return (it.entityType || "") === tkFk; });
@@ -563,7 +569,7 @@
       if (!open.length) {
         var tkNp = document.createElement("p");
         tkNp.style.color = "var(--faint)";
-        tkNp.textContent = (!done.length && tkEntityFilter !== "all") ? "No tasks match this filter." : "Nothing open. Everything is done, nice work.";
+        tkNp.textContent = tkEntityFilter !== "all" ? "No tasks match this filter." : "Nothing open. Everything is done, nice work.";
         box.appendChild(tkNp);
       }
       [[0, "Overdue", "overdue"], [1, "Today", ""], [2, "Upcoming", ""]].forEach(function (g) {
@@ -575,13 +581,9 @@
         box.appendChild(h);
         items.forEach(function (it) { box.appendChild(tkRow(it, today, false)); });
       });
-      if (done.length) {
-        var dh = document.createElement("div");
-        dh.className = "tk-group-h";
-        dh.textContent = "Done";
-        box.appendChild(dh);
-        done.slice(0, 20).forEach(function (it) { box.appendChild(tkRow(it, today, true)); });
-      }
+      // v86: no "Done" group renders here anymore. The moment a task or
+      // follow-up is checked done, its snapshot moves it out of the open
+      // set and this list re-renders without it. Data is NOT deleted.
     }
   }
 
@@ -2862,8 +2864,6 @@
         if (custTaskSort === "new") return custDateMs(b.t.createdAt) - custDateMs(a.t.createdAt);
         return String(a.t.dueDate || "9999") < String(b.t.dueDate || "9999") ? -1 : 1;
       });
-      var doneRows = all.filter(function (r) { return r.t.done; });
-      doneRows.sort(function (a, b) { return custDateMs(b.t.doneAt) - custDateMs(a.t.doneAt); });
       var todayKey = localDateKey(new Date());
       function taskMeta(t) {
         var bits = [];
@@ -2879,13 +2879,9 @@
           (taskMeta(r.t) ? "<small" + (overdue ? ' style="color:#d66"' : "") + ">" + esc(taskMeta(r.t)) + (overdue ? " \u00b7 overdue" : "") + "</small>" : "") + '</div>' +
           '<button type="button" class="mini" data-taskdone="' + r.id + '">\u2713 Done</button></div>';
       }).join("");
-      if (doneRows.length) {
-        html += '<p class="sr-faint" style="margin:10px 0 2px">Recently done</p>' + doneRows.slice(0, 2).map(function (r) {
-          var dms = custDateMs(r.t.doneAt);
-          return '<div class="cust-task-row" style="opacity:.65"><div class="cust-task-tx"><strong style="text-decoration:line-through">' + esc(r.t.title || "Task") + "</strong>" +
-            "<small>" + (dms ? "Done " + esc(fmtFollowDate(localDateKey(new Date(dms)))) : "Done") + "</small>" + '</div><span class="pill p-done">Done</span></div>';
-        }).join("");
-      }
+      // v86: no "Recently done" list here anymore. Completed tasks
+      // disappear everywhere they were listed (Edwin, Oct 19); the docs
+      // stay in Firestore with done=true, this is display only.
       box.innerHTML = html;
       box.querySelectorAll("[data-taskdone]").forEach(function (b) {
         b.addEventListener("click", function () { setTimeout(function () { if (custId) loadCustOpenTasks(custId, custData || {}); }, 700); });
@@ -3209,10 +3205,12 @@
     ov.className = "modal-overlay hidden";
     ov.id = "pgVmModal";
     ov.innerHTML = '<div class="modal sr-modal" role="dialog" aria-modal="true" aria-labelledby="pgVmTitle">' +
+      '<button type="button" class="pg-backbtn" id="pgVmBack" aria-label="Back">&#8249; Back</button>' +
       '<button class="modal-close" id="pgVmClose" aria-label="Close">×</button><div id="pgVmBody"></div></div>';
     document.body.appendChild(ov);
     ov.addEventListener("click", function (e) { if (e.target === ov) closePgVmModal(); });
     $("pgVmClose").addEventListener("click", closePgVmModal);
+    $("pgVmBack").addEventListener("click", closePgVmModal);
   }
   function closePgVmModal() {
     var m = $("pgVmModal");
@@ -4446,22 +4444,81 @@
     }
     return s;
   }
+  // v86 (Edwin, Oct 19): the lightbox is a gallery. Opening a thumbnail
+  // registers the whole group it came from (same thumbnail container), so
+  // staff can step through with on-screen arrows, touch swipes, or the
+  // keyboard arrow keys instead of open-close-open for every photo.
+  // Navigation WRAPS at both ends. Single-photo opens keep working via
+  // openPhotoLightbox(bigUrl, origUrl), exactly as before.
+  var lbPhotos = []; // [{ big, orig }] for the gallery currently open
+  var lbIndex = 0;
+  var lbTouch = null; // { x, y } of the in-progress touch inside the lightbox
+  function lbShow() {
+    var img = $("pgLightboxImg"), cnt = $("pgLightboxCount"),
+      prev = $("pgLightboxPrev"), next = $("pgLightboxNext");
+    if (!img || !lbPhotos.length) return;
+    var p = lbPhotos[lbIndex];
+    img.onerror = function () {
+      img.onerror = null;
+      if (p.orig && img.getAttribute("src") !== p.orig) img.src = p.orig;
+    };
+    img.src = p.big || p.orig || "";
+    var multi = lbPhotos.length > 1;
+    if (cnt) { cnt.textContent = (lbIndex + 1) + " / " + lbPhotos.length; cnt.classList.toggle("hidden", !multi); }
+    if (prev) prev.classList.toggle("hidden", !multi);
+    if (next) next.classList.toggle("hidden", !multi);
+  }
   function openPhotoLightbox(bigUrl, origUrl) {
     var ov = $("pgLightbox"), img = $("pgLightboxImg");
     if (!ov || !img) return;
-    img.onerror = function () {
-      img.onerror = null;
-      if (origUrl && img.getAttribute("src") !== origUrl) img.src = origUrl;
-    };
-    img.src = bigUrl || origUrl || "";
+    lbPhotos = [{ big: bigUrl, orig: origUrl }];
+    lbIndex = 0;
+    lbShow();
     ov.classList.remove("hidden");
   }
+  function openPhotoGallery(photos, index) {
+    var ov = $("pgLightbox"), img = $("pgLightboxImg");
+    if (!ov || !img) return;
+    lbPhotos = (photos || []).filter(function (p) { return p && (p.big || p.orig); });
+    if (!lbPhotos.length) return;
+    lbIndex = Math.min(Math.max(index || 0, 0), lbPhotos.length - 1);
+    lbShow();
+    ov.classList.remove("hidden");
+  }
+  function lbStep(delta) {
+    if (lbPhotos.length < 2) return;
+    lbIndex = (lbIndex + delta + lbPhotos.length) % lbPhotos.length; // wraps at both ends
+    lbShow();
+  }
+  function lbNav(dir) { lbStep(dir === "prev" ? -1 : 1); }
   function closePhotoLightbox() {
     var ov = $("pgLightbox"), img = $("pgLightboxImg");
     if (!ov) return;
     ov.classList.add("hidden");
     if (img) { img.onerror = null; img.removeAttribute("src"); }
+    lbPhotos = [];
+    lbIndex = 0;
+    lbTouch = null;
   }
+  // Touch swipe inside the lightbox: a horizontal-dominant swipe over
+  // ~40px steps the gallery (left = next, right = previous). Vertical
+  // swipes are ignored so nothing fights page/image scrolling.
+  (function () {
+    var ov = $("pgLightbox");
+    if (!ov || !ov.addEventListener) return;
+    ov.addEventListener("touchstart", function (e) {
+      if (!e.touches || e.touches.length !== 1) { lbTouch = null; return; }
+      lbTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
+    ov.addEventListener("touchend", function (e) {
+      if (!lbTouch || !e.changedTouches || !e.changedTouches.length) return;
+      var dx = e.changedTouches[0].clientX - lbTouch.x;
+      var dy = e.changedTouches[0].clientY - lbTouch.y;
+      lbTouch = null;
+      if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+      lbStep(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  })();
   function renderWorkOrders() {
     renderHomeDash();
     var box = $("ad-wo-list");
@@ -5531,7 +5588,9 @@
   }
 
   function loadTeam() {
-    if (!isAdmin) return;
+    // Everyone signed in loads the team list. Staff get a read-only
+    // view (no Remove / Cancel buttons); only the owner (isAdmin)
+    // gets the management controls, rendered per row below.
     function renderTeamFromCache() {
       var qs = liveCache["team"], iq = liveCache["teaminv"];
       if (!qs) return;
@@ -5542,7 +5601,7 @@
         var s = d.data();
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(s.email) + "</strong><small>" + esc(roleLabel(s.role)) + "</small></div>" +
-          ' <button class="mini danger" data-staffdel="' + d.id + '">Remove</button>';
+          (isAdmin ? ' <button class="mini danger" data-staffdel="' + d.id + '">Remove</button>' : "");
         box.appendChild(row);
       });
       if (!iq || iq.empty) return;
@@ -5551,7 +5610,7 @@
         var inv = d.data() || {};
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><strong>' + esc(d.id) + "</strong><small>" + esc(roleLabel(inv.role)) + " · pending</small></div>" +
-          ' <button class="mini danger" data-invdel="' + d.id + '">Cancel</button>';
+          (isAdmin ? ' <button class="mini danger" data-invdel="' + d.id + '">Cancel</button>' : "");
         box.appendChild(row);
       });
     }
@@ -5921,11 +5980,30 @@
     if (d.woprevcancel) closeWoSendPreview();
     if (d.custvisit) openCustVisitDetail(d.custvisit);
     if (qOfficeEl) pgToggleOfficeInfo(qOfficeEl);
-    if (d.wophoto) openPhotoLightbox(d.wophoto, d.wophotoorig);
-    if (t.closest && t.closest("#pgLightbox")) closePhotoLightbox();
+    if (d.wophoto) {
+      // v86: register the whole group from the thumbnail's container so
+      // the lightbox can step through it (see openPhotoGallery).
+      var lbBtns = null;
+      if (woPhotoEl) {
+        var lbBox = (woPhotoEl.closest ? woPhotoEl.closest(".athumbs, .woq-thumbs, .sr-photos") : null) || woPhotoEl.parentElement;
+        if (lbBox && lbBox.querySelectorAll) lbBtns = Array.prototype.slice.call(lbBox.querySelectorAll("[data-wophoto]"));
+      }
+      if (lbBtns && lbBtns.length > 1) {
+        openPhotoGallery(lbBtns.map(function (b) {
+          return { big: b.getAttribute("data-wophoto"), orig: b.getAttribute("data-wophotoorig") };
+        }), lbBtns.indexOf(woPhotoEl));
+      } else {
+        openPhotoLightbox(d.wophoto, d.wophotoorig);
+      }
+    }
+    var lbNavEl = t.closest ? t.closest("[data-lbnav]") : null;
+    if (lbNavEl) lbNav(lbNavEl.getAttribute("data-lbnav"));
+    // v86: only the backdrop itself or the close button closes the
+    // lightbox now; taps on the photo or the gallery arrows must not.
+    if (t.id === "pgLightbox" || t.id === "pgLightboxClose") closePhotoLightbox();
     if (t.id === "woPrevClose" || t.id === "woPrevModal") closeWoSendPreview();
-    if (t.id === "woNoteClose" || t.id === "woNoteModal") closeWorkOrderNotes();
-    if (t.id === "vdClose" || t.id === "vdModal") closeVendor();
+    if (t.id === "woNoteClose" || t.id === "woNoteModal" || t.id === "woNoteBack") closeWorkOrderNotes();
+    if (t.id === "vdClose" || t.id === "vdModal" || t.id === "vdBack") closeVendor();
     if (d.fudone) {
       db.collection("item_notes").doc(d.fudone).update({
         followUpDone: true,
@@ -6031,7 +6109,7 @@
       if (custNavBtn) custNavBtn.click();
       openCustomer(cvId);
     }
-    if (t.id === "custClose" || t.id === "custModal") closeCustomer();
+    if (t.id === "custClose" || t.id === "custModal" || t.id === "custBack") closeCustomer();
     if (t.id === "custFormClose" || t.id === "custFormModal") closeCustomerForm();
     if (d.hlstagefilter) { hlStageFilter = d.hlstagefilter; renderHotLeads(); }
     if (d.hltempfilter) { hlTempFilter = d.hltempfilter; renderHotLeads(); }
@@ -6047,7 +6125,7 @@
     if (d.hlclaim) claimHotLead(d.hlclaim);
     if (d.hlrelease) releaseHotLead(d.hlrelease);
     if (d.hlviewwo) { closeHotLeadConvert(); closeHotLeadNotes(); gotoWorkOrders(); }
-    if (t.id === "hlNoteClose" || t.id === "hlNoteModal") closeHotLeadNotes();
+    if (t.id === "hlNoteClose" || t.id === "hlNoteModal" || t.id === "hlBack") closeHotLeadNotes();
     if (t.id === "hlFormClose" || t.id === "hlFormModal") closeHotLeadForm();
     if (t.id === "hlConvertClose" || t.id === "hlConvertModal") closeHotLeadConvert();
     if (d.calwo) calFromWorkOrder(d.calwo);
@@ -6075,6 +6153,11 @@
   });
 
   document.addEventListener("keydown", function (e) {
+    // v86: left/right arrows step the photo gallery while it is open.
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      var lbEl = $("pgLightbox");
+      if (lbEl && !lbEl.classList.contains("hidden")) { lbStep(e.key === "ArrowLeft" ? -1 : 1); return; }
+    }
     if (e.key !== "Escape") return;
     var modalOpen = !$("vdModal").classList.contains("hidden") ||
       !$("woNoteModal").classList.contains("hidden") || !$("hlNoteModal").classList.contains("hidden") ||
@@ -6348,8 +6431,12 @@
     if (qs && qs.forEach) qs.forEach(function (d) { out.push({ id: d.id, d: d.data() || {} }); });
     return out;
   }
-  // Merged task items, same inclusion rules as renderFollowUps:
-  // open notes need a followUpOn date; done notes and all tasks count.
+  // Merged task items, same source rules as renderFollowUps: open
+  // notes need a followUpOn date; tasks split by their done flag.
+  // v86: the done half is kept only for callers that want a historical
+  // total; every visible list and head chip counts OPEN items only, so
+  // the numbers always match what is on screen (completed tasks
+  // disappear, per Edwin, Oct 19).
   function pgTaskItems() {
     var open = [], done = [];
     if (!fuSnaps.open || !fuSnaps.done || !fuSnaps.tasks) return { open: open, done: done };
@@ -6456,12 +6543,13 @@
         pgChip("Balance due", cq.due, 'data-pgchip="scroll:ad-contracts-list"') +
         pgChip("Awaiting signature", cq.sent, 'data-pgchip="tab:quotes"'));
       // Tasks: entity chips are the page's own filter chips.
+      // v86: open items only, matching the visible list exactly.
       var tk = pgTaskItems();
       var tkC = {};
-      tk.open.concat(tk.done).forEach(function (it) { tkC[it.entityType] = (tkC[it.entityType] || 0) + 1; });
+      tk.open.forEach(function (it) { tkC[it.entityType] = (tkC[it.entityType] || 0) + 1; });
       pgRenderHead("followups", "Follow-ups", "Tasks",
         "Follow-ups from calls, notes, and work orders, plus standalone tasks. Overdue first, then due today.",
-        pgChip("All", tk.open.length + tk.done.length, 'data-tkfilter="all"', tkEntityFilter === "all") +
+        pgChip("All", tk.open.length, 'data-tkfilter="all"', tkEntityFilter === "all") +
         pgChip("Hot leads", tkC.hot_lead || 0, 'data-tkfilter="hot_lead"', tkEntityFilter === "hot_lead") +
         pgChip("Work orders", tkC.work_order || 0, 'data-tkfilter="work_order"', tkEntityFilter === "work_order") +
         pgChip("Customers", tkC.customer || 0, 'data-tkfilter="customer"', tkEntityFilter === "customer"));
