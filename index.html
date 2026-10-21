@@ -20,8 +20,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=29">
-<link rel="stylesheet" href="daylight.css?v=10">
+<link rel="stylesheet" href="styles.css?v=30">
+<link rel="stylesheet" href="daylight.css?v=11">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b0b0d">
@@ -225,9 +225,6 @@
       <a href="plans.html" data-i18n="nav_plans">Plans</a>
       <a href="#about" data-i18n="nav_about">About</a>
       <a href="#contact" data-i18n="nav_contact">Contact</a>
-      <a href="broward.html">Broward</a>
-      <a href="west-palm-beach.html">West Palm Beach</a>
-      <a href="florida-keys.html">Florida Keys</a>
       <a class="btn btn-gold btn-nav-book" href="#booking" data-book-open><span data-i18n="book_now">Book now</span></a>
       <button class="btn btn-ghost btn-nav-auth" data-auth-open><span id="authBtnLabelMobile" data-i18n="login">Log in</span></button>
     </nav>
@@ -450,6 +447,67 @@
 </section>
 
 
+
+<!-- ================= AREAS WE SERVE ================= -->
+<section class="section" id="areas">
+  <div class="wrap">
+    <p class="section-kicker reveal">Where we work</p>
+    <h2 class="reveal grad-text">Areas We Serve</h2>
+    <p class="section-lead reveal">Miami-Dade is home. These are the neighborhoods joining the map.</p>
+
+    <div class="areas-meter reveal" aria-hidden="true">
+      <div class="areas-meter-top">
+        <span class="areas-meter-label">The map so far</span>
+        <span class="areas-meter-note">1 of 3 new territories live</span>
+      </div>
+      <div class="areas-meter-track"><div class="areas-meter-fill"></div></div>
+    </div>
+
+    <div class="areas-grid">
+      <article class="area-card reveal">
+        <div class="area-media">
+          <img class="card-img" src="assets/hero-broward.jpg" alt="Waterfront home with a manicured lawn in Broward County" loading="lazy">
+          <span class="area-badge live">Now Serving</span>
+        </div>
+        <div class="area-body">
+          <h3>Broward County</h3>
+          <p class="area-cities">Fort Lauderdale, Hollywood, Miramar, Pembroke Pines, Coral Springs, Plantation, Davie, Weston</p>
+          <div class="card-cta">
+            <a class="btn btn-gold" href="broward.html">See Broward services</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="area-card reveal">
+        <div class="area-media">
+          <img class="card-img" src="assets/hero-west-palm-beach.jpg" alt="Mediterranean estate with a pristine lawn in Palm Beach County" loading="lazy">
+          <span class="area-badge soon">Coming Soon</span>
+        </div>
+        <div class="area-body">
+          <h3>West Palm Beach</h3>
+          <p class="area-cities">West Palm Beach, Palm Beach Gardens, Wellington, Jupiter, Lake Worth, Boynton Beach, Delray Beach, Boca Raton</p>
+          <div class="card-cta">
+            <a class="btn btn-outline" href="west-palm-beach.html">Join the waitlist</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="area-card reveal">
+        <div class="area-media">
+          <img class="card-img" src="assets/hero-florida-keys.jpg" alt="Stilt home over turquoise water in the Florida Keys" loading="lazy">
+          <span class="area-badge soon">Coming Soon</span>
+        </div>
+        <div class="area-body">
+          <h3>Florida Keys</h3>
+          <p class="area-cities">Key Largo, Islamorada, Marathon, Big Pine Key, Key West</p>
+          <div class="card-cta">
+            <a class="btn btn-outline" href="florida-keys.html">Join the waitlist</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
 
 <!-- ================= EXPLORE ================= -->
 <section class="section light-section" id="explore">

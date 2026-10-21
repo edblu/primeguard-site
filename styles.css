@@ -138,6 +138,19 @@ a { color: var(--gold-bright); }
 #navBackdrop.show { opacity: 1; pointer-events: auto; }
 body.nav-open { overflow: hidden; }
 
+/* Mobile drawer anchor fix (Edwin, Oct 21): the sticky header carries a
+   backdrop-filter, and a backdrop-filter makes the header the containing
+   block for fixed-position descendants. That detaches #mainNav (the
+   position:fixed drawer) from the viewport, so opening the menu while
+   scrolled to the bottom of a page could render the drawer at the top
+   of the DOCUMENT, off-screen, leaving only the dimmed backdrop
+   visible. While the drawer is open, drop the header's backdrop-filter
+   so the drawer's fixed positioning anchors to the VIEWPORT (top of
+   the visible screen) at any scroll position. The header keeps its
+   translucent background color, so it still reads as the same bar.
+   (daylight.css restates this because it loads second.) */
+body.nav-open .site-header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
 /* ---------- Hero ---------- */
 .hero { position: relative; overflow: hidden; padding: 130px 0 120px; min-height: 92vh; display: flex; align-items: center; }
 .hero-media { position: absolute; inset: 0; }

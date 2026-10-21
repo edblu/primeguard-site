@@ -81,6 +81,12 @@ a{ color:var(--gold-deep); }
   box-shadow:0 6px 24px rgba(23,34,43,.08);
 }
 .site-header.scrolled{ background:rgba(250,248,241,.94); box-shadow:0 10px 30px rgba(23,34,43,.12); }
+/* Mobile drawer anchor fix (see styles.css for the full note): while the
+   drawer is open the header's backdrop-filter comes off, so #mainNav's
+   fixed positioning anchors to the viewport, not to the header box.
+   This restatement is required because daylight.css loads after
+   styles.css and is the file that paints the header blur. */
+body.nav-open .site-header{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .brand-text{ color:var(--ink); }
 .brand-text span{ color:var(--gold-deep); }
 .main-nav a{ color:#33424e; }
@@ -936,3 +942,36 @@ footer.site-footer .footer-copy{ text-align:center; margin-left:auto; margin-rig
 .crew-strip p{ color:rgba(255,255,255,.75); max-width:620px; margin-top:8px; font-size:15.5px; }
 .crew-strip-cta{ display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
 .crew-strip-cta span{ color:rgba(255,255,255,.65); font-size:14px; }
+
+/* ---------- 15. AREAS WE SERVE (homepage, Oct 21) ----------
+   Territory cards under the services section: the county pages moved
+   out of the header nav and onto the page where visitors can see them.
+   Frosted daylight glass, gold accents, one slim rollout meter as the
+   visual progress touch. */
+.areas-meter{ max-width:640px; margin:24px 0 32px; }
+.areas-meter-top{ display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:8px; flex-wrap:wrap; }
+.areas-meter-label{ font-size:.72rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--gold-deep); }
+.areas-meter-note{ font-size:.85rem; color:#55645c; }
+.areas-meter-track{ height:8px; border-radius:999px; background:rgba(120,90,10,.14); overflow:hidden; }
+.areas-meter-fill{ height:100%; width:33%; border-radius:999px; background:linear-gradient(90deg,var(--gold),#f5d67b); }
+.areas-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:22px; }
+.area-card{
+  background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.85));
+  border:1px solid rgba(120,90,10,.16); border-radius:20px; overflow:hidden;
+  box-shadow:0 18px 44px rgba(120,90,10,.12); color:#101c26;
+  display:flex; flex-direction:column;
+  transition:transform .25s cubic-bezier(.22,1,.36,1), border-color .25s, box-shadow .25s;
+}
+.area-card:hover{ transform:translateY(-6px); border-color:rgba(201,162,39,.6); box-shadow:0 24px 54px rgba(120,90,10,.18); }
+.area-media{ position:relative; }
+.area-media img{ width:100%; height:190px; object-fit:cover; display:block; }
+.area-badge{
+  position:absolute; top:14px; left:14px; padding:6px 12px; border-radius:999px;
+  font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+}
+.area-badge.live{ background:var(--gold-grad); color:#171205; box-shadow:0 6px 16px rgba(217,171,43,.4); }
+.area-badge.soon{ background:rgba(255,255,255,.88); color:#33424e; border:1px solid rgba(201,162,75,.65); }
+.area-body{ padding:20px 22px 22px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.area-body h3{ color:#101c26; font-size:1.3rem; }
+.area-cities{ color:#55645c; font-size:.95rem; line-height:1.55; flex:1; }
+.area-card .card-cta{ margin-top:6px; }
