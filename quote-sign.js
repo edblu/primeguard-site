@@ -212,6 +212,17 @@
 
     $("qs-opt-full-d").textContent = "One payment, and we schedule your job right away.";
 
+    // Email capture: pre-fill from the quote doc when we already have
+    // one (the office sets customerEmail when the quote is built; older
+    // quotes may only carry it inside contact / customerContact).
+    var emailInput = $("qs-email"), optinInput = $("qs-marketing");
+    if (emailInput) {
+      var preEmail = q.customerEmail ||
+        (/@/.test(q.contact || "") ? q.contact : "") ||
+        (/@/.test(q.customerContact || "") ? q.customerContact : "");
+      if (preEmail) emailInput.value = preEmail;
+    }
+
     show($("qs-main"));
 
     var nameInput = $("qs-sign-name"), agree = $("qs-agree"), btn = $("qs-sign-btn");
@@ -239,10 +250,16 @@
         show(err);
         return;
       }
+      var emailVal = emailInput ? emailInput.value.trim() : "";
+      if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        err.textContent = "That email does not look complete. Fix it, or clear the field to sign without one.";
+        show(err);
+        return;
+      }
       var amountDueNow = choice === "deposit20" ? deposit : total;
       btn.disabled = true; btn.textContent = "Signing…";
       var picked = pickedAddons();
-      ref.update({
+      var upd = {
         status: "signed",
         signedName: signedName,
         signedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -251,7 +268,18 @@
         acceptedAddons: picked,
         total: total,
         baseTotal: baseTotal
-      }).then(function () {
+      };
+      // Email + marketing consent ride along with the signature. A
+      // blank email never overwrites one already on the doc, and an
+      // opt-in recorded earlier is never wiped by an untouched box
+      // here; only a fresh check sets a new opt-in timestamp.
+      if (emailVal) upd.customerEmail = emailVal;
+      var optIn = !!((optinInput && optinInput.checked) || q.marketingOptIn === true);
+      upd.marketingOptIn = optIn;
+      if (optIn && optinInput && optinInput.checked) {
+        upd.marketingOptInAt = firebase.firestore.FieldValue.serverTimestamp();
+      }
+      ref.update(upd).then(function () {
         hide($("qs-main"));
         q.payChoice = choice;
         q.amountDueNow = amountDueNow;

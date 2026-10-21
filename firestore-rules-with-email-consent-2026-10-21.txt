@@ -1,0 +1,214 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'edblucorp@gmail.com';
+    }
+    function isStaff() {
+      return isAdmin() || (request.auth != null && exists(/databases/$(database)/documents/staff/$(request.auth.uid)));
+    }
+    // Owner, or a staff member whose role is "admin" — can manage the team.
+    function isTeamAdmin() {
+      return isAdmin() || (request.auth != null
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+        && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'admin');
+    }
+    match /customers/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /vendors/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isStaff());
+      allow write: if request.auth != null && request.auth.uid == uid;
+      // Staff may update vendor records, but NOT approval status or the
+      // verified flag - those are owner-only (Edwin's rule).
+      allow update: if isStaff()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'verified']);
+      // Owner only: status changes (approve / reject / archive / restore) and deletes.
+      allow update, delete: if isAdmin();
+    }
+    match /service_requests/{doc} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isStaff());
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // guest bundle orders from the website (no account) may create a request
+      allow create: if true;
+      // customers may edit their own request's details, but cannot reassign it or change its status
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == resource.data.status;
+      // staff (admins + acquisition) evaluate requests: status, notes, comments
+      allow update: if isStaff();
+      allow delete: if isStaff();
+    }
+    match /jobs/{doc} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isStaff());
+    }
+    match /work_orders/{doc} {
+      // Privacy hardening (2026-10-16): staff read everything. A VENDOR
+      // account (a doc in vendors/) can only read work orders that are
+      // broadcast, assigned to them, or targeted to them. Customers and
+      // other non-vendor accounts keep read access: the customer portal
+      // resolves a customer's own jobs through their quotes.
+      allow read: if request.auth != null && (
+        isStaff()
+        || !exists(/databases/$(database)/documents/vendors/$(request.auth.uid))
+        || resource.data.broadcast == true
+        || resource.data.vendorId == request.auth.uid
+        || resource.data.vendorNotifyTarget == request.auth.uid
+      );
+      allow create, delete: if isStaff();
+      allow update: if isStaff();
+      // Vendor accepts an open job or evaluation: claims it (sets vendor + status).
+      allow update: if request.auth != null
+        && resource.data.status == "open"
+        && request.resource.data.status in ["accepted", "evaluation_accepted"]
+        && request.resource.data.vendorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["vendorId", "vendorBusiness", "status", "acceptedAt"]);
+      // Vendor marks their accepted job complete (moves it to review).
+      allow update: if request.auth != null
+        && resource.data.vendorId == request.auth.uid
+        && resource.data.status == "accepted"
+        && request.resource.data.status == "review"
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "completedAt"]);
+      // Vendor attaches photos to their own work order.
+      allow update: if request.auth != null
+        && resource.data.vendorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["photos"]);
+      // Vendor flags that they submitted a quote after their evaluation visit.
+      allow update: if request.auth != null
+        && resource.data.vendorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["quoteSubmitted"]);
+    }
+    match /quotes/{doc} {
+      allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid;
+      allow read: if request.auth != null && (resource.data.vendorId == request.auth.uid || isStaff());
+      allow update, delete: if isStaff();
+    }
+    // Customer quotes: staff build one from a vendor quote in the admin
+    // (vendor price + margin) and send the customer a sign link. Staff run
+    // the whole flow. The customer opens ONE quote through its link with
+    // no account (single-doc get) and signs it: the public update may
+    // only flip a "sent" quote to "signed" and may only touch the five
+    // signing fields, nothing else. Collection browsing is staff-only,
+    // except a signed-in customer listing quotes addressed to their own
+    // email (powers the portal "Your quotes" history); unauthenticated
+    // list is denied.
+    match /customer_quotes/{cqId} {
+      allow read, write: if isStaff();
+      allow get: if true;
+      allow list: if request.auth != null
+        && resource.data.customerEmail == request.auth.token.email;
+      allow update: if resource.data.status == "sent"
+        && request.resource.data.status == "signed"
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'signedName', 'signedAt', 'payChoice', 'amountDueNow', 'acceptedAddons', 'total', 'baseTotal', 'customerEmail', 'marketingOptIn', 'marketingOptInAt']);
+    }
+    match /staff/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isStaff());
+      allow create: if request.auth != null && request.auth.uid == uid && exists(/databases/$(database)/documents/staff_invites/$(request.auth.token.email));
+      allow update, delete: if isTeamAdmin();
+    }
+    match /staff_invites/{email} {
+      allow read: if request.auth != null && (request.auth.token.email == email || isStaff());
+      allow delete: if request.auth != null && request.auth.token.email == email;
+      allow create, update: if isTeamAdmin();
+    }
+    // Staff login sessions: staff create/update only their own session;
+    // only the owner account can read them (powers the admin activity view).
+    match /staff_sessions/{sid} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow read: if isAdmin();
+    }
+    // Staff activity events (logins, work-order and request actions):
+    // staff append their own events; only the owner can read the feed.
+    match /staff_activity/{eid} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if isAdmin();
+    }
+    // Shared notes, call logs, and follow-ups for vendors and work orders.
+    // Staff append their own entries (a permanent record); any staff member
+    // can read the threads and complete a follow-up; only the owner deletes.
+    match /item_notes/{noteId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.entityType in ['vendor', 'work_order', 'hot_lead', 'customer']
+        && request.resource.data.kind in ['note', 'call'];
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['followUpDone', 'followUpOn', 'completedAt', 'completedByEmail', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+    // Hot leads pipeline: customer conversations the team is working.
+    // Any signed-in staff member can read and work leads (add, edit, move
+    // stages, mark seen); deleting a lead is owner-only in the dashboard.
+    match /hot_leads/{leadId} {
+      allow read, write: if isStaff();
+    }
+    // CRM customer records (promoted from hot leads or added by staff):
+    // staff-only access. This coexists with the /customers/{uid} block
+    // above, which still governs a portal customer's own doc; Firestore
+    // grants access when any matching block allows it.
+    match /customers/{docId} {
+      allow read, write: if isStaff();
+    }
+    // Standalone tasks on the Tasks page (not tied to a note): staff-only.
+    match /tasks/{taskId} {
+      allow read, write: if isStaff();
+    }
+    // Referral code registry: anyone can register the code they generated;
+    // only staff can read the list (code -> owner tracking).
+    match /referral_codes/{doc} {
+      allow create: if request.resource.data.keys().hasOnly(['code', 'name', 'uid', 'email', 'createdAt'])
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.code.size() < 24;
+      allow read, delete: if isStaff();
+    }
+    // Push notification tokens (FCM web push): one doc per signed-in
+    // user, keyed by their uid, written by push.js after the user taps
+    // "Turn on notifications" / "Turn on job alerts" and grants the
+    // browser permission. Users create/update only their OWN token;
+    // a user can read their own doc (powers the button's on/off state)
+    // and staff can read all of them (the sender tooling runs with
+    // owner credentials). Delete: the owner user or staff.
+    match /push_tokens/{uid} {
+      allow read: if (request.auth != null && request.auth.uid == uid) || isStaff();
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if (request.auth != null && request.auth.uid == uid) || isStaff();
+    }
+    match /calendar_feeds/{token} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Website traffic (site.js beacon): the public site writes view
+    // and click events anonymously. ONLY the owner can read them
+    // back. Nobody can edit or delete traffic history.
+    match /visits/{doc} {
+      allow create: if true;
+      allow read: if request.auth != null && request.auth.token.email == 'edblucorp@gmail.com';
+      allow update, delete: if false;
+    }
+
+    // JC and Ava bridge chat: only Edwin (as JC) and the office account
+    // (as Ava) can read or post. Create must carry the matching role.
+    match /bridge_messages/{doc} {
+      allow read: if request.auth != null
+        && request.auth.token.email in ['edblucorp@gmail.com', 'primeguardllc.office@pgpbiz.com'];
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['from', 'text', 'at'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 4000
+        && request.resource.data.at == request.time
+        && ((request.auth.token.email == 'edblucorp@gmail.com' && request.resource.data.from == 'JC')
+         || (request.auth.token.email == 'primeguardllc.office@pgpbiz.com' && request.resource.data.from == 'Ava'));
+      allow update, delete: if false;
+    }
+
+  }
+}

@@ -2635,7 +2635,8 @@
         '<div class="cust-contact-row"><span>Email</span>' + (custEmail ? '<a href="mailto:' + esc(custEmail) + '">' + esc(custEmail) + "</a>" : '<strong class="cust-none">Not on file</strong>') + "</div>" +
         '<div class="cust-contact-meta">' +
         kvRow("Source", esc(d.source || "")) + kvRow("Customer since", sinceMs ? esc(fullDate(sinceMs)) : "") +
-        kvRow("Last visit", days != null ? days + "d ago" : "") + "</div></div>" +
+        kvRow("Last visit", days != null ? days + "d ago" : "") +
+        kvRow("Marketing emails", typeof d.marketingOptIn === "boolean" ? (d.marketingOptIn ? "Yes" : "No") : "") + "</div></div>" +
         '<div class="sr-card"><h4>Tasks</h4>' +
         '<div class="sr-actions" style="margin:0 0 6px"><button class="btn btn-gold btn-sm" id="cust-tasks-new" type="button">Create task</button></div>' +
         '<p class="sr-faint" style="margin:0 0 4px">Create opens the Tasks page with this customer already linked.</p>' +
@@ -5555,7 +5556,9 @@
               var link = "https://primeguardmia.com/quote-sign.html?id=" + it.id;
               var row = document.createElement("div"); row.className = "arow";
               row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + "</strong><small>" +
-                esc(q.service || "") + (sd ? " \u00b7 sent " + esc(sd) : "") + (ex ? " \u00b7 expires " + esc(ex) : "") + "</small></div>" +
+                esc(q.service || "") + (sd ? " \u00b7 sent " + esc(sd) : "") + (ex ? " \u00b7 expires " + esc(ex) : "") +
+                (q.customerEmail ? " \u00b7 " + esc(q.customerEmail) : "") +
+                (typeof q.marketingOptIn === "boolean" ? " \u00b7 Marketing: " + (q.marketingOptIn ? "Yes" : "No") : "") + "</small></div>" +
                 '<button type="button" class="mini" data-cqcopylink="' + esc(link) + '">Copy sign link</button>' +
                 '<span class="pill p-pend">Awaiting signature</span>';
               pbox.appendChild(row);
@@ -5655,7 +5658,9 @@
               var row = document.createElement("div"); row.className = "arow";
               row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + '</strong><small>' +
                 esc(q.service || "") + (sd ? " \u00b7 signed " + esc(sd) : "") + (q.signedName ? " \u00b7 signed by " + esc(q.signedName) : "") +
-                " \u00b7 " + (q.payChoice === "deposit20" ? "20% deposit plan" : "Full payment plan") + (nv ? " \u00b7 " + esc(nv) : "") + '</small></div>' +
+                " \u00b7 " + (q.payChoice === "deposit20" ? "20% deposit plan" : "Full payment plan") + (nv ? " \u00b7 " + esc(nv) : "") +
+                (email ? " \u00b7 " + esc(email) : "") +
+                (typeof q.marketingOptIn === "boolean" ? " \u00b7 Marketing: " + (q.marketingOptIn ? "Yes" : "No") : "") + '</small></div>' +
                 (paid ? '<span class="pill p-done">Paid</span>' : (due > 0 ? '<span class="pill p-pend">' + esc(cqMoney(due)) + ' due</span>' : '<span class="pill p-done">Signed</span>')) +
                 (q.agreementDriveUrl ? '<a class="mini" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(q.agreementDriveUrl) + '">Signed agreement</a>' : "") +
                 (custId ? '<button type="button" class="mini" data-contract-cust="' + esc(custId) + '">Open in CRM</button>' : "");
