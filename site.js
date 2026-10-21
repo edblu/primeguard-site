@@ -26,8 +26,8 @@
      ============================================================ */
   var I18N = {
     en: {
-      page_title: "PrimeGuard Preservation LLC. Property Services in Miami-Dade",
-      meta_desc: "Pressure washing, lawn care, junk removal, make-ready cleaning, and handyman services across Miami-Dade County. Plus SAM.gov-registered federal contracting. Upfront pricing, photo proof on every visit.",
+      page_title: "PrimeGuard Preservation LLC. Property Services in Miami-Dade & Broward",
+      meta_desc: "Pressure washing, lawn care, junk removal, make-ready cleaning, and handyman services across Miami-Dade and Broward Counties. Plus SAM.gov-registered federal contracting. Upfront pricing, photo proof on every visit.",
       nav_services: "Services", nav_work: "Work", nav_reviews: "Reviews",
       nav_government: "Government", nav_about: "About", nav_contact: "Contact",
       nav_careers: "Careers",

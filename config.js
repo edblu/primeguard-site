@@ -13,7 +13,7 @@ window.SITE_CONFIG = {
   phoneHref: "tel:+17864229674",           // click-to-call link
   email: "primeguardllc.office@pgpbiz.com", // shown + used by the form
   hours: "Mon-Fri, 8:00\u00A0AM - 5:00\u00A0PM · Sat, 8:00\u00A0AM - 12:00\u00A0PM",
-  serviceArea: "Miami-Dade County, FL",
+  serviceArea: "Miami-Dade & Broward Counties, FL",
 
   // --- Phase 2 integrations (fill these in; site degrades gracefully if empty) ---
   leadEndpoint: "https://script.google.com/macros/s/AKfycbwoa49MG6y8_QIcyNKysYkWpIPmoWXc_R_9EslcKtcg0DulQDAuZNqNcg3k3VdBsb-D/exec",      // POST target for quote-form leads (JSON). Empty = mailto fallback.
