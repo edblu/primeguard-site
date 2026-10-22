@@ -222,6 +222,17 @@
         (/@/.test(q.customerContact || "") ? q.customerContact : "");
       if (preEmail) emailInput.value = preEmail;
     }
+    // SMS consent: pre-fill the mobile from the quote doc when we have
+    // one (customerPhone, or a phone-shaped contact / customerContact).
+    var phoneInput = $("qs-phone"), smsInput = $("qs-sms");
+    if (phoneInput) {
+      var phoneLike = function (s) {
+        return s && !/@/.test(s) && (s.replace(/\D/g, "").length >= 10) ? s : "";
+      };
+      var prePhone = q.customerPhone || q.phone ||
+        phoneLike(q.contact || "") || phoneLike(q.customerContact || "");
+      if (prePhone) phoneInput.value = prePhone;
+    }
 
     show($("qs-main"));
 
@@ -256,6 +267,12 @@
         show(err);
         return;
       }
+      var phoneVal = phoneInput ? phoneInput.value.trim() : "";
+      if (smsInput && smsInput.checked && phoneVal.replace(/\D/g, "").length < 10) {
+        err.textContent = "To get texts, add your 10-digit mobile number, or uncheck the text box to sign without texts.";
+        show(err);
+        return;
+      }
       var amountDueNow = choice === "deposit20" ? deposit : total;
       btn.disabled = true; btn.textContent = "Signing…";
       var picked = pickedAddons();
@@ -278,6 +295,15 @@
       upd.marketingOptIn = optIn;
       if (optIn && optinInput && optinInput.checked) {
         upd.marketingOptInAt = firebase.firestore.FieldValue.serverTimestamp();
+      }
+      // SMS consent rides along the same way: a blank phone never
+      // overwrites one on the doc, and an earlier opt-in is never
+      // wiped by an untouched box; only a fresh check timestamps it.
+      if (phoneVal) upd.customerPhone = phoneVal;
+      var smsOptIn = !!((smsInput && smsInput.checked) || q.smsOptIn === true);
+      upd.smsOptIn = smsOptIn;
+      if (smsOptIn && smsInput && smsInput.checked) {
+        upd.smsOptInAt = firebase.firestore.FieldValue.serverTimestamp();
       }
       ref.update(upd).then(function () {
         hide($("qs-main"));
