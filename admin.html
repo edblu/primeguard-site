@@ -624,6 +624,7 @@
   <button class="pg-nav-item" type="button" data-atab="work">Work orders <span class="cnt-b" id="pg-nav-b-work-review" style="display:none;background:#c0392b;color:#fff">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="quotes">Quotes to review <span class="cnt-b" id="pg-nav-b-quotes">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="vendors">Vendors <span class="cnt-b" id="pg-nav-b-vendors">0</span></button>
+  <button class="pg-nav-item" type="button" data-atab="vprogress">Vendor Progress</button>
   <button class="pg-nav-item" type="button" data-atab="followups">Tasks <span class="cnt-b" id="pg-nav-b-followups">0</span></button>
   <button class="pg-nav-item" type="button" data-atab="customers">CRM</button>
   <button class="pg-nav-item" type="button" data-atab="contracts">Contracts <span class="cnt-b" id="pg-nav-b-contracts" style="display:none">0</span></button>
@@ -1071,6 +1072,63 @@
   </section>
   </div>
 
+  <!-- Vendor Progress (v90): view B progress list + view C vendor file.
+       Styles ride here so the build touches only admin.html + admin.js. -->
+  <style>
+  .vp-row{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--line-soft,rgba(127,127,127,.14))}
+  .vp-row:last-child{border-bottom:none}
+  .vp-main{flex:1;min-width:0}
+  .vp-name{background:none;border:0;padding:0;font:inherit;font-weight:700;font-size:.95rem;color:var(--text);cursor:pointer;text-align:left}
+  .vp-name:hover{color:var(--gold-bright)}
+  .vp-pills{margin-top:6px;line-height:1.9}
+  .vp-na{background:rgba(127,127,127,.14);color:var(--muted)}
+  .vp-bar-row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .vp-bar{display:inline-block;width:170px;max-width:55vw;height:10px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden;vertical-align:middle}
+  .vp-bar i{display:block;height:100%;background:linear-gradient(90deg,#ffd968,#d9ab2b);border-radius:999px}
+  .vp-pct{font-size:.8rem;font-weight:700;color:var(--gold-bright)}
+  .vp-sub{font-size:.8rem;color:var(--muted);margin-top:6px}
+  .vp-act{flex-shrink:0;text-align:right}
+  .vp-fu{margin:4px 0 12px;padding:12px;border:1px solid var(--line-soft,rgba(127,127,127,.14));border-radius:12px;background:var(--bg-2,rgba(127,127,127,.05))}
+  .vp-fu-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0}
+  .vp-fu-lab{width:74px;flex-shrink:0;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .vp-fu input{font:inherit;font-size:.88rem;padding:6px 9px;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--card,#fff);color:var(--text)}
+  .vp-fu-text{flex:1;min-width:180px}
+  .vp-fumsg{margin:6px 0 0;font-size:.82rem;min-height:1em}
+  .vp-check{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft,rgba(127,127,127,.14));font-size:.9rem}
+  .vp-check:last-child{border-bottom:none}
+  .vp-tl{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-soft,rgba(127,127,127,.14));font-size:.88rem}
+  .vp-tl:last-child{border-bottom:none}
+  .vp-tl-d{width:64px;flex-shrink:0;font-weight:700;color:var(--gold-bright);font-size:.8rem}
+  .wop{margin:2px 0}
+  .wop-track{height:8px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden}
+  .wop-track i{display:block;height:100%;background:linear-gradient(90deg,#ffd968,#d9ab2b)}
+  .wop-track.wop-dead i{background:#b03a2e}
+  .wop-cells{display:flex;justify-content:space-between;margin-top:8px;gap:4px}
+  .wop-cell{flex:1;text-align:center;color:var(--faint)}
+  .wop-cell .wop-dot{display:block;width:11px;height:11px;margin:0 auto 4px;border-radius:50%;border:2px solid var(--faint);background:transparent;box-sizing:border-box}
+  .wop-cell.on{color:var(--text)}
+  .wop-cell.on .wop-dot{background:#d9ab2b;border-color:#d9ab2b}
+  .wop-cell.cur{color:var(--gold-bright);font-weight:700}
+  .wop-cell.cur .wop-dot{background:#d9ab2b;border-color:#d9ab2b;box-shadow:0 0 0 4px rgba(201,162,75,.30)}
+  .wop-lab{display:block;font-size:.72rem}
+  .wop-ts{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
+  .wop-cur{margin-top:8px;font-size:.84rem;color:var(--muted)}
+  .wop-mini{margin-top:8px}
+  .wop-mini-lab{font-size:.76rem;color:var(--muted);margin-top:4px}
+  </style>
+  <div id="atab-vprogress" class="hidden">
+  <div class="pg-pagehead" id="pghead-vprogress"></div>
+  <section class="asec">
+    <div id="ad-vp-listwrap">
+      <div class="acard"><div id="ad-vp-list"><p style="color:var(--faint)">Loading…</p></div></div>
+    </div>
+    <div id="ad-vp-filewrap" class="hidden">
+      <button class="mini" type="button" id="ad-vp-back">&#8249; Back to all vendors</button>
+      <div id="ad-vp-file" style="margin-top:12px"></div>
+    </div>
+  </section>
+  </div>
+
   <div id="atab-followups" class="hidden">
   <div class="pg-pagehead" id="pghead-followups"></div>
   <section class="asec" style="padding-bottom:60px">
@@ -1403,10 +1461,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=89"></script>
+<script src="admin.js?v=90"></script>
 <script>
 (function () {
-  var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "followups", "customers", "calendar", "team", "activity", "traffic"];
+  var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];
   function showTab(name) {
     tabs.forEach(function (t) {
       var el = document.getElementById("atab-" + t);
