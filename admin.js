@@ -43,7 +43,7 @@
   (function navEmoji() {
     var EMOJI = {
       home: "\u{1F3E0}", hotleads: "\u{1F525}", work: "\u{1F4BC}",
-      quotes: "\u{1F4DD}", vendors: "\u{1F477}", followups: "\u2705",
+      quotes: "\u{1F4DD}", vendors: "\u{1F477}", vprogress: "\u{1F4CA}", followups: "\u2705",
       customers: "\u{1F465}", contracts: "\u{1F4C4}", calendar: "\u{1F4C5}",
       team: "\u{1F91D}", activity: "\u{1F440}", referrals: "\u{1F381}",
       traffic: "\u{1F4C8}"
@@ -268,7 +268,7 @@
     liveCache = {};
   }
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); loadVendorProgress(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -4488,6 +4488,7 @@
       var ckPct = Math.round(ckDone / ckTotal * 100);
       html += row("Checklist", '<span style="display:inline-block;vertical-align:middle;width:130px;height:8px;border-radius:999px;background:#efe9da;overflow:hidden;margin-right:8px"><i style="display:block;height:100%;width:' + ckPct + '%;background:linear-gradient(90deg,#ffd968,#d9ab2b)"></i></span>' + ckDone + "/" + ckTotal + " steps");
     }
+    html += row("Progress", woProgressHtml(w, woId, false));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
@@ -4687,6 +4688,7 @@
           '<span class="hlq-head-right"><button type="button" class="mini woq-open-btn" data-woopen="' + it.id + '" aria-expanded="' + (isOpen ? "true" : "false") + '">' + (isOpen ? "Close" : "Open") + "</button>" +
           pill(w.status) + woStageChip(w) + "</span></div>" +
         (metaLine || mediaHtml ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + "</div>" : "") +
+        woProgressHtml(w, it.id, true) +
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
         '<div class="hlq-actions">' +
           '<button type="button" class="mini hlq-action hlq-action-primary" data-wonotes="' + it.id + '">Notes</button>' +
@@ -6681,6 +6683,19 @@
         pgChip("Active vendors", vActive, 'data-pgchip="scroll:ad-vendor-list"') +
         pgChip("Awaiting approval", vPending, 'data-pgchip="scroll:ad-vendor-list"') +
         pgChip("Archived", archivedVendors.length, 'data-pgchip="vendarch"'));
+      // Vendor Progress: bench + follow-up counts from the same caches.
+      var vpAll = pgSnapDocs("vendors").filter(function (r) {
+        var s2 = r.d.status || (r.d.verified ? "approved" : "pending");
+        return s2 !== "archived" && s2 !== "rejected";
+      });
+      var vpFuDue = 0;
+      pgTaskItems().open.forEach(function (it) {
+        if (it.entityType === "vendor" && tkDueMeta(it.due, localDateKey(new Date())).group <= 1) vpFuDue++;
+      });
+      pgRenderHead("vprogress", "Crew bench", "Vendor Progress",
+        "Every vendor's setup, jobs, and follow-ups in one list. Tap a name to open the full file.",
+        pgChip("Vendors", vpAll.length, 'data-pgchip="scroll:ad-vp-list"') +
+        pgChip("Follow-ups due", vpFuDue, 'data-pgchip="tab:followups"'));
       // Calendar: view + action chips (the tab's own buttons, clicked).
       pgRenderHead("calendar", "Schedule", "Calendar",
         "The PrimeGuard Google calendar, right in the dashboard. Tap a day to see its appointments; tap one for details.",
@@ -6819,6 +6834,432 @@
     var el = e.target && e.target.closest ? e.target.closest("[data-pgtile]") : null;
     if (el) { e.preventDefault(); pgTileRoute(el.getAttribute("data-pgtile")); }
   });
+  /* ---------- Job progress bar (v90) ----------
+     Where a job is sitting right now, from the stamps already on the
+     work order doc: Assigned (vendorNotifiedAt / vendorId) -> Accepted
+     (acceptedAt) -> On the way (enRouteAt) -> Arrived (arrivedAt) ->
+     Submitted (completedAt, stamped when the vendor marks complete;
+     for estimate orders, the vendor's quote doc for this order) ->
+     Completed (status "done"). Verified and Paid are NOT stages here:
+     nothing on the work order records either one, so the bar does not
+     pretend otherwise. Stages light in order up to the furthest stage
+     the data supports; a stage shows a time only when its own stamp
+     exists. */
+  function woProgressStages(w, woId) {
+    var st = woStatusValue(w);
+    var isQuote = w.kind === "quote_request";
+    var quoteMs = 0;
+    if (isQuote && woId) {
+      pgSnapDocs("quotes").forEach(function (r) {
+        if (r.d && r.d.workOrderId === woId) {
+          var m = tsMs(r.d.createdAt);
+          if (m && (!quoteMs || m < quoteMs)) quoteMs = m;
+        }
+      });
+    }
+    var stages = [
+      { label: "Assigned", ms: tsMs(w.vendorNotifiedAt) },
+      { label: "Accepted", ms: tsMs(w.acceptedAt) },
+      { label: "On the way", ms: tsMs(w.enRouteAt) },
+      { label: "Arrived", ms: tsMs(w.arrivedAt) },
+      { label: isQuote ? "Price in" : "Submitted", ms: tsMs(w.completedAt) || quoteMs },
+      { label: "Completed", ms: 0 }
+    ];
+    var idx = -1;
+    if (w.vendorId || w.vendorNotifiedAt) idx = 0;
+    if (stages[1].ms || ["accepted", "evaluation_accepted", "in_progress", "scheduled", "en_route", "arrived", "review", "done"].indexOf(st) >= 0) idx = Math.max(idx, 1);
+    if (stages[2].ms || ["en_route", "arrived", "review", "done"].indexOf(st) >= 0) idx = Math.max(idx, 2);
+    if (stages[3].ms || ["arrived", "review", "done"].indexOf(st) >= 0) idx = Math.max(idx, 3);
+    if (stages[4].ms || st === "review" || st === "done") idx = Math.max(idx, 4);
+    if (st === "done") idx = 5;
+    return { stages: stages, idx: idx, status: st };
+  }
+  function woProgressHtml(w, woId, mini) {
+    if (!w) return "";
+    var p = woProgressStages(w, woId);
+    var dead = p.status === "declined" || p.status === "cancelled";
+    var pct = p.idx < 0 ? 0 : Math.round((p.idx + 1) / p.stages.length * 100);
+    var cur = p.idx < 0 ? "Not sent yet" : (dead ? String(p.status).replace(/_/g, " ") : p.stages[p.idx].label);
+    var track = '<div class="wop-track' + (dead ? " wop-dead" : "") + '"><i style="width:' + pct + '%"></i></div>';
+    if (mini) {
+      return '<div class="wop-mini">' + track +
+        '<div class="wop-mini-lab">Stage: <strong>' + esc(cur) + "</strong> · " + pct + "%</div></div>";
+    }
+    var cells = p.stages.map(function (s, i) {
+      var cls = i <= p.idx ? (i === p.idx && !dead ? "wop-cell cur" : "wop-cell on") : "wop-cell";
+      var when = s.ms ? new Date(s.ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+      return '<div class="' + cls + '"><span class="wop-dot"></span><span class="wop-lab">' + esc(s.label) + "</span>" +
+        (when ? '<span class="wop-ts">' + esc(when) + "</span>" : "") + "</div>";
+    }).join("");
+    return '<div class="wop">' + track + '<div class="wop-cells">' + cells + "</div>" +
+      '<div class="wop-cur">Current stage: <strong>' + esc(cur) + "</strong> · " + pct + "%</div></div>";
+  }
+
+  /* ---------- Vendor Progress (v90): view B list + view C file ----------
+     One row per registered vendor: checklist pills (W-9, payout,
+     agreements, COI when insured), a visual setup bar, jobs done,
+     last activity, and a Follow up panel (set a dated follow-up, log
+     a note, copy the phone). Tapping a row opens the vendor file:
+     full checklist, payout line, and a timeline built only from real
+     Firestore events. Follow-ups and notes reuse the shared
+     item_notes plumbing (entityType "vendor"), the same store the
+     vendor modal writes and the Tasks page reads, so a follow-up set
+     here shows up on the Tasks page with no extra wiring. */
+  var vpVendors = null;      // [{ id, v }] from this view's own vendors listener
+  var vpWoByVendor = {};     // vendorId -> [{ id, d }] work orders
+  var vpNotesByVendor = {};  // vendorId -> [item_notes data, entityType "vendor"]
+  var vpFileId = null;       // vendor id whose file (view C) is open
+  var vpFuOpenFor = null;    // vendor id whose quick-action panel is open
+
+  function vpParseDayMs(x) {
+    if (!x) return 0;
+    var ms = tsMs(x);
+    if (ms) return ms;
+    var s = String(x).slice(0, 10), p = s.split("-");
+    if (p.length === 3) { var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); return isNaN(d.getTime()) ? 0 : d.getTime(); }
+    var d2 = new Date(x);
+    return isNaN(d2.getTime()) ? 0 : d2.getTime();
+  }
+  function vpDayLabel(ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" }) : ""; }
+  function vpPill(cls, txt) { return '<span class="home-pill ' + cls + '">' + esc(txt) + "</span>"; }
+  function vpW9State(v) {
+    if (vdW9On(v)) return { on: true, html: vpPill("home-pill-green", "W-9 in ✓") };
+    var dueMs = vpParseDayMs(v.w9Due);
+    if (dueMs) {
+      var today = localDateKey(new Date()), dueKey = localDateKey(new Date(dueMs));
+      if (dueKey < today) return { on: false, html: vpPill("home-pill-red", "W-9 overdue · due " + vpDayLabel(dueMs)) };
+      if (dueKey === today) return { on: false, html: vpPill("home-pill-gold", "W-9 due today") };
+      return { on: false, html: vpPill("home-pill-gold", "W-9 due " + vpDayLabel(dueMs)) };
+    }
+    return { on: false, html: vpPill("home-pill-gold", "W-9 pending") };
+  }
+  function vpPayState(v) {
+    if (!v.payoutMethod) return { on: false, html: vpPill("home-pill-red", "Payout not set") };
+    var lbl = { zelle: "Zelle", ach: "Bank transfer", check: "Check" }[v.payoutMethod] || v.payoutMethod;
+    return { on: true, html: vpPill("home-pill-green", "Payout " + lbl + " ✓") };
+  }
+  function vpAgrState(v) {
+    if (vdAgrOn(v)) return { on: true, html: vpPill("home-pill-green", "Agreements signed ✓") };
+    return { on: false, html: vpPill("home-pill-gold", "Agreements open") };
+  }
+  function vpCoiState(v) {
+    if (vdCoiOn(v)) return { on: true, html: vpPill("home-pill-green", "COI on file ✓") };
+    return { on: false, html: vpPill("home-pill-gold", "COI pending") };
+  }
+  function vpSetup(v) {
+    var items = [
+      { key: "w9", label: "W-9", st: vpW9State(v) },
+      { key: "payout", label: "Payout", st: vpPayState(v) },
+      { key: "agr", label: "Agreements", st: vpAgrState(v) }
+    ];
+    if (v.insured === "yes") items.push({ key: "coi", label: "COI", st: vpCoiState(v) });
+    var done = 0;
+    items.forEach(function (it) { if (it.st.on) done++; });
+    return { items: items, done: done, total: items.length, pct: items.length ? Math.round(done / items.length * 100) : 0 };
+  }
+  function vpBarHtml(pct) {
+    return '<span class="vp-bar"><i style="width:' + pct + '%"></i></span><span class="vp-pct">' + pct + "% set up</span>";
+  }
+  function vpJobsDone(id) {
+    var n = 0;
+    (vpWoByVendor[id] || []).forEach(function (it) { if (it.d.status === "done") n++; });
+    return n;
+  }
+  function vpLastActivity(id, v) {
+    var best = { ms: 0, label: "" };
+    function consider(ms, label) { if (ms && ms > best.ms) best = { ms: ms, label: label }; }
+    consider(tsMs(v.createdAt), "registered " + vpDayLabel(tsMs(v.createdAt)));
+    consider(tsMs(v.payoutUpdatedAt), "payout saved " + vpDayLabel(tsMs(v.payoutUpdatedAt)));
+    (vpWoByVendor[id] || []).forEach(function (it) {
+      var w = it.d, t = w.title || "a job";
+      consider(tsMs(w.completedAt), "submitted " + t + ", " + vpDayLabel(tsMs(w.completedAt)));
+      consider(tsMs(w.acceptedAt), "accepted " + t + ", " + vpDayLabel(tsMs(w.acceptedAt)));
+      consider(tsMs(w.createdAt), "work order: " + t + ", " + vpDayLabel(tsMs(w.createdAt)));
+    });
+    (vpNotesByVendor[id] || []).forEach(function (n) {
+      consider(tsMs(n.createdAt), (n.kind === "call" ? "call logged " : "note added ") + vpDayLabel(tsMs(n.createdAt)));
+    });
+    return best;
+  }
+  function vpNextFollowUp(id) {
+    var best = null;
+    (vpNotesByVendor[id] || []).forEach(function (n) {
+      if (n.followUpDone || !n.followUpOn) return;
+      if (!best || n.followUpOn < best) best = n.followUpOn;
+    });
+    if (!best) return null;
+    var today = localDateKey(new Date());
+    var meta = tkDueMeta(best, today);
+    return {
+      key: best, cls: meta.cls, overdue: meta.group === 0, dueToday: meta.group === 1,
+      label: meta.group === 0 ? "Follow-up overdue · " + fmtFollowDate(best) : (meta.group === 1 ? "Follow-up due today" : "Follow-up " + fmtFollowDate(best))
+    };
+  }
+  function vpLabel(v) { return (v && (v.business || v.name)) || "Vendor"; }
+  function vpFind(id) {
+    var rec = null;
+    (vpVendors || []).forEach(function (r) { if (r.id === id) rec = r; });
+    return rec;
+  }
+  // Quick-action panel, shared by the list rows and the vendor file.
+  // Inputs are found relative to the panel (no global ids), so the two
+  // copies can never read each other's fields.
+  function vpFuPanelHtml(id, v) {
+    var phone = v.phone || "";
+    return '<div class="vp-fu">' +
+      '<div class="vp-fu-row"><span class="vp-fu-lab">Phone</span>' +
+      (phone ? "<strong>" + esc(phone) + '</strong> <button type="button" class="mini" data-vpcopy="' + esc(phone) + '">Copy</button>'
+             : '<span class="sr-faint">No phone on file</span>') + "</div>" +
+      '<div class="vp-fu-row"><span class="vp-fu-lab">Follow-up</span>' +
+      '<input type="date" class="vp-fudate"> ' +
+      '<input type="text" class="vp-futext vp-fu-text" placeholder="What to follow up on…"> ' +
+      '<button type="button" class="mini hlq-action hlq-action-primary" data-vpfusave="' + esc(id) + '">Save follow-up</button></div>' +
+      '<div class="vp-fu-row"><span class="vp-fu-lab">Note</span>' +
+      '<input type="text" class="vp-notetext vp-fu-text" placeholder="Log a note…"> ' +
+      '<button type="button" class="mini" data-vpnotesave="' + esc(id) + '">Save note</button></div>' +
+      '<p class="vp-fumsg sr-faint"></p></div>';
+  }
+  // Snapshot re-renders must not eat text being typed into a panel.
+  function vpCaptureInputs(root) {
+    var vals = {};
+    if (!root || !root.querySelectorAll) return vals;
+    root.querySelectorAll(".vp-fu input").forEach(function (el, i) { vals[el.className + "|" + i] = el.value; });
+    return vals;
+  }
+  function vpRestoreInputs(root, vals) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll(".vp-fu input").forEach(function (el, i) {
+      var k = el.className + "|" + i;
+      if (vals[k]) el.value = vals[k];
+    });
+  }
+  function renderVendorProgress() {
+    var box = $("ad-vp-list");
+    if (!box) return;
+    if (vpVendors === null) { box.innerHTML = '<p style="color:var(--faint)">Loading…</p>'; return; }
+    var rows = vpVendors.filter(function (r) {
+      var st = vStatus(r.v);
+      return st !== "archived" && st !== "rejected";
+    });
+    if (!rows.length) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
+    rows.sort(function (a, b) {
+      var fa = vpNextFollowUp(a.id), fb = vpNextFollowUp(b.id);
+      var ra = fa ? (fa.overdue ? 0 : (fa.dueToday ? 1 : 2)) : 3;
+      var rb = fb ? (fb.overdue ? 0 : (fb.dueToday ? 1 : 2)) : 3;
+      if (ra !== rb) return ra - rb;
+      var pa = vpSetup(a.v).pct, pb = vpSetup(b.v).pct;
+      if (pa !== pb) return pa - pb;
+      return vpLabel(a.v).localeCompare(vpLabel(b.v));
+    });
+    var keep = vpCaptureInputs(box);
+    box.innerHTML = rows.map(function (r) {
+      var v = r.v, id = r.id, su = vpSetup(v), st = vStatus(v);
+      var act = vpLastActivity(id, v), fu = vpNextFollowUp(id);
+      var pills = su.items.map(function (it) { return it.st.html; }).join(" ");
+      if (v.insured !== "yes") pills += ' <span class="home-pill vp-na">COI n/a</span>';
+      var h = '<div class="vp-row"><div class="vp-main">' +
+        '<button type="button" class="vp-name" data-vpopen="' + esc(id) + '">' + esc(v.name || vpLabel(v)) +
+        (v.business && v.name && v.business !== v.name ? " · " + esc(v.business) : "") + "</button> " + pill(st) +
+        '<div class="vp-pills">' + pills + "</div>" +
+        '<div class="vp-bar-row">' + vpBarHtml(su.pct) + "</div>" +
+        '<div class="vp-sub">Jobs done: ' + vpJobsDone(id) +
+        (act.label ? " · Last activity: " + esc(act.label) : " · No activity yet") +
+        (fu ? ' · <span class="pill ' + fu.cls + '">' + esc(fu.label) + "</span>" : "") + "</div>" +
+        "</div>" +
+        '<div class="vp-act">' +
+        '<button type="button" class="mini hlq-action hlq-action-primary" data-vpfu="' + esc(id) + '">Follow up</button> ' +
+        '<button type="button" class="mini hlq-action hlq-action-ghost" data-vpopen="' + esc(id) + '">Open</button>' +
+        "</div></div>";
+      if (vpFuOpenFor === id) h += vpFuPanelHtml(id, v);
+      return h;
+    }).join("");
+    vpRestoreInputs(box, keep);
+    if (vpFileId) renderVpFile();
+  }
+  function vpPayoutLine(v) {
+    if (v.payoutMethod === "zelle") return "Zelle · " + (v.payoutZelle || "") + (v.payoutName ? " (" + v.payoutName + ")" : "");
+    if (v.payoutMethod === "ach") return "Bank transfer · " + (v.payoutBankName || "") + (v.payoutAccount ? " …" + String(v.payoutAccount).slice(-4) : "") + (v.payoutName ? " (" + v.payoutName + ")" : "");
+    if (v.payoutMethod === "check") return "Check by mail · " + (v.address || "address on file");
+    return "not set yet, the vendor completes it in their portal setup checklist";
+  }
+  function vpTimeline(id, v) {
+    var ev = [];
+    function add(ms, title, sub) { if (ms) ev.push({ ms: ms, title: title, sub: sub || "" }); }
+    add(tsMs(v.createdAt), "Registered", "Status: " + vStatus(v));
+    if (!vdW9On(v)) add(vpParseDayMs(v.w9Due), "W-9 due", "");
+    if (v.agreements && v.agreements.signedAt) add(tsMs(v.agreements.signedAt), "Agreements signed", v.agreements.signedName || "");
+    add(tsMs(v.payoutUpdatedAt), "Payout details saved", v.payoutMethod || "");
+    (vpWoByVendor[id] || []).forEach(function (it) {
+      var w = it.d, t = w.title || "Work order";
+      add(tsMs(w.createdAt), "Work order: " + t, "Status: " + String(w.status || "open").replace(/_/g, " "));
+      add(tsMs(w.acceptedAt), "Accepted: " + t, "");
+      add(tsMs(w.scheduledAt) || tsMs(w.scheduledFor), "Scheduled: " + t, "");
+      add(tsMs(w.enRouteAt), "On the way: " + t, "");
+      add(tsMs(w.arrivedAt), "Arrived: " + t, "");
+      add(tsMs(w.completedAt), "Submitted for review: " + t, "");
+      (Array.isArray(w.visitLog) ? w.visitLog : []).forEach(function (en) {
+        if (!en) return;
+        add(tsMs(en.completedAt) || tsMs(en.visitDate), "Visit completed: " + t, en.note || "");
+      });
+    });
+    (vpNotesByVendor[id] || []).forEach(function (n) {
+      var title = n.kind === "call" ? "Call · " + outcomeLabel(n.outcome) : (n.followUpOn ? "Follow-up set for " + fmtFollowDate(n.followUpOn) : "Note");
+      add(tsMs(n.createdAt), title, n.text || "");
+      if (n.followUpDone) add(tsMs(n.completedAt), "Follow-up completed", n.text || "");
+    });
+    ev.sort(function (a, b) { return b.ms - a.ms; });
+    return ev.slice(0, 40);
+  }
+  function renderVpFile() {
+    var wrap = $("ad-vp-file"), listWrap = $("ad-vp-listwrap"), fileWrap = $("ad-vp-filewrap");
+    if (!wrap || !vpFileId) return;
+    var rec = vpFind(vpFileId);
+    if (!rec) {
+      vpFileId = null;
+      if (fileWrap) fileWrap.classList.add("hidden");
+      if (listWrap) listWrap.classList.remove("hidden");
+      return;
+    }
+    var v = rec.v, id = rec.id, su = vpSetup(v), st = vStatus(v);
+    var checkRows = su.items.map(function (it) {
+      return '<div class="vp-check"><span>' + esc(it.label) + "</span>" + it.st.html + "</div>";
+    }).join("");
+    if (v.insured !== "yes") checkRows += '<div class="vp-check"><span>COI</span><span class="home-pill vp-na">n/a · not insured</span></div>';
+    var ev = vpTimeline(id, v);
+    var tl = ev.length ? ev.map(function (e) {
+      return '<div class="vp-tl"><div class="vp-tl-d">' + esc(new Date(e.ms).toLocaleDateString([], { month: "short", day: "numeric" })) + '</div><div><strong>' + esc(e.title) + "</strong>" +
+        (e.sub ? '<br><span class="sr-faint">' + esc(e.sub) + "</span>" : "") + "</div></div>";
+    }).join("") : '<p class="sr-faint">Nothing on this file yet.</p>';
+    var keep = vpCaptureInputs(wrap);
+    wrap.innerHTML =
+      '<div class="acard"><h3 style="margin:0 28px 4px 0">' + esc(v.name || vpLabel(v)) + (v.business && v.business !== v.name ? " · " + esc(v.business) : "") + "</h3>" +
+      '<p class="sr-meta">' + pill(st) + "<span>" + esc((v.services || []).join(", ")) +
+      (v.areas && v.areas.length ? " · " + esc(v.areas.join(", ")) : "") +
+      (tsMs(v.createdAt) ? " · registered " + esc(new Date(tsMs(v.createdAt)).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) : "") + "</span></p>" +
+      '<div class="vp-bar-row">' + vpBarHtml(su.pct) + '<span class="vp-sub" style="margin-top:0">Jobs done: ' + vpJobsDone(id) + "</span></div>" +
+      '<div class="sr-card"><h4>Setup checklist</h4>' + checkRows +
+      '<p style="margin-top:10px"><strong>Payout:</strong> ' + esc(vpPayoutLine(v)) + "</p>" +
+      '<p><strong>Insurance:</strong> ' + esc(v.insured === "yes" ? "Carries general liability" : "Not currently insured") + "</p>" +
+      (v.phone ? '<p><strong>Phone:</strong> ' + esc(v.phone) + ' <button type="button" class="mini" data-vpcopy="' + esc(v.phone) + '">Copy</button></p>' : "") +
+      (v.email ? '<p><strong>Email:</strong> ' + esc(v.email) + "</p>" : "") + "</div>" +
+      '<div class="sr-card"><h4>Follow up &amp; notes</h4>' + vpFuPanelHtml(id, v) + "</div>" +
+      '<div class="sr-card"><h4>Timeline</h4>' + tl + "</div></div>";
+    vpRestoreInputs(wrap, keep);
+    if (listWrap) listWrap.classList.add("hidden");
+    if (fileWrap) fileWrap.classList.remove("hidden");
+  }
+  function vpOpenFile(id) { vpFileId = id; renderVpFile(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function vpCloseFile() {
+    vpFileId = null;
+    var listWrap = $("ad-vp-listwrap"), fileWrap = $("ad-vp-filewrap");
+    if (fileWrap) fileWrap.classList.add("hidden");
+    if (listWrap) listWrap.classList.remove("hidden");
+    renderVendorProgress();
+  }
+  function loadVendorProgress() {
+    liveOn("vp-vendors", db.collection("vendors").orderBy("createdAt", "desc").limit(50), function (qs) {
+      vpVendors = [];
+      qs.forEach(function (d) { vpVendors.push({ id: d.id, v: d.data() }); });
+      renderVendorProgress();
+    }, function () {
+      var box = $("ad-vp-list");
+      if (box && vpVendors === null) box.innerHTML = '<p style="color:var(--faint)">Vendor progress could not load yet. The database rules update may still need to be published.</p>';
+    });
+    liveOn("vp-wo", db.collection("work_orders").orderBy("createdAt", "desc").limit(300), function (qs) {
+      vpWoByVendor = {};
+      qs.forEach(function (d) {
+        var w = d.data();
+        if (!w.vendorId) return;
+        (vpWoByVendor[w.vendorId] = vpWoByVendor[w.vendorId] || []).push({ id: d.id, d: w });
+      });
+      renderVendorProgress();
+    }, function () {});
+    liveOn("vp-notes", db.collection("item_notes").where("entityType", "==", "vendor").limit(200), function (qs) {
+      vpNotesByVendor = {};
+      qs.forEach(function (d) {
+        var n = d.data();
+        if (!n.entityId) return;
+        (vpNotesByVendor[n.entityId] = vpNotesByVendor[n.entityId] || []).push(n);
+      });
+      renderVendorProgress();
+    }, function () {});
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var open = t.closest("[data-vpopen]");
+    if (open) { vpOpenFile(open.getAttribute("data-vpopen")); return; }
+    if (t.id === "ad-vp-back") { vpCloseFile(); return; }
+    var fu = t.closest("[data-vpfu]");
+    if (fu) {
+      var fid = fu.getAttribute("data-vpfu");
+      vpFuOpenFor = vpFuOpenFor === fid ? null : fid;
+      renderVendorProgress();
+      return;
+    }
+    var cp = t.closest("[data-vpcopy]");
+    if (cp) {
+      var num = cp.getAttribute("data-vpcopy") || "";
+      var doneCopy = function () { var old = cp.textContent; cp.textContent = "Copied ✓"; setTimeout(function () { cp.textContent = old; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(num).then(doneCopy, doneCopy);
+      else {
+        var ta = document.createElement("textarea");
+        ta.value = num;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (err) {}
+        document.body.removeChild(ta);
+        doneCopy();
+      }
+      return;
+    }
+    var fs = t.closest("[data-vpfusave]");
+    if (fs) {
+      var id1 = fs.getAttribute("data-vpfusave");
+      var panel1 = fs.closest(".vp-fu");
+      var dateEl = panel1 ? panel1.querySelector(".vp-fudate") : null;
+      var textEl = panel1 ? panel1.querySelector(".vp-futext") : null;
+      var msg1 = panel1 ? panel1.querySelector(".vp-fumsg") : null;
+      var key = dateEl ? dateEl.value : "";
+      if (!key) { if (msg1) msg1.textContent = "Pick a follow-up date first."; return; }
+      var rec1 = vpFind(id1);
+      fs.disabled = true;
+      saveItemNote({
+        entityType: "vendor", entityId: id1, entityLabel: rec1 ? vpLabel(rec1.v) : "Vendor",
+        kind: "note", outcome: "", text: textEl ? textEl.value.trim() : "",
+        followUpOn: key
+      }).then(function () {
+        logActivity("Set a vendor follow-up (" + fmtFollowDate(key) + "): " + (rec1 ? vpLabel(rec1.v) : id1));
+        if (msg1) msg1.textContent = "Follow-up saved for " + fmtFollowDate(key) + ". It is on the Tasks page too.";
+        loadFollowUps();
+      }).catch(function (err) {
+        if (msg1) msg1.textContent = "Could not save: " + (err.message || err);
+      }).finally(function () { fs.disabled = false; });
+      return;
+    }
+    var ns = t.closest("[data-vpnotesave]");
+    if (ns) {
+      var id2 = ns.getAttribute("data-vpnotesave");
+      var panel2 = ns.closest(".vp-fu");
+      var noteEl = panel2 ? panel2.querySelector(".vp-notetext") : null;
+      var msg2 = panel2 ? panel2.querySelector(".vp-fumsg") : null;
+      var txt = noteEl ? noteEl.value.trim() : "";
+      if (!txt) { if (msg2) msg2.textContent = "Write the note first."; return; }
+      var rec2 = vpFind(id2);
+      ns.disabled = true;
+      saveItemNote({
+        entityType: "vendor", entityId: id2, entityLabel: rec2 ? vpLabel(rec2.v) : "Vendor",
+        kind: "note", outcome: "", text: txt, followUpOn: null
+      }).then(function () {
+        logActivity("Added a note on vendor " + (rec2 ? vpLabel(rec2.v) : id2));
+        if (msg2) msg2.textContent = "Note saved.";
+        if (noteEl) noteEl.value = "";
+      }).catch(function (err) {
+        if (msg2) msg2.textContent = "Could not save: " + (err.message || err);
+      }).finally(function () { ns.disabled = false; });
+    }
+  });
+
   window.pg83 = { renderPageHeads: renderPageHeads, pgPeopleRows: pgPeopleRows, pgChipRoute: pgChipRoute, pgTileRoute: pgTileRoute, pgTaskItems: pgTaskItems };
 })();
 
