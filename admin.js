@@ -59,6 +59,29 @@
       s.textContent = ic;
       b.insertBefore(s, b.firstChild);
     });
+    // Open section links (Edwin, Oct 23): the globe, the Books and Ava Chat
+    // links carry no data-atab, so the map above never reached them and
+    // they rendered with an empty slot. Give them their own glyphs.
+    var LINK_EMOJI = [
+      ["earth.google.com", "\u{1F30D}"],
+      ["primeguard-books", "\u{1F4DA}"],
+      ["/bridge.html", "\u{1F4AC}"]
+    ];
+    document.querySelectorAll(".pg-nav-item[href]").forEach(function (b) {
+      if (b.dataset.emojiDone) return;
+      var href = b.getAttribute("href") || "";
+      for (var i = 0; i < LINK_EMOJI.length; i++) {
+        if (href.indexOf(LINK_EMOJI[i][0]) >= 0) {
+          b.dataset.emojiDone = "1";
+          var s3 = document.createElement("span");
+          s3.className = "tab-emoji";
+          s3.setAttribute("aria-hidden", "true");
+          s3.textContent = LINK_EMOJI[i][1];
+          b.insertBefore(s3, b.firstChild);
+          break;
+        }
+      }
+    });
     // Nav alignment (Edwin, Oct 19): sidebar items with no emoji of their
     // own (the two external links) get an EMPTY slot span, so their labels
     // start at the same x as every emoji item's label. No glyph is added.
