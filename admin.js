@@ -4001,7 +4001,7 @@
       openCal({
         title: (v.business || v.name || "Vendor") + " - meeting",
         address: v.address || "",
-        colorId: "3",
+        colorId: "8",
         notes: notes
       });
     });
@@ -5947,7 +5947,10 @@
     if (typeof window.openApptEditor === "function") window.openApptEditor(prefill);
   }
   function woColorId(category) {
-    var map = { "Lawn care": "10", "Pressure washing": "7", "Home maintenance": "5" };
+    // Legend colors (admin calendar legend): 10 lawn green, 7 pressure
+    // washing blue, 5 junk removal yellow, 6 home maintenance orange-red,
+    // 3 walkthrough/evaluation purple, 8 meeting/other gray.
+    var map = { "Lawn care": "10", "Pressure washing": "7", "Junk removal": "5", "Home maintenance": "6" };
     return map[category] || "8";
   }
   function calFromWorkOrder(id) {
@@ -5959,7 +5962,7 @@
       openCal({
         title: (w.title || "Work order") + " - " + (w.vendorBusiness || "Crew visit"),
         address: w.address || w.area || "",
-        colorId: woColorId(w.category),
+        colorId: w.kind === "quote_request" ? "3" : woColorId(w.category),
         notes: notes
       });
     });
@@ -5997,7 +6000,7 @@
     openCal({
       title: (d.name || "Lead") + " - estimate visit",
       address: d.address || d.area || "",
-      colorId: "6",
+      colorId: "3",
       notes: notes
     });
   }
@@ -7304,6 +7307,17 @@
   var ENDPOINT = (window.SITE_CONFIG && (window.SITE_CONFIG.photoEndpoint || window.SITE_CONFIG.leadEndpoint)) || "";
   var CAL_API_KEY = ""; // optional shared key; must match Script Property PG_CAL_KEY when that is set
   var COLORS = { "1": "#7986cb", "2": "#33b679", "3": "#8e24aa", "4": "#e67c73", "5": "#f6bf26", "6": "#f4511e", "7": "#039be5", "8": "#616161", "9": "#3f51b5", "10": "#188038", "11": "#d50000" };
+  function inferEvColor(ev) {
+    var t = ((ev && ev.summary) || "") + " " + ((ev && ev.description) || "");
+    t = t.toLowerCase();
+    if (/estimat|evaluat|walkthrough|walk-through|site visit/.test(t)) return "#8e24aa";
+    if (/pressure|power wash|driveway wash/.test(t)) return "#039be5";
+    if (/junk|haul|debris removal/.test(t)) return "#f6bf26";
+    if (/lawn|mow|grass|yard|landscap/.test(t)) return "#188038";
+    if (/maintenance|handyman|repair|install|cleaning|cleanout|make-ready|make ready/.test(t)) return "#f4511e";
+    return "#616161";
+  }
+  function evColor(ev) { return COLORS[ev.colorId] || inferEvColor(ev); }
   var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var now = new Date();
@@ -7489,7 +7503,7 @@
       html += '<div class="cal2-cell' + (d.getMonth() !== viewM ? " dim" : "") + (k === todayK ? " today" : "") + (k === selDay ? " sel" : "") + '" data-day="' + k + '">' +
         '<span class="cal2-dnum">' + d.getDate() + "</span>";
       list.slice(0, 3).forEach(function (ev) {
-        var c = COLORS[ev.colorId] || "#c9a227";
+        var c = evColor(ev);
         html += '<span class="cal2-ev" data-ev="' + esc(ev.id) + '" style="background:' + c + '">' + esc(evTime(ev)) + " " + esc(ev.summary || "(no title)") + "</span>";
       });
       if (list.length > 3) html += '<div class="cal2-more">+ ' + (list.length - 3) + " more below</div>";
@@ -7515,7 +7529,7 @@
     renderAgenda();
   }
   function evButtonHtml(ev) {
-    var c = COLORS[ev.colorId] || "#c9a227";
+    var c = evColor(ev);
     return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">· ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evWhenLabel(ev)) + (evDurLabel(ev) ? " \u00b7 " + esc(evDurLabel(ev)) : "") + "</span></button>";
   }
   function bindEvButtons(scope) {
@@ -7556,7 +7570,7 @@
     if (!list.length) html += '<p class="sub" style="margin:4px 0 8px">No appointments this day. Tap any hour to add one.</p>';
     allDay.forEach(function (ev) { html += evButtonHtml(ev); });
     function hourItem(ev) {
-      var c = COLORS[ev.colorId] || "#c9a227";
+      var c = evColor(ev);
       var dur = evDurLabel(ev);
       return '<button type="button" class="cal2-dayitem" data-ev="' + esc(ev.id) + '" style="margin-top:0;margin-bottom:6px"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + c + ';margin-right:8px"></i>' + esc(ev.summary || "(no title)") + (ev.location ? ' <span style="opacity:.7">\u00b7 ' + esc(ev.location) + "</span>" : "") + '</span><span style="opacity:.8;white-space:nowrap">' + esc(evRangeLabel(ev)) + (dur ? " \u00b7 " + esc(dur) : "") + "</span></button>";
     }
@@ -7600,7 +7614,7 @@
       });
       cols += '<div class="cal2-wcol' + (k === todayK ? " today" : "") + '"><div class="cal2-wday" data-wday="' + k + '">' + DAYS[d.getDay()] + '</div><div class="cal2-wdate" data-wday="' + k + '">' + d.getDate() + "</div>" +
         (list.length ? list.map(function (ev) {
-          var c = COLORS[ev.colorId] || "#c9a227";
+          var c = evColor(ev);
           var dur = evDurLabel(ev);
           return '<button type="button" class="cal2-wev" data-ev="' + esc(ev.id) + '" style="background:' + c + '">' + esc(ev.summary || "(no title)") + "<small>" + esc(evRangeLabel(ev)) + (dur ? " \u00b7 " + esc(dur) : "") + "</small></button>";
         }).join("") : '<div class="sub" style="font-size:12px">No appointments</div>') +
