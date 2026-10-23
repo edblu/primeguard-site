@@ -61,6 +61,9 @@
   .p-rev { background:rgba(255,180,120,.14); color:#ffc89a; }
   .p-done { background:rgba(140,220,150,.14); color:#a9e6b2; }
   .p-pend { background:rgba(201,162,75,.16); color:var(--gold-bright); }
+  .p-teal { background:rgba(14,124,134,.22); color:#7fd4dc; }
+  .p-bad { background:rgba(255,120,120,.14); color:#ff9d9d; }
+  .mini[disabled] { opacity:.55; cursor:default; }
   .mini { font-size:.8rem; padding:8px 16px; border-radius:999px; cursor:pointer; border:1px solid var(--line); background:transparent; color:var(--gold-bright); font-family:inherit; }
   .mini:hover { border-color:var(--gold); }
   .mini.danger { border-color:rgba(255,120,120,.4); color:#ff9d9d; }
@@ -166,6 +169,8 @@
   .pg-light .p-acc { background:#b8d4f0; color:#083b66; }
   .pg-light .p-rev { background:#fbe3bd; color:#7a4a08; }
   .pg-light .p-done { background:#bfe8cc; color:#14532a; }
+  .pg-light .p-teal { background:#cdeef0; color:#0b5560; }
+  .pg-light .p-bad { background:#fbdcdc; color:#8f1d1d; }
 
   /* Light theme, Apple finish */
   .pg-light body { background:#f5f5f7; background-color:#f5f5f7; }
@@ -1461,7 +1466,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=92"></script>
+<script src="admin.js?v=93"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];
