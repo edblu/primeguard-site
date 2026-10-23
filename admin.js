@@ -525,7 +525,8 @@
         if (!n.followUpOn) return;
         open.push({ src: "note", id: d.id, due: n.followUpOn, text: tkNoteDetail(n),
           entityType: n.entityType, entityId: n.entityId, entityLabel: n.entityLabel || "Item",
-          by: n.createdByEmail || "", createdMs: tsMs(n.createdAt), assignee: "", doneMs: 0 });
+          by: n.createdByEmail || "", createdMs: tsMs(n.createdAt), assignee: "", doneMs: 0,
+          aiStatus: n.aiStatus || "", aiAgent: n.aiAgent || "" });
       });
       res[1].forEach(function (d) {
         var n = d.data();
@@ -539,7 +540,8 @@
         var item = { src: "task", id: d.id, due: t.dueDate || today, text: t.details || "",
           entityType: t.entityType || null, entityId: t.entityId || null,
           entityLabel: t.title || "Task", by: t.createdBy || "", createdMs: tsMs(t.createdAt),
-          assignee: pgTaskAssigneeLabel(t), dueTime: t.dueTime || "", doneMs: tsMs(t.doneAt) };
+          assignee: pgTaskAssigneeLabel(t), dueTime: t.dueTime || "", doneMs: tsMs(t.doneAt),
+          aiStatus: t.aiStatus || "", aiAgent: t.aiAgent || "" };
         if (t.done) done.push(item); else open.push(item);
       });
       open.sort(function (a, b) {
@@ -627,6 +629,71 @@
     var mon = dt.toLocaleDateString([], { month: "short" });
     return '<div class="tk-rail"><div class="tk-dow">' + dow + '</div><div class="tk-day">' + dt.getDate() + '</div><div class="tk-mon">' + mon + "</div></div>";
   }
+  /* ----- "Handle it" (Edwin, Oct 23): hand a task to the AI -----
+     One click writes a request doc to ai_task_requests and stamps the
+     source task/note (aiRequestedAt/aiAgent/aiStatus) so the row can
+     show a live chip. Agent routing is by signed-in identity: Edwin
+     (the owner account) sends to JC; Natasha (the office account)
+     sends to Ava; any other staff defaults to JC. Duplicate sends are
+     blocked while a request is queued or working. */
+  var tkAiBusy = {};
+  function aiAgentForMe() {
+    var e = me && me.email ? String(me.email).toLowerCase() : "";
+    if (e === "primeguardllc.office@pgpbiz.com") return "Ava";
+    return "JC";
+  }
+  function aiHandleTask(source, id) {
+    if (!id) return;
+    var key = source + ":" + id;
+    if (tkAiBusy[key]) return;
+    tkAiBusy[key] = true;
+    var coll = source === "note" ? "item_notes" : "tasks";
+    var ref = db.collection(coll).doc(id);
+    var agent = aiAgentForMe();
+    ref.get().then(function (s) {
+      if (!s.exists) throw new Error("That task no longer exists.");
+      var data = s.data();
+      if (data.aiStatus === "queued" || data.aiStatus === "working") return null; // already with the AI
+      var taskText, entityLabel, dueOn;
+      if (source === "note") {
+        taskText = data.text || tkNoteDetail(data);
+        entityLabel = data.entityLabel || "Item";
+        dueOn = data.followUpOn || null;
+      } else {
+        taskText = data.title || "Task";
+        if (data.details) taskText += " \u2014 " + data.details;
+        entityLabel = data.entityName || data.title || "Task";
+        dueOn = data.dueDate || null;
+      }
+      return db.collection("ai_task_requests").add({
+        taskText: taskText,
+        taskRef: coll + "/" + id,
+        entityLabel: entityLabel,
+        dueOn: dueOn,
+        requestedBy: me ? me.email : "unknown",
+        requestedByName: me ? pgStaffName(me.email) : "unknown",
+        agent: agent,
+        status: "queued",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        return ref.update({
+          aiRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          aiAgent: agent,
+          aiStatus: "queued",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+    }).then(function () {
+      logActivity("Sent a task to " + agent + " (AI handle-it)");
+      delete tkAiBusy[key];
+      loadFollowUps();
+    }).catch(function (e2) {
+      delete tkAiBusy[key];
+      alert("Could not send this task to " + agent + ": " + (e2.message || e2));
+      loadFollowUps();
+    });
+  }
+
   function tkRow(it, today, isDone) {
     var meta = tkDueMeta(it.due, today);
     var sub = [];
@@ -644,8 +711,18 @@
       var whenCls = meta.group === 0 ? "tk-over" : (meta.group === 1 ? "tk-today" : "tk-future");
       links.push('<span class="tk-when ' + whenCls + '">' + esc(meta.label + (it.dueTime ? " · " + fmtTaskTime(it.dueTime) : "")) + "</span>");
     }
+    if (it.aiStatus) {
+      var aiCls = it.aiStatus === "working" ? "p-teal" : it.aiStatus === "done" ? "p-done" : it.aiStatus === "failed" ? "p-bad" : "p-pend";
+      links.push('<span class="pill ' + aiCls + '">Sent to ' + esc(it.aiAgent || "JC") + " · " + esc(it.aiStatus) + "</span>");
+    }
     if (it.entityType && it.entityId) {
       links.push('<button class="mini tk-link" data-fuopen="' + esc(it.entityType) + "|" + esc(it.entityId) + '">Open</button>');
+    }
+    if (!isDone) {
+      var aiBusy = it.aiStatus === "queued" || it.aiStatus === "working" || tkAiBusy[it.src + ":" + it.id];
+      var aiLabel = (it.aiStatus === "done" || it.aiStatus === "failed") ? "\u{1F916} Handle it again" : "\u{1F916} Handle it";
+      links.push('<button class="mini tk-link" data-aihandle="' + it.src + "|" + it.id + '"' + (aiBusy ? " disabled" : "") + ">" + aiLabel + "</button>");
+      links.push('<button class="mini tk-link" data-tkremove="' + it.src + "|" + it.id + '">Remove</button>');
     }
     if (isDone) {
       links.push(it.src === "note"
@@ -6213,6 +6290,25 @@
       }).then(function () { logActivity("Reopened a task"); loadFollowUps(); }).catch(function () {});
     }
     if (d.taskeditdate) { var tep = d.taskeditdate.split("|"); openTaskDateModal("task", tep[0], tep[1]); }
+    if (d.aihandle) { var ahp = String(d.aihandle).split("|"); aiHandleTask(ahp[0], ahp[1]); }
+    if (d.tkremove) {
+      var trp = String(d.tkremove).split("|");
+      if (trp[0] === "note") {
+        // Note follow-ups are file history: clearing the date removes the
+        // item from the Tasks queue, the note itself is NOT deleted.
+        if (confirm("Remove this follow-up? The note stays in the file.")) {
+          db.collection("item_notes").doc(trp[1]).update({
+            followUpOn: null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(function () { logActivity("Removed a follow-up from Tasks"); loadFollowUps(); })
+            .catch(function (e2) { alert("Could not remove this follow-up: " + (e2.message || e2)); });
+        }
+      } else if (confirm("Remove this task?")) {
+        db.collection("tasks").doc(trp[1]).delete()
+          .then(function () { logActivity("Removed a task"); loadFollowUps(); })
+          .catch(function (e2) { alert("Could not remove this task: " + (e2.message || e2)); });
+      }
+    }
     if (t.id === "taskFormClose" || t.id === "taskFormModal") closeTaskForm();
     if (t.id === "taskDateClose" || t.id === "taskDateModal") closeTaskDateModal();
     if (t.id === "cqClose" || t.id === "cqModal") closeCustomerQuoteBuilder();
