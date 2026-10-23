@@ -5264,6 +5264,30 @@
   // signed customer-quote ids in cqSignedIds and re-renders this list.
   var cqSignedIds = {};
   var quoteSnapDocs = null;
+  // v94: Quotes lists follow Edwin's Option B pick (Oct 23): compact
+  // rows first, with the full detail card expanded in place on tap.
+  // Expansion is presentation state only; it is intentionally not
+  // persisted across reloads.
+  var q94OpenVendorQuoteId = null;
+  var q94OpenCustomerQuoteId = null;
+  var cqAwaitingRows = [];
+  function q94OneLine(v) { return String(v || "").replace(/\s+/g, " ").trim(); }
+  function q94HeadHtml(kind, id, price, name, scope, statusHtml, open) {
+    return '<button type="button" class="q94-head" data-q94toggle="' + esc(kind) + "|" + esc(id) + '" aria-expanded="' + (open ? "true" : "false") + '">' +
+      '<span class="q94-price">' + esc(price) + '</span>' +
+      '<span class="q94-main"><span class="q94-name">' + esc(name || "") + '</span>' +
+      '<span class="q94-scope">' + esc(q94OneLine(scope)) + '</span></span>' +
+      '<span class="q94-status">' + statusHtml + '</span>' +
+      '<span class="q94-chev" aria-hidden="true">›</span></button>';
+  }
+  function q94ToggleVendorQuote(id) {
+    q94OpenVendorQuoteId = q94OpenVendorQuoteId === id ? null : id;
+    renderQuoteList();
+  }
+  function q94ToggleCustomerQuote(id) {
+    q94OpenCustomerQuoteId = q94OpenCustomerQuoteId === id ? null : id;
+    renderAwaitingQuoteList();
+  }
   function quoteStillOpen(q) {
     if (!q) return false;
     if (q.status === "declined") return false;
@@ -5280,21 +5304,44 @@
         var q = d.data();
         if (!quoteStillOpen(q)) return;
         shown++;
-        var row = document.createElement("div"); row.className = "arow";
-        row.innerHTML = '<div class="grow"><strong>$' + esc(q.price) + " - " + esc(q.vendorBusiness || "") + "</strong><small>" + esc(q.notes || "") + " · " + esc(q.duration || "") + " · " + esc(q.vendorPhone || "") + (q.quotePdfUrl ? ' · <a href="' + esc(q.quotePdfUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View quote PDF</a>' : "") + "</small></div>" +
-          pill(q.status) +
-          (q.status === "pending" ? ' <button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button> <button class="mini" data-calquote="' + d.id + '">Add to calendar</button> <button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "") +
-          ' <button class="mini" data-cqbuild="' + d.id + '">Build customer quote</button>' +
-          (q.customerQuoteId ? ' <span class="sr-faint">Customer quote built ✓</span>' : "");
-        box.appendChild(row);
-        // v77: vendor job notes + price details render under the row,
-        // and the work order's photos hydrate into the same block.
-        // v79: the block is collapsed behind a toggle in list rows.
-        var info = document.createElement("div");
-        info.className = "q-office-info";
-        info.innerHTML = quoteOfficeInfoListHtml(q);
-        box.appendChild(info);
-        hydrateQuotePhotos(q);
+        var open = q94OpenVendorQuoteId === d.id;
+        var item = document.createElement("div");
+        item.className = "q94-item" + (open ? " open" : "");
+        var collapsedStatus = q.customerQuoteId
+          ? '<span class="pill p-done">Quote built ✓</span>'
+          : pill(q.status);
+        var metaBits = [];
+        if (q.duration) metaBits.push(esc(q.duration));
+        if (q.vendorPhone) metaBits.push(esc(q.vendorPhone));
+        if (q.quotePdfUrl) metaBits.push('<a href="' + esc(q.quotePdfUrl) + '" target="_blank" rel="noopener" style="color:var(--gold-bright);font-weight:700">View quote PDF</a>');
+        var actions =
+          (q.status === "pending" ? '<button class="mini" data-qok="' + d.id + "|" + q.workOrderId + '">Approve</button><button class="mini" data-calquote="' + d.id + '">Add to calendar</button><button class="mini danger" data-qno="' + d.id + '">Decline</button>' : "") +
+          '<button class="mini q94-build" data-cqbuild="' + d.id + '">Build customer quote</button>' +
+          (q.customerQuoteId ? '<span class="q94-built">Customer quote built ✓</span>' : "");
+        item.innerHTML = q94HeadHtml(
+            "vendor", d.id,
+            "$" + (q.price == null ? "" : String(q.price)),
+            q.vendorBusiness || "Vendor quote",
+            q.notes || q.vendorNotes || q.duration || "",
+            collapsedStatus, open) +
+          (open ? '<div class="q94-detail">' +
+            '<div class="q94-detail-top">' + pill(q.status) +
+              (q.customerQuoteId ? '<span class="pill p-done">Customer quote built ✓</span>' : "") + '</div>' +
+            (q.notes ? '<div class="q94-label">Price details</div><div class="q94-full">' + esc(q.notes).replace(/\n/g, "<br>") + '</div>' : "") +
+            (metaBits.length ? '<div class="q94-meta">' + metaBits.join(" · ") + '</div>' : "") +
+            '<div class="q-office-info"></div>' +
+            '<div class="q94-actions">' + actions + '</div>' +
+          '</div>' : "");
+        box.appendChild(item);
+        // v77/v79 stay intact inside the expanded card: vendor notes,
+        // price details, customer note, materials and photos remain
+        // behind the existing "Vendor info & photos" toggle, and work
+        // order photos hydrate into that same block.
+        var info = item.querySelector(".q-office-info");
+        if (info) {
+          info.innerHTML = quoteOfficeInfoListHtml(q);
+          hydrateQuotePhotos(q);
+        }
     });
     if (!shown) box.innerHTML = '<p style="color:var(--faint)">No quotes waiting for review. Signed quotes live under Contracts.</p>';
   }
@@ -5629,6 +5676,51 @@
   // Runs inside loadQuotes. Everything here is best-effort: failures are
   // swallowed so the vendor quote review flow is never disturbed (and so
   // the section stays quiet until the customer_quotes rules publish).
+  function renderAwaitingQuoteList() {
+    var pbox = $("ad-cq-pending-list");
+    if (!pbox) return;
+    if (!cqAwaitingRows.length) {
+      pbox.innerHTML = '<p style="color:var(--faint)">No customer quotes waiting on a signature right now.</p>';
+      return;
+    }
+    pbox.innerHTML = "";
+    cqAwaitingRows.forEach(function (it) {
+      var q = it.q;
+      var open = q94OpenCustomerQuoteId === it.id;
+      var sdMs = tsMs(q.createdAt);
+      var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+      var exMs = tsMs(q.expiresAt);
+      var ex = exMs ? new Date(exMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+      var link = "https://primeguardmia.com/quote-sign.html?id=" + it.id;
+      var metaBits = [];
+      if (sd) metaBits.push("Sent " + esc(sd));
+      if (ex) metaBits.push("Expires " + esc(ex));
+      if (q.customerEmail) metaBits.push(esc(q.customerEmail));
+      if (typeof q.marketingOptIn === "boolean") metaBits.push("Marketing: " + (q.marketingOptIn ? "Yes" : "No"));
+      var item = document.createElement("div");
+      item.className = "q94-item" + (open ? " open" : "");
+      item.innerHTML = q94HeadHtml(
+          "customer", it.id, cqMoney(q.total),
+          q.customerName || "Customer", q.service || "",
+          '<span class="pill p-pend">Awaiting</span>', open) +
+        (open ? '<div class="q94-detail">' +
+          '<div class="q94-detail-top"><span class="pill p-pend">Awaiting signature</span></div>' +
+          (q.service ? '<div class="q94-label">Service</div><div class="q94-full">' + esc(q.service).replace(/\n/g, "<br>") + '</div>' : "") +
+          (metaBits.length ? '<div class="q94-meta">' + metaBits.join(" · ") + '</div>' : "") +
+          '<div class="q94-actions"><button type="button" class="mini" data-cqcopylink="' + esc(link) + '">Copy sign link</button>' +
+          '<span class="q94-status-text">Awaiting signature</span></div>' +
+        '</div>' : "");
+      pbox.appendChild(item);
+    });
+    pbox.querySelectorAll("[data-cqcopylink]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var link = b.getAttribute("data-cqcopylink");
+        function done() { b.textContent = "Copied \u2713"; setTimeout(function () { b.textContent = "Copy sign link"; }, 2000); }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(done);
+        else done();
+      });
+    });
+  }
   function loadCustomerQuotes() {
     var box = $("ad-cq-signed-list");
     liveOn("cq", db.collection("customer_quotes").orderBy("createdAt", "desc").limit(50), function (qs) {
@@ -5643,38 +5735,8 @@
         cqSignedIds = {};
         signed.forEach(function (it) { cqSignedIds[it.id] = true; });
         if (typeof window.pgRenderQuoteList === "function") window.pgRenderQuoteList();
-        var pbox = $("ad-cq-pending-list");
-        if (pbox) {
-          if (!awaiting.length) {
-            pbox.innerHTML = '<p style="color:var(--faint)">No customer quotes waiting on a signature right now.</p>';
-          } else {
-            pbox.innerHTML = "";
-            awaiting.forEach(function (it) {
-              var q = it.q;
-              var sdMs = tsMs(q.createdAt);
-              var sd = sdMs ? new Date(sdMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
-              var exMs = tsMs(q.expiresAt);
-              var ex = exMs ? new Date(exMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
-              var link = "https://primeguardmia.com/quote-sign.html?id=" + it.id;
-              var row = document.createElement("div"); row.className = "arow";
-              row.innerHTML = '<div class="grow"><strong>' + esc(q.customerName || "Customer") + " - " + esc(cqMoney(q.total)) + "</strong><small>" +
-                esc(q.service || "") + (sd ? " \u00b7 sent " + esc(sd) : "") + (ex ? " \u00b7 expires " + esc(ex) : "") +
-                (q.customerEmail ? " \u00b7 " + esc(q.customerEmail) : "") +
-                (typeof q.marketingOptIn === "boolean" ? " \u00b7 Marketing: " + (q.marketingOptIn ? "Yes" : "No") : "") + "</small></div>" +
-                '<button type="button" class="mini" data-cqcopylink="' + esc(link) + '">Copy sign link</button>' +
-                '<span class="pill p-pend">Awaiting signature</span>';
-              pbox.appendChild(row);
-            });
-            pbox.querySelectorAll("[data-cqcopylink]").forEach(function (b) {
-              b.addEventListener("click", function () {
-                var link = b.getAttribute("data-cqcopylink");
-                function done() { b.textContent = "Copied \u2713"; setTimeout(function () { b.textContent = "Copy sign link"; }, 2000); }
-                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(done);
-                else done();
-              });
-            });
-          }
-        }
+        cqAwaitingRows = awaiting;
+        renderAwaitingQuoteList();
         signed.forEach(function (it) { cqHandleSigned(it.id, it.q); });
       },
       function () {});
@@ -6139,6 +6201,8 @@
     if (woPhotoEl) d = woPhotoEl.dataset;
     var qOfficeEl = t.closest ? t.closest("[data-qofficetoggle]") : null;
     if (qOfficeEl) d = qOfficeEl.dataset;
+    var q94El = t.closest ? t.closest("[data-q94toggle]") : null;
+    if (q94El) d = q94El.dataset;
     var woPrevEl = t.closest ? t.closest("[data-woprevlang],[data-woprevconfirm],[data-woprevcancel]") : null;
     if (woPrevEl) d = woPrevEl.dataset;
     var custVisitEl = t.closest ? t.closest("[data-custvisit]") : null;
@@ -6200,6 +6264,11 @@
     if (d.woprevcancel) closeWoSendPreview();
     if (d.custvisit) openCustVisitDetail(d.custvisit);
     if (qOfficeEl) pgToggleOfficeInfo(qOfficeEl);
+    if (d.q94toggle) {
+      var q94Parts = String(d.q94toggle).split("|");
+      if (q94Parts[0] === "vendor") q94ToggleVendorQuote(q94Parts[1]);
+      else if (q94Parts[0] === "customer") q94ToggleCustomerQuote(q94Parts[1]);
+    }
     if (d.wophoto) {
       // v86: register the whole group from the thumbnail's container so
       // the lightbox can step through it (see openPhotoGallery).
