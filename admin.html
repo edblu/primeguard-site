@@ -1037,6 +1037,40 @@
   </section>
   </div>
 
+  <!-- Quotes lists (v94): Option B compact rows with in-place detail cards. -->
+  <style>
+  .q94-item { border-bottom:1px solid var(--line-soft,#e5e2d8); }
+  .q94-item:last-child { border-bottom:none; }
+  .q94-head { appearance:none; width:100%; min-width:0; display:flex; align-items:center; gap:10px; padding:12px 2px; border:0; background:transparent; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+  .q94-head:focus-visible { outline:2px solid var(--gold); outline-offset:2px; border-radius:8px; }
+  .q94-price { flex:0 0 auto; font-family:Sora,Inter,system-ui,sans-serif; font-size:1.12rem; font-weight:800; line-height:1.05; white-space:nowrap; color:var(--text); font-variant-numeric:tabular-nums; }
+  .q94-main { flex:1 1 auto; min-width:0; }
+  .q94-name, .q94-scope { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .q94-name { font-size:.9rem; font-weight:700; line-height:1.25; }
+  .q94-scope { margin-top:2px; font-size:.78rem; line-height:1.3; color:var(--faint); }
+  .q94-status { flex:0 1 auto; min-width:0; max-width:36%; }
+  .q94-status .pill { display:block; max-width:100%; padding-left:8px; padding-right:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .q94-chev { flex:0 0 auto; font-size:1.25rem; line-height:1; font-weight:700; color:var(--gold-bright); transition:transform .15s ease; }
+  .q94-item.open .q94-chev { transform:rotate(90deg); }
+  .q94-detail { padding:2px 2px 16px; border-top:1px solid var(--line-soft,#e5e2d8); }
+  .q94-detail-top { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 2px; }
+  .q94-label { margin-top:12px; font-size:.7rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-bright); }
+  .q94-full { margin-top:4px; font-size:.92rem; line-height:1.55; overflow-wrap:anywhere; }
+  .q94-meta { margin-top:10px; font-size:.82rem; line-height:1.45; color:var(--muted); overflow-wrap:anywhere; }
+  .q94-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line-soft,#e5e2d8); }
+  .q94-actions .mini { flex:1 1 128px; }
+  .q94-actions .q94-build { flex-grow:1.4; }
+  .q94-built, .q94-status-text { flex:1 1 150px; align-self:center; font-size:.84rem; font-weight:700; }
+  .q94-built { color:#57a773; }
+  .q94-status-text { color:var(--muted); }
+  .q94-detail .q-office-info { margin-top:4px; }
+  @media (max-width:430px) {
+    .q94-head { gap:8px; padding:11px 0; }
+    .q94-price { font-size:1.05rem; }
+    .q94-status { max-width:34%; }
+    .q94-actions .mini { flex-basis:120px; }
+  }
+  </style>
   <div id="atab-quotes" class="hidden">
   <div class="pg-pagehead" id="pghead-quotes"></div>
   <section class="asec">
@@ -1466,7 +1500,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=93"></script>
+<script src="admin.js?v=94"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];
