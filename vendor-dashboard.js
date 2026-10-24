@@ -148,6 +148,16 @@
       q_earliest: "Earliest day I can start",
       q_custnote: "Note for the customer (the office will pass it along)",
       q_custnote_ph: "Arrival window, gate code needed, anything the customer should know...",
+      items_title: "Itemized jobs",
+      items_hint: "One line per job, each with its own price and a short explanation. Keep one-time work (a cleanup, palm work) separate from the recurring per-visit price, so nothing gets mixed together.",
+      item_job_ph: "Job, e.g. Lawn cut",
+      item_one_time: "One-time",
+      item_per_visit: "Per visit (recurring)",
+      item_note_ph: "What this job covers...",
+      item_add: "Add another job",
+      item_remove: "Remove job",
+      item_total_onetime: "One-time total",
+      item_total_pervisit: "Per visit total",
       nir_btn: "I need more info",
       nir_ph: "What do you need? More photos, measurements, access details...",
       nir_send: "Send request",
@@ -498,6 +508,16 @@
       q_earliest: "Primer día que puedo empezar",
       q_custnote: "Nota para el cliente (la oficina se la comparte)",
       q_custnote_ph: "Hora de llegada, necesito el código de la puerta, lo que el cliente debe saber...",
+      items_title: "Trabajos por separado",
+      items_hint: "Una línea por trabajo, cada uno con su propio precio y una explicación corta. Separa el trabajo de una sola vez (una limpieza, las palmas) del precio recurrente por visita, para que nada se mezcle.",
+      item_job_ph: "Trabajo, ej. Corte de grama",
+      item_one_time: "Una sola vez",
+      item_per_visit: "Por visita (recurrente)",
+      item_note_ph: "¿Qué incluye este trabajo?...",
+      item_add: "Agregar otro trabajo",
+      item_remove: "Quitar trabajo",
+      item_total_onetime: "Total una sola vez",
+      item_total_pervisit: "Total por visita",
       nir_btn: "Necesito más información",
       nir_ph: "¿Qué necesitas? Más fotos, medidas, detalles de acceso...",
       nir_send: "Enviar solicitud",
@@ -795,7 +815,7 @@
   var myEvals = [];     // quote requests I accepted for evaluation (for quote form dropdown)
   var openQRs = [];     // open quote requests visible to me (for quote form dropdown)
   var myQuoted = {};    // workOrderId -> true, quote requests I already submitted a quote for
-  var myQuotes = {};    // workOrderId -> { price, createdAt, status, addons }, my submitted quotes (Records view)
+  var myQuotes = {};    // workOrderId -> { price, createdAt, status, addons, items, oneTimeTotal, perVisitTotal }, my submitted quotes (Records view)
   var sessionPhotosByWo = {}; // workOrderId -> [urls] uploaded from this device during this portal session (grouped into visitLog on Mark complete)
   var homeDayKey = "";        // selected day (vcalKey) on the Inicio week strip; "" = today
   var myReviewJobs = [];      // my jobs in status "review" (vendor-complete, pay pending release)
@@ -1828,7 +1848,7 @@
         var q = d.data();
         if (q.workOrderId) {
           myQuoted[q.workOrderId] = true;
-          myQuotes[q.workOrderId] = { price: q.price, createdAt: q.createdAt, status: q.status, addons: q.addons || [] };
+          myQuotes[q.workOrderId] = { price: q.price, createdAt: q.createdAt, status: q.status, addons: q.addons || [], items: q.items || [], oneTimeTotal: q.oneTimeTotal, perVisitTotal: q.perVisitTotal };
         }
       });
       buildQuoteSelect();
@@ -2187,6 +2207,36 @@
     }).join("");
   }
 
+  // v30: itemized quote lines (Edwin, Oct 23). When a quote carries
+  // items (one line per job, each one-time or per-visit), show the
+  // breakdown under the price in My Jobs and Mis registros, so the
+  // vendor can see exactly what he sent. Quotes saved before v30
+  // have no items and render exactly as before.
+  function quoteItemsHtml(q) {
+    if (!q || !Array.isArray(q.items) || !q.items.length) return "";
+    var lines = q.items.map(function (it) {
+      var p = parseFloat(it && it.price) || 0;
+      var kind = it && it.kind === "per_visit" ? t("item_per_visit") : t("item_one_time");
+      return '<div style="display:flex;gap:8px;justify-content:space-between;font-size:.88rem;margin-top:3px"><span>' + esc((it && it.label) || "") +
+        ' <span style="color:var(--muted)">(' + esc(kind) + ")</span>" +
+        (it && it.note ? '<br><span style="color:var(--muted)">' + esc(it.note) + "</span>" : "") +
+        '</span><strong style="flex:none">$' + (Math.round(p * 100) / 100) + "</strong></div>";
+    }).join("");
+    var ot = q.oneTimeTotal != null ? parseFloat(q.oneTimeTotal) || 0 : null;
+    var pv = q.perVisitTotal != null ? parseFloat(q.perVisitTotal) || 0 : null;
+    if (ot == null || pv == null) {
+      var so = 0, sp = 0;
+      q.items.forEach(function (it) { var p = parseFloat(it && it.price) || 0; if (it && it.kind === "per_visit") sp += p; else so += p; });
+      if (ot == null) ot = Math.round(so * 100) / 100;
+      if (pv == null) pv = Math.round(sp * 100) / 100;
+    }
+    var totals = "";
+    if (ot > 0) totals += esc(t("item_total_onetime")) + ": <strong>$" + ot + "</strong>";
+    if (pv > 0) totals += (totals ? " · " : "") + esc(t("item_total_pervisit")) + ": <strong>$" + pv + "</strong>";
+    return '<div style="margin-top:6px;border-top:1px dashed var(--line,#ddd);padding-top:6px">' + lines +
+      (totals ? '<div style="font-size:.85rem;margin-top:5px;color:var(--muted)">' + totals + "</div>" : "") + "</div>";
+  }
+
   function renderActive(arr, heroId) {
     var box = $("list-active");
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("active_none")) + '</div>'; return; }
@@ -2213,7 +2263,7 @@
         // full history lives in Mis registros).
         var myQ = myQuotes[w.id];
         payLine = '<div class="vd-payline"><small>' + esc(t("rec_your_price")) + '</small><strong>$' + esc(myQ && myQ.price != null ? String(myQ.price).replace(/^\$/, "") : "?") + '</strong>' +
-          '<span class="vd-paydate" style="display:inline;margin:0 0 0 8px">' + esc(t("rec_awaiting_office")) + "</span></div>";
+          '<span class="vd-paydate" style="display:inline;margin:0 0 0 8px">' + esc(t("rec_awaiting_office")) + "</span></div>" + quoteItemsHtml(myQ);
       }
       if (w.status === "review") {
         var rp = fmtPay(w);
@@ -2311,7 +2361,7 @@
         if (dp) priceHtml = '<div class="vd-payline"><small>' + esc(t("pay_word")) + '</small><strong>' + esc(dp) + "</strong></div>";
       } else if (q) {
         state = w ? t("rec_awaiting_office") : t("rec_quote_only");
-        priceHtml = '<div class="vd-payline"><small>' + esc(t("rec_your_price")) + '</small><strong>$' + esc(String(q.price != null ? q.price : "?").replace(/^\$/, "")) + "</strong></div>";
+        priceHtml = '<div class="vd-payline"><small>' + esc(t("rec_your_price")) + '</small><strong>$' + esc(String(q.price != null ? q.price : "?").replace(/^\$/, "")) + "</strong></div>" + quoteItemsHtml(q);
       } else if (w && w.status === "review") {
         state = t("rec_review");
         var rp2 = fmtPay(w);
@@ -2608,6 +2658,93 @@
     }).then(loadAll).catch(function (err) { alert(t("upload_failed") + ": " + err.message); });
   }
 
+  // ---------- Quote form: itemized jobs editor (v30) ----------
+  // One row per job: name, kind (one-time or per visit), price, and a
+  // short explanation. Edwin asked for this after a vendor bundled a
+  // one-time $1,700 full-yard cleanup (palms included) into a single
+  // line and never quoted the recurring per-visit mowing price the
+  // customer actually wanted. Row #1 (the main job) ships in the
+  // HTML; Add appends more rows with the same structure.
+  function qItemRowHtml() {
+    return '<div style="display:flex;gap:8px;align-items:center">' +
+      '<input type="text" class="q-item-label" placeholder="' + esc(t("item_job_ph")) + '" style="flex:1;min-width:0">' +
+      '<select class="q-item-kind" style="flex:none">' +
+      '<option value="one_time">' + esc(t("item_one_time")) + '</option>' +
+      '<option value="per_visit">' + esc(t("item_per_visit")) + '</option></select>' +
+      '<input type="text" class="q-item-price" inputmode="decimal" placeholder="$" style="width:90px;flex:none">' +
+      '<button type="button" class="q-item-remove" aria-label="' + esc(t("item_remove")) + '" style="flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line,#ddd);background:none;cursor:pointer;font-size:1rem;line-height:1">×</button></div>' +
+      '<input type="text" class="q-item-note" placeholder="' + esc(t("item_note_ph")) + '" style="margin-top:6px">';
+  }
+  function addQuoteItemRow() {
+    var box = $("q-items");
+    if (!box) return null;
+    var row = document.createElement("div");
+    row.className = "q-item-row";
+    row.style.marginBottom = "12px";
+    row.innerHTML = qItemRowHtml();
+    box.appendChild(row);
+    return row;
+  }
+  function collectQuoteItems() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll(".q-item-row"), function (row) {
+      var labelEl = row.querySelector(".q-item-label");
+      var kindEl = row.querySelector(".q-item-kind");
+      var priceEl = row.querySelector(".q-item-price");
+      var noteEl = row.querySelector(".q-item-note");
+      var label = labelEl ? labelEl.value.trim() : "";
+      var note = noteEl ? noteEl.value.trim() : "";
+      var p = parseFloat(String(priceEl ? priceEl.value : "").replace(/[^0-9.]/g, "")) || 0;
+      if (!label && !(p > 0) && !note) return; // skip empty rows
+      out.push({
+        label: label,
+        kind: kindEl && kindEl.value === "per_visit" ? "per_visit" : "one_time",
+        price: Math.round(p * 100) / 100,
+        note: note
+      });
+    });
+    return out;
+  }
+  function syncPriceFromItems() {
+    // While the vendor itemizes, keep the legacy "Your price" field
+    // equal to the one-time items total, so the number he sees in
+    // the big field is exactly what the office receives as price.
+    var qp = $("q-price");
+    if (!qp) return;
+    var items = collectQuoteItems();
+    if (!items.length) return;
+    var ot = 0;
+    items.forEach(function (it) { if (it.kind !== "per_visit") ot += it.price; });
+    qp.value = String(Math.round(ot * 100) / 100);
+  }
+  function resetQuoteItems() {
+    var box = $("q-items");
+    if (!box) return;
+    box.innerHTML = "";
+    addQuoteItemRow();
+  }
+  (function wireQuoteItems() {
+    var box = $("q-items");
+    if (!box) return;
+    var addBtn = $("q-item-add");
+    if (addBtn) addBtn.addEventListener("click", function () {
+      var row = addQuoteItemRow();
+      var lbl = row ? row.querySelector(".q-item-label") : null;
+      if (lbl) lbl.focus();
+    });
+    box.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".q-item-remove") : null;
+      if (!b) return;
+      var row = b.closest(".q-item-row");
+      if (!row) return;
+      if (box.querySelectorAll(".q-item-row").length > 1) row.remove();
+      else Array.prototype.forEach.call(row.querySelectorAll("input"), function (i) { i.value = ""; });
+      syncPriceFromItems();
+    });
+    box.addEventListener("input", syncPriceFromItems);
+    box.addEventListener("change", syncPriceFromItems);
+  })();
+
   // ---------- Quote form ----------
   $("vd-quoteform").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -2631,6 +2768,19 @@
       return out;
     }
     var quoteAddons = collectAddons();
+    // Itemized jobs (v30, Edwin Oct 23): one line per job, each with
+    // its own kind (one-time or per-visit), price, and explanation.
+    // The legacy price field carries the one-time total so every
+    // existing reader (admin list, customer quote builder seed,
+    // records) keeps working unchanged; the per-visit total rides
+    // alongside as its own number instead of blurring into it.
+    var quoteItems = collectQuoteItems();
+    var oneTimeTotal = 0, perVisitTotal = 0;
+    quoteItems.forEach(function (it) {
+      if (it.kind === "per_visit") perVisitTotal += it.price; else oneTimeTotal += it.price;
+    });
+    oneTimeTotal = Math.round(oneTimeTotal * 100) / 100;
+    perVisitTotal = Math.round(perVisitTotal * 100) / 100;
     // Job notes (v28, Edwin Oct 19): the vendor's read on the job itself,
     // what it requires and what the customer asked for. Saved on the quote
     // as vendorNotes and mirrored on the work order as lastVendorNotes so
@@ -2640,7 +2790,7 @@
     // and who supplies them), the earliest day he can start, and a note
     // meant for the customer that the office passes along. Saved on the
     // quote and mirrored on the work order in the update below.
-    var qPriceNum = parseFloat(String($("q-price").value).replace(/[^0-9.]/g, "")) || 0;
+    var qPriceNum = quoteItems.length ? oneTimeTotal : (parseFloat(String($("q-price").value).replace(/[^0-9.]/g, "")) || 0);
     var materialsCost = parseFloat(String($("q-materials").value).replace(/[^0-9.]/g, "")) || 0;
     if (materialsCost > qPriceNum) materialsCost = qPriceNum;
     materialsCost = Math.round(materialsCost * 100) / 100;
@@ -2654,7 +2804,10 @@
         vendorId: me.uid,
         vendorBusiness: vendor.business,
         vendorPhone: vendor.phone,
-        price: $("q-price").value.trim(),
+        price: quoteItems.length ? String(oneTimeTotal) : $("q-price").value.trim(),
+        items: quoteItems,
+        oneTimeTotal: oneTimeTotal,
+        perVisitTotal: perVisitTotal,
         duration: $("q-duration").value.trim(),
         notes: $("q-notes").value.trim(),
         vendorNotes: jobNotes,
@@ -2687,13 +2840,14 @@
       });
     }
     uploadPdf().then(saveQuote).then(function () {
-      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons, lastVendorNotes: jobNotes, vendorMaterialsCost: materialsCost, vendorMaterialsBy: materialsBy, vendorLaborCost: laborCost, vendorEarliestStart: earliestStart, vendorCustomerNote: customerNote });
+      return db.collection("work_orders").doc(woId).update({ quoteSubmitted: true, vendorAddons: quoteAddons, lastVendorNotes: jobNotes, vendorMaterialsCost: materialsCost, vendorMaterialsBy: materialsBy, vendorLaborCost: laborCost, vendorEarliestStart: earliestStart, vendorCustomerNote: customerNote, vendorQuoteItems: quoteItems, vendorOneTimeTotal: oneTimeTotal, vendorPerVisitTotal: perVisitTotal });
     }).then(function () {
       okEl.classList.remove("hidden");
       $("q-price").value = ""; $("q-duration").value = ""; $("q-notes").value = ""; $("q-jobnotes").value = ""; $("q-pdf").value = "";
       $("q-materials").value = ""; $("q-materials-by").value = "vendor"; $("q-earliest").value = ""; $("q-custnote").value = "";
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-check"), function (c) { c.checked = false; });
       Array.prototype.forEach.call(document.querySelectorAll(".q-addon-price"), function (p) { p.value = ""; });
+      resetQuoteItems();
       btn.disabled = false; btn.textContent = t("q_submit");
       loadAll();
     }).catch(function (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); btn.disabled = false; btn.textContent = t("q_submit"); });

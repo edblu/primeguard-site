@@ -4460,6 +4460,156 @@
       return null;
     }).catch(function () { return null; });
   }
+  /* ----- Work order weather chip (v96 staging, Open-Meteo) -----
+     A compact forecast chip on each WO card, plus a Weather row in
+     the expanded detail, for the job's scheduled day at the job's
+     address. Data path: WO address -> pgGeocode (Nominatim, already
+     cached in localStorage as pg_geo_cache_v1) -> Open-Meteo daily
+     forecast (free, no key). Fully async and fail-soft: no address,
+     a geocode miss, a date outside the 16-day forecast window, or
+     any API error simply leaves the chip out, and the card renders
+     exactly as before. */
+  function pgWxEmoji(code) {
+    if (code === 0) return "☀️";
+    if (code === 1) return "🌤️";
+    if (code === 2) return "⛅";
+    if (code === 3) return "☁️";
+    if (code === 45 || code === 48) return "🌫️";
+    if (code >= 51 && code <= 57) return "🌦️";
+    if (code >= 61 && code <= 67) return "🌧️";
+    if (code >= 71 && code <= 77) return "❄️";
+    if (code >= 80 && code <= 82) return "🌦️";
+    if (code === 85 || code === 86) return "❄️";
+    if (code >= 95 && code <= 99) return "⛈️";
+    return "🌡️";
+  }
+  function pgWxLabel(code) {
+    if (code === 0) return "Clear";
+    if (code === 1) return "Mainly clear";
+    if (code === 2) return "Partly cloudy";
+    if (code === 3) return "Overcast";
+    if (code === 45 || code === 48) return "Fog";
+    if (code >= 51 && code <= 57) return "Drizzle";
+    if (code >= 61 && code <= 67) return "Rain";
+    if (code >= 71 && code <= 77) return "Snow";
+    if (code >= 80 && code <= 82) return "Showers";
+    if (code === 85 || code === 86) return "Snow showers";
+    if (code >= 95 && code <= 99) return "Thunderstorm";
+    return "Forecast";
+  }
+  function pgWxIsRain(wx) {
+    return !!wx && typeof wx.pop === "number" && wx.pop >= 50;
+  }
+  function pgWxTitle(wx) {
+    if (!wx) return "";
+    return pgWxLabel(wx.code) + ", high " + wx.tmax + "°F" +
+      (typeof wx.pop === "number" ? ", rain chance " + wx.pop + "%" : "") +
+      (pgWxIsRain(wx) ? ". Rain risk" : "");
+  }
+  // Chip inner HTML from a normalized forecast { code, tmax, pop }.
+  // Returns "" when there is nothing worth showing, so placeholders
+  // stay empty (and CSS-hidden); the rain dot only appears at 50%+.
+  function pgWxChipHtml(wx) {
+    if (!wx || typeof wx.tmax !== "number") return "";
+    return (pgWxIsRain(wx) ? '<span class="woq-wx-dot"></span>' : "") +
+      pgWxEmoji(wx.code) + " " + wx.tmax + "°" +
+      (typeof wx.pop === "number" ? ' <span class="woq-wx-pop">💧 ' + wx.pop + "%</span>" : "");
+  }
+  // The day the chip describes: the WO's scheduledFor (stored as
+  // YYYY-MM-DD; other shapes fall back through tsMs), or today when
+  // nothing is scheduled.
+  function pgWxDateStr(w) {
+    var v = (w && (w.scheduledFor || w.scheduledAt)) || "";
+    if (typeof v === "string") {
+      var m = v.match(/^\d{4}-\d{2}-\d{2}/);
+      if (m) return m[0];
+    }
+    var ms = tsMs(v);
+    var d = ms ? new Date(ms) : new Date();
+    function p2(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate());
+  }
+  // Placeholder span rendered synchronously with the card; hydrate
+  // fills it once the forecast lands. No address, no placeholder.
+  function pgWxPlaceholder(w, woId, inRow) {
+    var addr = String((w && w.address) || "").trim();
+    if (!addr) return "";
+    return ' <span class="woq-wx" data-wxchip="1" data-wxaddr="' + esc(addr) +
+      '" data-wxdate="' + pgWxDateStr(w) + '"' +
+      (woId ? ' data-wxwoid="' + esc(woId) + '"' : "") +
+      (inRow ? ' data-wxrow="1"' : "") + "></span>";
+  }
+  var pgWxFcCache = {}; // "lat,lng|date" -> { code, tmax, pop } | null
+  function pgWxForecast(lat, lng, dateStr) {
+    var key = lat.toFixed(3) + "," + lng.toFixed(3) + "|" + dateStr;
+    if (Object.prototype.hasOwnProperty.call(pgWxFcCache, key)) return Promise.resolve(pgWxFcCache[key]);
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng +
+      "&daily=weather_code,temperature_2m_max,precipitation_probability_max" +
+      "&temperature_unit=fahrenheit&timezone=auto&forecast_days=16";
+    return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
+      if (!r.ok) throw new Error("wx " + r.status);
+      return r.json();
+    }).then(function (j) {
+      var out = null;
+      if (j && j.daily && j.daily.time) {
+        var i = j.daily.time.indexOf(dateStr);
+        if (i >= 0 && j.daily.temperature_2m_max && typeof j.daily.temperature_2m_max[i] === "number") {
+          out = {
+            code: j.daily.weather_code ? j.daily.weather_code[i] : null,
+            tmax: Math.round(j.daily.temperature_2m_max[i]),
+            pop: (j.daily.precipitation_probability_max && typeof j.daily.precipitation_probability_max[i] === "number")
+              ? Math.round(j.daily.precipitation_probability_max[i]) : null
+          };
+        }
+      }
+      pgWxFcCache[key] = out;
+      return out;
+    }).catch(function () { return null; });
+  }
+  // Coordinates for a WO: the doc's own propertyLat/propertyLng when
+  // present (stamped at creation), else pgGeocode on the address.
+  function pgWxCoords(w, addr) {
+    if (w && typeof w.propertyLat === "number" && typeof w.propertyLng === "number") {
+      return Promise.resolve([w.propertyLat, w.propertyLng]);
+    }
+    return pgGeocode(addr);
+  }
+  // Fill every [data-wxchip] placeholder currently in the DOM. Each
+  // placeholder resolves independently; any failure leaves it empty,
+  // and a detail-view Weather row with no data removes itself.
+  function pgWxHydrate() {
+    var els;
+    try { els = document.querySelectorAll("[data-wxchip]"); } catch (e) { return; }
+    Array.prototype.forEach.call(els, function (el) {
+      if (el.getAttribute("data-wxdone")) return;
+      el.setAttribute("data-wxdone", "1");
+      var addr = el.getAttribute("data-wxaddr") || "";
+      var dateStr = el.getAttribute("data-wxdate") || "";
+      var woId = el.getAttribute("data-wxwoid") || "";
+      var inRow = el.getAttribute("data-wxrow") === "1";
+      var w = null;
+      if (woId) {
+        for (var i = 0; i < woOrders.length; i++) {
+          if (woOrders[i].id === woId) { w = woOrders[i].d; break; }
+        }
+      }
+      pgWxCoords(w, addr).then(function (pt) {
+        if (!pt) return null;
+        return pgWxForecast(pt[0], pt[1], dateStr);
+      }).then(function (wx) {
+        if (!wx) {
+          if (inRow && el.closest) {
+            var rowEl = el.closest(".woq-drow");
+            if (rowEl && rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
+          }
+          return;
+        }
+        el.innerHTML = pgWxChipHtml(wx);
+        el.setAttribute("title", pgWxTitle(wx));
+        if (pgWxIsRain(wx)) el.classList.add("rain");
+      }).catch(function () {});
+    });
+  }
   function woBucket(w) {
     var status = woStatusValue(w);
     if (status === "done") return 3;
@@ -4556,6 +4706,11 @@
       }).join(" · ");
       html += row("Add-on scan (vendor)", vaHtml + '<br><span style="color:#7a7668">Vendor total for extras: $' + Math.round(vaTotal) + ". These prefill the customer quote builder as optional add-ons.</span>");
     }
+    // v95: itemized vendor quote lines from the work-order mirror
+    // (vendorQuoteItems, portal v30). The quote doc carries the same
+    // lines; Quotes to Review and the builder render them from there.
+    var viHtml = vendorItemsHtml(null, w);
+    if (viHtml) html += row("Itemized jobs (vendor)", viHtml);
     // Vendor info requests (v78): from the vendor's "I need more info"
     // button on the job card (work_orders.infoRequests). Open ones sit
     // in a gold alert until staff mark them answered (handler below,
@@ -4572,6 +4727,8 @@
       }
     }
     if (when) html += row("Scheduled", fmtWhen(when));
+    var wxPh = pgWxPlaceholder(w, woId, true);
+    if (wxPh) html += row("Weather", wxPh);
     if (w.enRouteAt) html += row("On the way", fmtWhen(w.enRouteAt));
     if (w.arrivedAt) html += row("Arrived", fmtWhen(w.arrivedAt));
     if (w.trackingStoppedAt) html += row("Tracking stopped", fmtWhen(w.trackingStoppedAt));
@@ -4787,7 +4944,7 @@
           esc(title + (customer && title.indexOf(customer) < 0 ? " · " + customer : "")) + "</button>" +
           '<span class="hlq-head-right"><button type="button" class="mini woq-open-btn" data-woopen="' + it.id + '" aria-expanded="' + (isOpen ? "true" : "false") + '">' + (isOpen ? "Close" : "Open") + "</button>" +
           pill(w.status) + woStageChip(w) + "</span></div>" +
-        (metaLine || mediaHtml ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + "</div>" : "") +
+        (metaLine || mediaHtml || pgWxPlaceholder(w, it.id, false) ? '<div class="hlq-service">' + esc(metaLine) + mediaHtml + pgWxPlaceholder(w, it.id, false) + "</div>" : "") +
         woProgressHtml(w, it.id, true) +
         (excerpt ? '<p class="hlq-notes">' + esc(excerpt) + "</p>" : "") +
         '<div class="hlq-actions">' +
@@ -4807,6 +4964,7 @@
         (isOpen ? woDetailHtml(w, it.id) : "");
       box.appendChild(card);
     });
+    pgWxHydrate();
   }
   function loadWorkOrders() {
     liveOn("wo", db.collection("work_orders").orderBy("createdAt", "desc").limit(30), function (qs) {
@@ -5107,6 +5265,39 @@
     }
     return out;
   }
+  // v95: itemized vendor quote lines (vendor portal v30). Reads the
+  // items from the quote doc first (q.items), falling back to the
+  // work order mirror (wo.vendorQuoteItems); totals come from the
+  // saved oneTimeTotal / perVisitTotal (or the vendor* mirror
+  // fields), computed from the lines when absent. Legacy quotes and
+  // work orders without items return "" and render exactly as
+  // before. Returns the lines + totals only; callers add headings.
+  function vendorItemsHtml(q, wo) {
+    var items = (q && Array.isArray(q.items) && q.items.length) ? q.items
+      : ((wo && Array.isArray(wo.vendorQuoteItems)) ? wo.vendorQuoteItems : []);
+    if (!items.length) return "";
+    var ot = q && q.oneTimeTotal != null ? Number(q.oneTimeTotal)
+      : (wo && wo.vendorOneTimeTotal != null ? Number(wo.vendorOneTimeTotal) : NaN);
+    var pv = q && q.perVisitTotal != null ? Number(q.perVisitTotal)
+      : (wo && wo.vendorPerVisitTotal != null ? Number(wo.vendorPerVisitTotal) : NaN);
+    if (isNaN(ot) || isNaN(pv)) {
+      var so = 0, sp = 0;
+      items.forEach(function (it) { var p = parseFloat(it && it.price) || 0; if (it && it.kind === "per_visit") sp += p; else so += p; });
+      if (isNaN(ot)) ot = Math.round(so * 100) / 100;
+      if (isNaN(pv)) pv = Math.round(sp * 100) / 100;
+    }
+    var lines = items.map(function (it) {
+      var kind = it && it.kind === "per_visit" ? "per visit" : "one-time";
+      return '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:3px"><span>' + esc((it && it.label) || "Job") +
+        ' <span style="color:#7a7668">(' + kind + ")</span>" +
+        (it && it.note ? '<br><span style="color:#7a7668">' + esc(it.note) + "</span>" : "") +
+        '</span><strong style="flex:none">' + esc(cqMoney(parseFloat(it && it.price) || 0)) + "</strong></div>";
+    }).join("");
+    var totals = "";
+    if (ot > 0) totals += "One-time total <strong>" + esc(cqMoney(ot)) + "</strong>";
+    if (pv > 0) totals += (totals ? " · " : "") + "Per visit total <strong>" + esc(cqMoney(pv)) + "</strong>";
+    return lines + (totals ? '<div style="margin-top:5px">' + totals + "</div>" : "");
+  }
   function quoteOfficeInfoHtml(q, wo) {
     var out = "";
     var vn = q && q.vendorNotes ? String(q.vendorNotes).trim() : "";
@@ -5118,6 +5309,13 @@
     var pd = q && q.notes ? String(q.notes).trim() : "";
     if (pd) {
       out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Price details (vendor)</div><div>' + esc(pd).replace(/\n/g, "<br>") + "</div></div>";
+    }
+    // v95: itemized breakdown (vendor portal v30): one line per job
+    // with its kind and explanation, plus the one-time and per-visit
+    // totals, so a bundled cleanup never hides the recurring price.
+    var viBody = vendorItemsHtml(q, wo);
+    if (viBody) {
+      out += '<div style="margin-top:10px"><div style="font-weight:700;font-size:.85rem;margin-bottom:2px">Itemized jobs (vendor)</div>' + viBody + "</div>";
     }
     // v78: materials split, earliest start, and the vendor's note for
     // the customer (vendor form v29). All defensive: quotes saved

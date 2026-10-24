@@ -609,6 +609,18 @@
   .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#241a0c; border-color:transparent; }
   .pg-light .tk-chip { background:#ffffff; border-color:#d9c894; color:#7a6414; }
   .pg-light .tk-chip.on { background:linear-gradient(135deg,#e9c766,#c9a227); color:#ffffff; border-color:transparent; }
+
+  /* v96 staging: work order weather chip (Open-Meteo, filled async by
+     pgWxHydrate in admin-v96-staging.js; empty until data lands). */
+  .woq-wx { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; margin-left:6px;
+    border:1px solid var(--line); border-radius:999px; font-size:.78rem; font-weight:600;
+    white-space:nowrap; vertical-align:middle; }
+  .woq-wx:empty { display:none; }
+  .woq-wx .woq-wx-pop { color:var(--faint); font-weight:600; }
+  .woq-wx.rain { border-color:#c0392b; color:#c0392b; }
+  .woq-wx.rain .woq-wx-pop { color:#c0392b; }
+  .woq-wx .woq-wx-dot { width:7px; height:7px; border-radius:50%; background:#c0392b; flex:none; }
+  .pg-light .woq-wx.rain { border-color:#b03a2e; color:#b03a2e; }
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")!=="dark")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1500,7 +1512,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=94"></script>
+<script src="admin.js?v=96"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];

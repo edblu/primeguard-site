@@ -312,6 +312,25 @@
           <label><span data-i18n="q_price">Tu precio ($)</span><input type="text" id="q-price" placeholder="450" required></label>
           <label><span data-i18n="q_duration">¿Cuánto tiempo toma?</span><input type="text" id="q-duration" placeholder="1 day" data-i18n-ph="q_duration_ph"></label>
         </div>
+        <div id="q-items-wrap" style="margin:2px 0 4px">
+          <p style="font-weight:700;margin:0 0 4px" data-i18n="items_title">Trabajos por separado</p>
+          <p style="font-size:.82rem;color:var(--muted);margin:0 0 10px" data-i18n="items_hint">Una línea por trabajo, cada uno con su propio precio y una explicación corta. Separa el trabajo de una sola vez (una limpieza, las palmas) del precio recurrente por visita, para que nada se mezcle.</p>
+          <div id="q-items">
+            <div class="q-item-row" style="margin-bottom:12px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" class="q-item-label" placeholder="Trabajo, ej. Corte de grama" data-i18n-ph="item_job_ph" style="flex:1;min-width:0">
+                <select class="q-item-kind" style="flex:none">
+                  <option value="one_time" data-i18n="item_one_time">Una sola vez</option>
+                  <option value="per_visit" data-i18n="item_per_visit">Por visita (recurrente)</option>
+                </select>
+                <input type="text" class="q-item-price" inputmode="decimal" placeholder="$" style="width:90px;flex:none">
+                <button type="button" class="q-item-remove" aria-label="Quitar trabajo" data-i18n-aria="item_remove" style="flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line,#ddd);background:none;cursor:pointer;font-size:1rem;line-height:1">×</button>
+              </div>
+              <input type="text" class="q-item-note" placeholder="¿Qué incluye este trabajo?..." data-i18n-ph="item_note_ph" style="margin-top:6px">
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost" id="q-item-add" data-i18n="item_add" style="margin-bottom:10px">Agregar otro trabajo</button>
+        </div>
         <div class="row2">
           <label><span data-i18n="q_materials">Costo de materiales ($)</span><input type="number" id="q-materials" min="0" step="0.01" inputmode="decimal" placeholder="0"></label>
           <label><span data-i18n="q_materials_by">¿Quién trae los materiales?</span><select id="q-materials-by">
@@ -495,7 +514,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor-dashboard.js?v=29"></script>
+<script src="vendor-dashboard.js?v=30"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
