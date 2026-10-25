@@ -133,6 +133,18 @@
           <form class="chk-form" id="checklistForm" novalidate>
             <label>First name<input type="text" name="name" required autocomplete="given-name" placeholder="Your first name"></label>
             <label>Email<input type="email" name="email" required autocomplete="email" placeholder="you@email.com"></label>
+            <label>How did you hear about us? (optional)
+              <select name="hear" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#141417;color:#fff;margin-top:6px">
+                <option value="">Select one...</option>
+                <option value="Facebook">Facebook</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Google search">Google search</option>
+                <option value="Nextdoor">Nextdoor</option>
+                <option value="Referral - friend or neighbor">Referral from a friend or neighbor</option>
+                <option value="Saw a PrimeGuard crew">Saw a PrimeGuard crew</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
             <label class="chk-optin"><input type="checkbox" name="optin" id="chkOptin"><span>Email me the checklist and occasional yard tips and offers from PrimeGuard. Unsubscribe anytime.</span></label>
             <div>
               <button class="btn btn-gold" type="submit" id="chkSubmit">Email me the checklist</button>
@@ -209,6 +221,7 @@
       name: name, email: email, phone: "",
       service: "Miami Yard Checklist",
       message: "",
+      hearAbout: (f.get("hear") || "").toString(),
       marketingOptIn: optin,
       status: "new",
       language: "en",

@@ -389,6 +389,7 @@
         estimate: p, unit: c.unit, details: detail,
         name: name, phone: phone, email: f.email.value.trim(),
         address: address, date: f.date.value, referrer: f.referrer.value.trim(),
+        hearAbout: (f.hear ? f.hear.value : ""),
         notes: f.notes.value.trim(),
         videos: vres.urls, videoLink: videoLink,
         message: "Instant estimate: $" + p + " " + c.unit + " (" + selectedNames().join(", ") + " - " + detail + ")." +
@@ -406,6 +407,7 @@
           photos: photoUrls,
           videos: vres.urls, videoLink: videoLink,
           source: "quote-page", ref: ref, referralCode: refCode, estimate: p,
+          hearAbout: (f.hear ? f.hear.value : ""),
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(function () {});
       }

@@ -134,6 +134,18 @@
           <label>Your name<input type="text" name="name" required autocomplete="name" placeholder="Your name"></label>
           <label>Mobile number<input type="tel" name="phone" required autocomplete="tel" placeholder="(305) 555-0123"></label>
           <label>Email<input type="email" name="email" autocomplete="email" placeholder="you@email.com"></label>
+          <label>How did you hear about us? (optional)
+            <select name="hear" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#141417;color:#fff;margin-top:6px">
+              <option value="">Select one...</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Google search">Google search</option>
+              <option value="Nextdoor">Nextdoor</option>
+              <option value="Referral - friend or neighbor">Referral from a friend or neighbor</option>
+              <option value="Saw a PrimeGuard crew">Saw a PrimeGuard crew</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
           <label class="kt-optin"><input type="checkbox" name="optin" id="ktOptin"><span>Yes, send me PrimeGuard offers and seasonal yard tips. No spam, unsubscribe anytime.</span></label>
           <div>
             <button class="kt-cta" type="submit" id="ktSubmit">Book My Free Check</button>
@@ -201,6 +213,7 @@
       name: name, phone: phone, email: email,
       service: "King Tide Yard Check",
       message: "Free king tide yard check request from the king-tide landing page. King tide window Oct 24-30, peak Oct 26-28. Source: king-tide.",
+      hearAbout: (f.get("hear") || "").toString(),
       marketingOptIn: optin,
       status: "new",
       language: "en",

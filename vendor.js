@@ -109,6 +109,7 @@
           name: v.name, business: v.business, email: v.email, phone: v.phone,
           services: (v.services || []).join(", "), areas: (v.areas || []).join(", "),
           address: v.address || "", insured: v.insured || "no",
+          hearAbout: v.hearAbout || "",
           w9: v.w9Url ? "uploaded" : "pending",
           timestamp: new Date().toISOString(), source: "vendor-register"
         })
@@ -187,6 +188,7 @@
     var crewSize = document.getElementById("vr-crewsize").value;
     var equipment = document.getElementById("vr-equipment").value.trim();
     var address = document.getElementById("vr-address").value.trim();
+    var hearAbout = ((document.getElementById("vr-source") || {}).value || "").trim();
     var payMethodEl = document.getElementById("vr-paymethod");
     var payoutMethod = payMethodEl ? payMethodEl.value : "";
     var payoutZelle = ((document.getElementById("vr-zelle") || {}).value || "").trim();
@@ -221,6 +223,7 @@
         email: email,
         phone: phone,
         address: address,
+        hearAbout: hearAbout,
         services: services,
         areas: areas,
         crewSize: crewSize,

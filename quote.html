@@ -194,6 +194,18 @@
               <div class="row2">
                 <label>Preferred date<input type="date" name="date"></label>
                 <label>Who referred you? (optional)<input type="text" name="referrer" autocomplete="off" placeholder="Name"></label>
+                <label>How did you hear about us? (optional)
+                  <select name="hear" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#141417;color:#fff;margin-top:6px">
+                    <option value="">Select one...</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Google search">Google search</option>
+                    <option value="Nextdoor">Nextdoor</option>
+                    <option value="Referral - friend or neighbor">Referral from a friend or neighbor</option>
+                    <option value="Saw a PrimeGuard crew">Saw a PrimeGuard crew</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
               </div>
               <label>Anything we should know?<textarea name="notes" rows="3" placeholder="Details, access notes, timing..."></textarea></label>
               <p class="qerr" id="quoteErr" hidden></p>
@@ -276,7 +288,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=19"></script>
-<script src="quote.js?v=6"></script>
+<script src="quote.js?v=7"></script>
 <script src="human-chat.js"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
