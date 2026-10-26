@@ -556,3 +556,27 @@
 .vd-check{ display:flex; gap:9px; align-items:center; padding:6px 0; font-size:.9rem; cursor:pointer; }
 .vd-check input{ width:19px; height:19px; accent-color:#b8912a; flex:none; }
 .vd-check input:checked + span{ color:#8a8578; text-decoration:line-through; }
+
+/* ---------- Precios fijos rate card (v31) ----------
+   Static info card on the home view: the posted rates and the
+   three how-it-works lines. Uses the Golden Hour tokens above. */
+.vd-rate {
+  background: #fff; border: 1px solid rgba(224, 170, 38, .35);
+  border-radius: 18px; box-shadow: var(--vd-sh-sm);
+  padding: 16px 18px 10px; margin-bottom: 6px;
+}
+.vd-rate-how { margin: 0 0 12px; padding-left: 22px; color: var(--text); font-size: .92rem; font-weight: 600; }
+.vd-rate-how li { margin-bottom: 6px; }
+.vd-rate-how li:last-child { margin-bottom: 0; }
+.vd-rate-table { border-top: 2px solid var(--vd-alert-line); }
+.vd-rate-head {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 10px 2px 4px; font-size: .72rem; font-weight: 800;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--gold-deep);
+}
+.vd-rate-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 9px 2px; border-top: 1px solid #f3e5bb; font-size: .95rem; color: var(--text);
+}
+.vd-rate-row strong { font-weight: 800; white-space: nowrap; }
+.vd-rate-hi { background: var(--vd-alert-bg); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
