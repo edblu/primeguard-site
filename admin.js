@@ -5874,6 +5874,63 @@
   // Runs inside loadQuotes. Everything here is best-effort: failures are
   // swallowed so the vendor quote review flow is never disturbed (and so
   // the section stays quiet until the customer_quotes rules publish).
+  // v97: full customer-quote detail for the call views (Natasha,
+  // Oct 26): she opens a quote mid-call and needs more than the
+  // service name and a total. Renders ONLY what the doc stores:
+  // every line item with its price, the optional add-ons (not in
+  // the total; the customer picks them on the sign page), what is
+  // due at signing (the full due amount, or the 20% deposit the
+  // sign page offers, computed the same way quote-sign.js does),
+  // phone + address, and the quote's own terms text, which is
+  // where the financing (Klarna) total lives on quotes that carry
+  // one. No financing field exists on the doc, so none is shown
+  // apart from that text. Quotes with no items fall back to the
+  // total alone; nothing is invented. Shared by the Awaiting
+  // signature list and the Contracts tab.
+  function cqDetailHtml(q) {
+    if (!q) return "";
+    var out = "";
+    var items = Array.isArray(q.items) ? q.items.filter(function (it) { return it && (it.label || Number(it.amount)); }) : [];
+    if (items.length) {
+      out += '<div class="q94-label">Line items (what the customer sees)</div>' + items.map(function (it) {
+        return '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:3px"><span>' + esc(it.label || "Service") +
+          '</span><strong style="flex:none">' + esc(cqMoney(it.amount)) + "</strong></div>";
+      }).join("");
+    }
+    var addons = Array.isArray(q.addons) ? q.addons.filter(function (a) { return a && (a.label || Number(a.amount)); }) : [];
+    if (addons.length) {
+      out += '<div class="q94-label">Optional add-ons (not in the total)</div>' + addons.map(function (a) {
+        return '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:3px"><span>' + esc(a.label || "Add-on") +
+          '</span><strong style="flex:none">' + esc(cqMoney(a.amount)) + "</strong></div>";
+      }).join("") +
+      '<div style="font-size:.82rem;color:var(--muted);margin-top:2px">The customer can add these on the sign page.</div>';
+    }
+    var total = Number(q.total) || 0;
+    var dueStored = Number(q.amountDueNow) || 0;
+    var payBits = [];
+    if (total > 0) payBits.push("Total <strong>" + esc(cqMoney(total)) + "</strong>");
+    if (q.status === "signed") {
+      payBits.push(q.payChoice === "deposit20" ? "Plan: 20% deposit" : "Plan: full payment");
+      if (q.paidAt) payBits.push("Paid");
+      else if (dueStored > 0) payBits.push("Due now <strong>" + esc(cqMoney(dueStored)) + "</strong>");
+    } else if (total > 0) {
+      var dueFull = dueStored > 0 ? dueStored : total;
+      payBits.push("Due at signing <strong>" + esc(cqMoney(dueFull)) + "</strong>");
+      var dep = Math.round(total * 0.2);
+      if (dep > 0 && dep < dueFull) payBits.push("or start with a 20% deposit of <strong>" + esc(cqMoney(dep)) + "</strong>");
+    }
+    if (payBits.length) out += '<div style="margin-top:8px">' + payBits.join(" · ") + "</div>";
+    var contactBits = [];
+    if (q.customerContact) contactBits.push(esc(q.customerContact));
+    if (q.address) contactBits.push(esc(q.address));
+    if (contactBits.length) out += '<div class="q94-meta">' + contactBits.join(" · ") + "</div>";
+    var notes = q.notes ? String(q.notes).trim() : "";
+    if (notes) {
+      out += '<div class="q94-label">Quote terms (as sent to the customer)</div><div class="q94-full">' + esc(notes).replace(/\n/g, "<br>") + "</div>";
+    }
+    if (!out) out = '<div class="q94-full">Total <strong>' + esc(cqMoney(total)) + "</strong></div>";
+    return out;
+  }
   function renderAwaitingQuoteList() {
     var pbox = $("ad-cq-pending-list");
     if (!pbox) return;
@@ -5890,8 +5947,12 @@
       var exMs = tsMs(q.expiresAt);
       var ex = exMs ? new Date(exMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
       var link = "https://primeguardmia.com/quote-sign.html?id=" + it.id;
+      var isPrepared = q.status === "prepared";
+      var statusPill = isPrepared ? '<span class="pill p-pend">Not sent yet</span>' : '<span class="pill p-pend">Awaiting</span>';
+      var detailPill = isPrepared ? '<span class="pill p-pend">Prepared · not sent yet</span>' : '<span class="pill p-pend">Awaiting signature</span>';
+      var statusText = isPrepared ? "Prepared, not sent yet" : "Awaiting signature";
       var metaBits = [];
-      if (sd) metaBits.push("Sent " + esc(sd));
+      if (sd) metaBits.push((isPrepared ? "Created " : "Sent ") + esc(sd));
       if (ex) metaBits.push("Expires " + esc(ex));
       if (q.customerEmail) metaBits.push(esc(q.customerEmail));
       if (typeof q.marketingOptIn === "boolean") metaBits.push("Marketing: " + (q.marketingOptIn ? "Yes" : "No"));
@@ -5900,13 +5961,14 @@
       item.innerHTML = q94HeadHtml(
           "customer", it.id, cqMoney(q.total),
           q.customerName || "Customer", q.service || "",
-          '<span class="pill p-pend">Awaiting</span>', open) +
+          statusPill, open) +
         (open ? '<div class="q94-detail">' +
-          '<div class="q94-detail-top"><span class="pill p-pend">Awaiting signature</span></div>' +
+          '<div class="q94-detail-top">' + detailPill + '</div>' +
           (q.service ? '<div class="q94-label">Service</div><div class="q94-full">' + esc(q.service).replace(/\n/g, "<br>") + '</div>' : "") +
+          cqDetailHtml(q) +
           (metaBits.length ? '<div class="q94-meta">' + metaBits.join(" · ") + '</div>' : "") +
           '<div class="q94-actions"><button type="button" class="mini" data-cqcopylink="' + esc(link) + '">Copy sign link</button>' +
-          '<span class="q94-status-text">Awaiting signature</span></div>' +
+          '<span class="q94-status-text">' + statusText + '</span></div>' +
         '</div>' : "");
       pbox.appendChild(item);
     });
@@ -5926,7 +5988,10 @@
         qs.forEach(function (d) {
           var q = d.data();
           if (q && q.status === "signed") signed.push({ id: d.id, q: q });
-          else if (q && q.status === "sent") awaiting.push({ id: d.id, q: q });
+          // v97: "prepared" quotes join the awaiting list too (labeled
+          // "Not sent yet"); before this they surfaced nowhere, so a
+          // built-but-unsent quote was invisible during calls.
+          else if (q && (q.status === "sent" || q.status === "prepared")) awaiting.push({ id: d.id, q: q });
         });
         // v81: share signed ids with Quotes to Review so finished
         // vendor quotes clear off that list, then re-render it.
@@ -6025,8 +6090,21 @@
                 (typeof q.marketingOptIn === "boolean" ? " \u00b7 Marketing: " + (q.marketingOptIn ? "Yes" : "No") : "") + '</small></div>' +
                 (paid ? '<span class="pill p-done">Paid</span>' : (due > 0 ? '<span class="pill p-pend">' + esc(cqMoney(due)) + ' due</span>' : '<span class="pill p-done">Signed</span>')) +
                 (q.agreementDriveUrl ? '<a class="mini" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(q.agreementDriveUrl) + '">Signed agreement</a>' : "") +
-                (custId ? '<button type="button" class="mini" data-contract-cust="' + esc(custId) + '">Open in CRM</button>' : "");
-              box.appendChild(row);
+                (custId ? '<button type="button" class="mini" data-contract-cust="' + esc(custId) + '">Open in CRM</button>' : "") +
+                '<button type="button" class="mini" data-contract-detail="' + esc(it.id) + '">Quote details</button>';
+              // v97: the signed quote's full line-item detail expands
+              // under the row (same cqDetailHtml as the awaiting list),
+              // so a signed customer's numbers are visible on a call
+              // without opening the sign page.
+              var cwrap = document.createElement("div");
+              cwrap.appendChild(row);
+              var cdet = document.createElement("div");
+              cdet.className = "q94-detail";
+              cdet.id = "cq-contract-detail-" + it.id;
+              cdet.style.display = "none";
+              cdet.innerHTML = cqDetailHtml(q);
+              cwrap.appendChild(cdet);
+              box.appendChild(cwrap);
             });
             box.querySelectorAll("[data-contract-cust]").forEach(function (b) {
               b.addEventListener("click", function () {
@@ -6034,6 +6112,15 @@
                 var navBtn = document.querySelector('[data-atab="customers"]');
                 if (navBtn) navBtn.click();
                 setTimeout(function () { openCustomer(id); }, 60);
+              });
+            });
+            box.querySelectorAll("[data-contract-detail]").forEach(function (b) {
+              b.addEventListener("click", function () {
+                var det = document.getElementById("cq-contract-detail-" + b.getAttribute("data-contract-detail"));
+                if (!det) return;
+                var show = det.style.display === "none";
+                det.style.display = show ? "" : "none";
+                b.textContent = show ? "Hide details" : "Quote details";
               });
             });
           });
