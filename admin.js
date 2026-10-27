@@ -3889,6 +3889,66 @@
   function vdW9On(v) { return ["received", "submitted", "approved"].indexOf(String((v || {}).w9Status || "").toLowerCase()) >= 0; }
   function vdCoiOn(v) { return String((v || {}).coiStatus || "").toLowerCase() === "received"; }
   function vdAgrOn(v) { return !!((v || {}).agreements && v.agreements.version === VD_AGREEMENTS_VERSION); }
+  // ---------- Vendor language + reminder queue (v98) ----------
+  // vendors/{id}.language: "en" | "es". Unset defaults to Spanish for
+  // reminders, matching the crew bench today.
+  function vdLang(v) { return (v && v.language === "en") ? "en" : "es"; }
+  function vdLangBadge(v) {
+    var en = vdLang(v) === "en";
+    return ' <span class="home-pill ' + (en ? "home-pill-green" : "home-pill-gold") + '" title="Preferred language">' + (en ? "EN" : "ES") + "</span>";
+  }
+  // Reminder buttons queue ONE doc in vendor_reminder_requests; a
+  // backend watcher sends the actual message later. Nothing is emailed
+  // or texted from the browser. Queued state is per panel session.
+  var vdReminderQueued = {};
+  function vdReminderHtml(item) {
+    if (vdReminderQueued[item]) return ' <span class="aok" data-vdremind-msg="' + item + '">Reminder queued</span>';
+    return ' <button class="mini" type="button" data-vdremind="' + item + '">Send reminder</button>' +
+      ' <span class="aok hidden" data-vdremind-msg="' + item + '">Reminder queued</span>' +
+      ' <span class="aerr hidden" data-vdremind-err="' + item + '"></span>';
+  }
+  function vdSendReminder(item, btn) {
+    if (!vdId || !isAdmin) return;
+    var v = vdData || {};
+    if (btn) btn.disabled = true;
+    var payload = {
+      vendorId: vdId,
+      vendorName: v.business || v.name || "",
+      vendorEmail: v.email || "",
+      item: item,
+      language: vdLang(v),
+      status: "pending",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: (me && me.email) || "admin"
+    };
+    db.collection("vendor_reminder_requests").add(payload).then(function () {
+      vdReminderQueued[item] = true;
+      var box = $("vdBody");
+      if (box) {
+        var b = box.querySelector('[data-vdremind="' + item + '"]');
+        if (b) { b.disabled = true; b.textContent = "Reminder queued"; }
+        var m = box.querySelector('[data-vdremind-msg="' + item + '"]');
+        if (m) m.classList.remove("hidden");
+        var e = box.querySelector('[data-vdremind-err="' + item + '"]');
+        if (e) e.classList.add("hidden");
+      }
+      logActivity("Queued a " + item + " reminder for vendor: " + (payload.vendorName || "vendor"));
+    }).catch(function (err) {
+      if (btn) btn.disabled = false;
+      var box = $("vdBody");
+      var e = box ? box.querySelector('[data-vdremind-err="' + item + '"]') : null;
+      if (e) { e.textContent = "Could not queue reminder: " + (err.message || err); e.classList.remove("hidden"); }
+    });
+  }
+  function vdSaveLanguage() {
+    if (!vdId || !isAdmin) return;
+    var sel = $("vdp-language");
+    if (!sel) return;
+    vdWriteVendor({ language: sel.value === "en" ? "en" : "es", updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+      "vdp-language-ok", "vdp-language-err",
+      "Set vendor language: " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
+  }
   // Job counts from the work-order cache already loaded for the board.
   function vdJobCounts(id) {
     var done = 0, active = 0;
@@ -3903,7 +3963,7 @@
   function openVendor(id) {
     db.collection("vendors").doc(id).get().then(function (snap) {
       if (!snap.exists) return;
-      vdId = id; vdData = snap.data(); vdOutcome = "";
+      vdId = id; vdData = snap.data(); vdOutcome = ""; vdReminderQueued = {};
       renderVendorModal();
       $("vdModal").classList.remove("hidden");
       document.body.style.overflow = "hidden";
@@ -3912,7 +3972,7 @@
   function closeVendor() {
     $("vdModal").classList.add("hidden");
     document.body.style.overflow = "";
-    vdId = null; vdData = null; vdOutcome = "";
+    vdId = null; vdData = null; vdOutcome = ""; vdReminderQueued = {};
   }
   function renderVendorModal() {
     var v = vdData, box = $("vdBody"), st = vStatus(v);
@@ -3939,7 +3999,7 @@
     }
     var jc = vdJobCounts(vdId);
     var h = '<h3 id="vdTitle">' + esc(v.business || "Vendor") + '</h3>' +
-      '<p class="sr-meta">' + pill(st) + ' <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
+      '<p class="sr-meta">' + pill(st) + vdLangBadge(v) + ' <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
       '<p class="sr-faint" style="margin:-4px 0 12px">Vendor ID: ' + esc(vdId || "") + ' · Jobs done: ' + jc.done + ' · In progress: ' + jc.active + '</p>';
     if (isAdmin) {
       // ---- Editable profile (v82): contact, coverage, availability ----
@@ -3962,6 +4022,7 @@
         '<label>Crew size<select id="vdp-crew">' + crewOpts.map(function (c) { return '<option value="' + esc(c) + '"' + (v.crewSize === c ? " selected" : "") + '>' + esc(c) + '</option>'; }).join("") + '</select></label>' +
         '<label>Equipment<input type="text" id="vdp-equipment" value="' + esc(v.equipment || "") + '"></label>' +
         '<label>Insurance<select id="vdp-insured"><option value="no"' + (v.insured === "yes" ? "" : " selected") + '>Not currently insured</option><option value="yes"' + (v.insured === "yes" ? " selected" : "") + '>Carries general liability</option></select></label>' +
+        '<label>Language<select id="vdp-language"><option value="en"' + (vdLang(v) === "en" ? " selected" : "") + '>English</option><option value="es"' + (vdLang(v) === "es" ? " selected" : "") + '>Espa\u00f1ol</option></select></label>' +
         '</div>' +
         '<p style="font-weight:700;margin:14px 0 2px">Services</p>' +
         '<div class="vdp-chips" id="vdp-services-chips"></div>' +
@@ -3974,7 +4035,9 @@
         '<div>' + dayChecks + '</div>' +
         '<div class="sr-actions" style="margin-top:12px"><button class="btn btn-gold btn-sm" id="vdp-save-profile" type="button">Save profile</button></div>' +
         '<p class="aok hidden" id="vdp-profile-ok" style="margin-top:10px">Saved ✓</p>' +
-        '<p class="aerr hidden" id="vdp-profile-err" style="margin-top:10px"></p></div>';
+        '<p class="aerr hidden" id="vdp-profile-err" style="margin-top:10px"></p>' +
+        '<p class="aok hidden" id="vdp-language-ok" style="margin-top:10px">Language saved \u2713</p>' +
+        '<p class="aerr hidden" id="vdp-language-err" style="margin-top:10px"></p></div>';
     } else {
       h += '<div class="sr-grid">' +
         '<div class="sr-card"><h4>Contact</h4>' +
@@ -4005,13 +4068,14 @@
         '<p class="sr-faint" id="vdp-pay-check-note">Checks are mailed to the address on file (edit it under Profile above).</p>' +
         '</div>' +
         '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="vdp-save-payout" type="button">Save payout</button></div>' +
+        (!v.payoutMethod ? '<p style="margin-top:10px"><strong>Payout not set yet.</strong>' + vdReminderHtml("payout") + '</p>' : '') +
         '<p class="aok hidden" id="vdp-payout-ok" style="margin-top:10px">Saved ✓</p>' +
         '<p class="aerr hidden" id="vdp-payout-err" style="margin-top:10px"></p></div>' +
         // ---- Papers checklist (v82): toggles save on tap ----
         '<div class="sr-card"><h4>Papers</h4>' +
         '<p class="sr-faint" style="margin-bottom:6px">Tap a toggle when the paper is on file. It saves right away.</p>' +
-        vdPaperRow("w9", "W-9 received", vdW9On(v), vdDocExtra(v.w9Url)) +
-        vdPaperRow("coi", "Certificate of insurance (COI) on file", vdCoiOn(v), vdDocExtra(v.coiUrl)) +
+        vdPaperRow("w9", "W-9 received", vdW9On(v), vdDocExtra(v.w9Url) + (vdW9On(v) ? "" : vdReminderHtml("w9"))) +
+        vdPaperRow("coi", "Certificate of insurance (COI) on file", vdCoiOn(v), vdDocExtra(v.coiUrl) + (vdCoiOn(v) ? "" : vdReminderHtml("coi"))) +
         vdPaperRow("agr", "Agreements signed (NDA + contractor agreement)", vdAgrOn(v),
           (v.agreements && (v.agreements.signedName || v.agreements.signedAt) ? ' <span class="sr-faint">' + esc(v.agreements.signedName || "") + (vdDateText(v.agreements.signedAt) ? " · " + esc(vdDateText(v.agreements.signedAt)) : "") + '</span>' : "")) +
         '<p class="aok hidden" id="vdp-papers-ok" style="margin-top:10px">Saved ✓</p>' +
@@ -4067,6 +4131,9 @@
       '<div class="sr-comments" id="vdNotes" style="margin-top:14px"></div></div>';
     box.innerHTML = h;
     if (isAdmin) vdWireProfileEditor(box);
+    box.querySelectorAll("[data-vdremind]").forEach(function (b) {
+      b.addEventListener("click", function () { vdSendReminder(b.getAttribute("data-vdremind"), b); });
+    });
     box.querySelectorAll("[data-vstatus]").forEach(function (b) {
       b.addEventListener("click", function () { setVendorStatus(b.getAttribute("data-vstatus")); });
     });
@@ -4221,6 +4288,7 @@
     });
     var pm = $("vdp-pay-method");
     if (pm) { pm.value = (vdData && vdData.payoutMethod) || ""; pm.addEventListener("change", vdPaySync); vdPaySync(); }
+    var lg = $("vdp-language"); if (lg) lg.addEventListener("change", vdSaveLanguage);
     var sp = $("vdp-save-profile"); if (sp) sp.addEventListener("click", vdSaveProfile);
     var sy = $("vdp-save-payout"); if (sy) sy.addEventListener("click", vdSavePayout);
     var sn = $("vdp-save-notes"); if (sn) sn.addEventListener("click", vdSaveNotes);
@@ -6142,7 +6210,7 @@
         shown++;
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><button type="button" class="vdp-namelink" data-vopen="' + d.id + '">' + esc(v.business || v.name || "Vendor") + '</button><small>' + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + (vendorAvailText(v) ? " · " + vendorAvailHtml(v) : "") + "</small></div>" +
-          pill(st) +
+          pill(st) + vdLangBadge(v) +
           ' <button class="mini" data-vopen="' + d.id + '">' + (isAdmin ? "Review" : "Open") + "</button>" +
           (isAdmin ? ' <button class="mini" data-varchive="' + d.id + '">Archive</button>' : "");
         box.appendChild(row);
@@ -7535,7 +7603,7 @@
       if (v.insured !== "yes") pills += ' <span class="home-pill vp-na">COI n/a</span>';
       var h = '<div class="vp-row"><div class="vp-main">' +
         '<button type="button" class="vp-name" data-vpopen="' + esc(id) + '">' + esc(v.name || vpLabel(v)) +
-        (v.business && v.name && v.business !== v.name ? " · " + esc(v.business) : "") + "</button> " + pill(st) +
+        (v.business && v.name && v.business !== v.name ? " · " + esc(v.business) : "") + "</button> " + pill(st) + vdLangBadge(v) +
         '<div class="vp-pills">' + pills + "</div>" +
         '<div class="vp-bar-row">' + vpBarHtml(su.pct) + "</div>" +
         '<div class="vp-sub">Jobs done: ' + vpJobsDone(id) +
