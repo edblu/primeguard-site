@@ -3893,6 +3893,12 @@
   // vendors/{id}.language: "en" | "es". Unset defaults to Spanish for
   // reminders, matching the crew bench today.
   function vdLang(v) { return (v && v.language === "en") ? "en" : "es"; }
+  // v99: office staff (Natasha) get the vendor editing tools too. Before
+  // v99 every editor was gated on isAdmin (the owner only), so staff saw
+  // a read-only record: no profile form, no reminder buttons, no
+  // language selector. That is the gap Natasha reported on Oct 27.
+  function vdCanEdit() { return isAdmin || (typeof isStaff !== "undefined" && !!isStaff); }
+  function vdLangWord(v) { return vdLang(v) === "en" ? "English" : "Espa\u00f1ol"; }
   function vdLangBadge(v) {
     var en = vdLang(v) === "en";
     return ' <span class="home-pill ' + (en ? "home-pill-green" : "home-pill-gold") + '" title="Preferred language">' + (en ? "EN" : "ES") + "</span>";
@@ -3908,7 +3914,7 @@
       ' <span class="aerr hidden" data-vdremind-err="' + item + '"></span>';
   }
   function vdSendReminder(item, btn) {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     var v = vdData || {};
     if (btn) btn.disabled = true;
     var payload = {
@@ -3942,7 +3948,7 @@
     });
   }
   function vdSaveLanguage() {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     var sel = $("vdp-language");
     if (!sel) return;
     vdWriteVendor({ language: sel.value === "en" ? "en" : "es", updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
@@ -3999,9 +4005,9 @@
     }
     var jc = vdJobCounts(vdId);
     var h = '<h3 id="vdTitle">' + esc(v.business || "Vendor") + '</h3>' +
-      '<p class="sr-meta">' + pill(st) + vdLangBadge(v) + ' <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
+      '<p class="sr-meta">' + pill(st) + vdLangBadge(v) + ' <span>(' + vdLangWord(v) + ')</span> <span>registered ' + esc(v.createdAt && v.createdAt.toDate ? v.createdAt.toDate().toLocaleDateString() : "") + '</span></p>' +
       '<p class="sr-faint" style="margin:-4px 0 12px">Vendor ID: ' + esc(vdId || "") + ' · Jobs done: ' + jc.done + ' · In progress: ' + jc.active + '</p>';
-    if (isAdmin) {
+    if (vdCanEdit()) {
       // ---- Editable profile (v82): contact, coverage, availability ----
       var crewOpts = VD_CREW_LIST.slice();
       if (v.crewSize && crewOpts.indexOf(v.crewSize) < 0) crewOpts.unshift(v.crewSize);
@@ -4054,7 +4060,7 @@
     }
     h += '<div class="sr-actions" style="margin-bottom:14px">' +
       '<button class="mini" id="vdCalBtn" type="button">Add to calendar</button></div>';
-    if (isAdmin) {
+    if (vdCanEdit()) {
       // ---- Payout editor (v82) ----
       h += '<div class="sr-card"><h4>Payout</h4>' +
         '<div class="aform">' +
@@ -4080,6 +4086,13 @@
           (v.agreements && (v.agreements.signedName || v.agreements.signedAt) ? ' <span class="sr-faint">' + esc(v.agreements.signedName || "") + (vdDateText(v.agreements.signedAt) ? " · " + esc(vdDateText(v.agreements.signedAt)) : "") + '</span>' : "")) +
         '<p class="aok hidden" id="vdp-papers-ok" style="margin-top:10px">Saved ✓</p>' +
         '<p class="aerr hidden" id="vdp-papers-err" style="margin-top:10px"></p></div>' +
+        // ---- Login access (v99, Natasha's ask): password reset ----
+        '<div class="sr-card"><h4>Login access</h4>' +
+        '<p><strong>Login email:</strong> ' + esc(v.email || "none on file") + '</p>' +
+        '<p class="sr-faint" style="margin:8px 0 10px">This is the email the vendor signs in with. To change it, edit Email in the Profile above and Save profile. If a vendor is locked out, email them a password reset link:</p>' +
+        '<div class="sr-actions"><button class="btn btn-gold btn-sm" id="vdp-reset-btn" type="button">Email a password reset link</button></div>' +
+        '<p class="aok hidden" id="vdp-reset-ok" style="margin-top:10px"></p>' +
+        '<p class="aerr hidden" id="vdp-reset-err" style="margin-top:10px"></p></div>' +
         // ---- Office notes (v82): adminNotes on the vendor doc ----
         '<div class="sr-card"><h4>Office notes</h4>' +
         '<p class="sr-faint">Private to the office. The vendor never sees these notes.</p>' +
@@ -4179,7 +4192,7 @@
     }
   }
   function vdWriteVendor(payload, okId, errId, activity) {
-    if (!vdId || !isAdmin) return Promise.resolve();
+    if (!vdId || !vdCanEdit()) return Promise.resolve();
     return db.collection("vendors").doc(vdId).update(payload).then(function () {
       Object.keys(payload).forEach(function (k) { vdData[k] = payload[k]; });
       if (activity) logActivity(activity);
@@ -4233,7 +4246,7 @@
     show("vdp-pay-check-note", m === "check");
   }
   function vdSaveProfile() {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     var days = [];
     document.querySelectorAll(".vdp-avail-day").forEach(function (c) { if (c.checked) days.push(Number(c.value)); });
     var payload = vdProfilePayload({
@@ -4249,7 +4262,7 @@
       "Edited vendor profile: " + (payload.business || payload.name || "vendor"));
   }
   function vdSavePayout() {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     var payload = vdPayoutPayload({
       method: $("vdp-pay-method").value,
       zelle: $("vdp-pay-zelle-val").value, name: $("vdp-pay-name").value,
@@ -4261,12 +4274,12 @@
       "Edited vendor payout: " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
   }
   function vdSaveNotes() {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     vdWriteVendor({ adminNotes: $("vdp-adminnotes").value }, "vdp-notes-ok", "vdp-notes-err",
       "Edited office notes: " + ((vdData && (vdData.business || vdData.name)) || "vendor"));
   }
   function vdPaperChanged(kind, checked) {
-    if (!vdId || !isAdmin) return;
+    if (!vdId || !vdCanEdit()) return;
     var payload = vdPapersPayload(kind, checked, vdData);
     db.collection("vendors").doc(vdId).update(payload).then(function () {
       Object.keys(payload).forEach(function (k) { vdData[k] = payload[k]; });
@@ -4289,6 +4302,21 @@
     var pm = $("vdp-pay-method");
     if (pm) { pm.value = (vdData && vdData.payoutMethod) || ""; pm.addEventListener("change", vdPaySync); vdPaySync(); }
     var lg = $("vdp-language"); if (lg) lg.addEventListener("change", vdSaveLanguage);
+    var rb = $("vdp-reset-btn");
+    if (rb) rb.addEventListener("click", function () {
+      var em = (vdData && vdData.email) || "";
+      var ok = $("vdp-reset-ok"), er = $("vdp-reset-err");
+      if (ok) ok.classList.add("hidden");
+      if (!em) { if (er) { er.textContent = "No email on file for this vendor."; er.classList.remove("hidden"); } return; }
+      rb.disabled = true;
+      auth.sendPasswordResetEmail(em).then(function () {
+        if (er) er.classList.add("hidden");
+        if (ok) { ok.textContent = "Reset link sent to " + em + " \u2713"; ok.classList.remove("hidden"); }
+        logActivity("Sent a password reset link to vendor: " + ((vdData && (vdData.business || vdData.name)) || em));
+      }).catch(function (e2) {
+        if (er) { er.textContent = "Could not send: " + (e2.message || e2); er.classList.remove("hidden"); }
+      }).finally(function () { rb.disabled = false; });
+    });
     var sp = $("vdp-save-profile"); if (sp) sp.addEventListener("click", vdSaveProfile);
     var sy = $("vdp-save-payout"); if (sy) sy.addEventListener("click", vdSavePayout);
     var sn = $("vdp-save-notes"); if (sn) sn.addEventListener("click", vdSaveNotes);
@@ -7561,7 +7589,20 @@
       '<div class="vp-fu-row"><span class="vp-fu-lab">Note</span>' +
       '<input type="text" class="vp-notetext vp-fu-text" placeholder="Log a note…"> ' +
       '<button type="button" class="mini" data-vpnotesave="' + esc(id) + '">Save note</button></div>' +
+      vpRemindRow(id, v) +
       '<p class="vp-fumsg sr-faint"></p></div>';
+  }
+  // v99: one-click reminder buttons inside the follow-up panel, one per
+  // missing setup item, so Natasha never has to open the vendor record
+  // (or use the Follow up notes box) to send a document reminder.
+  function vpRemindRow(id, v) {
+    var items = [];
+    if (!vdW9On(v)) items.push(["w9", "W-9"]);
+    if (!v.payoutMethod) items.push(["payout", "Payout info"]);
+    if (v.insured === "yes" && !vdCoiOn(v)) items.push(["coi", "Insurance (COI)"]);
+    if (!items.length) return "";
+    return '<div class="vp-fu-row"><span class="vp-fu-lab">Reminders</span>' +
+      items.map(function (it) { return '<button type="button" class="mini" data-vprem="' + it[0] + '" data-vpid="' + esc(id) + '">Email ' + it[1] + ' reminder</button>'; }).join(" ") + "</div>";
   }
   // Snapshot re-renders must not eat text being typed into a panel.
   function vpCaptureInputs(root) {
@@ -7608,7 +7649,8 @@
         '<div class="vp-bar-row">' + vpBarHtml(su.pct) + "</div>" +
         '<div class="vp-sub">Jobs done: ' + vpJobsDone(id) +
         (act.label ? " · Last activity: " + esc(act.label) : " · No activity yet") +
-        (fu ? ' · <span class="pill ' + fu.cls + '">' + esc(fu.label) + "</span>" : "") + "</div>" +
+        (fu ? ' · <span class="pill ' + fu.cls + '">' + esc(fu.label) + "</span>" : "") +
+        " · Language: " + vdLangWord(v) + "</div>" +
         "</div>" +
         '<div class="vp-act">' +
         '<button type="button" class="mini hlq-action hlq-action-primary" data-vpfu="' + esc(id) + '">Follow up</button> ' +
@@ -7754,6 +7796,29 @@
         try { document.execCommand("copy"); } catch (err) {}
         document.body.removeChild(ta);
         doneCopy();
+      }
+      return;
+    }
+    var rm = t.closest("[data-vprem]");
+    if (rm) {
+      var rid = rm.getAttribute("data-vpid"), ritem = rm.getAttribute("data-vprem");
+      var rrec = vpFind(rid);
+      if (rrec) {
+        var rv = rrec.v;
+        rm.disabled = true;
+        db.collection("vendor_reminder_requests").add({
+          vendorId: rid, vendorName: rv.business || rv.name || "", vendorEmail: rv.email || "",
+          item: ritem, language: vdLang(rv), status: "pending",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: (me && me.email) || "admin"
+        }).then(function () {
+          rm.textContent = "Reminder queued \u2713";
+          logActivity("Queued a " + ritem + " reminder for vendor: " + (rv.business || rv.name || "vendor"));
+        }).catch(function (err) {
+          rm.disabled = false;
+          rm.textContent = "Could not queue: " + (err.message || err);
+        });
       }
       return;
     }
