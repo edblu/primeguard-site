@@ -75,6 +75,10 @@
   .qhiw-more a { color: #e8bd4e; font-weight: 700; }
   @media (max-width: 900px) { .qhiw-steps { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .qhiw-steps { grid-template-columns: 1fr; } }
+  .qlawn-addr { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+  .qlawn-addr input { flex: 1; min-width: 220px; }
+  .qlawn-status { font-size: .9rem; color: var(--muted); margin: 12px 0 0; font-weight: 400; line-height: 1.55; }
+  .qlawn-status b { color: var(--gold-bright); }
   .qform .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .qerr { color: #ff9d9d; font-size: .9rem; margin: 10px 0; }
   .qdone { text-align: center; padding: 30px 10px; }
@@ -231,7 +235,7 @@
             <p class="quote-price" id="quotePrice">$-</p>
             <p class="quote-unit" id="quoteUnit">Pick a service to start</p>
             <div class="quote-lines" id="quoteLines"></div>
-            <p class="quote-note">Ballpark only. Your final quote is confirmed before we start. No surprises, ever.</p>
+            <p class="quote-note" id="quoteNote">Ballpark only. Your final quote is confirmed before we start. No surprises, ever.</p>
             <p class="quote-note"><a href="how-it-works.html" style="color:var(--gold-bright);font-weight:700">How our process works →</a></p>
           </div>
         </aside>
@@ -288,7 +292,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js?v=19"></script>
-<script src="quote.js?v=7"></script>
+<script src="lawn-pricing.js?v=1"></script>
+<script src="quote.js?v=8"></script>
 <script src="human-chat.js"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

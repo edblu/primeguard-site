@@ -36,6 +36,10 @@
 
   var svcKey = null, svcKeys = [], q1i = 1, q2i = 0, q3i = 2, shownPrice = 0, answered = false;
 
+  /* Instant lawn pricing state (lawn-pricing.js). lawnQuote holds the
+     priced result, lawnMeas the raw county measurement when there is one. */
+  var lawnMeas = null, lawnQuote = null, lawnBusy = false;
+
   // Multi-select: svcKeys holds every selected service key in click order.
   // svcKey stays the primary (first selected) service: it alone drives the
   // step-2 questions and the ballpark price. Display/submit order follows
@@ -66,8 +70,13 @@
     return d;
   }
 
+  function lawnActive() {
+    return svcKey === "lawn-care" && !!lawnQuote && typeof window.PGLawn !== "undefined";
+  }
+
   function price() {
     if (!svcKey) return 0;
+    if (lawnActive()) return lawnQuote.customerPrice;
     var c = QUOTE_SVCS[svcKey];
     return Math.max(25, Math.round(c.base[q1i] * c.q2.opts[q2i][1] / 5) * 5);
   }
@@ -83,9 +92,53 @@
     requestAnimationFrame(tick);
   }
 
+  var CONFIRM_COPY = "Your price is confirmed once you upload front, back and worst patch photos after ordering. If your yard measures materially different, we adjust the tier before any work starts and you approve the change first. No surprises.";
+  var estDefaultNote = null;
+
+  /* Price presentation law: for instant lawn prices the scope shows first
+     and the price sits LAST in the card. Other services keep price on top. */
+  function setEstOrder(instant) {
+    var card = document.querySelector(".quote-est");
+    if (!card) return;
+    var priceEl = $("quotePrice"), unitEl = $("quoteUnit"), lines = $("quoteLines"), note = $("quoteNote");
+    if (note && estDefaultNote === null) estDefaultNote = note.textContent;
+    if (instant) {
+      card.querySelector(".kicker").textContent = "Your instant price";
+      lines.parentNode.insertBefore(priceEl, note);
+      lines.parentNode.insertBefore(unitEl, note);
+      if (note) note.textContent = CONFIRM_COPY;
+    } else {
+      card.querySelector(".kicker").textContent = "Your ballpark";
+      lines.parentNode.insertBefore(priceEl, lines);
+      lines.parentNode.insertBefore(unitEl, lines);
+      if (note && estDefaultNote !== null) note.textContent = estDefaultNote;
+    }
+  }
+
   function renderEstimate() {
     var lines = $("quoteLines");
     lines.innerHTML = "";
+    if (lawnActive()) {
+      setEstOrder(true);
+      animatePrice(lawnQuote.customerPrice);
+      $("quoteUnit").textContent = "per visit · instant price";
+      var rows = [];
+      if (lawnMeas) {
+        rows.push(["Yard size", lawnQuote.tierLabel + " · about " + lawnMeas.lawnSqft.toLocaleString() + " sq ft of lawn"]);
+        rows.push(["Lot size", lawnMeas.lotSqft.toLocaleString() + " sq ft (county records)"]);
+      } else {
+        rows.push(["Yard size", lawnQuote.tierLabel + " · your estimate"]);
+      }
+      rows.push(["Includes", "Mowing, edging, trimming and blowing"]);
+      rows.push(["Proof", "Before and after photos every visit"]);
+      if (lawnQuote.overgrown) rows.push(["First visit", "Overgrown reset included"]);
+      rows.forEach(function (row) {
+        var d = el("div"), a = el("span", null, row[0]), b = el("b", null, row[1]);
+        d.appendChild(a); d.appendChild(b); lines.appendChild(d);
+      });
+      return;
+    }
+    setEstOrder(false);
     if (!svcKey) {
       animatePrice(0); $("quotePrice").textContent = "$-";
       $("quoteUnit").textContent = "Pick a service to start";
@@ -155,6 +208,7 @@
   // nothing is selected). Question answers reset, same as a fresh pick.
   function setPrimary(key) {
     svcKey = key; q1i = 1; q2i = 0; q3i = 2; answered = false;
+    lawnMeas = null; lawnQuote = null; pendingOvergrown = false;
     if (svcKey) { renderQuestions(); }
     else { var w = $("qQuestions"); if (w) w.innerHTML = ""; }
   }
@@ -203,9 +257,123 @@
     return row;
   }
 
+  /* ---------- Lawn instant pricing (step 2 block) ---------- */
+  function applyLawnQuote(quote, meas) {
+    lawnQuote = quote; lawnMeas = meas || null;
+    answered = true;
+    renderEstimate();
+  }
+
+  function renderLawnBlock(wrap) {
+    var L = window.PGLawn;
+    var block = el("div", "qq");
+    block.appendChild(el("p", null, "Where is the yard?"));
+    var sub = el("p", null, "We measure your lawn from county property records and price it on the spot. Type the service address:");
+    sub.style.cssText = "font-size:.88rem;color:var(--muted);margin:0 0 12px;font-weight:400";
+    block.appendChild(sub);
+    var row = el("div", "qlawn-addr");
+    var inp = el("input", "qselect"); inp.id = "qLawnAddress"; inp.type = "text";
+    inp.placeholder = "Street address, City, FL ZIP";
+    inp.setAttribute("autocomplete", "street-address");
+    inp.style.maxWidth = "none";
+    var btn = el("button", "btn btn-gold", "Measure my yard"); btn.type = "button"; btn.id = "qLawnBtn";
+    row.appendChild(inp); row.appendChild(btn);
+    block.appendChild(row);
+    var status = el("p", "qlawn-status"); status.id = "qLawnStatus";
+    block.appendChild(status);
+    var fb = el("div"); fb.id = "qLawnFallback"; fb.hidden = true;
+    fb.appendChild(el("p", null, "Or pick the closest size:"));
+    var prow = el("div", "qopts");
+    L.TIERS.forEach(function (t) {
+      var b = el("button", "qopt", t.label); b.type = "button";
+      b.title = t.desc;
+      b.addEventListener("click", function () {
+        prow.querySelectorAll(".qopt").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        status.innerHTML = "";
+        status.appendChild(document.createTextNode("Priced from your estimate: "));
+        var bb = el("b", null, t.desc + ".");
+        status.appendChild(bb);
+        applyLawnQuote(L.priceForTier(t.key, pendingOvergrown), null);
+      });
+      prow.appendChild(b);
+    });
+    fb.appendChild(prow);
+    var fbd = el("p", null, L.TIERS.map(function (t) { return t.label + ": " + t.desc; }).join(" · "));
+    fbd.style.cssText = "font-size:.82rem;color:var(--muted);margin-top:10px;font-weight:400";
+    fb.appendChild(fbd);
+    block.appendChild(fb);
+    var og = el("div", "qq");
+    og.appendChild(el("p", null, "Is the grass overgrown right now?"));
+    var ogRow = el("div", "qopts");
+    [["No, it is kept up", false], ["Yes, first visit needs a reset", true]].forEach(function (o, i) {
+      var b = el("button", "qopt" + (i === 0 ? " active" : ""), o[0]); b.type = "button";
+      b.addEventListener("click", function () {
+        ogRow.querySelectorAll(".qopt").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        pendingOvergrown = o[1];
+        if (lawnQuote) {
+          var q = lawnMeas ? L.priceForLawn(lawnMeas.lawnSqft, o[1]) : L.priceForTier(lawnQuote.tier, o[1]);
+          applyLawnQuote(q, lawnMeas);
+        }
+      });
+      ogRow.appendChild(b);
+    });
+    og.appendChild(ogRow);
+    block.appendChild(og);
+    wrap.appendChild(block);
+
+    btn.addEventListener("click", function () {
+      var addr = inp.value.trim();
+      if (!addr || lawnBusy) return;
+      lawnBusy = true; btn.disabled = true; btn.textContent = "Measuring...";
+      status.textContent = "Checking county property records...";
+      L.measure(addr).then(function (meas) {
+        lawnBusy = false; btn.disabled = false; btn.textContent = "Measure my yard";
+        if (meas) {
+          fb.hidden = true;
+          status.innerHTML = "";
+          status.appendChild(document.createTextNode("Found it: lot of "));
+          status.appendChild(el("b", null, meas.lotSqft.toLocaleString() + " sq ft"));
+          status.appendChild(document.createTextNode(", about "));
+          status.appendChild(el("b", null, meas.lawnSqft.toLocaleString() + " sq ft of lawn"));
+          status.appendChild(document.createTextNode(" (" + meas.county + " County records). Your instant price is on the right."));
+          applyLawnQuote(L.priceForLawn(meas.lawnSqft, pendingOvergrown), meas);
+          var stepAddr = document.querySelector("#quoteForm [name=address]");
+          if (stepAddr && !stepAddr.value.trim()) stepAddr.value = addr;
+        } else {
+          fb.hidden = false;
+          status.textContent = "We could not pull that address from county records. No problem: pick the closest yard size below and we price it from your estimate.";
+        }
+      });
+    });
+    if (!lawnQuote) fb.hidden = false;
+  }
+  var pendingOvergrown = false;
+
   function renderQuestions() {
     var c = QUOTE_SVCS[svcKey], wrap = $("qQuestions");
     wrap.innerHTML = "";
+    if (svcKey === "lawn-care" && typeof window.PGLawn !== "undefined") {
+      renderLawnBlock(wrap);
+      var q2l = el("div", "qq");
+      q2l.appendChild(el("p", null, c.q2.label));
+      q2l.appendChild(pillRow(c.q2.opts, q2i, function (i) { q2i = i; }, true));
+      var q3l = el("div", "qq");
+      q3l.appendChild(el("p", null, c.q3.label));
+      var sell = el("select", "qselect");
+      c.q3.opts.forEach(function (o, i) {
+        var op = el("option", null, o);
+        op.value = o; if (i === q3i) op.selected = true;
+        sell.appendChild(op);
+      });
+      sell.addEventListener("change", function () { q3i = sell.selectedIndex; });
+      q3l.appendChild(sell);
+      wrap.appendChild(q2l); wrap.appendChild(q3l);
+      var dtl = $("qDetailText");
+      if (dtl) dtl.placeholder = "Tell us exactly what you want done: what needs doing, where on the property, anything tricky we should know, and how we get in (gate, dogs, etc.). The more detail, the more accurate your quote." + (c.detailPh ? " " + c.detailPh : "");
+      return;
+    }
     var q1 = el("div", "qq");
     q1.appendChild(el("p", null, c.q1.label));
     q1.appendChild(pillRow(c.q1.opts, q1i, function (i) { q1i = i; answered = true; renderEstimate(); }, false));
@@ -359,13 +527,36 @@
       err.textContent = "Please add your name, phone, and service address.";
       err.hidden = false; return;
     }
+    if (svcKey === "lawn-care" && typeof window.PGLawn !== "undefined" && !lawnQuote) {
+      err.textContent = "One quick step left: go back to step 2, measure your yard or pick its size, and your instant price is set.";
+      err.hidden = false; goStep(2); return;
+    }
     err.hidden = true;
     var btn = $("quoteSubmit");
     btn.disabled = true; btn.textContent = "Sending...";
     var c = QUOTE_SVCS[svcKey], p = price();
     var ref = "PQ-" + Date.now().toString(36).toUpperCase().slice(-6);
-    var detail = c.q1.label + " " + c.q1.opts[q1i] + "; " +
-      c.q2.label + " " + c.q2.opts[q2i][0] + "; " + c.q3.label + " " + c.q3.opts[q3i];
+    var instant = lawnActive() ? {
+      lotSqft: lawnMeas ? lawnMeas.lotSqft : null,
+      lawnSqft: lawnMeas ? lawnMeas.lawnSqft : null,
+      tier: lawnQuote.tier,
+      vendorAmount: lawnQuote.vendorAmount,
+      customerPrice: lawnQuote.customerPrice,
+      markupUsed: lawnQuote.markupUsed,
+      measurementSource: lawnMeas ? lawnMeas.source : "customer-estimate",
+      photosRequested: true
+    } : null;
+    var detail;
+    if (instant) {
+      detail = "Instant lawn price: " + lawnQuote.tierLabel +
+        (lawnMeas ? " · lawn about " + lawnMeas.lawnSqft + " sq ft, lot " + lawnMeas.lotSqft + " sq ft (" + lawnMeas.county + " County records)" : " · customer size estimate") +
+        " · customer price $" + lawnQuote.customerPrice + " per visit" +
+        (lawnQuote.overgrown ? " · overgrown first visit reset included" : "") +
+        "; " + c.q2.label + " " + c.q2.opts[q2i][0] + "; " + c.q3.label + " " + c.q3.opts[q3i];
+    } else {
+      detail = c.q1.label + " " + c.q1.opts[q1i] + "; " +
+        c.q2.label + " " + c.q2.opts[q2i][0] + "; " + c.q3.label + " " + c.q3.opts[q3i];
+    }
     var jobDesc = ($("qDetailText").value || "").trim();
     if (jobDesc) detail += "; Customer notes: " + jobDesc;
     var otherNames = selectedKeys().filter(function (k) { return k !== svcKey; })
@@ -397,8 +588,18 @@
         source: "quote-page", page: location.pathname,
         uid: currentUser ? currentUser.uid : null
       };
+      if (instant) {
+        payload.lotSqft = instant.lotSqft;
+        payload.lawnSqft = instant.lawnSqft;
+        payload.tier = instant.tier;
+        payload.vendorAmount = instant.vendorAmount;
+        payload.customerPrice = instant.customerPrice;
+        payload.markupUsed = instant.markupUsed;
+        payload.measurementSource = instant.measurementSource;
+        payload.photosRequested = instant.photosRequested;
+      }
       if (fbDb) {
-        fbDb.collection("service_requests").add({
+        var srDoc = {
           uid: currentUser ? currentUser.uid : null,
           name: name, phone: phone, email: payload.email,
           service: "Quote request " + ref + " - " + selectedNames().join(", "),
@@ -409,9 +610,23 @@
           source: "quote-page", ref: ref, referralCode: refCode, estimate: p,
           hearAbout: (f.hear ? f.hear.value : ""),
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(function () {});
+        };
+        if (instant) {
+          srDoc.lotSqft = instant.lotSqft;
+          srDoc.lawnSqft = instant.lawnSqft;
+          srDoc.tier = instant.tier;
+          srDoc.vendorAmount = instant.vendorAmount;
+          srDoc.customerPrice = instant.customerPrice;
+          srDoc.markupUsed = instant.markupUsed;
+          srDoc.measurementSource = instant.measurementSource;
+          srDoc.photosRequested = instant.photosRequested;
+        }
+        fbDb.collection("service_requests").add(srDoc).catch(function () {});
       }
       var done = function () {
+        if (instant) {
+          $("qdoneMsg").textContent = "Request received at your instant price. Our team confirms it and sends your secure payment link. " + CONFIRM_COPY + " Questions? Call us at (786) 422-9674.";
+        }
         if (vres.skipped.length) {
           $("qdoneMsg").textContent = "We'll call you shortly to confirm your exact quote. One heads-up: " + vres.skipped.join(", ") + " was over our 25 MB video limit, so it wasn't attached. Text us a link to it (Google Photos, iCloud, YouTube) anytime and we'll take a look.";
         }
