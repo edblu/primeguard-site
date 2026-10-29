@@ -255,13 +255,21 @@
 .shop-cat h2{font-size:1.7rem;margin:0 0 6px}
 .shop-cat .cat-sub{color:#cbbf9f;margin:0 0 22px}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
-.shop-card{border:1px solid rgba(201,162,75,.22);border-radius:16px;padding:22px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));display:flex;flex-direction:column;gap:10px}
+.shop-card{border:1px solid rgba(201,162,75,.22);border-radius:16px;padding:22px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));display:flex;flex-direction:column;gap:10px}
 .shop-card h3{margin:0;font-size:1.12rem;line-height:1.35}
 .shop-card .stars{color:#e7c877;font-size:.9rem;letter-spacing:.02em}
 .shop-card p{margin:0;color:#cbbf9f;font-size:.95rem;line-height:1.55;flex:1}
 .shop-card a{align-self:flex-start;margin-top:6px}
 .shop-card .feat{margin:0;padding-left:18px;color:#cbbf9f;font-size:.92rem;line-height:1.5;display:flex;flex-direction:column;gap:5px;flex:1}
 .shop-card .best{color:#e8e0c8;font-size:.92rem;flex:0}
+.shop-tile{margin:-22px -22px 4px;padding:30px 22px 22px;display:flex;flex-direction:column;gap:5px;border-bottom:2px solid rgba(201,162,75,.55);position:relative}
+.shop-tile::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(255,255,255,.14),transparent 55%);pointer-events:none}
+.tile-brand{font-family:'Lora',serif;font-weight:700;font-size:1.55rem;letter-spacing:.14em;color:#f4ecd8;line-height:1.1}
+.tile-type{font-size:.82rem;letter-spacing:.18em;text-transform:uppercase;color:#e7c877}
+.t-lawn{background:linear-gradient(135deg,#12291a,#1e4630 60%,#2a5c3c)}
+.t-flood{background:linear-gradient(135deg,#0d2036,#173d5e 60%,#1f567f)}
+.t-clean{background:linear-gradient(135deg,#0e2a2c,#17484c 60%,#1f6668)}
+.t-comfort{background:linear-gradient(135deg,#33220e,#57401a 60%,#7a5a22)}
 .shop-how{padding:52px 0 70px;text-align:center}
 .shop-how p{max-width:700px;margin:10px auto 0;color:#cbbf9f;line-height:1.6}
 </style>
@@ -281,6 +289,7 @@
     <img class="shop-cat-img" src="assets/card-lawn-care.jpg" alt="Freshly striped lawn cared for by PrimeGuard" loading="lazy">
     <div class="shop-grid">
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">GREENWORKS</span><span class="tile-type">40V Cordless Leaf Blower</span></div>
         <h3>Greenworks 40V Cordless Leaf Blower (550 CFM)</h3>
         <div class="stars">★ 4.5 stars · 500+ ratings</div>
         <ul class="feat">
@@ -293,6 +302,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B08D7DHC87?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">POCKET HOSE</span><span class="tile-type">Expandable Garden Hose · 100 FT</span></div>
         <h3>Pocket Hose Ballistic 100 FT Expandable Garden Hose</h3>
         <div class="stars">★ 4.3 stars · 4,900+ ratings</div>
         <ul class="feat">
@@ -305,6 +315,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0GWFF75Z5?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">OREGON</span><span class="tile-type">Magnum Gatorline Trimmer Line</span></div>
         <h3>Oregon Magnum Gatorline Trimmer Line, .095&quot; x 282 ft</h3>
         <div class="stars">★ 4.5 stars · 5,400+ ratings</div>
         <ul class="feat">
@@ -317,6 +328,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0018U00J2?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">FELCO</span><span class="tile-type">Pruning Shears · Model 2</span></div>
         <h3>Felco 2 Pruning Shears</h3>
         <div class="stars">★ 4.8 stars · 14,400+ ratings</div>
         <ul class="feat">
@@ -329,6 +341,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B00023RYS6?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">SCOTTS</span><span class="tile-type">Turf Builder Broadcast Spreader</span></div>
         <h3>Scotts Turf Builder EdgeGuard DLX Broadcast Spreader</h3>
         <div class="stars">★ 4.4 stars · thousands of ratings</div>
         <ul class="feat">
@@ -341,6 +354,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B001H1EQO2?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-lawn"><span class="tile-brand">NOCRY</span><span class="tile-type">Cut Resistant Gloves · Level 5</span></div>
         <h3>NoCry Premium Cut Resistant Gloves, Level 5</h3>
         <div class="stars">★ 4.5 stars · 40,000+ ratings</div>
         <ul class="feat">
@@ -363,6 +377,7 @@
     <img class="shop-cat-img" src="assets/hero-florida-keys.jpg" alt="Florida coastal home ready for storm season" loading="lazy">
     <div class="shop-grid">
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">QUICK DAM</span><span class="tile-type">Flood Bags · 6-Pack</span></div>
         <h3>Quick Dam Water Activated Flood Bags, 6-Pack</h3>
         <div class="stars">★ 4.4 stars · 3,100+ ratings</div>
         <ul class="feat">
@@ -375,6 +390,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0085S0612?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">YOLINK</span><span class="tile-type">Water Leak Sensor Kit</span></div>
         <h3>YoLink Water Leak Sensor Kit, 4 Sensors + Hub</h3>
         <div class="stars">★ 4.7 stars · 1,700+ ratings</div>
         <ul class="feat">
@@ -387,6 +403,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0CCT7TH98?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">SUPERIOR PUMP</span><span class="tile-type">Utility Pump · 1/2 HP</span></div>
         <h3>Superior Pump Submersible Utility Pump, 1/2 HP (model 91570)</h3>
         <div class="stars">★ 4.4 stars · 2,200+ ratings</div>
         <ul class="feat">
@@ -399,6 +416,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/s?k=Superior+Pump+91570+utility+pump&tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">WET &amp; FORGET</span><span class="tile-type">Outdoor Cleaner Concentrate</span></div>
         <h3>Wet &amp; Forget Outdoor Cleaner Concentrate, 128 oz</h3>
         <div class="stars">★ 4.4 stars · 10,100+ ratings</div>
         <ul class="feat">
@@ -411,6 +429,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0019KSUG6?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">HOMELABS</span><span class="tile-type">Dehumidifier · 50 Pint WiFi</span></div>
         <h3>hOmeLabs Dehumidifier, 50 Pint, WiFi, 7,000 Sq Ft</h3>
         <div class="stars">★ 4.4 stars · 25,600+ ratings</div>
         <ul class="feat">
@@ -423,6 +442,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B073VBWKJZ?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">XPOSE SAFETY</span><span class="tile-type">Heavy Duty Tarp · 16 Mil</span></div>
         <h3>Xpose Safety Super Heavy Duty Tarp, 10&#x27; x 12&#x27;, 16 Mil</h3>
         <ul class="feat">
           <li>16 mil polyethylene at about 8 oz per sq yd with a 16 x 16 weave count, several times thicker than hardware-store tarps</li>
@@ -434,6 +454,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B071HFBR13?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-flood"><span class="tile-brand">COQUIMBO</span><span class="tile-type">LED Work Light · 2-Pack</span></div>
         <h3>Coquimbo Rechargeable LED Work Light, 2-Pack</h3>
         <div class="stars">★ 4.3 stars · 24,700+ ratings</div>
         <ul class="feat">
@@ -456,6 +477,7 @@
     <img class="shop-cat-img" src="assets/card-pressure-washing.jpg" alt="Pressure washing a driveway clean" loading="lazy">
     <div class="shop-grid">
       <div class="shop-card">
+        <div class="shop-tile t-clean"><span class="tile-brand">SUN JOE</span><span class="tile-type">Pressure Washer · SPX3000</span></div>
         <h3>Sun Joe SPX3000 Electric Pressure Washer, 2030 PSI</h3>
         <div class="stars">★ 4.4 stars · 56,600+ ratings</div>
         <ul class="feat">
@@ -468,6 +490,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B00CPGMUXW?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-clean"><span class="tile-brand">KÄRCHER</span><span class="tile-type">Surface Cleaner · 15 in</span></div>
         <h3>Kärcher 15&quot; Surface Cleaner Attachment</h3>
         <div class="stars">★ 4.5 stars</div>
         <ul class="feat">
@@ -480,6 +503,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B01BMB3X68?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-clean"><span class="tile-brand">TOOL DAILY</span><span class="tile-type">Foam Cannon · 1 Liter</span></div>
         <h3>Tool Daily Foam Cannon, 1 Liter, 5 Nozzle Tips</h3>
         <div class="stars">★ 4.5 stars · 51,100+ ratings</div>
         <ul class="feat">
@@ -492,6 +516,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B07HC898GM?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-clean"><span class="tile-brand">30 SECONDS</span><span class="tile-type">Outdoor Cleaner · 2.5 Gallon</span></div>
         <h3>30 SECONDS Outdoor Cleaner Concentrate, 2.5 Gallon</h3>
         <ul class="feat">
           <li>2.5 gallon concentrate, mixed 1 part cleaner to 1 part water</li>
@@ -513,6 +538,7 @@
     <img class="shop-cat-img" src="assets/hero-home-daylight.jpg" alt="Bright Florida home with a manicured yard" loading="lazy">
     <div class="shop-grid">
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">THERMACELL</span><span class="tile-type">Patio Shield Mosquito Repeller</span></div>
         <h3>Thermacell Patio Shield Mosquito Repeller</h3>
         <div class="stars">★ 4.2 stars · 48,800+ ratings</div>
         <ul class="feat">
@@ -525,6 +551,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B07C8YDMJJ?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">FLOWTRON</span><span class="tile-type">Bug Zapper · 1 Acre</span></div>
         <h3>Flowtron Bug Zapper, 1 Acre Coverage, 40W</h3>
         <div class="stars">★ 4.5 stars · 25,000+ ratings</div>
         <ul class="feat">
@@ -537,6 +564,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B00004R9VW?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">HOME PREFER</span><span class="tile-type">Sun Hat · UPF 50+</span></div>
         <h3>Home Prefer UPF 50+ Sun Hat with Neck Flap</h3>
         <div class="stars">★ 4.7 stars · 11,100+ ratings</div>
         <ul class="feat">
@@ -549,6 +577,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B07CQ5S1RB?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">KEEN</span><span class="tile-type">Work Boots · Steel Toe</span></div>
         <h3>KEEN Utility Waterproof Work Boots, Steel Toe (Lansing Mid)</h3>
         <div class="stars">★ 4.4 stars · 7,500+ ratings</div>
         <ul class="feat">
@@ -561,6 +590,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/s?k=KEEN+Utility+Lansing+Mid+waterproof+work+boots&tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">YETI</span><span class="tile-type">Tundra 65 Hard Cooler</span></div>
         <h3>YETI Tundra 65 Hard Cooler</h3>
         <div class="stars">★ 4.7 stars · 2,800+ ratings</div>
         <ul class="feat">
@@ -573,6 +603,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0C547T7RW?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">BRIGHTECH</span><span class="tile-type">String Lights · 48 Ft</span></div>
         <h3>Brightech Ambience Pro Outdoor String Lights, 48 Ft</h3>
         <div class="stars">★ 4.7 stars · 2,500+ ratings</div>
         <ul class="feat">
@@ -585,6 +616,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B07MF2X7XR?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">COPPERTONE</span><span class="tile-type">Sport Sunscreen SPF 50 · 3-Pack</span></div>
         <h3>Coppertone Sport SPF 50 Sunscreen Spray, 3-Pack</h3>
         <div class="stars">★ 4.8 stars · 11,100+ ratings</div>
         <ul class="feat">
@@ -597,6 +629,7 @@
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B078BC1NJ6?tag=primeguard-20" target="_blank" rel="nofollow sponsored noopener">View on Amazon</a>
       </div>
       <div class="shop-card">
+        <div class="shop-tile t-comfort"><span class="tile-brand">DEWENWILS</span><span class="tile-type">Retractable Cord Reel · 50 Ft</span></div>
         <h3>DEWENWILS Retractable Extension Cord Reel, 50 Ft</h3>
         <div class="stars">★ 4.7 stars</div>
         <ul class="feat">
