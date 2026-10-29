@@ -64,7 +64,7 @@ try {
   }
 } catch (e) { /* FCM is an enhancement; never break the worker over it. */ }
 
-var CACHE_NAME = "pg-v6";
+var CACHE_NAME = "pg-v7";
 
 /* Small app shell precached on install so the installed app can
    open offline. Everything else is runtime-cached on first use. */
