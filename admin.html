@@ -235,6 +235,8 @@
   #pgBell:hover { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.22), 0 6px 18px rgba(201,162,75,.35); }
   .pg-bell-badge { position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; border-radius:999px; background:linear-gradient(135deg,#e8bd4e,#c9982f); color:#241a0c; font-size:.72rem; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 5px; box-shadow:0 4px 10px rgba(0,0,0,.4); }
   #pgBellPanel { position:absolute; right:0; top:calc(100% + 12px); width:min(360px,88vw); max-height:70vh; overflow-y:auto; border-radius:16px; background:linear-gradient(180deg,#141417,#0b0b0d); border:1px solid rgba(212,168,67,.35); box-shadow:0 24px 60px rgba(0,0,0,.6); padding:14px; z-index:150; }
+  .pg-deepflash { animation: pgDeepFlash 1.3s ease-in-out 2; border-radius:10px; }
+  @keyframes pgDeepFlash { 0%, 55% { background:rgba(212,168,67,.30); } 100% { background:transparent; } }
   .pg-bell-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:6px; }
   .pg-bell-item { display:block; width:100%; text-align:left; padding:10px 8px; border:none; border-bottom:1px solid rgba(255,255,255,.06); background:transparent; color:var(--text); cursor:pointer; font-family:inherit; font-size:.9rem; }
   .pg-bell-item:hover { background:rgba(212,168,67,.10); }
@@ -625,6 +627,7 @@
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")!=="dark")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="admin-modern.css?v=9">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8217167106635839" crossorigin="anonymous"></script>
 </head>
 <body>
 <button id="pgNavToggle" type="button" aria-label="Open menu">&#9776;</button>
@@ -1512,7 +1515,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="admin.js?v=99"></script>
+<script src="admin.js?v=100"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];

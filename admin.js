@@ -259,6 +259,7 @@
       else if (tnb) { tnb.style.display = "none"; }
       loadAll();
       startTracking();
+      pgBootDeepLink();
     });
   });
 
@@ -739,6 +740,7 @@
     }
     var row = document.createElement("div");
     row.className = "arow tk-row";
+    row.setAttribute("data-tkrow", it.src + ":" + it.id);
     row.innerHTML = tkRailHtml(it.due, it.doneMs) +
       '<div class="tk-main">' + main +
       '<div class="tk-links">' + links.join('<span class="tk-sep">·</span>') + "</div></div>";
@@ -963,8 +965,8 @@
       });
     });
   }
-  function homeRowBtn(tab, nHtml, title, sub) {
-    return '<button class="home-row" type="button" data-atab="' + tab + '">' + (nHtml || "") +
+  function homeRowBtn(tab, nHtml, title, sub, jump) {
+    return '<button class="home-row" type="button" data-atab="' + tab + '"' + (jump ? ' data-homejump="' + jump + '"' : "") + ">" + (nHtml || "") +
       '<span class="who"><span class="t">' + title + '</span>' + (sub ? '<br><span class="s">' + sub + "</span>" : "") + '</span><span class="go">&#8250;</span></button>';
   }
   function homeStageCounts() {
@@ -1025,12 +1027,12 @@
     bars += '<p style="font-size:.78rem;color:#7a7668">Every signed annual moves the gold bar. Projects and one-time jobs speed it up.</p>';
     if ($("home-bars")) $("home-bars").innerHTML = bars;
     var rows = "";
-    function needRow(n, color, title, s2, tab) {
-      return '<button class="home-row" type="button" data-atab="' + tab + '"><span class="n" style="color:' + color + '">' + n + '</span><span class="who"><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
+    function needRow(n, color, title, s2, tab, jump) {
+      return '<button class="home-row" type="button" data-atab="' + tab + '"' + (jump ? ' data-homejump="' + jump + '"' : "") + '><span class="n" style="color:' + color + '">' + n + '</span><span class="who"><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
     }
     if (review.length) {
       var r0 = review[0].d || {};
-      rows += needRow(review.length, "#c0392b", "Job" + (review.length > 1 ? "s" : "") + " in review" + ((r0.customerName || r0.customer) ? ": " + esc(r0.customerName || r0.customer) : ""), esc(r0.title || "Work order") + " · check the photos, tap Done, then pay the crew", "work");
+      rows += needRow(review.length, "#c0392b", "Job" + (review.length > 1 ? "s" : "") + " in review" + ((r0.customerName || r0.customer) ? ": " + esc(r0.customerName || r0.customer) : ""), esc(r0.title || "Work order") + " · check the photos, tap Done, then pay the crew", "work", "work_order|" + review[0].id);
     }
     if (c.unseen) rows += needRow(c.unseen, "#a87e14", "New hot leads to look at", "Fresh inquiries waiting for a first touch", "hotleads");
     if (homeExtra.quotesPending) rows += needRow(homeExtra.quotesPending, "#a87e14", "Vendor quotes to review", "Build the customer quote so it can go out for signing", "quotes");
@@ -1046,7 +1048,7 @@
       var dueToday = homeExtra.openTasks.filter(function (t) { return t.dueDate === todayKey; });
       var overdue = homeExtra.openTasks.filter(function (t) { return t.dueDate && t.dueDate < todayKey; });
       dueToday.slice(0, 3).forEach(function (t) {
-        todayHtml += homeRowBtn("followups", '<span class="n" style="color:#a87e14">!</span>', "Task due: " + esc(t.title), t.assigneeName ? "Assigned: " + esc(t.assigneeName) : "");
+        todayHtml += homeRowBtn("followups", '<span class="n" style="color:#a87e14">!</span>', "Task due: " + esc(t.title), t.assigneeName ? "Assigned: " + esc(t.assigneeName) : "", t.id ? "task|" + (t.src || "task") + "|" + t.id : "");
       });
       if (overdue.length) todayHtml += homeRowBtn("followups", '<span class="n" style="color:#c0392b">' + overdue.length + "</span>", "Overdue task" + (overdue.length > 1 ? "s" : ""), esc(overdue[0].title) + (overdue.length > 1 ? " and " + (overdue.length - 1) + " more" : ""));
       if (!dueToday.length && !overdue.length) todayHtml += '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No tasks due today. Clean slate.</p>';
@@ -1055,7 +1057,7 @@
     }
     if (review.length) {
       var rr = review[0].d || {};
-      todayHtml += homeRowBtn("work", '<span class="n" style="color:#c0392b">' + review.length + "</span>", "Job in review: " + esc(rr.customerName || rr.customer || rr.title || "Work order"), "Check the photos and tap Done");
+      todayHtml += homeRowBtn("work", '<span class="n" style="color:#c0392b">' + review.length + "</span>", "Job in review: " + esc(rr.customerName || rr.customer || rr.title || "Work order"), "Check the photos and tap Done", "work_order|" + review[0].id);
     }
     if ($("home-today")) $("home-today").innerHTML = todayHtml;
     var tk = $("home-today-kick");
@@ -1065,22 +1067,22 @@
     var weekHtml = "";
     var winEnd = localDateKey(new Date(Date.now() + 6 * 86400000));
     var dayItems = {};
-    function addDay(key, text, tab) { if (!dayItems[key]) dayItems[key] = []; dayItems[key].push({ text: text, tab: tab }); }
+    function addDay(key, text, tab, jump) { if (!dayItems[key]) dayItems[key] = []; dayItems[key].push({ text: text, tab: tab, jump: jump || "" }); }
     if (homeExtra.openTasks) homeExtra.openTasks.forEach(function (t) {
-      if (t.dueDate && t.dueDate >= todayKey && t.dueDate <= winEnd) addDay(t.dueDate, esc(t.title), "followups");
+      if (t.dueDate && t.dueDate >= todayKey && t.dueDate <= winEnd) addDay(t.dueDate, esc(t.title), "followups", t.id ? "task|" + (t.src || "task") + "|" + t.id : "");
     });
     if (homeExtra.vendorRows) homeExtra.vendorRows.forEach(function (v) {
       var st = String(v.w9Status || "pending");
       if (st === "received" || st === "submitted" || st === "approved") return;
       if (!v.w9Due) return;
       var dk = String(v.w9Due).slice(0, 10);
-      if (dk >= todayKey && dk <= winEnd) addDay(dk, "W-9 deadline: " + esc(v.business || v.name || "Vendor"), "vendors");
+      if (dk >= todayKey && dk <= winEnd) addDay(dk, "W-9 deadline: " + esc(v.business || v.name || "Vendor"), "vendors", v.id ? "vendor|" + v.id : "");
     });
     var dayKeys = Object.keys(dayItems).sort();
     if (dayKeys.length) {
       weekHtml = dayKeys.map(function (k) {
         return dayItems[k].map(function (it, i) {
-          return '<button class="home-day" type="button" data-atab="' + it.tab + '"><span class="dt">' + (i === 0 ? homeDayLabel(k, todayKey) : "") + "</span><span>" + it.text + "</span></button>";
+          return '<button class="home-day" type="button" data-atab="' + it.tab + '"' + (it.jump ? ' data-homejump="' + it.jump + '"' : "") + '><span class="dt">' + (i === 0 ? homeDayLabel(k, todayKey) : "") + "</span><span>" + it.text + "</span></button>";
         }).join("");
       }).join("");
     } else if (homeExtra.openTasks) {
@@ -1107,7 +1109,7 @@
           if (!w9ok) chips += '<span class="home-pill home-pill-gold">W-9' + (v.w9Due ? " due " + (homeParseDay(v.w9Due) ? homeParseDay(v.w9Due).toLocaleDateString([], { month: "short", day: "numeric" }) : "") : " open") + "</span> ";
           if (!v.payoutMethod) chips += '<span class="home-pill home-pill-gold">Payout not set</span>';
         }
-        crewHtml += '<button class="home-row" type="button" data-atab="vendors"><span class="who"><span class="t">' + esc(v.name || "") + (v.business ? " · " + esc(v.business) : "") + '</span><br><span class="s">' + esc((v.services || []).join(", ") || "Crew") + '</span></span><span class="home-amt">' + chips + "</span></button>";
+        crewHtml += '<button class="home-row" type="button" data-atab="vendors"' + (v.id ? ' data-homejump="vendor|' + v.id + '"' : "") + '><span class="who"><span class="t">' + esc(v.name || "") + (v.business ? " · " + esc(v.business) : "") + '</span><br><span class="s">' + esc((v.services || []).join(", ") || "Crew") + '</span></span><span class="home-amt">' + chips + "</span></button>";
       });
     } else crewHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading…</p>';
     if ($("home-crew")) $("home-crew").innerHTML = crewHtml;
@@ -1120,7 +1122,7 @@
       var m = payTxt.replace(",", "").match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
       var amt = m ? parseFloat(m[1]) : 0;
       if (amt) { owedTotal += amt; owedAny = true; }
-      owedHtml += '<button class="home-row" type="button" data-atab="work"><span class="who"><span class="t">' + esc(d.vendorBusiness || d.customerName || d.customer || "Crew") + '</span><br><span class="s">' + esc(d.customerName || d.customer || "") + (d.title ? " · " + esc(d.title) : "") + " · pays when you tap Done</span></span>" + '<span class="home-amt">' + (amt ? "$" + amt : esc(payTxt)) + "</span></button>";
+      owedHtml += '<button class="home-row" type="button" data-atab="work" data-homejump="work_order|' + r.id + '"><span class="who"><span class="t">' + esc(d.vendorBusiness || d.customerName || d.customer || "Crew") + '</span><br><span class="s">' + esc(d.customerName || d.customer || "") + (d.title ? " · " + esc(d.title) : "") + " · pays when you tap Done</span></span>" + '<span class="home-amt">' + (amt ? "$" + amt : esc(payTxt)) + "</span></button>";
     });
     if (!review.length) owedHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nothing waiting. Crew payouts appear here the moment a job lands in review.</p>';
     else if (owedAny) owedHtml += '<div class="home-row" style="cursor:default"><span class="who"><span class="t">Total waiting</span></span><span class="home-amt">$' + owedTotal + "</span></div>";
@@ -1138,7 +1140,7 @@
     if (!cold.length) radarHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nobody is going cold. Every open lead was touched in the last 3 days.</p>';
     cold.slice(0, 4).forEach(function (r) {
       var d = r.d || {}, days = hlIdleDays(d);
-      radarHtml += '<button class="home-row" type="button" data-atab="hotleads"><span class="who"><span class="t">' + esc(d.name || "Lead") + '</span><br><span class="s">' + esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.source ? " · via " + esc(d.source) : "") + '</span></span><span class="home-amt"><span class="home-pill ' + (days >= 7 ? "home-pill-red" : "home-pill-gold") + '">' + days + " days quiet</span></span></button>";
+      radarHtml += '<button class="home-row" type="button" data-atab="hotleads" data-homejump="hot_lead|' + r.id + '"><span class="who"><span class="t">' + esc(d.name || "Lead") + '</span><br><span class="s">' + esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.source ? " · via " + esc(d.source) : "") + '</span></span><span class="home-amt"><span class="home-pill ' + (days >= 7 ? "home-pill-red" : "home-pill-gold") + '">' + days + " days quiet</span></span></button>";
     });
     if ($("home-radar")) $("home-radar").innerHTML = radarHtml;
 
@@ -1162,12 +1164,12 @@
       db.collection("quotes").where("status", "==", "pending").limit(50).get().then(function (qs) { homeExtra.quotesPending = qs.size; renderHomeDash(); }).catch(function () {});
       db.collection("tasks").where("done", "==", false).limit(200).get().then(function (qs) {
         var today = localDateKey(new Date()), n = 0, list = [];
-        qs.forEach(function (d) { var t = d.data(); if (t.dueDate && t.dueDate <= today) n++; list.push({ title: t.title || "Task", dueDate: t.dueDate || "", assigneeName: t.assigneeName || "" }); });
+        qs.forEach(function (d) { var t = d.data(); if (t.dueDate && t.dueDate <= today) n++; list.push({ id: d.id, src: "task", title: t.title || "Task", dueDate: t.dueDate || "", assigneeName: t.assigneeName || "" }); });
         homeExtra.tasksDue = n; homeExtra.openTasks = list; renderHomeDash();
       }).catch(function () {});
       db.collection("item_notes").where("followUpDone", "==", false).limit(200).get().then(function (qs) {
         var extra = [];
-        qs.forEach(function (d) { var t = d.data(); if (t.followUpOn) extra.push({ title: (t.entityLabel || "Follow-up") + (t.text ? ": " + String(t.text).slice(0, 60) : ""), dueDate: t.followUpOn, assigneeName: "" }); });
+        qs.forEach(function (d) { var t = d.data(); if (t.followUpOn) extra.push({ id: d.id, src: "note", title: (t.entityLabel || "Follow-up") + (t.text ? ": " + String(t.text).slice(0, 60) : ""), dueDate: t.followUpOn, assigneeName: "" }); });
         if (extra.length) {
           homeExtra.openTasks = (homeExtra.openTasks || []).concat(extra);
           var today = localDateKey(new Date());
@@ -1177,7 +1179,7 @@
       }).catch(function () {});
       db.collection("vendors").limit(60).get().then(function (qs) {
         var ap = 0, rows = [];
-        qs.forEach(function (d) { var v = d.data(); rows.push(v); if ((v.status || (v.verified ? "approved" : "pending")) === "approved") ap++; });
+        qs.forEach(function (d) { var v = d.data(); rows.push(Object.assign({ id: d.id }, v)); if ((v.status || (v.verified ? "approved" : "pending")) === "approved") ap++; });
         homeExtra.vendApproved = ap; homeExtra.vendTotal = qs.size; homeExtra.vendorRows = rows; renderHomeDash();
       }).catch(function () {});
     }
@@ -2044,6 +2046,9 @@
     setBellOpen(false);
     var btn = document.querySelector('#pgNavDrawer [data-atab="hotleads"]');
     if (btn) btn.click();
+    // Edwin's rule: a notification click opens the exact record it is
+    // about, so the bell item opens this lead, not just the list.
+    openHotLeadNotes(id);
   }
   function markAllLeadsSeen() {
     var unseen = hlLeads.filter(function (it) { return !it.d.seen; });
@@ -6569,6 +6574,46 @@
     }
   };
 
+  /* ----- Notification deep links (Edwin's rule): clicking a
+     notification opens the exact record it is about ----- */
+  function pgFlashRow(el) {
+    if (!el) return;
+    if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.classList.add("pg-deepflash");
+    setTimeout(function () { el.classList.remove("pg-deepflash"); }, 2600);
+  }
+  function pgOpenTask(src, id) {
+    var btn = document.querySelector('#pgNavDrawer [data-atab="followups"]');
+    if (btn) btn.click();
+    tkEntityFilter = "all";
+    loadFollowUps();
+    var tries = 0;
+    (function hunt() {
+      var el = document.querySelector('[data-tkrow="' + src + ":" + id + '"]');
+      if (el) { pgFlashRow(el); return; }
+      if (++tries < 10) setTimeout(hunt, 200);
+    })();
+  }
+  window.pgHomeJump = function (spec) {
+    var p = String(spec || "").split("|");
+    if (!p[1]) return;
+    if (p[0] === "hot_lead") window.pgCalJump("hot_lead", p[1]);
+    else if (p[0] === "work_order") window.pgCalJump("work_order", p[1]);
+    else if (p[0] === "vendor") openVendor(p[1]);
+    else if (p[0] === "customer") openCustomer(p[1]);
+    else if (p[0] === "task" && p[2]) pgOpenTask(p[1], p[2]);
+  };
+  /* Push notifications carry a URL and sw.js navigates to it on click;
+     an admin URL with ?open=kind:id lands on that record right after
+     sign-in. Kinds: hot_lead, work_order, vendor, customer, and
+     task:<src>:<id> with src "task" or "note". */
+  function pgBootDeepLink() {
+    var m = /[?&]open=([^&]+)/.exec(location.search || "");
+    if (!m) return;
+    var spec = decodeURIComponent(m[1]).replace(/:/g, "|");
+    if (window.pgHomeJump) window.pgHomeJump(spec);
+  }
+
   // ---------- Row actions ----------
   document.addEventListener("click", function (e) {
     var t = e.target, d = t.dataset;
@@ -6810,6 +6855,7 @@
     if (d.hledit) openHotLeadForm(d.hledit);
     if (d.hldel) deleteHotLead(d.hldel);
     if (d.hlbell) markLeadSeen(d.hlbell);
+    if (d.homejump) window.pgHomeJump(d.homejump);
     if (d.hlconvert) openHotLeadConvert(d.hlconvert);
     if (d.hlclaim) claimHotLead(d.hlclaim);
     if (d.hlrelease) releaseHotLead(d.hlrelease);
