@@ -158,7 +158,7 @@
     $("wo-form-title").textContent = "Create work order";
     $("wo-submit").textContent = "Create work order";
     $("wo-ok").textContent = "Work order created. It is live on vendor dashboards now.";
-    hide($("wo-cancel")); hide($("wo-error")); hide($("wo-ok"));
+    hide($("wo-cancel")); hide($("wo-delete")); hide($("wo-error")); hide($("wo-ok"));
   }
 
   function enterEditMode(id) {
@@ -176,13 +176,17 @@
       $("wo-form-title").textContent = "Edit work order";
       $("wo-submit").textContent = "Save changes";
       $("wo-ok").textContent = "Work order updated.";
-      show($("wo-cancel")); hide($("wo-error")); hide($("wo-ok"));
+      show($("wo-cancel")); show($("wo-delete")); hide($("wo-error")); hide($("wo-ok"));
       setWoFormCollapsed(false);
       $("wo-form-title").scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
   $("wo-cancel").addEventListener("click", resetWoForm);
+  // v101: delete from inside the edit screen too (Ava: there was no
+  // delete/remove option in the card's edit screen). deleteWorkOrder
+  // is declared further down; the click handler resolves it at tap time.
+  $("wo-delete").addEventListener("click", function () { if (editingId) deleteWorkOrder(editingId); });
 
   $("ad-loginform").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -5075,6 +5079,23 @@
     });
   }
 
+  /* Delete a work order (v101, Natasha via Ava, 2026-11-02): the old
+     board handler was a bare one-liner with no error path, so any
+     failure at the confirm or delete step was swallowed and the click
+     appeared to do nothing. This follows the deleteHotLead /
+     deleteCustomer pattern: named confirm with the order title, the
+     delete, then log + reload; a failure alerts with the real error. */
+  function deleteWorkOrder(id) {
+    var it = woOrders.find(function (x) { return x.id === id; });
+    var name = (it && it.d && (it.d.title || it.d.customerName)) || "this work order";
+    if (!confirm("Delete work order \"" + name + "\"? This cannot be undone.")) return;
+    db.collection("work_orders").doc(id).delete().then(function () {
+      logActivity("Deleted a work order: " + name);
+      if (editingId === id) resetWoForm();
+      loadAll();
+    }).catch(function (e) { alert("Could not delete work order: " + (e.message || e)); });
+  }
+
   /* ----- Send a quote-request work order to vendors (explicit step) ----- */
   // Convert no longer notifies vendors. For kind "quote_request" work
   // orders, staff pick a target and press "Preview & send": a preview
@@ -6679,7 +6700,7 @@
       }).then(function () { loadAll(); }, function () { loadAll(); });
       logActivity("Marked a vendor info request answered");
     }
-    if (d.wodel && confirm("Delete this work order?")) { logActivity("Deleted a work order"); db.collection("work_orders").doc(d.wodel).delete().then(loadAll); }
+    if (d.wodel) deleteWorkOrder(d.wodel);
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (d.woopen) { woOpenId = (woOpenId === d.woopen) ? null : d.woopen; renderWorkOrders(); }
