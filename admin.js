@@ -2000,7 +2000,21 @@
     });
   }
 
-  /* ----- Notification bell ----- */
+  /* ----- Notification bell -----
+     Two-stage items (Edwin, 2026-11-06): the first tap on a bell
+     item expands it in place with the lead's details; the "Open
+     lead" button inside the expanded view is what navigates (via
+     markLeadSeen). Tapping the header of an expanded item just
+     collapses it again. Same expand-first pattern he asked for on
+     phone push notifications. */
+  function bellStageLabel(key) {
+    for (var i = 0; i < HL_STAGES.length; i++) if (HL_STAGES[i][0] === key) return HL_STAGES[i][1];
+    return key || "";
+  }
+  function bellTempLabel(key) {
+    for (var i = 0; i < HL_TEMPS.length; i++) if (HL_TEMPS[i][0] === key) return HL_TEMPS[i][1];
+    return "";
+  }
   function renderBellPanel() {
     var list = $("pgBellList");
     if (!list) return;
@@ -2012,12 +2026,43 @@
     list.innerHTML = "";
     unseen.forEach(function (it) {
       var d = it.d;
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "pg-bell-item";
-      b.setAttribute("data-hlbell", it.id);
-      b.innerHTML = "<strong>" + esc(d.name || "Lead") + "</strong><small>" +
-        esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + " · " + esc(timeAgo(tsMs(d.createdAt))) + "</small>";
-      list.appendChild(b);
+      var wrap = document.createElement("div");
+      wrap.className = "pg-bell-item";
+      var rows = [];
+      if (d.address) rows.push(["Address", d.address]);
+      if (d.contact) rows.push(["Contact", d.contact]);
+      if (d.source) rows.push(["Source", d.source]);
+      var st = bellStageLabel(d.stage); if (st) rows.push(["Stage", st]);
+      var tp = bellTempLabel(d.temperature); if (tp) rows.push(["Temperature", tp]);
+      var ph = (d.photos || []).length, vd = (d.mediaLinks || []).length;
+      if (ph || vd) rows.push(["Media", (ph ? ph + " photo" + (ph === 1 ? "" : "s") : "") + (ph && vd ? " · " : "") + (vd ? vd + " video" + (vd === 1 ? "" : "s") : "")]);
+      var rowsHtml = rows.map(function (r) {
+        return '<div class="pg-bell-row"><span>' + esc(r[0]) + '</span><strong>' + esc(r[1]) + '</strong></div>';
+      }).join("");
+      var notesHtml = d.notes ? '<p class="pg-bell-notes">' + esc(hlExcerpt(d.notes)) + '</p>' : "";
+      wrap.innerHTML =
+        '<div class="pg-bell-head"><div class="pg-bell-main"><strong>' + esc(d.name || "Lead") + '</strong><small>' +
+          esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + " · " + esc(timeAgo(tsMs(d.createdAt))) + '</small></div>' +
+          '<span class="pg-bell-chev" aria-hidden="true">▾</span></div>' +
+        '<div class="pg-bell-detail hidden">' + rowsHtml + notesHtml +
+          '<button type="button" class="pg-bell-open">Open lead →</button></div>';
+      var detail = wrap.querySelector(".pg-bell-detail");
+      wrap.querySelector(".pg-bell-head").addEventListener("click", function () {
+        var willOpen = detail.classList.contains("hidden");
+        var all = list.querySelectorAll(".pg-bell-detail");
+        for (var i = 0; i < all.length; i++) all[i].classList.add("hidden");
+        var chevs = list.querySelectorAll(".pg-bell-chev");
+        for (var j = 0; j < chevs.length; j++) chevs[j].classList.remove("open");
+        if (willOpen) {
+          detail.classList.remove("hidden");
+          wrap.querySelector(".pg-bell-chev").classList.add("open");
+        }
+      });
+      wrap.querySelector(".pg-bell-open").addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        markLeadSeen(it.id);
+      });
+      list.appendChild(wrap);
     });
   }
   function setBellOpen(open) {

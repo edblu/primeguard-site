@@ -381,3 +381,19 @@ html:not(.pg-light){ background:#100d0a !important; }
 .pg-photo-tools{ margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .pg-photo-tools label.btn{ margin:0; cursor:pointer; }
 .pg-photo-status{ font-size:.82rem; color:var(--muted); }
+
+/* Bell two-stage expansion (Edwin, 2026-11-06): first tap expands
+   the item with the lead's details, the Open lead button inside
+   navigates to the record. */
+.pg-bell-head{ display:flex; align-items:flex-start; gap:8px; cursor:pointer; }
+.pg-bell-main{ flex:1; min-width:0; }
+.pg-bell-main small{ display:block; opacity:.65; font-size:.78rem; margin-top:2px; }
+.pg-bell-chev{ transition:transform .18s ease; opacity:.65; font-size:.8rem; line-height:1.5; }
+.pg-bell-chev.open{ transform:rotate(180deg); }
+.pg-bell-detail{ padding:8px 2px 4px; }
+.pg-bell-row{ display:flex; gap:8px; font-size:.8rem; padding:2px 0; }
+.pg-bell-row span{ opacity:.6; min-width:76px; flex-shrink:0; }
+.pg-bell-row strong{ font-weight:600; word-break:break-word; }
+.pg-bell-notes{ font-size:.8rem; opacity:.85; margin:6px 0 2px; }
+.pg-bell-open{ margin-top:8px; width:100%; padding:9px 10px; border-radius:10px; border:1px solid rgba(185,138,29,.55); background:rgba(185,138,29,.14); color:inherit; font-family:inherit; font-weight:700; cursor:pointer; }
+.pg-bell-open:hover{ background:rgba(185,138,29,.25); }
