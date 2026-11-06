@@ -947,6 +947,63 @@
      page is open; stage push notifications go out through the same
      push_tokens plumbing the portal already uses (send-push.mjs on
      the office side reads those docs). */
+  /* Live crew map inside the tracker (v22, Edwin 2026-11-06):
+     while the crew is on the way or on site, the customer watches
+     the same Uber-style picture the office sees: a gold pin on
+     their property, a pulsing pin on the crew, a dashed line
+     between them. Position comes from the work order's lastLat /
+     lastLng, kept current by the per-doc snapshot listeners that
+     feed ccalWos, so the map rides the same live refresh as the
+     stage steps and needs no timer of its own. Fully defensive:
+     any failure leaves the tracker exactly as before. Note the
+     tracker re-renders by replacing its innerHTML, which swaps in
+     a fresh #ctMap element each time; the same-job update path
+     below therefore also checks the map is still bound to the
+     element currently on the page. */
+  var ctMapObj = null, ctCrewMarker = null, ctPropMarker = null, ctLine = null, ctMapForId = null;
+  function ctMapPin(kind) {
+    return L.divIcon({
+      className: "ct-pin-wrap",
+      html: '<span class="ct-pin-dot ' + kind + '"></span>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+  }
+  function ctMapHide() {
+    if (ctMapObj) { try { ctMapObj.remove(); } catch (e) {} }
+    ctMapObj = null; ctCrewMarker = null; ctPropMarker = null; ctLine = null; ctMapForId = null;
+  }
+  function ctMapShow(w) {
+    if (!window.L) return;
+    var el = $("ctMap");
+    if (!el) return;
+    var crewPt = [w.lastLat, w.lastLng];
+    var hasProp = typeof w.propertyLat === "number" && typeof w.propertyLng === "number";
+    var propPt = hasProp ? [w.propertyLat, w.propertyLng] : null;
+    if (ctMapObj && ctMapForId === w.id && ctMapObj.getContainer() === el) {
+      // Same job, map still on the live element: just move things.
+      if (ctCrewMarker) ctCrewMarker.setLatLng(crewPt);
+      if (ctLine && propPt) ctLine.setLatLngs([crewPt, propPt]);
+      try { ctMapObj.invalidateSize(); } catch (e) {}
+      return;
+    }
+    ctMapHide();
+    ctMapObj = L.map(el, { scrollWheelZoom: false });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19
+    }).addTo(ctMapObj);
+    if (propPt) ctPropMarker = L.marker(propPt, { icon: ctMapPin("prop") }).addTo(ctMapObj);
+    ctCrewMarker = L.marker(crewPt, { icon: ctMapPin("crew") }).addTo(ctMapObj);
+    if (propPt) {
+      ctLine = L.polyline([crewPt, propPt], { color: "#c98f1b", weight: 2, dashArray: "6 6", opacity: 0.9 }).addTo(ctMapObj);
+      ctMapObj.fitBounds(L.latLngBounds([crewPt, propPt]), { padding: [24, 24] });
+    } else {
+      ctMapObj.setView(crewPt, 14);
+    }
+    ctMapForId = w.id;
+    try { ctMapObj.invalidateSize(); } catch (e) {}
+  }
   function renderCustTracker() {
     var box = $("ccalTracker");
     if (!box) return;
@@ -969,7 +1026,7 @@
         if (!pick || score(ev.w) > score(pick)) { pick = ev.w; pickEv = ev; }
       });
     }
-    if (!pick) { box.innerHTML = ""; return; }
+    if (!pick) { box.innerHTML = ""; try { ctMapHide(); } catch (e) {} return; }
     var w = pick;
     var st = String(w.status || "");
     var idx = 0;
@@ -995,11 +1052,14 @@
       }).join("") + "</div>";
     }
     var when = pickEv ? ccalTime(pickEv) : "";
+    var ctLive = (st === "en_route" || st === "arrived") && typeof w.lastLat === "number" && typeof w.lastLng === "number";
     box.innerHTML = '<div class="ccal-track"><h4>' + esc(t("tracker_title")) + "</h4>" +
       '<p class="ct-sub">' + esc(w.title || w.category || t("visit_default")) + (when ? " · " + esc(when) : "") +
       " · " + esc(t("crew_label")) + esc(w.vendorBusiness || t("crew_default")) + "</p>" +
       '<div class="ct-steps">' + steps + "</div>" +
-      (live ? '<p class="ct-live">' + esc(live) + "</p>" : "") + photos + "</div>";
+      (live ? '<p class="ct-live">' + esc(live) + "</p>" : "") +
+      (ctLive ? '<div id="ctMap"></div>' : "") + photos + "</div>";
+    try { if (ctLive) ctMapShow(w); else ctMapHide(); } catch (e) {}
   }
   function ccalNewToken() {
     var s = "", chars = "abcdef0123456789";

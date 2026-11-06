@@ -397,3 +397,21 @@ html:not(.pg-light){ background:#100d0a !important; }
 .pg-bell-notes{ font-size:.8rem; opacity:.85; margin:6px 0 2px; }
 .pg-bell-open{ margin-top:8px; width:100%; padding:9px 10px; border-radius:10px; border:1px solid rgba(185,138,29,.55); background:rgba(185,138,29,.14); color:inherit; font-family:inherit; font-weight:700; cursor:pointer; }
 .pg-bell-open:hover{ background:rgba(185,138,29,.25); }
+
+/* Live job map (v103, Edwin 2026-11-06): Work Orders tab map card,
+   gold property pins, pulsing crew pins, dashed route lines.
+   Colors ride the modern theme variables above. */
+.wo-map-card{ padding:14px 16px !important; }
+.wo-map-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.wo-map-head h3{ margin:0 !important; }
+#woMap{ height:340px; border-radius:12px; z-index:0; background:#e8e4da; }
+.wo-map-legend{ margin:10px 0 0 !important; font-size:.78rem; color:var(--m-muted) !important; }
+.wo-pin-wrap{ background:transparent !important; border:none !important; }
+.wo-pin-dot{ display:block; width:16px; height:16px; border-radius:50%; border:2px solid var(--m-ink); }
+.wo-pin-dot.prop{ background:var(--m-gold); box-shadow:0 1px 5px rgba(16,28,38,.45); }
+.wo-pin-dot.crew{ background:var(--m-teal); border-color:#ffffff; animation:woPinPulse 1.8s ease-out infinite; }
+@keyframes woPinPulse{
+  0%{ box-shadow:0 0 0 0 rgba(14,124,134,.55); }
+  70%{ box-shadow:0 0 0 14px rgba(14,124,134,0); }
+  100%{ box-shadow:0 0 0 0 rgba(14,124,134,0); }
+}

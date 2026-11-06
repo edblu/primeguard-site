@@ -6,6 +6,16 @@
 <title>My Account | PrimeGuard Preservation</title>
 <meta name="description" content="Log in to your PrimeGuard account to manage your profile, request services, and track your jobs.">
 <link rel="stylesheet" href="styles.css?v=31">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* Live crew map inside the visit tracker (v22, Edwin 2026-11-06) */
+  #ctMap{ height:220px; border-radius:12px; margin-top:10px; z-index:0; background:#17171c; }
+  .ct-pin-wrap{ background:transparent; border:none; }
+  .ct-pin-dot{ display:block; width:16px; height:16px; border-radius:50%; border:2px solid #0b0b0d; }
+  .ct-pin-dot.prop{ background:#c98f1b; box-shadow:0 1px 5px rgba(0,0,0,.5); }
+  .ct-pin-dot.crew{ background:#0e7c86; border-color:#fff; animation:ctPinPulse 1.8s ease-out infinite; }
+  @keyframes ctPinPulse{ 0%{ box-shadow:0 0 0 0 rgba(14,124,134,.55); } 70%{ box-shadow:0 0 0 14px rgba(14,124,134,0); } 100%{ box-shadow:0 0 0 0 rgba(14,124,134,0); } }
+</style>
 <link rel="icon" type="image/png" href="assets/logo.png">
 <!-- PWA: installable app (manifest, theme, iOS) -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -242,6 +252,7 @@
   }
 </style>
 <link rel="stylesheet" href="portal.css?v=7">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8217167106635839" crossorigin="anonymous"></script>
 </head>
 <body class="acct-page">
 <header class="site-header">
@@ -608,7 +619,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="account.js?v=21"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="account.js?v=22"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>

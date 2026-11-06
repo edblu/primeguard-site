@@ -5054,6 +5054,7 @@
     renderWoFilterChips();
     if (!woOrders.length) {
       box.innerHTML = '<p style="color:var(--faint)">No work orders yet.</p>';
+      woMapSafe();
       return;
     }
     var visible = woOrders.filter(function (it) {
@@ -5115,6 +5116,7 @@
       box.appendChild(card);
     });
     pgWxHydrate();
+    woMapSafe();
   }
   function loadWorkOrders() {
     liveOn("wo", db.collection("work_orders").orderBy("createdAt", "desc").limit(30), function (qs) {
@@ -5123,6 +5125,147 @@
       renderWorkOrders();
     });
   }
+
+  /* ---------- Live job map (v103, Edwin 2026-11-06) ----------
+     Uber-style map at the top of the Work Orders tab: a gold pin
+     for each job property, a pulsing pin for a crew that is on the
+     way (its position streams from the work order's lastLat /
+     lastLng, written by the vendor portal), and a dashed gold line
+     joining crew to property while en route. Everything here is
+     defensive: if the Leaflet CDN failed to load, or a job has no
+     coordinates, the board renders exactly as before, and any map
+     error is swallowed so it can never break renderWorkOrders. */
+  var woMapObj = null, woMapRefs = {}, woMapFitted = false, woMapTimerOn = false;
+  function woMapVisible() {
+    var sec = $("atab-work");
+    return !!(sec && sec.offsetParent !== null);
+  }
+  function woMapStageText(w) {
+    var st = woStatusValue(w);
+    if (st === "en_route") return "On the way";
+    if (st === "arrived") return "Arrived";
+    if (st === "review") return "In review";
+    if (woIsActiveJobStatus(st) || w.vendorId) return "Scheduled";
+    return String(st || "").replace(/_/g, " ");
+  }
+  function woMapIcon(kind) {
+    return L.divIcon({
+      className: "wo-pin-wrap",
+      html: '<span class="wo-pin-dot ' + kind + '"></span>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+  }
+  function woMapInit() {
+    var el = $("woMap");
+    if (!el || !window.L) return false;
+    woMapObj = L.map(el).setView([25.79, -80.22], 11);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19
+    }).addTo(woMapObj);
+    var fitBtn = $("woMapFit");
+    if (fitBtn) fitBtn.addEventListener("click", function () { try { woMapFit(); } catch (e) {} });
+    return true;
+  }
+  function woMapFit() {
+    if (!woMapObj || !window.L) return;
+    var pts = [];
+    Object.keys(woMapRefs).forEach(function (id) {
+      var r = woMapRefs[id];
+      if (r.prop) pts.push(r.prop.getLatLng());
+      if (r.crew) pts.push(r.crew.getLatLng());
+    });
+    if (pts.length) {
+      woMapObj.fitBounds(L.latLngBounds(pts), { padding: [30, 30] });
+      woMapFitted = true;
+    }
+  }
+  function woMapSync() {
+    if (!window.L) return;
+    var el = $("woMap");
+    if (!el) return;
+    if (!woMapObj) {
+      // Lazy init: Leaflet measures its container, so only build the
+      // map once the Work tab is actually on screen.
+      if (!woMapVisible()) return;
+      if (!woMapInit()) return;
+      try { woMapObj.invalidateSize(); } catch (e) {}
+    }
+    var seen = {};
+    (woOrders || []).forEach(function (it) {
+      var w = it.d || {};
+      var st = woStatusValue(w);
+      if (st === "done" || st === "cancelled") return;
+      var hasProp = typeof w.propertyLat === "number" && typeof w.propertyLng === "number";
+      var hasCrew = (st === "en_route" || st === "arrived") && typeof w.lastLat === "number" && typeof w.lastLng === "number";
+      if (!hasProp && !hasCrew) return;
+      seen[it.id] = true;
+      var r = woMapRefs[it.id];
+      if (!r) r = woMapRefs[it.id] = { prop: null, crew: null, line: null };
+      if (hasProp) {
+        var pHtml = "<strong>" + esc(w.title || "Work order") + "</strong>" +
+          (woCustomerName(w) ? "<br>" + esc(woCustomerName(w)) : "") +
+          "<br>" + esc(woMapStageText(w)) +
+          (w.address ? "<br>" + esc(w.address) : "");
+        if (r.prop) { r.prop.setLatLng([w.propertyLat, w.propertyLng]); r.prop.setPopupContent(pHtml); }
+        else r.prop = L.marker([w.propertyLat, w.propertyLng], { icon: woMapIcon("prop") }).addTo(woMapObj).bindPopup(pHtml);
+      } else if (r.prop) { try { woMapObj.removeLayer(r.prop); } catch (e) {} r.prop = null; }
+      if (hasCrew) {
+        var cHtml = "<strong>" + esc(w.vendorBusiness || "Crew") + "</strong>" +
+          "<br>" + esc(st === "arrived" ? "Arrived" : "On the way") +
+          (w.lastLocAt ? "<br>Updated " + esc(timeAgo(tsMs(w.lastLocAt))) : "");
+        if (r.crew) { r.crew.setLatLng([w.lastLat, w.lastLng]); r.crew.setPopupContent(cHtml); }
+        else r.crew = L.marker([w.lastLat, w.lastLng], { icon: woMapIcon("crew") }).addTo(woMapObj).bindPopup(cHtml);
+      } else if (r.crew) { try { woMapObj.removeLayer(r.crew); } catch (e) {} r.crew = null; }
+      if (st === "en_route" && hasProp && hasCrew) {
+        var pts = [[w.lastLat, w.lastLng], [w.propertyLat, w.propertyLng]];
+        if (r.line) r.line.setLatLngs(pts);
+        else r.line = L.polyline(pts, { color: "#c9a24b", weight: 2, dashArray: "6 6", opacity: 0.85 }).addTo(woMapObj);
+      } else if (r.line) { try { woMapObj.removeLayer(r.line); } catch (e) {} r.line = null; }
+    });
+    Object.keys(woMapRefs).forEach(function (id) {
+      if (seen[id]) return;
+      var r = woMapRefs[id];
+      ["prop", "crew", "line"].forEach(function (k) {
+        if (r[k]) { try { woMapObj.removeLayer(r[k]); } catch (e) {} }
+      });
+      delete woMapRefs[id];
+    });
+    if (!woMapFitted) woMapFit();
+    woMapStartTimer();
+  }
+  function woMapStartTimer() {
+    if (woMapTimerOn) return;
+    woMapTimerOn = true;
+    setInterval(function () {
+      try { if (woMapVisible()) loadWorkOrders(); } catch (e) {}
+    }, 30000);
+  }
+  function woMapSafe() { try { woMapSync(); } catch (e) {} }
+  // Tab switches are driven by the inline showTab() in admin.html,
+  // which only toggles the hidden class on #atab-work. Watch for the
+  // tab coming back on screen: Leaflet needs a size refresh after
+  // being hidden, and this is the first safe moment to lazy-init.
+  (function () {
+    try {
+      var sec = $("atab-work");
+      if (!sec || !window.MutationObserver) return;
+      var wasHidden = sec.classList.contains("hidden");
+      new MutationObserver(function () {
+        var hidden = sec.classList.contains("hidden");
+        if (wasHidden && !hidden) {
+          setTimeout(function () {
+            try {
+              if (woMapObj) woMapObj.invalidateSize();
+              woMapSafe();
+            } catch (e) {}
+          }, 60);
+        }
+        wasHidden = hidden;
+      }).observe(sec, { attributes: true, attributeFilter: ["class"] });
+    } catch (e) {}
+  })();
 
   /* Delete a work order (v101, Natasha via Ava, 2026-11-02): the old
      board handler was a bare one-liner with no error path, so any
