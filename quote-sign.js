@@ -101,10 +101,14 @@
   // accepts "full" / "deposit" and re-verifies everything itself.
   function choiceOf(q) {
     var c = String((q && q.payChoice) || "").toLowerCase();
+    if (c === "oncompletion" || c === "on-completion") return "onCompletion";
     return (c === "deposit20" || c === "deposit") ? "deposit" : "full";
   }
   function dueOf(q) {
     var total = Number(q.total) || 0;
+    if (choiceOf(q) === "onCompletion") {
+      return { total: total, due: 0, dep: false, balance: total };
+    }
     var dep = choiceOf(q) === "deposit";
     var due = dep ? (Number(q.amountDueNow) || Math.round(total * 0.2)) : total;
     return { total: total, due: due, dep: dep, balance: Math.round((total - due) * 100) / 100 };
@@ -117,6 +121,11 @@
         '<p class="qs-meta">We will confirm your start date shortly. Your receipt was emailed by our payment processor.</p></div>';
     }
     var d = dueOf(q);
+    if (choiceOf(q) === "onCompletion") {
+      return '<div class="qs-pay">' +
+        '<h2 class="qs-h2" style="margin-top:0">Nothing due now</h2>' +
+        '<p class="qs-meta"><strong>' + esc(money(d.total)) + ' is due only when the job is done</strong> and you have seen the finished yard and the before and after photos. We will confirm your start window shortly.</p></div>';
+    }
     var retry = paidReturn === "0"
       ? '<p class="qs-meta">No charge was made. You can try again whenever you are ready.</p>' : "";
     var amountLine = d.dep
@@ -236,8 +245,29 @@
 
     show($("qs-main"));
 
+    // Pay-on-completion quotes (payChoice preset to "onCompletion" by
+    // the office): no payment step at signing at all. Hide the payment
+    // options and the "pay now / 20% down" terms bullet; signing alone
+    // accepts the quote and the total is due when the job is done.
+    var onComp = choiceOf(q) === "onCompletion";
+    if (onComp) {
+      Array.prototype.forEach.call(document.querySelectorAll('input[name="qs-pay"]'), function (r) {
+        var lab = r.closest ? r.closest("label") : null;
+        if (lab) lab.style.display = "none";
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("#qs-form .qs-h2"), function (h) {
+        if (/how would you like to pay/i.test(h.textContent)) h.style.display = "none";
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".qs-terms li"), function (li) {
+        if (/pay in full now/i.test(li.textContent)) {
+          li.textContent = "Nothing is due at signing on this quote. The full amount is due when the job is done and you have seen the finished work and the before and after photos.";
+        }
+      });
+    }
+
     var nameInput = $("qs-sign-name"), agree = $("qs-agree"), btn = $("qs-sign-btn");
     function payChoice() {
+      if (onComp) return "onCompletion";
       var r = document.querySelector('input[name="qs-pay"]:checked');
       return r ? r.value : "";
     }
@@ -257,7 +287,9 @@
       var choice = payChoice();
       var signedName = nameInput.value.trim();
       if (!choice || !agree.checked || signedName.split(/\s+/).filter(Boolean).length < 2) {
-        err.textContent = "Pick a payment option, type your full legal name, and check the agreement box.";
+        err.textContent = onComp
+          ? "Type your full legal name and check the agreement box."
+          : "Pick a payment option, type your full legal name, and check the agreement box.";
         show(err);
         return;
       }
@@ -273,7 +305,7 @@
         show(err);
         return;
       }
-      var amountDueNow = choice === "deposit20" ? deposit : total;
+      var amountDueNow = choice === "onCompletion" ? 0 : (choice === "deposit20" ? deposit : total);
       btn.disabled = true; btn.textContent = "Signing…";
       var picked = pickedAddons();
       var upd = {
@@ -333,8 +365,10 @@
       '<h1 class="qs-title">This quote is signed</h1>' +
       '<p class="qs-meta">Signed by <strong>' + esc(q.signedName || "") + "</strong>" + (when ? " on " + esc(when) : "") + ".</p>" +
       '<p class="qs-meta">Total: <strong>' + esc(money(d.total)) + "</strong> · " +
-      (d.dep ? "20% deposit" : "Full payment") +
-      (paidReturn === "1" ? "" : " · " + esc(money(d.due)) + " due now") + ".</p>" +
+      (choiceOf(q) === "onCompletion"
+        ? "Pay when the job is done · nothing due now"
+        : (d.dep ? "20% deposit" : "Full payment") +
+          (paidReturn === "1" ? "" : " · " + esc(money(d.due)) + " due now")) + ".</p>" +
       payPanelHtml(q, paidReturn) +
       '<p class="qs-help" style="text-align:left">Questions? Call us at (786) 422-9674.</p>';
     show(s);
