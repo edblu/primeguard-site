@@ -626,7 +626,7 @@
 </style>
 <script>(function(){try{if(localStorage.getItem("pg_admin_theme")!=="dark")document.documentElement.classList.add("pg-light");}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin-modern.css?v=11">
+<link rel="stylesheet" href="admin-modern.css?v=12">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8217167106635839" crossorigin="anonymous"></script>
 </head>
@@ -880,7 +880,7 @@
 
   <section class="asec">
     <div id="ad-wo-filters" class="hl-filters"></div>
-    <div class="acard wo-map-card"><div class="wo-map-head"><h3>Live job map</h3><button type="button" class="mini hlq-action hlq-action-ghost" id="woMapFit">Fit all</button></div><div id="woMap"></div><p class="wo-map-legend">Gold pin: job property. Pulsing pin: crew on the way, moving live. Lines connect crew to property.</p></div>
+    <div class="acard wo-map-card"><div class="wo-map-head"><h3>Live job map</h3><span class="wo-map-btns"><button type="button" class="mini hlq-action hlq-action-ghost" id="woMapSize">Expand</button><button type="button" class="mini hlq-action hlq-action-ghost" id="woMapToggle">Hide map</button><button type="button" class="mini hlq-action hlq-action-ghost" id="woMapFit">Fit all</button></span></div><div id="woMap"></div><p class="wo-map-legend" id="woMapLegend">Gold pin: job property. Pulsing pin: crew on the way, moving live. Lines connect crew to property.</p></div>
     <div class="acard"><div id="ad-wo-list"></div></div>
   </section>
   </div><!-- /atab-work -->
@@ -1519,7 +1519,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="admin.js?v=103"></script>
+<script src="admin.js?v=104"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];
