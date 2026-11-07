@@ -415,3 +415,10 @@ html:not(.pg-light){ background:#100d0a !important; }
   70%{ box-shadow:0 0 0 14px rgba(14,124,134,0); }
   100%{ box-shadow:0 0 0 0 rgba(14,124,134,0); }
 }
+
+/* Work orders: sort row + map size controls (Edwin, Nov 7 2026) */
+.wo-sort-row{ display:flex; align-items:center; gap:8px; margin-top:8px; flex-basis:100%; }
+.wo-sort-row label{ font-size:.8rem; color:var(--m-muted); font-weight:600; }
+.wo-sort-select{ padding:6px 8px; border-radius:8px; border:1px solid var(--m-line); background:#fff; color:var(--m-text); font-size:.85rem; }
+.wo-map-btns{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+#woMap{ transition:height .25s ease; }
