@@ -2805,12 +2805,22 @@
         var stopTrack = !!(jw && (jw.status === "en_route" || jw.status === "arrived" || jw.enRouteAt));
         if (stopTrack && trackWoId === cWoId) { stopWatch(); trackWoId = null; }
         var nowIso = new Date().toISOString();
+        var sessPhotos = (sessionPhotosByWo[cWoId] || []).slice();
+        var bpArr = (jw && Array.isArray(jw.beforePhotos)) ? jw.beforePhotos.slice() : [];
+        var apArr = (jw && Array.isArray(jw.afterPhotos)) ? jw.afterPhotos.slice() : [];
+        var allPhotos = bpArr.concat(apArr);
+        sessPhotos.forEach(function (u) { if (allPhotos.indexOf(u) < 0) allPhotos.push(u); });
         var visitEntry = {
           visitDate: nowIso,
           completedAt: nowIso,
           vendorId: me.uid,
           vendorBusiness: (jw && jw.vendorBusiness) || (vendor && vendor.business) || "",
-          photos: (sessionPhotosByWo[cWoId] || []).slice(),
+          beforePhotos: bpArr,
+          afterPhotos: apArr,
+          beforeVideos: (jw && Array.isArray(jw.beforeVideos)) ? jw.beforeVideos.slice() : [],
+          afterVideos: (jw && Array.isArray(jw.afterVideos)) ? jw.afterVideos.slice() : [],
+          photos: allPhotos,
+          videos: (jw && Array.isArray(jw.videos)) ? jw.videos.slice() : [],
           note: ""
         };
         var cupd = {
