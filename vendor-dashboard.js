@@ -424,7 +424,14 @@
       consent_body: "When you tap Accept and start, this portal shares your phone's location only while this job is in progress, from your On my way tap until you mark the job complete. It is used to confirm your arrival at the property and to show the customer your visit progress (on the way, arrived). Sharing stops automatically when you mark the job complete. Nothing is collected before you start or after you finish.",
       consent_accept: "Accept and start",
       consent_cancel: "Not now",
-      enroute_failed: "The trip could not be started. Please try again."
+      enroute_failed: "The trip could not be started. Please try again.",
+      sort_label: "Sort jobs",
+      sort_newest: "Newest first",
+      sort_scheduled: "Scheduled date",
+      sort_paydesc: "Pay: high to low",
+      sort_payasc: "Pay: low to high",
+      vd_collapse: "Collapse section",
+      vd_expand: "Expand section"
     },
     es: {
       page_title: "Panel del Vendedor | PrimeGuard Preservation",
@@ -798,7 +805,14 @@
       consent_body: "Al tocar Aceptar y empezar, este portal comparte la ubicación de tu teléfono solo mientras este trabajo está en curso, desde que tocas Voy en camino hasta que marcas el trabajo terminado. Se usa para confirmar tu llegada a la propiedad y mostrarle a la clienta el progreso de la visita (en camino, llegó). El envío se detiene automáticamente cuando marcas el trabajo terminado. No se recoge nada antes de empezar ni después de terminar.",
       consent_accept: "Aceptar y empezar",
       consent_cancel: "Ahora no",
-      enroute_failed: "No se pudo iniciar el viaje. Inténtalo de nuevo."
+      enroute_failed: "No se pudo iniciar el viaje. Inténtalo de nuevo.",
+      sort_label: "Ordenar trabajos",
+      sort_newest: "Más nuevos primero",
+      sort_scheduled: "Fecha programada",
+      sort_paydesc: "Pago: mayor a menor",
+      sort_payasc: "Pago: menor a mayor",
+      vd_collapse: "Contraer sección",
+      vd_expand: "Expandir sección"
     }
   };
 
@@ -824,6 +838,9 @@
       renderHeader(); renderProfile(); renderDocs(); renderAgreements(); renderW9(); renderSetup();
       loadAll();
     }
+    // v32 additive: re-label the collapse chevrons + sort selects in the
+    // new language (no-op until those controls exist).
+    try { vdRefreshI18n(); } catch (e) {}
   }
 
   document.querySelectorAll(".lang-toggle button").forEach(function (b) {
@@ -2216,6 +2233,15 @@
   }
 
   function renderList(box, arr, kind) {
+    // v32 additive: cache the payload for sort re-renders, then render a
+    // sorted copy in the section's chosen order (default newest first).
+    try {
+      if (box && box.id) {
+        vdLastLists[box.id] = { arr: arr, kind: kind };
+        var vdSec = box.closest ? box.closest(".vsec") : null;
+        if (vdSec && vdSec.id) arr = vdSortArr(arr, vdSec.id);
+      }
+    } catch (e) {}
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("list_empty")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
       // Same actions the portal has always had (data-* hooks unchanged):
@@ -2268,6 +2294,8 @@
   }
 
   function renderActive(arr, heroId) {
+    // v32 additive: cache + sorted copy (see renderList).
+    try { vdLastLists["list-active"] = { arr: arr, heroId: heroId }; arr = vdSortArr(arr, "sec-mistrabajos"); } catch (e) {}
     var box = $("list-active");
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("active_none")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
@@ -2325,6 +2353,8 @@
   }
 
   function renderDone(arr) {
+    // v32 additive: cache + sorted copy (see renderList).
+    try { vdLastLists["list-done"] = { arr: arr }; arr = vdSortArr(arr, "sec-done"); } catch (e) {}
     var box = $("list-done");
     if (!arr.length) { box.innerHTML = '<div class="vempty">' + esc(t("done_none2")) + '</div>'; return; }
     box.innerHTML = arr.map(function (w) {
@@ -2334,6 +2364,202 @@
         (rel ? '<span class="vd-paydate">' + esc(rel) + "</span>" : "") + "</div></div>";
     }).join("");
   }
+
+  /* ---------- Collapsible sections + list sorting (additive, v32) ----------
+     Edwin, Nov 7 2026: the portal's sections are long and packed; each
+     one folds from a chevron in its header, and the job lists sort.
+     Everything here is defensive and additive: new behavior wraps in
+     try/catch, existing functions keep their signatures, and a failure
+     anywhere leaves the portal rendering exactly as before. */
+  var VD_COLLAPSE_KEY = "pgVdCollapse";
+  var VD_SORT_KEY = "pgVdSort";
+  var VD_SORT_SECTIONS = { "sec-disponibles": 1, "sec-jobs": 1, "sec-mistrabajos": 1, "sec-done": 1 };
+  var VD_CLOSED_BY_DEFAULT = { "sec-cotizar": 1, "sec-precios": 1, "sec-done": 1 };
+  var VD_SORT_MODES = ["newest", "scheduled", "paydesc", "payasc"];
+  var vdCollapseState = null; // lazily loaded {secId: true = collapsed}
+  var vdSortState = null;     // lazily loaded {secId: mode}
+  var vdLastLists = {};       // boxId -> last render payload, for sort re-renders
+
+  function vdLoadJson(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      var o = raw ? JSON.parse(raw) : null;
+      return (o && typeof o === "object") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function vdSaveJson(key, obj) {
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+  }
+  function vdCollapseMap() {
+    if (!vdCollapseState) vdCollapseState = vdLoadJson(VD_COLLAPSE_KEY);
+    return vdCollapseState;
+  }
+  function vdSortMap() {
+    if (!vdSortState) vdSortState = vdLoadJson(VD_SORT_KEY);
+    return vdSortState;
+  }
+
+  // ----- collapse -----
+  function vdIsCollapsed(secId) {
+    var map = vdCollapseMap();
+    if (Object.prototype.hasOwnProperty.call(map, secId)) return !!map[secId];
+    return !!VD_CLOSED_BY_DEFAULT[secId];
+  }
+  function vdSetCollapsed(sec, collapsed) {
+    if (!sec) return;
+    sec.classList.toggle("vd-collapsed", !!collapsed);
+    var btn = sec.querySelector(".vd-collapse-btn");
+    if (btn) {
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.setAttribute("aria-label", t(collapsed ? "vd_expand" : "vd_collapse"));
+      btn.textContent = collapsed ? "▸" : "▾";
+    }
+    var map = vdCollapseMap();
+    map[sec.id] = !!collapsed;
+    vdSaveJson(VD_COLLAPSE_KEY, map);
+  }
+  // Public hook used by the quote flow: the quote form is never left
+  // folded away when a vendor starts a price.
+  function vdExpandSection(secId) {
+    try {
+      var sec = document.getElementById(secId);
+      if (sec && sec.classList.contains("vd-collapsed")) vdSetCollapsed(sec, false);
+    } catch (e) {}
+  }
+  function vdInitSection(sec) {
+    if (!sec || !sec.id || sec.getAttribute("data-vd-collapse")) return;
+    var head = null;
+    for (var i = 0; i < sec.children.length; i++) {
+      if (sec.children[i].classList && sec.children[i].classList.contains("vd-sect")) { head = sec.children[i]; break; }
+    }
+    if (!head) {
+      // sec-inicio / sec-dinero have no header row of their own, and
+      // vd-docs-sec's is a bare h2 (whose textContent applyI18n rewrites,
+      // so a button inside it would be wiped on a language switch):
+      // give those sections a minimal toggle-only header instead, and
+      // their own titles fold away with the body.
+      head = document.createElement("div");
+      head.className = "vd-sect vd-sect-mini";
+      sec.insertBefore(head, sec.firstChild);
+    }
+    // Wrap everything except the header so CSS can fold it away.
+    var body = document.createElement("div");
+    body.className = "vd-collapse-body";
+    Array.prototype.slice.call(sec.childNodes).forEach(function (n) {
+      if (n !== head) body.appendChild(n);
+    });
+    sec.appendChild(body);
+    // Header tools cluster: [sort select] [chevron], right-aligned.
+    var tools = document.createElement("span");
+    tools.className = "vd-head-tools";
+    if (!head.querySelector(".cnt")) tools.style.marginLeft = "auto";
+    head.classList.add("has-tools");
+    head.appendChild(tools);
+    if (VD_SORT_SECTIONS[sec.id]) vdBuildSortSelect(sec, tools);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "vd-collapse-btn";
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      vdSetCollapsed(sec, !sec.classList.contains("vd-collapsed"));
+    });
+    tools.appendChild(btn);
+    sec.setAttribute("data-vd-collapse", "1");
+    vdSetCollapsed(sec, vdIsCollapsed(sec.id));
+  }
+
+  // ----- sorting -----
+  // Vendor-visible pay is exactly what fmtPay() shows: payAgreed || pay.
+  function vdPayNum(w) {
+    var raw = String((w && (w.payAgreed || w.pay)) || "").replace(/[^0-9.]/g, "");
+    var n = parseFloat(raw);
+    return isNaN(n) ? 0 : n;
+  }
+  function vdSchedMs(w) {
+    var d = w ? parseDate(w.scheduledFor || w.scheduledDate || w.serviceDate || w.scheduledAt) : null;
+    return d ? d.getTime() : 0;
+  }
+  function vdCreatedMs(w) {
+    var d = w ? parseDate(w.createdAt) : null;
+    return d ? d.getTime() : 0;
+  }
+  function vdSortMode(secId) {
+    var m = vdSortMap()[secId];
+    return VD_SORT_MODES.indexOf(m) >= 0 ? m : "newest";
+  }
+  function vdSortArr(arr, secId) {
+    var mode = vdSortMode(secId);
+    var out = (arr || []).slice();
+    out.sort(function (a, b) {
+      var d = 0;
+      if (mode === "scheduled") {
+        var sa = vdSchedMs(a), sb = vdSchedMs(b);
+        if (sa && sb) d = sa - sb;       // dated jobs, earliest first
+        else if (sa) d = -1;             // dated before undated
+        else if (sb) d = 1;
+      } else if (mode === "paydesc") {
+        d = vdPayNum(b) - vdPayNum(a);
+      } else if (mode === "payasc") {
+        d = vdPayNum(a) - vdPayNum(b);
+      }
+      if (!d) d = vdCreatedMs(b) - vdCreatedMs(a); // ties + "newest": newest first
+      return d;
+    });
+    return out;
+  }
+  function vdBuildSortSelect(sec, tools) {
+    if (!tools || tools.querySelector(".vd-sort-select")) return;
+    var sel = document.createElement("select");
+    sel.className = "vd-sort-select";
+    sel.setAttribute("aria-label", t("sort_label"));
+    VD_SORT_MODES.forEach(function (mode) {
+      var o = document.createElement("option");
+      o.value = mode;
+      o.setAttribute("data-vd-i18n", "sort_" + mode);
+      o.textContent = t("sort_" + mode);
+      sel.appendChild(o);
+    });
+    sel.value = vdSortMode(sec.id);
+    // Picking a sort must never fold the section or trigger row actions.
+    sel.addEventListener("click", function (e) { e.stopPropagation(); });
+    sel.addEventListener("change", function () {
+      var map = vdSortMap();
+      map[sec.id] = sel.value;
+      vdSaveJson(VD_SORT_KEY, map);
+      vdRerenderSection(sec.id);
+    });
+    tools.appendChild(sel);
+  }
+  function vdRerenderSection(secId) {
+    try {
+      var L;
+      if (secId === "sec-disponibles") { L = vdLastLists["list-qr"]; if (L) renderList($("list-qr"), L.arr, L.kind); }
+      else if (secId === "sec-jobs") { L = vdLastLists["list-jobs"]; if (L) renderList($("list-jobs"), L.arr, L.kind); }
+      else if (secId === "sec-mistrabajos") { L = vdLastLists["list-active"]; if (L) renderActive(L.arr, L.heroId); }
+      else if (secId === "sec-done") { L = vdLastLists["list-done"]; if (L) renderDone(L.arr); }
+    } catch (e) {}
+  }
+  // Re-label the injected controls after a language switch (called from
+  // applyI18n through a try/catch; a no-op before init runs).
+  function vdRefreshI18n() {
+    document.querySelectorAll(".vd-collapse-btn").forEach(function (btn) {
+      var sec = btn.closest ? btn.closest(".vsec") : null;
+      var collapsed = !!(sec && sec.classList.contains("vd-collapsed"));
+      btn.setAttribute("aria-label", t(collapsed ? "vd_expand" : "vd_collapse"));
+    });
+    document.querySelectorAll(".vd-sort-select").forEach(function (sel) {
+      sel.setAttribute("aria-label", t("sort_label"));
+      Array.prototype.forEach.call(sel.options, function (o) {
+        var k = o.getAttribute("data-vd-i18n");
+        if (k) o.textContent = t(k);
+      });
+    });
+  }
+  try {
+    document.querySelectorAll("#vd-dash .vsec").forEach(function (sec) {
+      try { vdInitSection(sec); } catch (e) {}
+    });
+  } catch (e) {}
 
   // ---------- Records (Mis registros) ----------
   // The vendor's permanent history, built ONLY from data he already
@@ -2493,6 +2719,7 @@
   // Jump to one of my job cards: switch to its view first, then scroll
   // to the card and flash its outline so the eye lands on it.
   function goToJob(id) {
+    try { vdExpandSection("sec-mistrabajos"); } catch (e) {}
     showView("my");
     setTimeout(function () {
       var card = document.querySelector('[data-job-row="' + id + '"]');
@@ -2529,6 +2756,14 @@
   function goTo(target) {
     var el = typeof target === "string" ? document.querySelector(target) : target;
     if (!el) return;
+    // v32 additive: navigating anywhere always unfolds the section that
+    // holds the target (and the quote form specifically), so a drawer or
+    // tab jump never lands on a folded-away section.
+    try {
+      if (el.id === "sec-cotizar" || el.id === "vd-quoteform") vdExpandSection("sec-cotizar");
+      var hostSec = el.closest ? el.closest(".vsec") : null;
+      if (hostSec && hostSec.id) vdExpandSection(hostSec.id);
+    } catch (e) {}
     showView(viewOfEl(el));
     document.querySelectorAll(".vd-drawer-link").forEach(function (a) {
       a.classList.toggle("active", !!el.id && a.getAttribute("href") === "#" + el.id);
@@ -2594,6 +2829,8 @@
     if (t.dataset.giveQuote) {
       var qsel = $("q-workorder");
       if (qsel) qsel.value = t.dataset.giveQuote;
+      // v32 additive: starting a quote always unfolds the quote form.
+      vdExpandSection("sec-cotizar");
       var qform = $("vd-quoteform");
       if (qform) goTo(qform);
       setTimeout(function () {
