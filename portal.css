@@ -597,3 +597,42 @@
 .ref-code-row { min-width: 0; }
 .ref-code-row code { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #refLinkVal { font-size: .78rem; letter-spacing: 0; }
+
+/* ---------- Collapsible cards + list sorting (v23) ----------
+   account.js adds a chevron (.acct-collapse-btn) to every card
+   head and wraps each card's post-head children in
+   .acct-collapse-body; .acct-collapsed on the card folds the body
+   away. The head keeps its inline flex layout; the auto right
+   margin on the h3 groups every control (pills, buttons, sort
+   select, chevron) on the right side. Colors follow the Daylight
+   palette above: white cards, ink text, gold accents. */
+.acct-card-head { flex-wrap: wrap; column-gap: 10px; row-gap: 8px; }
+.acct-card-head > h3 { margin-right: auto; }
+.acct-collapse-btn {
+  flex: none;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .6);
+  border: 1px solid rgba(185, 138, 29, .45);
+  border-radius: 999px;
+  color: var(--dl-golddeep);
+  font-size: .95rem; line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.acct-collapse-btn:hover { background: rgba(245, 197, 66, .18); border-color: rgba(185, 138, 29, .7); }
+.acct-collapsed .acct-collapse-body { display: none; }
+.acct-sort-select {
+  flex: none;
+  max-width: 46vw;
+  background: #fff;
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: .82rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.acct-sort-select:focus { outline: none; border-color: var(--dl-gold); box-shadow: 0 0 0 3px rgba(217, 171, 43, .22); }
