@@ -178,7 +178,9 @@
     vid_too_big_attach: "🎬 {name} ({size}) — too big to attach (25 MB max)",
     vid_over_msg: "That video is over 25 MB, so we can't attach it here. No problem: paste a link to it in the link field below (Google Photos, iCloud, YouTube) and we'll watch it there.",
     footer_hours: "Mon-Fri, 8:00 AM - 5:00 PM · Sat, 8:00 AM - 12:00 PM", get_app: "📲 Get the app", rights: "All rights reserved.",
-    service_address: "Service address", addr_ph: "Street, City, ZIP", save_profile: "Save profile", profile_saved: "Profile saved.", logout: "Log out"
+    service_address: "Service address", addr_ph: "Street, City, ZIP", save_profile: "Save profile", profile_saved: "Profile saved.", logout: "Log out",
+    collapse_toggle: "Show or hide this section", sort_label: "Sort",
+    sort_newest: "Newest first", sort_oldest: "Oldest first", sort_scheduled: "Visit date"
   } };
   function t(key) { var d = I18N[currentLang] || I18N.en; return d[key] != null ? d[key] : (I18N.en[key] != null ? I18N.en[key] : key); }
   function fillT(key, vars) { var s = t(key); Object.keys(vars || {}).forEach(function (k) { s = s.split("{" + k + "}").join(String(vars[k])); }); return s; }
@@ -323,7 +325,9 @@
     vid_too_big_attach: "🎬 {name} ({size}) — demasiado grande para adjuntar (25 MB máx.)",
     vid_over_msg: "Ese video pesa más de 25 MB, así que no podemos adjuntarlo aquí. No hay problema: pega un enlace a ese video en el campo de enlace abajo (Google Photos, iCloud, YouTube) y lo vemos ahí.",
     footer_hours: "Lun-Vie, 8:00 AM - 5:00 PM · Sáb, 8:00 AM - 12:00 PM", get_app: "📲 Descarga la app", rights: "Todos los derechos reservados.",
-    service_address: "Dirección del servicio", addr_ph: "Calle, ciudad, código postal", save_profile: "Guardar perfil", profile_saved: "Perfil guardado.", logout: "Cerrar sesión"
+    service_address: "Dirección del servicio", addr_ph: "Calle, ciudad, código postal", save_profile: "Guardar perfil", profile_saved: "Perfil guardado.", logout: "Cerrar sesión",
+    collapse_toggle: "Mostrar u ocultar esta sección", sort_label: "Ordenar",
+    sort_newest: "Más recientes primero", sort_oldest: "Más antiguos primero", sort_scheduled: "Fecha de visita"
   };
   function applyI18n() {
     document.documentElement.lang = currentLang;
@@ -361,6 +365,150 @@
   });
   applyI18n();
 
+  /* ---------- Collapsible dashboard cards + list sorting (v23) ----------
+     Additive and defensive: every .acct-card with an .acct-card-head
+     gets its own chevron toggle button in the head; all children after
+     the head are wrapped in a .acct-collapse-body div that CSS hides
+     while the card carries .acct-collapsed. Other head buttons (New
+     request, count pills) keep their own handlers; only the chevron
+     toggles. Collapse state persists in localStorage "pgAcctCollapse"
+     (card id -> true when collapsed). First-visit defaults: Action
+     needed, Your quotes, Service requests, Job history, My plan and
+     My properties open; Your calendar, Referrals, Season tip,
+     Achievements and My home gallery closed. Cards hidden by the
+     existing "hidden" class logic are never unhidden by this code;
+     the collapse class only ever folds the body wrapper.
+     Sort picks for the Job history / Service requests lists persist
+     in localStorage "pgAcctSort" (list id -> mode) and are applied at
+     render time by pgSortDocs inside loadJobs / loadRequests. */
+  var PG_CARD_DEFAULT_CLOSED = { custCalSection: true, "card-referrals": true, "card-season": true, "card-badges": true, galleryCard: true };
+  function pgReadJson(key) {
+    try { var v = JSON.parse(localStorage.getItem(key) || "{}"); return (v && typeof v === "object") ? v : {}; }
+    catch (e) { return {}; }
+  }
+  function pgWriteJson(key, obj) {
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+  }
+  function pgSortMode(listId) {
+    var mode = pgReadJson("pgAcctSort")[listId];
+    var ok = listId === "jobs-list" ? ["newest", "oldest", "scheduled"] : ["newest", "oldest"];
+    return ok.indexOf(mode) > -1 ? mode : "newest";
+  }
+  function pgSortKey(d, fields) {
+    for (var i = 0; i < fields.length; i++) {
+      var v = tsMillis(d ? d[fields[i]] : null);
+      if (v) return v;
+    }
+    return 0;
+  }
+  // Sorts an array of Firestore doc snapshots in place per the saved
+  // pick. Requests key on createdAt. Jobs key newest/oldest on
+  // createdAt with a scheduledAt fallback (and "scheduled" = visit
+  // date, scheduledAt with a createdAt fallback), most recent first
+  // except "oldest", which is earliest first.
+  function pgSortDocs(docs, listId) {
+    try {
+      var mode = pgSortMode(listId);
+      var fields;
+      if (listId === "jobs-list") fields = mode === "scheduled" ? ["scheduledAt", "createdAt"] : ["createdAt", "scheduledAt"];
+      else fields = ["createdAt"];
+      docs.sort(function (a, b) {
+        var s = pgSortKey(a.data(), fields) - pgSortKey(b.data(), fields);
+        return mode === "oldest" ? s : -s;
+      });
+    } catch (e) {}
+    return docs;
+  }
+  function pgMakeSortSelect(listId, withScheduled) {
+    var sel = document.createElement("select");
+    sel.className = "acct-sort-select";
+    sel.setAttribute("data-acct-sort", listId);
+    sel.setAttribute("data-i18n-aria", "sort_label");
+    sel.setAttribute("aria-label", t("sort_label"));
+    var defs = [["newest", "sort_newest"], ["oldest", "sort_oldest"]];
+    if (withScheduled) defs.push(["scheduled", "sort_scheduled"]);
+    defs.forEach(function (df) {
+      var op = document.createElement("option");
+      op.value = df[0];
+      op.textContent = t(df[1]);
+      op.setAttribute("data-i18n", df[1]);
+      sel.appendChild(op);
+    });
+    sel.value = pgSortMode(listId);
+    sel.addEventListener("click", function (e) { e.stopPropagation(); });
+    sel.addEventListener("change", function (e) {
+      e.stopPropagation();
+      var saved = pgReadJson("pgAcctSort");
+      saved[listId] = sel.value;
+      pgWriteJson("pgAcctSort", saved);
+      // Re-render from the snapshot the page already holds: loadJobs /
+      // loadRequests replay the cached listener data via liveOn.
+      try {
+        if (!pgUser) return;
+        if (listId === "jobs-list") loadJobs(pgUser.uid); else loadRequests(pgUser.uid);
+      } catch (err) {}
+    });
+    return sel;
+  }
+  function initAcctCards() {
+    var state = pgReadJson("pgAcctCollapse");
+    document.querySelectorAll(".acct-card").forEach(function (card) {
+      try {
+        var head = null;
+        for (var i = 0; i < card.children.length; i++) {
+          if (card.children[i].classList && card.children[i].classList.contains("acct-card-head")) { head = card.children[i]; break; }
+        }
+        if (!head) return;
+        // Wrap everything after the head so the card body can fold.
+        var body = document.createElement("div");
+        body.className = "acct-collapse-body";
+        var node = head.nextSibling;
+        while (node) { var nx = node.nextSibling; body.appendChild(node); node = nx; }
+        card.appendChild(body);
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "acct-collapse-btn";
+        btn.setAttribute("data-i18n-aria", "collapse_toggle");
+        btn.setAttribute("aria-label", t("collapse_toggle"));
+        btn.textContent = "▾";
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var collapsed = card.classList.toggle("acct-collapsed");
+          btn.textContent = collapsed ? "▸" : "▾";
+          btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          if (card.id) {
+            var st = pgReadJson("pgAcctCollapse");
+            st[card.id] = collapsed;
+            pgWriteJson("pgAcctCollapse", st);
+          }
+          // A freshly revealed Leaflet map needs a size refresh.
+          try { window.dispatchEvent(new Event("resize")); } catch (err) {}
+        });
+        head.appendChild(btn);
+        var collapsed0 = Object.prototype.hasOwnProperty.call(state, card.id) ? !!state[card.id] : !!PG_CARD_DEFAULT_CLOSED[card.id];
+        if (collapsed0) {
+          card.classList.add("acct-collapsed");
+          btn.textContent = "▸";
+          btn.setAttribute("aria-expanded", "false");
+        } else {
+          btn.setAttribute("aria-expanded", "true");
+        }
+      } catch (e) {}
+    });
+    // Sort selects in the two list card heads (inserted before the
+    // chevron so the chevron stays at the far right of the head).
+    [["card-history", "jobs-list", true], ["card-requests", "requests-list", false]].forEach(function (cfg) {
+      try {
+        var card = $(cfg[0]); if (!card) return;
+        var head = card.querySelector(".acct-card-head"); if (!head) return;
+        if (head.querySelector("[data-acct-sort]")) return;
+        var sel = pgMakeSortSelect(cfg[1], cfg[2]);
+        var chev = head.querySelector(".acct-collapse-btn");
+        if (chev) head.insertBefore(sel, chev); else head.appendChild(sel);
+      } catch (e) {}
+    });
+  }
+  try { initAcctCards(); } catch (e) {}
 
   if (!configured) {
     show($("account-coming-soon"));
@@ -675,7 +823,7 @@
         var active = 0;
         var docs = [];
         qs.forEach(function (doc) { docs.push(doc); });
-        docs.sort(function (a, b) { return tsMillis(b.data().createdAt) - tsMillis(a.data().createdAt); });
+        docs = pgSortDocs(docs, "requests-list");
         docs = docs.slice(0, 10);
         if (!docs.length) {
           emptyState(box, t("empty_requests"), "modal", t("cta_req_service"));
@@ -736,7 +884,7 @@
         var done = 0;
         var docs = [];
         qs.forEach(function (doc) { docs.push(doc); });
-        docs.sort(function (a, b) { return tsMillis(b.data().scheduledAt) - tsMillis(a.data().scheduledAt); });
+        docs = pgSortDocs(docs, "jobs-list");
         docs = docs.slice(0, 10);
         if (!docs.length) {
           emptyState(box, t("empty_jobs"), "index.html#services", t("cta_browse"));
