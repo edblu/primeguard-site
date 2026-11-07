@@ -940,6 +940,11 @@
   var woFilter = "active"; // Board opens on Active so Done jobs file away (Edwin, Oct 18); All/Done chips still show them
   var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
   var woOpenId = null; // work order id whose card is expanded inline (Open/Close toggle)
+  // Sort order for the board (Edwin, Nov 7 2026): the newest work order
+  // added always sits on top by default; if Edwin picks a different sort
+  // himself, that pick sticks (localStorage) until he changes it.
+  var woSort = "newest";
+  try { var pgWoSortSaved = localStorage.getItem("pgWoSort"); if (pgWoSortSaved) woSort = pgWoSortSaved; } catch (e) {}
 
   /* ================= Home dashboard (v62) =================
      Edwin's approved v4: goal hero, leads-by-stage donut, money
@@ -4787,16 +4792,67 @@
     if (w) push(w.videoLink);
     return out;
   }
+  // Board sort (Edwin, Nov 7 2026): default "newest" = last work order
+  // added on top. Other modes are Edwin's own manual sorts from the
+  // dropdown; every tie falls back to newest-first so the order is
+  // always stable.
+  function woSchedMs(w) {
+    var v = w && (w.scheduledFor || w.scheduledDate || w.serviceDate || w.scheduledAt);
+    var ms = tsMs(v);
+    if (ms) return ms;
+    var t = Date.parse(String(v || ""));
+    return isNaN(t) ? 0 : t;
+  }
+  function woSortRows(rows) {
+    function newestFirst(a, b) {
+      var d = tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+      if (d) return d;
+      return String(b.id) < String(a.id) ? -1 : (String(b.id) > String(a.id) ? 1 : 0);
+    }
+    rows.sort(function (a, b) {
+      if (woSort === "oldest") return -newestFirst(a, b);
+      if (woSort === "scheduled") {
+        var sa = woSchedMs(a.d) || Infinity, sb = woSchedMs(b.d) || Infinity;
+        if (sa !== sb) return sa - sb;
+        return newestFirst(a, b);
+      }
+      if (woSort === "status") {
+        var ta = String(woStatusValue(a.d) || ""), tb = String(woStatusValue(b.d) || "");
+        if (ta !== tb) return ta < tb ? -1 : 1;
+        return newestFirst(a, b);
+      }
+      if (woSort === "customer") {
+        var ca = String(woCustomerName(a.d) || a.d.title || "").toLowerCase();
+        var cb = String(woCustomerName(b.d) || b.d.title || "").toLowerCase();
+        if (ca !== cb) return ca < cb ? -1 : 1;
+        return newestFirst(a, b);
+      }
+      return newestFirst(a, b); // "newest" (default) and any unknown value
+    });
+    return rows;
+  }
   function renderWoFilterChips() {
     var wrap = $("ad-wo-filters");
     if (!wrap) return;
     var counts = { all: woOrders.length, quote: 0, active: 0, done: 0 };
     woOrders.forEach(function (it) { counts[woFilterGroup(it.d)]++; });
     var defs = [["all", "All"], ["quote", "Quote requests"], ["active", "Active"], ["done", "Done"]];
+    var sortDefs = [["newest", "Newest first"], ["oldest", "Oldest first"], ["scheduled", "Scheduled date"], ["status", "Status"], ["customer", "Customer name"]];
     wrap.innerHTML = defs.map(function (df) {
       return '<button type="button" class="hl-chip' + (woFilter === df[0] ? " active" : "") +
         '" data-wofilter="' + df[0] + '">' + esc(df[1]) + ' <span class="cnt">' + counts[df[0]] + "</span></button>";
-    }).join("");
+    }).join("") +
+      '<div class="wo-sort-row"><label for="ad-wo-sort">Sort work orders</label>' +
+      '<select id="ad-wo-sort" class="wo-sort-select">' +
+      sortDefs.map(function (sd) {
+        return '<option value="' + sd[0] + '"' + (woSort === sd[0] ? " selected" : "") + ">" + sd[1] + "</option>";
+      }).join("") + "</select></div>";
+    var sortSel = $("ad-wo-sort");
+    if (sortSel) sortSel.addEventListener("change", function () {
+      woSort = sortSel.value || "newest";
+      try { localStorage.setItem("pgWoSort", woSort); } catch (e) {}
+      renderWorkOrders();
+    });
   }
   // Full inline detail for an expanded work-order card (the Open toggle).
   // Shows everything stored on the doc: customer + contact, address,
@@ -5060,13 +5116,9 @@
     var visible = woOrders.filter(function (it) {
       return woFilter === "all" || woFilterGroup(it.d) === woFilter;
     });
-    visible.sort(function (a, b) {
-      var bucketRank = woBucket(a.d) - woBucket(b.d);
-      if (bucketRank) return bucketRank;
-      var idleRank = woIdleMs(b.d) - woIdleMs(a.d);
-      if (idleRank) return idleRank;
-      return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
-    });
+    // Edwin, Nov 7 2026: newest added on top by default; his own sort
+    // pick from the dropdown overrides it (see woSortRows).
+    woSortRows(visible);
     box.innerHTML = "";
     if (!visible.length) {
       var labels = { quote: "quote requests", active: "active work orders", done: "completed work orders" };
@@ -5185,6 +5237,7 @@
     if (!window.L) return;
     var el = $("woMap");
     if (!el) return;
+    if (woMapView === "hidden") return; // folded away from the header toggle
     if (!woMapObj) {
       // Lazy init: Leaflet measures its container, so only build the
       // map once the Work tab is actually on screen.
@@ -5243,6 +5296,48 @@
     }, 30000);
   }
   function woMapSafe() { try { woMapSync(); } catch (e) {} }
+  /* Map size controls (Edwin, Nov 7 2026): the map expands and
+     contracts from its header. Expand/Contract steps between the
+     normal height and a tall view; Hide map folds it away entirely.
+     The choice sticks (localStorage) across reloads. */
+  var woMapView = "normal"; // normal | big | hidden
+  try { var pgWoMapSaved = localStorage.getItem("pgWoMapView"); if (pgWoMapSaved) woMapView = pgWoMapSaved; } catch (e) {}
+  function woMapApplyView() {
+    var el = $("woMap");
+    var legend = $("woMapLegend");
+    var sizeBtn = $("woMapSize");
+    var toggleBtn = $("woMapToggle");
+    var hidden = woMapView === "hidden";
+    if (el) {
+      el.style.display = hidden ? "none" : "";
+      el.style.height = woMapView === "big" ? "560px" : "";
+    }
+    if (legend) legend.style.display = hidden ? "none" : "";
+    if (sizeBtn) {
+      sizeBtn.textContent = woMapView === "big" ? "Contract" : "Expand";
+      sizeBtn.style.display = hidden ? "none" : "";
+    }
+    if (toggleBtn) toggleBtn.textContent = hidden ? "Show map" : "Hide map";
+    if (!hidden) {
+      setTimeout(function () {
+        try { if (woMapObj) woMapObj.invalidateSize(); woMapSafe(); } catch (e) {}
+      }, 60);
+    }
+  }
+  (function () {
+    var sizeBtn = $("woMapSize"), toggleBtn = $("woMapToggle");
+    if (sizeBtn) sizeBtn.addEventListener("click", function () {
+      woMapView = woMapView === "big" ? "normal" : "big";
+      try { localStorage.setItem("pgWoMapView", woMapView); } catch (e) {}
+      woMapApplyView();
+    });
+    if (toggleBtn) toggleBtn.addEventListener("click", function () {
+      woMapView = woMapView === "hidden" ? "normal" : "hidden";
+      try { localStorage.setItem("pgWoMapView", woMapView); } catch (e) {}
+      woMapApplyView();
+    });
+    woMapApplyView();
+  })();
   // Tab switches are driven by the inline showTab() in admin.html,
   // which only toggles the hidden class on #atab-work. Watch for the
   // tab coming back on screen: Leaflet needs a size refresh after
