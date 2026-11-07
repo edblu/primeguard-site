@@ -580,3 +580,26 @@
 }
 .vd-rate-row strong { font-weight: 800; white-space: nowrap; }
 .vd-rate-hi { background: var(--vd-alert-bg); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
+
+/* ---------- Collapsible sections + list sorting (v32, additive) ----------
+   Edwin, Nov 7 2026: every dashboard section folds from a chevron in
+   its header; the job lists carry a sort select next to it. The body
+   wrapper (.vd-collapse-body) is built by vendor-dashboard.js; the
+   section header itself always stays visible. */
+.vd-head-tools { display: inline-flex; align-items: center; gap: 8px; flex: none; margin-left: 8px; }
+.vd-sect.has-tools { justify-content: flex-start; }
+.vd-sect.has-tools .cnt { margin-left: auto; }
+.vd-sect-mini { margin: 0 2px 2px; min-height: 28px; }
+.vd-collapse-btn {
+  flex: none; width: 30px; height: 30px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .65);
+  color: var(--gold-deep); font-size: .95rem; line-height: 1; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.vd-collapse-btn:hover { background: rgba(255, 255, 255, .95); }
+.vsec.vd-collapsed .vd-collapse-body { display: none; }
+.vd-sort-select {
+  flex: none; max-width: 46vw; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .9);
+  color: var(--text); font-size: .85rem; font-family: inherit; cursor: pointer;
+}
