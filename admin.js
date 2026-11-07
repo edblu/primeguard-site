@@ -2953,12 +2953,17 @@
       var e = r.entry;
       var vMs = custDateMs(e.visitDate) || custDateMs(e.completedAt);
       var vPhotos = Array.isArray(e.photos) ? e.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
+      var vMediaSet = {}; vPhotos.forEach(function (u) { vMediaSet[u] = true; });
+      (Array.isArray(e.beforePhotos) ? e.beforePhotos : []).concat(Array.isArray(e.afterPhotos) ? e.afterPhotos : []).forEach(function (u) { if (typeof u === "string" && /^https?:\/\//i.test(u)) vMediaSet[u] = true; });
+      var vPhotoCount = Object.keys(vMediaSet).length;
+      var vVidSet = {}; (Array.isArray(e.videos) ? e.videos : []).concat(Array.isArray(e.beforeVideos) ? e.beforeVideos : [], Array.isArray(e.afterVideos) ? e.afterVideos : []).forEach(function (u) { if (typeof u === "string") vVidSet[u] = true; });
+      var vVidCount = Object.keys(vVidSet).length;
       var statusWord = (w.status === "review" || w.status === "done") ? "Completed" : String(w.status || "Completed").replace(/_/g, " ");
       return '<div class="sr-comment" data-custvisit="' + esc(r.key) + '" role="button" tabindex="0" title="View this visit" style="cursor:pointer"><strong>' + esc(w.title || "Work order") + "</strong><span>" +
         esc(statusWord) +
         (vMs ? " · " + esc(new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })) : "") +
         (e.vendorBusiness || w.vendorBusiness ? " · " + esc(e.vendorBusiness || w.vendorBusiness) : "") +
-        " · " + vPhotos.length + (vPhotos.length === 1 ? " photo" : " photos") +
+        " \u00b7 " + vPhotoCount + (vPhotoCount === 1 ? " photo" : " photos") + (vVidCount ? " \u00b7 " + vVidCount + (vVidCount === 1 ? " video" : " videos") : "") +
         ' <span style="color:var(--gold-bright);font-weight:700">View ›</span></span></div>';
     }).join("");
   }
@@ -2977,6 +2982,13 @@
     var statusWord = (w.status === "review" || w.status === "done") ? "Completed" : String(w.status || "").replace(/_/g, " ");
     var pay = w.pay || w.payAgreed || "";
     var photos = Array.isArray(e.photos) ? e.photos.filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); }) : [];
+    var mBp = (Array.isArray(e.beforePhotos) ? e.beforePhotos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var mAp = (Array.isArray(e.afterPhotos) ? e.afterPhotos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var mBv = (Array.isArray(e.beforeVideos) ? e.beforeVideos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var mAv = (Array.isArray(e.afterVideos) ? e.afterVideos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
+    var mGv = (Array.isArray(e.videos) ? e.videos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u) && mBv.indexOf(u) < 0 && mAv.indexOf(u) < 0; });
+    var mFiled = {}; mBp.concat(mAp).forEach(function (u) { mFiled[u] = true; });
+    var mRest = photos.filter(function (u) { return !mFiled[u]; });
     var ctxRow = function (k, v) { return v ? '<div class="pgvb-ctxi"><span class="k">' + k + '</span><span class="v">' + v + "</span></div>" : ""; };
     var h = '<h3 id="pgVmTitle">' + esc(w.title || "Work order") + "</h3>" +
       '<div class="pgvb-ctx">' +
@@ -2986,13 +2998,23 @@
       ctxRow("Status", esc(statusWord)) +
       ctxRow("Pay", pay ? esc(String(pay)) : "") +
       "</div>";
+    if (e.note) h += '<div class="woq-dblock"><h4>Summary of this visit</h4><p>' + esc(e.note).replace(/\n/g, "<br>") + "</p></div>";
     var noteBits = [];
     if (w.details) noteBits.push(esc(w.details).replace(/\n/g, "<br>"));
-    if (e.note) noteBits.push(esc(e.note).replace(/\n/g, "<br>"));
-    if (noteBits.length) h += '<div class="woq-dblock"><h4>Details</h4><p>' + noteBits.join("<br>") + "</p></div>";
-    if (photos.length) {
-      h += '<div class="woq-dblock"><h4>Photos from this visit (' + photos.length + ')</h4><div class="athumbs woq-thumbs">' +
-        photos.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="visit photo"></button>'; }).join("") + "</div></div>";
+    if (noteBits.length) h += '<div class="woq-dblock"><h4>Work order details</h4><p>' + noteBits.join("<br>") + "</p></div>";
+    function mThumbs(urls) {
+      return '<div class="athumbs woq-thumbs">' + urls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="visit photo"></button>'; }).join("") + "</div>";
+    }
+    function mVids(urls) {
+      if (!urls.length) return "";
+      return '<div style="margin:6px 0">' + urls.map(function (u) { return '<a class="mini" href="' + esc(u) + '" target="_blank" rel="noopener" style="margin-right:6px">&#9654; Watch video</a>'; }).join("") + "</div>";
+    }
+    var mAny = mBp.length + mAp.length + mRest.length + mBv.length + mAv.length + mGv.length;
+    if (mAny) {
+      if (mBp.length || mBv.length) h += '<div class="woq-dblock"><h4>Before (' + mBp.length + ')</h4>' + (mBp.length ? mThumbs(mBp) : "") + mVids(mBv) + "</div>";
+      if (mAp.length || mAv.length) h += '<div class="woq-dblock"><h4>After (' + mAp.length + ')</h4>' + (mAp.length ? mThumbs(mAp) : "") + mVids(mAv) + "</div>";
+      if (mRest.length) h += '<div class="woq-dblock"><h4>' + (mBp.length || mAp.length ? "More photos" : "Photos from this visit") + ' (' + mRest.length + ')</h4>' + mThumbs(mRest) + "</div>";
+      if (mGv.length) h += '<div class="woq-dblock"><h4>Videos</h4>' + mVids(mGv) + "</div>";
     } else {
       h += '<p class="sr-faint">No photos were attached to this visit.</p>';
     }
@@ -4953,7 +4975,7 @@
     }
     html += row("Progress", woProgressHtml(w, woId, false));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
-    if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt));
+    if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt) + (w.vendorBusiness ? " \u00b7 by " + esc(w.vendorBusiness) : "") + (w.acceptNote ? "<br>Vendor note: " + esc(w.acceptNote) : ""));
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
     // v60 (Edwin, Oct 17): the long text blocks and the photos are
     // collapsible, and photos are grouped BY VISIT (date + crew + that
@@ -4972,18 +4994,39 @@
       return '<div class="athumbs woq-thumbs">' + urls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>'; }).join("") + "</div>";
     }
     var visitLog = Array.isArray(w.visitLog) ? w.visitLog.filter(function (e) { return e && typeof e === "object"; }) : [];
-    if (visitLog.length && photoUrls.length) {
+    function urlOk(u) { return typeof u === "string" && /^https?:\/\//i.test(u); }
+    function vidLinks(urls) {
+      if (!urls.length) return "";
+      return '<div style="margin:6px 0">' + urls.map(function (u) { return '<a class="mini" href="' + esc(u) + '" target="_blank" rel="noopener" style="margin-right:6px">&#9654; Watch video</a>'; }).join("") + "</div>";
+    }
+    function visitGroups(e) {
+      var bp = (Array.isArray(e.beforePhotos) ? e.beforePhotos : []).filter(urlOk);
+      var ap = (Array.isArray(e.afterPhotos) ? e.afterPhotos : []).filter(urlOk);
+      var bv = (Array.isArray(e.beforeVideos) ? e.beforeVideos : []).filter(urlOk);
+      var av = (Array.isArray(e.afterVideos) ? e.afterVideos : []).filter(urlOk);
+      var gv = (Array.isArray(e.videos) ? e.videos : []).filter(function (u) { return urlOk(u) && bv.indexOf(u) < 0 && av.indexOf(u) < 0; });
+      var filed = {}; bp.concat(ap).forEach(function (u) { filed[u] = true; });
+      var rest = (Array.isArray(e.photos) ? e.photos : []).filter(function (u) { return urlOk(u) && !filed[u]; });
+      return { bp: bp, ap: ap, bv: bv, av: av, gv: gv, rest: rest, nP: bp.length + ap.length + rest.length, nV: bv.length + av.length + gv.length };
+    }
+    if (visitLog.length) {
       var inVisit = {};
       visitLog.forEach(function (e) {
-        (Array.isArray(e.photos) ? e.photos : []).forEach(function (u) { inVisit[u] = true; });
+        ["photos", "beforePhotos", "afterPhotos"].forEach(function (k) { (Array.isArray(e[k]) ? e[k] : []).forEach(function (u) { inVisit[u] = true; }); });
       });
       visitLog.forEach(function (e) {
-        var vPhotos = (Array.isArray(e.photos) ? e.photos : []).filter(function (u) { return typeof u === "string" && /^https?:\/\//i.test(u); });
-        if (!vPhotos.length) return;
+        var g = visitGroups(e);
+        if (!g.nP && !g.nV && !e.note) return;
         var vMs = tsMs(e.visitDate) || tsMs(e.completedAt);
-        var label = "Visit" + (vMs ? " · " + new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "") +
-          (e.vendorBusiness ? " · " + e.vendorBusiness : "") + " · " + vPhotos.length + (vPhotos.length === 1 ? " photo" : " photos");
-        var inner = (e.note ? "<p>" + esc(e.note).replace(/\n/g, "<br>") + "</p>" : "") + thumbsHtml(vPhotos);
+        var label = "Visit" + (vMs ? " \u00b7 " + new Date(vMs).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "") +
+          (e.vendorBusiness ? " \u00b7 " + e.vendorBusiness : "") +
+          (g.nP ? " \u00b7 " + g.nP + (g.nP === 1 ? " photo" : " photos") : "") + (g.nV ? " \u00b7 " + g.nV + (g.nV === 1 ? " video" : " videos") : "");
+        var inner = "";
+        if (e.note) inner += "<p>" + esc(e.note).replace(/\n/g, "<br>") + "</p>";
+        if (g.bp.length || g.bv.length) inner += '<h5 style="margin:8px 0 4px">Before</h5>' + (g.bp.length ? thumbsHtml(g.bp) : "") + vidLinks(g.bv);
+        if (g.ap.length || g.av.length) inner += '<h5 style="margin:8px 0 4px">After</h5>' + (g.ap.length ? thumbsHtml(g.ap) : "") + vidLinks(g.av);
+        if (g.rest.length) inner += (g.bp.length || g.ap.length ? '<h5 style="margin:8px 0 4px">More photos</h5>' : "") + thumbsHtml(g.rest);
+        if (g.gv.length) inner += vidLinks(g.gv);
         html += collapsible(label, inner);
       });
       var refPhotos = photoUrls.filter(function (u) { return !inVisit[u]; });
