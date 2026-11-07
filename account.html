@@ -251,7 +251,7 @@
     .promo-banner { flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 84px; }
   }
 </style>
-<link rel="stylesheet" href="portal.css?v=7">
+<link rel="stylesheet" href="portal.css?v=8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8217167106635839" crossorigin="anonymous"></script>
 </head>
 <body class="acct-page">
@@ -411,14 +411,14 @@
 
         <div class="container">
           <div class="acct-grid">
-            <div class="acct-card">
+            <div class="acct-card" id="card-requests">
               <div class="acct-card-head">
                 <h3 data-i18n="svc_requests">Service requests</h3>
                 <button class="btn btn-gold btn-sm" id="reqNewBtn" type="button" data-i18n="new_request">New request</button>
               </div>
               <div id="requests-list"></div>
             </div>
-            <div class="acct-card">
+            <div class="acct-card" id="card-history">
               <div class="acct-card-head">
                 <h3 data-i18n="job_history">Job history</h3>
               </div>
@@ -435,7 +435,7 @@
 
         <div class="container">
           <div class="acct-grid">
-            <div class="acct-card">
+            <div class="acct-card" id="card-referrals">
               <div class="acct-card-head"><h3 data-i18n="referrals">🎁 Referrals</h3></div>
               <div id="referral-body">
                 <p style="color:#a89a7d;font-size:.9rem;margin:0 0 4px" data-i18n="ref_intro">Give $20, get $20. Share your code with friends.</p>
@@ -448,11 +448,11 @@
                 </div>
               </div>
             </div>
-            <div class="acct-card">
+            <div class="acct-card" id="card-plan">
               <div class="acct-card-head"><h3 data-i18n="my_plan">💎 My plan</h3></div>
               <div id="plan-body"><p style="color:#a89a7d" data-i18n="loading">Loading…</p></div>
             </div>
-            <div class="acct-card">
+            <div class="acct-card" id="card-props">
               <div class="acct-card-head"><h3 data-i18n="my_props">🏠 My properties</h3></div>
               <div id="props-list"></div>
               <div class="prop-add">
@@ -461,12 +461,12 @@
                 <button class="btn btn-ghost btn-sm" id="propAdd" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4)" data-i18n="add">Add</button>
               </div>
             </div>
-            <div class="acct-card">
+            <div class="acct-card" id="card-season">
               <div class="acct-card-head"><h3>🌴 <span id="seasonMonth">This month</span> <span data-i18n="season_in_miami">in Miami</span></h3></div>
               <p id="seasonTip" class="season-tip"></p>
               <button class="btn btn-ghost btn-sm" data-again="Lawn Care" type="button" style="color:#ffd873;border-color:rgba(255,200,90,.4);margin-top:10px" data-i18n="seasonal_btn">Get seasonal service</button>
             </div>
-            <div class="acct-card">
+            <div class="acct-card" id="card-badges">
               <div class="acct-card-head"><h3 data-i18n="achievements">🏅 Achievements</h3><span class="pill pill-new" id="badgeCount"></span></div>
               <div class="badge-grid" id="badgeGrid"></div>
             </div>
@@ -620,7 +620,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="account.js?v=22"></script>
+<script src="account.js?v=23"></script>
 <script src="push.js?v=2"></script>
 <!-- PWA install module only: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors / i18n). -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
