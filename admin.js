@@ -16,6 +16,7 @@
   var me = null, isAdmin = false, isStaff = false, myRole = "acquisition";
   var pendingPhotos = []; // dataURLs selected in the WO form
   var editingId = null; // work order id being edited, or null for create mode
+  var woEditOrigVendorId = null; // v109: vendorId on the WO when edit mode loaded it, so the save path can tell whether the vendor changed and stamp the assignment record
 
   function setSelect(sel, val) {
     // ensure the value exists as an option (older orders may have custom text)
@@ -153,6 +154,7 @@
 
   function resetWoForm() {
     editingId = null;
+    woEditOrigVendorId = null;
     $("ad-woform").reset();
     $("wo-preview").innerHTML = ""; pendingPhotos = [];
     $("wo-form-title").textContent = "Create work order";
@@ -166,6 +168,7 @@
       if (!snap.exists) return;
       var w = snap.data();
       editingId = id;
+      woEditOrigVendorId = w.vendorId || null;
         $("wo-title").value = w.title || "";
       $("wo-kind").value = w.kind || "job";
       setSelect($("wo-category"), w.category || "");
@@ -335,6 +338,74 @@
       sessionId: mySessionId || "",
       at: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(function () {});
+  }
+
+  /* ---------- Work order assignment audit trail (v109, Edwin Nov 10, 2026) ----------
+     The work order itself carries who put a vendor on it and who took
+     them off, not just the owner-only staff_activity feed. Every staff
+     path that changes vendorId stamps these fields: the Assign control
+     (assignVendor), Unassign (unassignVendor), and the Edit Work Order
+     save path when the vendor field changed versus the loaded record.
+     Assigning clears the unassigned fields and unassigning clears the
+     assigned fields, so whichever stamp is present and latest is the
+     current story. pgStaffName and tsMs are hoisted function
+     declarations, so calling them from here is safe. */
+  function woStaffIdentity() {
+    var email = me ? (me.email || "") : "";
+    var name = "";
+    try { name = pgStaffName(email); } catch (e) {}
+    if (!name) name = (me && me.displayName) || email || "Staff";
+    return { name: name, email: email, uid: me ? (me.uid || "") : "" };
+  }
+  function woAssignedStamp() {
+    var s = woStaffIdentity();
+    return {
+      assignedByName: s.name, assignedByEmail: s.email, assignedByUid: s.uid,
+      assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      unassignedByName: null, unassignedByEmail: null, unassignedByUid: null, unassignedAt: null
+    };
+  }
+  function woUnassignedStamp() {
+    var s = woStaffIdentity();
+    return {
+      unassignedByName: s.name, unassignedByEmail: s.email, unassignedByUid: s.uid,
+      unassignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      assignedByName: null, assignedByEmail: null, assignedByUid: null, assignedAt: null
+    };
+  }
+  function woStampWhen(v) {
+    var ms = tsMs(v);
+    return ms ? new Date(ms).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  }
+  function woAssignmentText(w) {
+    if (!w) return "";
+    var aMs = tsMs(w.assignedAt), uMs = tsMs(w.unassignedAt), accMs = tsMs(w.acceptedAt);
+    var aName = w.assignedByName || w.assignedByEmail || "";
+    var uName = w.unassignedByName || w.unassignedByEmail || "";
+    // Unassignment is the latest event: it is newer than any assign or
+    // portal acceptance stamp still on the record.
+    if ((uName || uMs) && uMs >= aMs && uMs >= accMs) {
+      var uw = woStampWhen(w.unassignedAt);
+      return "Unassigned by " + (uName || "staff") + (uw ? " on " + uw : "");
+    }
+    if (aName || aMs) {
+      var aw = woStampWhen(w.assignedAt);
+      return "Assigned by " + (aName || "staff") + (aw ? " on " + aw : "");
+    }
+    if (uName || uMs) {
+      var uw2 = woStampWhen(w.unassignedAt);
+      return "Unassigned by " + (uName || "staff") + (uw2 ? " on " + uw2 : "");
+    }
+    if (accMs) {
+      var acw = woStampWhen(w.acceptedAt);
+      return "Accepted by the vendor in the portal" + (acw ? " on " + acw : "");
+    }
+    return "";
+  }
+  function woAssignmentLineHtml(w) {
+    var t = woAssignmentText(w);
+    if (!t) return "";
+    return '<div style="color:#7a7668;margin-top:4px;font-size:.85rem">' + esc(t) + "</div>";
   }
 
   function fmtClock(ts) {
@@ -1030,9 +1101,42 @@
     var v = Math.round((Number(n) || 0) * 100) / 100;
     return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2));
   }
-  function homeMoneyCalc() {
+  /* v109 (Edwin, Nov 10, 2026): period + view state for the home
+     money panel. The panel defaults to Totals at a glance for This
+     month; the By person view is the extra option. Period math:
+     collected is bucketed by each paid quote's paidAt (signedAt
+     fallback), crew payouts out by the job's completion date
+     (completedAt, else last completed visit, else updatedAt, else
+     createdAt), committed payouts and unsigned quotes by the
+     record's createdAt. Records with no usable date count in All
+     time only. Recurring is a monthly rate, not a period total, so
+     it never changes with the period, and the $10,000 goal bar keeps
+     running on the default all-time call exactly as before. */
+  var homeMoneyPeriod = "month", homeMoneyView = "totals";
+  function homePeriodRange(key) {
+    var now = new Date();
+    if (key === "lastmonth") {
+      return { start: new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(), end: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), label: "Last month" };
+    }
+    if (key === "quarter") {
+      var qm = Math.floor(now.getMonth() / 3) * 3;
+      return { start: new Date(now.getFullYear(), qm, 1).getTime(), end: new Date(now.getFullYear(), qm + 3, 1).getTime(), label: "This quarter" };
+    }
+    if (key === "all") return { start: 0, end: Infinity, label: "All time" };
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), end: new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime(), label: "This month" };
+  }
+  function homeMoneyCalc(periodKey) {
+    periodKey = periodKey || "all";
+    var range = homePeriodRange(periodKey);
+    function inPeriod(ms) {
+      if (periodKey === "all") return true;
+      return !!ms && ms >= range.start && ms < range.end;
+    }
     var m = { collectedTotal: 0, collectedMonth: 0, recurring: 0, pipeRecurring: 0, pipeOnce: 0,
-      inRows: [], outPaid: 0, outDue: 0, pipeRows: [], loaded: false };
+      inRows: [], outPaid: 0, outDue: 0, pipeRows: [], loaded: false,
+      period: periodKey, periodLabel: range.label, collected: 0, outPaidP: 0, outDueP: 0,
+      marginP: 0, pendingP: 0, pipeRecurringP: 0, pipeOnceP: 0, pipeRowsP: [],
+      signedNoPay: 0, signedNoPayP: 0 };
     var cqs = [];
     try { cqs = pgSnapDocs("contracts"); } catch (e) {}
     if (!cqs.length) { try { cqs = pgSnapDocs("cq"); } catch (e) {} }
@@ -1047,7 +1151,7 @@
     (custRows || []).forEach(function (r) { if ((r.d || {}).annualContract === "signed") signedAnnual[String(r.d.name || "").toLowerCase()] = true; });
     var byCust = {};
     function custIn(name) {
-      if (!byCust[name]) byCust[name] = { name: name, paid: 0, recurring: 0, broward: false, annual: false, signedNoPay: false };
+      if (!byCust[name]) byCust[name] = { name: name, paid: 0, paidP: 0, outPaidP: 0, outDueP: 0, recurring: 0, broward: false, annual: false, signedNoPay: false };
       return byCust[name];
     }
     cqs.forEach(function (r) {
@@ -1068,8 +1172,16 @@
             var c1 = custIn(name); c1.paid += amt; m.collectedTotal += amt;
             var pms = tsMs(q.paidAt) || tsMs(q.signedAt); var pd = pms ? new Date(pms) : null;
             if (pd && pd.getMonth() === cm && pd.getFullYear() === cy) m.collectedMonth += amt;
+            if (inPeriod(pms)) { m.collected += amt; c1.paidP += amt; }
           }
-        } else { var c0 = custIn(name); c0.signedNoPay = true; }
+        } else {
+          var c0 = custIn(name); c0.signedNoPay = true;
+          var amtNP = Number(q.amountDueNow) > 0 ? Number(q.amountDueNow) : (Number(q.total) || 0);
+          if (amtNP > 0) {
+            m.signedNoPay += amtNP;
+            if (inPeriod(tsMs(q.signedAt) || tsMs(q.createdAt))) m.signedNoPayP += amtNP;
+          }
+        }
         if (/eugenia/i.test(name)) {
           var ce = custIn(name); ce.recurring = 66.99 * 2; ce.broward = true; m.recurring += ce.recurring;
         } else if (signedAnnual[String(name).toLowerCase()]) {
@@ -1078,13 +1190,19 @@
       } else if (q.status === "sent") {
         var ex = tsMs(q.expiresAt);
         if (ex && ex < Date.now()) return; // expired: not live pipeline
+        var qMs = tsMs(q.createdAt) || tsMs(q.sentAt) || tsMs(q.updatedAt);
+        var qInP = inPeriod(qMs);
         var up = Number(q.unitPrice) || 0;
         if (up > 0 && /biweekly/i.test(String(q.service || ""))) {
           m.pipeRecurring += up * 2;
           m.pipeRows.push({ name: name, label: homeMoney(up) + "/visit, biweekly", monthly: up * 2 });
+          if (qInP) { m.pipeRecurringP += up * 2; m.pipeRowsP.push({ name: name, label: homeMoney(up) + "/visit, biweekly", monthly: up * 2 }); }
         } else {
           var t = Number(q.total) || 0;
-          if (t > 0) { m.pipeOnce += t; m.pipeRows.push({ name: name, label: homeMoney(t) + " one-time", monthly: 0 }); }
+          if (t > 0) {
+            m.pipeOnce += t; m.pipeRows.push({ name: name, label: homeMoney(t) + " one-time", monthly: 0 });
+            if (qInP) { m.pipeOnceP += t; m.pipeRowsP.push({ name: name, label: homeMoney(t) + " one-time", monthly: 0 }); }
+          }
         }
       }
     });
@@ -1103,9 +1221,20 @@
       var cname = w.customerName || w.customer || (q && q.customerName) || "";
       var doneJob = w.status === "done" || w.status === "review" || hasVisit || w.completedAt;
       var browardJob = /eugenia/i.test(String(w.title || "") + " " + cname);
-      if (w.vendorPayStatus === "paid" || doneJob) m.outPaid += pay;
-      else if (w.status === "accepted" || w.status === "open") m.outDue += pay;
+      var isPaidOut = w.vendorPayStatus === "paid" || doneJob;
+      var isDueOut = !isPaidOut && (w.status === "accepted" || w.status === "open");
+      if (isPaidOut) m.outPaid += pay;
+      else if (isDueOut) m.outDue += pay;
       else return;
+      // v109 period buckets: paid out lands on the job's completion
+      // date (last completed visit counts), committed lands on the
+      // date the job was created.
+      var lastVisitMs = 0;
+      log.forEach(function (e) { var vm = tsMs(e && e.completedAt); if (vm > lastVisitMs) lastVisitMs = vm; });
+      var paidMs = tsMs(w.completedAt) || lastVisitMs || tsMs(w.updatedAt) || tsMs(w.createdAt);
+      var dueMs = tsMs(w.createdAt) || tsMs(w.updatedAt);
+      if (isPaidOut && inPeriod(paidMs)) m.outPaidP += pay;
+      if (isDueOut && inPeriod(dueMs)) m.outDueP += pay;
       m.inRows.forEach(function (c) {
         // Match on full name, first name, or a title that names the
         // customer (work orders do not all carry a customer field).
@@ -1113,14 +1242,20 @@
           String(w.title || "").toLowerCase().indexOf(c.name.toLowerCase()) >= 0 ||
           String(w.title || "").toLowerCase().indexOf(c.name.split(" ")[0].toLowerCase()) >= 0;
         if (hit) {
-          if (w.vendorPayStatus === "paid" || doneJob) c.outPaid = (c.outPaid || 0) + pay;
-          else c.outDue = (c.outDue || 0) + pay;
+          if (isPaidOut) { c.outPaid = (c.outPaid || 0) + pay; if (inPeriod(paidMs)) c.outPaidP = (c.outPaidP || 0) + pay; }
+          else { c.outDue = (c.outDue || 0) + pay; if (inPeriod(dueMs)) c.outDueP = (c.outDueP || 0) + pay; }
           if (browardJob) c.broward = true;
         }
       });
     });
     m.marginTotal = m.collectedTotal - m.outPaid;
     m.marginMonth = m.collectedMonth - m.outPaid;
+    // v109: period margin and pending. Pending is committed crew pay
+    // plus unsigned live quotes (one-time totals plus the monthly
+    // equivalent of biweekly quotes) plus signed but unpaid quotes,
+    // all inside the selected period.
+    m.marginP = m.collected - m.outPaidP;
+    m.pendingP = m.outDueP + m.pipeOnceP + m.pipeRecurringP + m.signedNoPayP;
     m.recurringOut = 0; m.recurringNatasha = 0;
     m.inRows.forEach(function (c) {
       if (c.annual) { c.recOut = 120; m.recurringOut += 120; }
@@ -1140,23 +1275,24 @@
   function renderHomeMoney() {
     var box = $("home-money"); if (!box) return;
     try {
-      var m = homeMoneyCalc();
+      var m = homeMoneyCalc(homeMoneyPeriod);
       if (!m.loaded) { box.innerHTML = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading the money…</p>'; return; }
       var gradIn = "linear-gradient(90deg,#1e8a4f,#177245)", gradOut = "linear-gradient(90deg,#c98a2b,#a87e14)", gradKeep = "linear-gradient(90deg,#ffd968,#d9ab2b)";
-      var maxIn = Math.max.apply(null, m.inRows.map(function (c) { return c.paid; }).concat([1]));
+      var maxIn = Math.max.apply(null, m.inRows.map(function (c) { return c.paidP; }).concat([1]));
       var inBars = "";
-      m.inRows.forEach(function (c) { if (c.paid > 0) inBars += homeBar(esc(c.name), homeMoney(c.paid), c.paid / maxIn * 100, gradIn); });
+      m.inRows.forEach(function (c) { if (c.paidP > 0) inBars += homeBar(esc(c.name), homeMoney(c.paidP), c.paidP / maxIn * 100, gradIn); });
+      if (!inBars) inBars = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No payments collected in this period yet.</p>';
       var recRows = "";
       m.inRows.forEach(function (c) { if (c.recurring > 0) recRows += homeBar(esc(c.name) + " recurring", homeMoney(c.recurring) + "/mo", c.recurring / Math.max(1, m.recurring) * 100, gradIn); });
-      var outHtml = homeBar("Paid out to crews", homeMoney(m.outPaid), m.collectedTotal ? m.outPaid / m.collectedTotal * 100 : 1, gradOut);
-      if (m.outDue > 0) outHtml += homeBar("Committed, not yet out", homeMoney(m.outDue), m.collectedTotal ? m.outDue / m.collectedTotal * 100 : 1, gradOut);
+      var outHtml = homeBar("Paid out to crews", homeMoney(m.outPaidP), m.collected ? m.outPaidP / m.collected * 100 : 1, gradOut);
+      if (m.outDueP > 0) outHtml += homeBar("Committed, not yet out", homeMoney(m.outDueP), m.collected ? m.outDueP / m.collected * 100 : 1, gradOut);
       m.inRows.forEach(function (c) {
         var bits = [];
-        if (c.outPaid) bits.push(homeMoney(c.outPaid) + " paid out");
-        if (c.outDue) bits.push(homeMoney(c.outDue) + " committed");
+        if (c.outPaidP) bits.push(homeMoney(c.outPaidP) + " paid out");
+        if (c.outDueP) bits.push(homeMoney(c.outDueP) + " committed");
         if (bits.length) outHtml += '<div class="home-bar-row"><span>' + esc(c.name) + '</span><span style="color:#7a7668">' + bits.join(" · ") + '</span></div>';
       });
-      var keepHtml = homeBar("Kept so far (money in minus crew paid out)", homeMoney(m.marginTotal), m.collectedTotal ? m.marginTotal / m.collectedTotal * 100 : 1, gradKeep);
+      var keepHtml = homeBar("Margin kept in this period (money in minus crew paid out)", homeMoney(m.marginP), m.collected ? m.marginP / m.collected * 100 : 1, gradKeep);
       keepHtml += homeBar("Recurring kept per month", homeMoney(m.recurringKeeps) + "/mo", m.recurring ? m.recurringKeeps / m.recurring * 100 : 1, gradKeep);
       m.inRows.forEach(function (c) {
         if (!c.recurring) return;
@@ -1172,16 +1308,68 @@
         });
         pipeHtml += '<p style="font-size:.78rem;color:#7a7668;margin-top:8px">Pipeline only. None of this counts as money in until they sign and pay.</p>';
       } else pipeHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No live quotes out right now.</p>';
-      box.innerHTML =
+      // v109: period-filtered pipeline rows for the selected period.
+      var pipeHtmlP = "";
+      if (m.pipeRowsP.length) {
+        m.pipeRowsP.forEach(function (p) {
+          pipeHtmlP += '<div class="home-bar-row"><span>' + esc(p.name) + '</span><span><strong>' + esc(p.label) + '</strong>' + (p.monthly ? ' <span style="color:#7a7668">(' + homeMoney(p.monthly) + '/mo if signed)</span>' : "") + '</span></div>';
+        });
+        pipeHtmlP += '<p style="font-size:.78rem;color:#7a7668;margin-top:8px">Pipeline only. None of this counts as money in until they sign and pay.</p>';
+      } else pipeHtmlP = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No live quotes out in this period.</p>';
+      // v109 controls: period selector + Totals / By person toggle.
+      // Totals is the default view (Edwin, Nov 10, 2026: home is
+      // totals at a glance, the by-person breakdown is the extra).
+      function hmOpts(sel, pairs) {
+        return pairs.map(function (p) { return '<option value="' + p[0] + '"' + (sel === p[0] ? " selected" : "") + ">" + p[1] + "</option>"; }).join("");
+      }
+      var selStyle = "font:inherit;font-size:.85rem;padding:5px 8px;border:1px solid #ddd;border-radius:8px";
+      var controlsHtml =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">' +
+        '<label style="font-size:.8rem;color:#7a7668">Period <select id="home-money-period" style="' + selStyle + '">' +
+        hmOpts(homeMoneyPeriod, [["month", "This month"], ["lastmonth", "Last month"], ["quarter", "This quarter"], ["all", "All time"]]) + "</select></label>" +
+        '<label style="font-size:.8rem;color:#7a7668">View <select id="home-money-view" style="' + selStyle + '">' +
+        hmOpts(homeMoneyView, [["totals", "Totals"], ["byperson", "By person"]]) + "</select></label></div>";
+      function hmCard(label, valueHtml) {
+        return '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">' + label + '</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + valueHtml + "</div></div>";
+      }
+      // Totals view: four at-a-glance cards plus total bars and the
+      // pending breakdown. No customer names anywhere in this view.
+      var pendBits = [];
+      if (m.outDueP) pendBits.push(homeMoney(m.outDueP) + " crew payouts committed");
+      if (m.pipeOnceP + m.pipeRecurringP) pendBits.push(homeMoney(m.pipeOnceP + m.pipeRecurringP) + " in unsigned quotes");
+      if (m.signedNoPayP) pendBits.push(homeMoney(m.signedNoPayP) + " signed, not yet paid");
+      var totalsHtml =
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
-        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Collected in November</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.collectedMonth) + '</div></div>' +
-        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Collected all time</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.collectedTotal) + '</div></div>' +
-        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Recurring base</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.recurring) + '<span style="font-size:.8rem;color:#7a7668">/mo</span></div></div>' +
-        '</div>' +
+        hmCard("Money in: " + m.periodLabel, homeMoney(m.collected)) +
+        hmCard("Crew payouts out", homeMoney(m.outPaidP)) +
+        hmCard("Margin kept", homeMoney(m.marginP)) +
+        hmCard("Pending", homeMoney(m.pendingP)) +
+        "</div>" +
+        '<div class="home-kick">Totals: ' + esc(m.periodLabel) + "</div>" +
+        homeBar("Money in", homeMoney(m.collected), m.collected ? 100 : 1, gradIn) +
+        homeBar("Paid out to crews", homeMoney(m.outPaidP), m.collected ? m.outPaidP / m.collected * 100 : 1, gradOut) +
+        (m.outDueP > 0 ? homeBar("Committed, not yet out", homeMoney(m.outDueP), m.collected ? m.outDueP / m.collected * 100 : 1, gradOut) : "") +
+        homeBar("Margin kept", homeMoney(m.marginP), m.collected ? m.marginP / m.collected * 100 : 1, gradKeep) +
+        homeBar("Recurring base", homeMoney(m.recurring) + "/mo", Math.min(100, m.recurring / 10000 * 100), gradIn) +
+        homeBar("Recurring kept per month", homeMoney(m.recurringKeeps) + "/mo", m.recurring ? m.recurringKeeps / m.recurring * 100 : 1, gradKeep) +
+        (pendBits.length ? '<div class="home-bar-row"><span>Pending breakdown</span><span style="color:#7a7668">' + pendBits.join(" · ") + "</span></div>" : '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Nothing pending in this period.</p>') +
+        '<div class="home-kick" style="margin-top:10px">In the pipeline (not collected)</div>' + pipeHtmlP;
+      // By person view: the pre-v109 per-customer breakdown, now fed
+      // by the selected period's per-person numbers.
+      var personHtml =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
+        hmCard("Collected: " + m.periodLabel, homeMoney(m.collected)) +
+        hmCard("Collected all time", homeMoney(m.collectedTotal)) +
+        hmCard("Recurring base", homeMoney(m.recurring) + '<span style="font-size:.8rem;color:#7a7668">/mo</span>') +
+        "</div>" +
         '<div class="home-kick">Money in</div>' + inBars + recRows +
         '<div class="home-kick" style="margin-top:10px">Crew payouts</div>' + outHtml +
         '<div class="home-kick" style="margin-top:10px">Margin kept</div>' + keepHtml +
-        '<div class="home-kick" style="margin-top:10px">In the pipeline (not collected)</div>' + pipeHtml;
+        '<div class="home-kick" style="margin-top:10px">In the pipeline (not collected)</div>' + pipeHtmlP;
+      box.innerHTML = controlsHtml + (homeMoneyView === "byperson" ? personHtml : totalsHtml);
+      var psEl = $("home-money-period"), vsEl = $("home-money-view");
+      if (psEl) psEl.addEventListener("change", function () { homeMoneyPeriod = psEl.value; renderHomeMoney(); });
+      if (vsEl) vsEl.addEventListener("change", function () { homeMoneyView = vsEl.value; renderHomeMoney(); });
     } catch (e) { if (window.console) console.warn("Home money skipped:", e); }
   }
   // Safety wrapper (Oct 18 freeze lesson): Home renders inside the other
@@ -5642,7 +5830,7 @@
     var name = w.title || w.customerName || "this work order";
     var vendor = w.vendorBusiness || "the assigned vendor";
     if (!confirm("Unassign " + vendor + " from \"" + name + "\"? The job goes back to open and will be offered to all vendors again.")) return;
-    db.collection("work_orders").doc(id).update({
+    var unUpd = {
       status: "open",
       vendorId: null,
       vendorBusiness: null,
@@ -5651,7 +5839,11 @@
       vendorNotifyPending: true,
       vendorNotifyTarget: "broadcast",
       vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () {
+    };
+    // v109: stamp who unassigned on the work order itself and clear
+    // the assigned stamp, so the record shows the latest event.
+    Object.assign(unUpd, woUnassignedStamp());
+    db.collection("work_orders").doc(id).update(unUpd).then(function () {
       logActivity("Unassigned vendor " + vendor + " from work order: " + name);
       if (editingId === id) resetWoForm();
       if (woNoteId === id) closeWorkOrderNotes();
@@ -5672,13 +5864,17 @@
      the vendor notify watch emails and pushes that vendor about the
      job. Unassign (above) stays the way to clear a job entirely. */
   function woAssignHtml(w, id) {
+    // v109: the assignment record line renders here so it shows in
+    // both places this shared control is used: the expanded work
+    // order detail and the WO Notes modal.
+    var assignLine = woAssignmentLineHtml(w);
     var opts = '<option value="">Choose a vendor</option>';
     (woVendorCache || []).forEach(function (v) {
       if (v.status !== "approved") return;
       var label = v.business + (v.name && v.name !== v.business ? " - " + v.name : "");
       opts += '<option value="' + v.id + '"' + (w.vendorId === v.id ? " selected" : "") + ">" + esc(label) + "</option>";
     });
-    var html = '<span class="wo-assign-wrap" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"><select data-woassignsel="' + esc(id) + '">' + opts + "</select>" +
+    var html = assignLine + '<span class="wo-assign-wrap" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"><select data-woassignsel="' + esc(id) + '">' + opts + "</select>" +
       ' <button class="mini" type="button" data-woassign="' + esc(id) + '">Assign vendor</button></span>';
     if (w.vendorId) {
       html += ' <button type="button" class="mini danger" data-wounassign="' + esc(id) + '">Unassign vendor</button>' +
@@ -5709,7 +5905,7 @@
         ? "Switch \"" + name + "\" from " + (w.vendorBusiness || "the current vendor") + " to " + vendorName + "? " + vendorName + " will be notified and the job will show as accepted on their record."
         : "Assign \"" + name + "\" to " + vendorName + "? " + vendorName + " will be notified and the job will show as accepted on their record.";
       if (!confirm(msg)) return;
-      db.collection("work_orders").doc(id).update({
+      var asUpd = {
         vendorId: vendorId,
         vendorBusiness: vendorName,
         status: "accepted",
@@ -5717,7 +5913,11 @@
         vendorNotifyPending: true,
         vendorNotifyTarget: vendorId,
         vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function () {
+      };
+      // v109: stamp who assigned on the work order itself and clear
+      // any older unassigned stamp.
+      Object.assign(asUpd, woAssignedStamp());
+      db.collection("work_orders").doc(id).update(asUpd).then(function () {
         logActivity("Assigned vendor " + vendorName + " to work order: " + name);
         if (woNoteId === id) closeWorkOrderNotes();
         loadAll();
@@ -7089,8 +7289,29 @@
         // keep existing photos unless new ones were added in this edit
         var upd = Object.assign({}, wo);
         if (urls && urls.length) upd.photos = urls;
+        // v109 assignment audit (Edwin, Nov 10, 2026): if this edit
+        // changed the vendor versus the record loaded into the form,
+        // stamp the assignment on the work order itself. Before v109
+        // this path changed vendorId with no stamp at all, which is
+        // how a job could end up with a vendor set, status open, and
+        // no record of who put them there. Fall back to the cached
+        // board row if the form-load capture is missing.
+        var origVendorId = woEditOrigVendorId;
+        if (origVendorId == null) {
+          var cachedWo = null;
+          (woOrders || []).forEach(function (x) { if (x.id === editingId) cachedWo = x.d; });
+          if (cachedWo) origVendorId = cachedWo.vendorId || null;
+        }
+        var newVendorId = wo.vendorId || null;
+        if ((origVendorId || null) !== newVendorId) {
+          if (newVendorId) Object.assign(upd, woAssignedStamp());
+          else Object.assign(upd, woUnassignedStamp());
+        }
         return db.collection("work_orders").doc(editingId).update(upd);
       }
+      // v109: a work order created with a vendor already picked gets
+      // the same assignment stamp, so the record is complete from day one.
+      if (wo.vendorId) Object.assign(wo, woAssignedStamp());
       wo.status = "open";
       wo.photos = urls || [];
       wo.createdBy = me.email;
