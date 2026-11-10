@@ -117,7 +117,7 @@
         <label>Password<input type="password" id="vr-password" required minlength="6" autocomplete="new-password"></label>
 
         <div style="margin:18px 0">
-          <p style="font-weight:600;margin-bottom:6px">Services your crew does</p>
+          <p style="font-weight:600;margin-bottom:6px">Services your crew does <span style="color:#f5d67b">(required, pick at least one)</span></p>
           <div class="msel">
             <button type="button" class="msel-btn" id="vr-services-btn">Select services...</button>
             <div class="msel-panel hidden" id="vr-services">
@@ -135,7 +135,7 @@
         </div>
 
         <div style="margin:18px 0">
-          <p style="font-weight:600;margin-bottom:6px">Areas you cover</p>
+          <p style="font-weight:600;margin-bottom:6px">Areas you cover <span style="color:#f5d67b">(required, pick at least one)</span></p>
           <div class="msel">
             <button type="button" class="msel-btn" id="vr-areas-btn">Select areas...</button>
             <div class="msel-panel hidden" id="vr-areas">
@@ -290,7 +290,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
-<script src="vendor.js?v=7"></script>
+<script src="vendor.js?v=8"></script>
 <!-- Traffic beacon: this page runs its own Firebase stack, so site.js loads in PWA-only mode (no site behaviors or i18n, same pattern as quote.html). The visit tracker at the bottom of site.js still runs, so this page appears in the admin Traffic panel. -->
 <script>window.__PG_PWA_ONLY__ = true;</script>
 <script src="site.js?v=43"></script>
