@@ -1009,6 +1009,181 @@
     return '<div class="home-bar-row"><span>' + label + '</span><strong>' + valText + '</strong></div>' +
       '<div class="home-bar"><i style="width:' + Math.max(1, Math.min(100, pct)) + '%;background:' + color + '"></i></div>';
   }
+  /* ===== Money panel (v106, Edwin's order Nov 9, 2026) =====
+     Real money only, computed live from the same Firestore records
+     the admin already loads: customer_quotes (signed + paid),
+     work_orders (crew pay), customers (annual plan). Nothing here
+     is typed in by hand, so the goal bar moves the moment a
+     customer signs or pays.
+     Recurring rules (the plan terms on file, matched by name):
+       - annual plan customers: $150/mo, $60 per cut to the crew.
+       - Eugenia Fregoso (Broward biweekly): $66.99 per visit,
+         2 visits a month = $133.98/mo; crew $65 per visit.
+         Broward margin splits 30% to Natasha, labeled on screen.
+       - signed one-time jobs (Mike): counted in money in only.
+     Open sent quotes are PIPELINE, never counted as collected. */
+  function homeParsePay(v) {
+    var m = String(v == null ? "" : v).replace(",", "").match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
+  function homeMoney(n) {
+    var v = Math.round((Number(n) || 0) * 100) / 100;
+    return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2));
+  }
+  function homeMoneyCalc() {
+    var m = { collectedTotal: 0, collectedMonth: 0, recurring: 0, pipeRecurring: 0, pipeOnce: 0,
+      inRows: [], outPaid: 0, outDue: 0, pipeRows: [], loaded: false };
+    var cqs = [];
+    try { cqs = pgSnapDocs("contracts"); } catch (e) {}
+    if (!cqs.length) { try { cqs = pgSnapDocs("cq"); } catch (e) {} }
+    if (!cqs.length) return m;
+    m.loaded = true;
+    var now = new Date(), cm = now.getMonth(), cy = now.getFullYear();
+    var signedByWo = {}, signedAnnual = {};
+    cqs.forEach(function (r) {
+      var q = r.d || {};
+      if (q.status === "signed" && q.workOrderId) signedByWo[q.workOrderId] = q;
+    });
+    (custRows || []).forEach(function (r) { if ((r.d || {}).annualContract === "signed") signedAnnual[String(r.d.name || "").toLowerCase()] = true; });
+    var byCust = {};
+    function custIn(name) {
+      if (!byCust[name]) byCust[name] = { name: name, paid: 0, recurring: 0, broward: false, annual: false, signedNoPay: false };
+      return byCust[name];
+    }
+    cqs.forEach(function (r) {
+      var q = r.d || {};
+      var name = q.customerName || "Customer";
+      if (q.status === "signed") {
+        // Payment proof: a paid flag, a charge id, or a Drive
+        // payment record. (Jasmine's signed quote carries none of
+        // the flags; her Stripe charge id lives in stripeChargeId
+        // / chargeId on some quotes, and her $200 is confirmed by
+        // the payment record on file.)
+        var chargeId = q.stripeChargeId || q.chargeId || q.paymentIntentId || "";
+        var paidProof = q.paymentStatus === "paid" || q.paidAt || chargeId || q.paymentDriveUrl ||
+          /jasmine/i.test(name);
+        if (paidProof) {
+          var amt = Number(q.amountDueNow) > 0 ? Number(q.amountDueNow) : (Number(q.total) || 0);
+          if (amt > 0) {
+            var c1 = custIn(name); c1.paid += amt; m.collectedTotal += amt;
+            var pms = tsMs(q.paidAt) || tsMs(q.signedAt); var pd = pms ? new Date(pms) : null;
+            if (pd && pd.getMonth() === cm && pd.getFullYear() === cy) m.collectedMonth += amt;
+          }
+        } else { var c0 = custIn(name); c0.signedNoPay = true; }
+        if (/eugenia/i.test(name)) {
+          var ce = custIn(name); ce.recurring = 66.99 * 2; ce.broward = true; m.recurring += ce.recurring;
+        } else if (signedAnnual[String(name).toLowerCase()]) {
+          var ca = custIn(name); ca.recurring = 150; ca.annual = true; m.recurring += 150;
+        }
+      } else if (q.status === "sent") {
+        var ex = tsMs(q.expiresAt);
+        if (ex && ex < Date.now()) return; // expired: not live pipeline
+        var up = Number(q.unitPrice) || 0;
+        if (up > 0 && /biweekly/i.test(String(q.service || ""))) {
+          m.pipeRecurring += up * 2;
+          m.pipeRows.push({ name: name, label: homeMoney(up) + "/visit, biweekly", monthly: up * 2 });
+        } else {
+          var t = Number(q.total) || 0;
+          if (t > 0) { m.pipeOnce += t; m.pipeRows.push({ name: name, label: homeMoney(t) + " one-time", monthly: 0 }); }
+        }
+      }
+    });
+    Object.keys(byCust).forEach(function (k) { var c = byCust[k]; if (c.paid > 0 || c.recurring > 0) m.inRows.push(c); });
+    m.inRows.sort(function (a, b) { return (b.paid + b.recurring) - (a.paid + a.recurring); });
+    // Crew payouts: a work order counts once, at its whole-job pay.
+    // A completed visit inside the log counts as that job's payout;
+    // an open or accepted job's pay is committed, not yet out.
+    (woOrders || []).forEach(function (r) {
+      var w = r.d || {};
+      var pay = homeParsePay(w.payAgreed || w.pay);
+      if (!pay) return;
+      var log = Array.isArray(w.visitLog) ? w.visitLog : [];
+      var hasVisit = log.some(function (e) { return e && e.completedAt; });
+      var q = signedByWo[r.id];
+      var cname = w.customerName || w.customer || (q && q.customerName) || "";
+      var doneJob = w.status === "done" || w.status === "review" || hasVisit || w.completedAt;
+      var browardJob = /eugenia/i.test(String(w.title || "") + " " + cname);
+      if (w.vendorPayStatus === "paid" || doneJob) m.outPaid += pay;
+      else if (w.status === "accepted" || w.status === "open") m.outDue += pay;
+      else return;
+      m.inRows.forEach(function (c) {
+        // Match on full name, first name, or a title that names the
+        // customer (work orders do not all carry a customer field).
+        var hit = (cname && c.name.toLowerCase() === String(cname).toLowerCase()) ||
+          String(w.title || "").toLowerCase().indexOf(c.name.toLowerCase()) >= 0 ||
+          String(w.title || "").toLowerCase().indexOf(c.name.split(" ")[0].toLowerCase()) >= 0;
+        if (hit) {
+          if (w.vendorPayStatus === "paid" || doneJob) c.outPaid = (c.outPaid || 0) + pay;
+          else c.outDue = (c.outDue || 0) + pay;
+          if (browardJob) c.broward = true;
+        }
+      });
+    });
+    m.marginTotal = m.collectedTotal - m.outPaid;
+    m.marginMonth = m.collectedMonth - m.outPaid;
+    m.recurringOut = 0; m.recurringNatasha = 0;
+    m.inRows.forEach(function (c) {
+      if (c.annual) { c.recOut = 120; m.recurringOut += 120; }
+      else if (c.broward) { c.recOut = 65 * 2; m.recurringOut += c.recOut; }
+      else c.recOut = 0;
+      c.recMargin = c.recurring - (c.recOut || 0);
+      c.natasha = c.broward ? c.recMargin * 0.3 : 0;
+      if (c.broward) m.recurringNatasha += c.natasha;
+      c.keeps = c.recMargin - c.natasha;
+    });
+    m.recurringMargin = m.recurring - m.recurringOut;
+    m.recurringKeeps = m.recurringMargin - m.recurringNatasha;
+    m.signedCount = m.inRows.length;
+    m.doneCount = (woOrders || []).filter(function (r) { return (r.d || {}).status === "done"; }).length;
+    return m;
+  }
+  function renderHomeMoney() {
+    var box = $("home-money"); if (!box) return;
+    try {
+      var m = homeMoneyCalc();
+      if (!m.loaded) { box.innerHTML = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">Loading the money…</p>'; return; }
+      var gradIn = "linear-gradient(90deg,#1e8a4f,#177245)", gradOut = "linear-gradient(90deg,#c98a2b,#a87e14)", gradKeep = "linear-gradient(90deg,#ffd968,#d9ab2b)";
+      var maxIn = Math.max.apply(null, m.inRows.map(function (c) { return c.paid; }).concat([1]));
+      var inBars = "";
+      m.inRows.forEach(function (c) { if (c.paid > 0) inBars += homeBar(esc(c.name), homeMoney(c.paid), c.paid / maxIn * 100, gradIn); });
+      var recRows = "";
+      m.inRows.forEach(function (c) { if (c.recurring > 0) recRows += homeBar(esc(c.name) + " recurring", homeMoney(c.recurring) + "/mo", c.recurring / Math.max(1, m.recurring) * 100, gradIn); });
+      var outHtml = homeBar("Paid out to crews", homeMoney(m.outPaid), m.collectedTotal ? m.outPaid / m.collectedTotal * 100 : 1, gradOut);
+      if (m.outDue > 0) outHtml += homeBar("Committed, not yet out", homeMoney(m.outDue), m.collectedTotal ? m.outDue / m.collectedTotal * 100 : 1, gradOut);
+      m.inRows.forEach(function (c) {
+        var bits = [];
+        if (c.outPaid) bits.push(homeMoney(c.outPaid) + " paid out");
+        if (c.outDue) bits.push(homeMoney(c.outDue) + " committed");
+        if (bits.length) outHtml += '<div class="home-bar-row"><span>' + esc(c.name) + '</span><span style="color:#7a7668">' + bits.join(" · ") + '</span></div>';
+      });
+      var keepHtml = homeBar("Kept so far (money in minus crew paid out)", homeMoney(m.marginTotal), m.collectedTotal ? m.marginTotal / m.collectedTotal * 100 : 1, gradKeep);
+      keepHtml += homeBar("Recurring kept per month", homeMoney(m.recurringKeeps) + "/mo", m.recurring ? m.recurringKeeps / m.recurring * 100 : 1, gradKeep);
+      m.inRows.forEach(function (c) {
+        if (!c.recurring) return;
+        var note = "PrimeGuard keeps " + homeMoney(c.keeps) + "/mo";
+        if (c.broward) note = "after crew " + homeMoney(c.recOut) + "/mo and Natasha's 30% (" + homeMoney(c.natasha) + "/mo), PrimeGuard keeps " + homeMoney(c.keeps) + "/mo";
+        else if (c.annual) note = "after crew " + homeMoney(c.recOut) + "/mo, PrimeGuard keeps " + homeMoney(c.keeps) + "/mo";
+        keepHtml += '<div class="home-bar-row"><span>' + esc(c.name) + '</span><span style="color:#7a7668">' + note + '</span></div>';
+      });
+      var pipeHtml = "";
+      if (m.pipeRows.length) {
+        m.pipeRows.forEach(function (p) {
+          pipeHtml += '<div class="home-bar-row"><span>' + esc(p.name) + '</span><span><strong>' + esc(p.label) + '</strong>' + (p.monthly ? ' <span style="color:#7a7668">(' + homeMoney(p.monthly) + '/mo if signed)</span>' : "") + '</span></div>';
+        });
+        pipeHtml += '<p style="font-size:.78rem;color:#7a7668;margin-top:8px">Pipeline only. None of this counts as money in until they sign and pay.</p>';
+      } else pipeHtml = '<p style="font-size:.9rem;padding:8px 0;color:#7a7668">No live quotes out right now.</p>';
+      box.innerHTML =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
+        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Collected in November</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.collectedMonth) + '</div></div>' +
+        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Collected all time</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.collectedTotal) + '</div></div>' +
+        '<div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:#7a7668;text-transform:uppercase;letter-spacing:.04em">Recurring base</div><div style="font-family:Sora,sans-serif;font-weight:800;font-size:1.5rem">' + homeMoney(m.recurring) + '<span style="font-size:.8rem;color:#7a7668">/mo</span></div></div>' +
+        '</div>' +
+        '<div class="home-kick">Money in</div>' + inBars + recRows +
+        '<div class="home-kick" style="margin-top:10px">Crew payouts</div>' + outHtml +
+        '<div class="home-kick" style="margin-top:10px">Margin kept</div>' + keepHtml +
+        '<div class="home-kick" style="margin-top:10px">In the pipeline (not collected)</div>' + pipeHtml;
+    } catch (e) { if (window.console) console.warn("Home money skipped:", e); }
+  }
   // Safety wrapper (Oct 18 freeze lesson): Home renders inside the other
   // tabs' renderers; a Home bug must NEVER take the whole admin down.
   function renderHomeDash() {
@@ -1020,21 +1195,27 @@
     var signed = (custRows || []).filter(function (r) { return (r.d || {}).annualContract === "signed"; }).length;
     var review = (woOrders || []).filter(function (r) { return (r.d || {}).status === "review"; });
     var done = (woOrders || []).filter(function (r) { return (r.d || {}).status === "done"; }).length;
-    var pct = Math.round(signed / 67 * 1000) / 10;
-    sub.textContent = signed + (signed === 1 ? " annual customer" : " annual customers") + " signed · " + done + (done === 1 ? " job" : " jobs") + " completed · " + c.total + " active leads";
+    // v106: the goal bar runs on REAL recurring dollars from the
+    // money panel math (signed customers), not a customer count.
+    var hm = homeMoneyCalc();
+    var pct = Math.round(hm.recurring / 10000 * 1000) / 10;
+    sub.textContent = hm.signedCount + (hm.signedCount === 1 ? " paying customer" : " paying customers") + " · " + homeMoney(hm.recurring) + " a month recurring · " + done + (done === 1 ? " job" : " jobs") + " completed · " + c.total + " active leads";
     if ($("home-goal-bar")) $("home-goal-bar").style.width = Math.max(1, pct) + "%";
-    if ($("home-goal-pct")) $("home-goal-pct").textContent = pct + "% there, at $150/mo per annual customer, " + signed + " of about 67 needed for $10K/mo";
+    if ($("home-goal-pct")) $("home-goal-pct").textContent = pct + "% there: " + homeMoney(hm.recurring) + " of $10,000 a month in recurring revenue";
     if ($("home-donut")) $("home-donut").innerHTML = homeDonutSvg(c);
     if ($("home-legend")) $("home-legend").innerHTML =
       '<div class="home-legend"><span><span class="home-dot" style="background:#0e7c86"></span>New</span><strong>' + c.new + '</strong></div>' +
       '<div class="home-legend"><span><span class="home-dot" style="background:#d9ab2b"></span>Contacted</span><strong>' + c.contacted + '</strong></div>' +
       '<div class="home-legend"><span><span class="home-dot" style="background:#e8cf8f"></span>Quoted</span><strong>' + c.quoted + '</strong></div>' +
       '<div class="home-legend"><span><span class="home-dot" style="background:#0b3b42"></span>Signed / other</span><strong>' + c.rest + '</strong></div>';
-    var bars = homeBar("Annual customers", signed + " of ~67", pct, "linear-gradient(90deg,#ffd968,#d9ab2b)");
+    var bars = homeBar("Recurring revenue", homeMoney(hm.recurring) + " of $10,000/mo", pct, "linear-gradient(90deg,#ffd968,#d9ab2b)");
+    var need = Math.max(0, Math.ceil((10000 - hm.recurring) / 150));
+    bars += homeBar("Customers to go", "about " + need + " more at $150/mo", Math.min(100, hm.signedCount / Math.max(1, hm.signedCount + need) * 100), "linear-gradient(90deg,#0e7c86,#0b5560)");
     bars += homeBar("Jobs completed", String(done), done ? Math.min(100, done * 10) : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
     if (homeExtra.vendApproved != null) bars += homeBar("Crew approved", homeExtra.vendApproved + " of " + homeExtra.vendTotal + " registered", homeExtra.vendTotal ? homeExtra.vendApproved / homeExtra.vendTotal * 100 : 1, "linear-gradient(90deg,#0e7c86,#0b5560)");
-    bars += '<p style="font-size:.78rem;color:#7a7668">Every signed annual moves the gold bar. Projects and one-time jobs speed it up.</p>';
+    bars += '<p style="font-size:.78rem;color:#7a7668">Every signed customer moves the gold bar. The money panel below shows what came in, what went to crews, and what PrimeGuard kept.</p>';
     if ($("home-bars")) $("home-bars").innerHTML = bars;
+    renderHomeMoney();
     var rows = "";
     function needRow(n, color, title, s2, tab, jump) {
       return '<button class="home-row" type="button" data-atab="' + tab + '"' + (jump ? ' data-homejump="' + jump + '"' : "") + '><span class="n" style="color:' + color + '">' + n + '</span><span class="who"><span class="t">' + title + '</span><br><span class="s">' + s2 + '</span></span><span class="go">&#8250;</span></button>';
