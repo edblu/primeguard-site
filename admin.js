@@ -3428,6 +3428,7 @@
         ((w.area || w.address) ? pgJobToolsHtml(woToolsEntity) : "") +
         (w.details ? '<div class="sr-card"><h4>Job details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>" : "") +
         (w.kind === "quote_request" ? '<div class="sr-card"><h4>Send to vendors</h4><p class="sr-faint" style="margin-bottom:8px">Sends this work order out for vendor pricing (the background watch emails and pushes the vendor). Converting the lead did not send it.</p>' + woSendHtml(id, w) + "</div>" : "") +
+        (w.vendorId ? '<div class="sr-card"><h4>Assigned vendor</h4><p class="sr-faint" style="margin-bottom:8px">' + esc(w.vendorBusiness || "A vendor") + ' has this job. Unassigning reopens it to all vendors.</p><button class="mini danger" type="button" data-wounassign="' + esc(id) + '">Unassign vendor</button></div>' : "") +
         '<div class="sr-card"><h4>Notes & updates</h4>' +
         '<div class="note-form"><label>New note<textarea id="wonText" rows="3" placeholder="What happened, what is next…"></textarea></label>' +
         '<label>Follow-up date (optional)<input type="date" id="wonFollow"></label></div>' +
@@ -5157,6 +5158,12 @@
     html += row("Progress", woProgressHtml(w, woId, false));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt) + (w.vendorBusiness ? " \u00b7 by " + esc(w.vendorBusiness) : "") + (w.acceptNote ? "<br>Vendor note: " + esc(w.acceptNote) : ""));
+    // Unassign vendor (Ava for Natasha, 2026-11-10): only while a vendor
+    // is assigned. The click handler calls unassignVendor, which clears
+    // the assignment and reopens the job (defined near deleteWorkOrder).
+    if (woId && w.vendorId) {
+      html += row("Crew assignment", '<button type="button" class="mini danger" data-wounassign="' + esc(woId) + '">Unassign vendor</button> <span style="color:#7a7668">Removes ' + esc(w.vendorBusiness || "this vendor") + " and reopens the job to all vendors.</span>");
+    }
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
     // v60 (Edwin, Oct 17): the long text blocks and the photos are
     // collapsible, and photos are grouped BY VISIT (date + crew + that
@@ -5385,7 +5392,8 @@
         "</div>" +
         (sendHtml ? '<div class="woq-send">' + sendHtml + "</div>" : "") +
         '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since update</span>' +
-          '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
+          '<span class="hlq-manage">' + (w.vendorId ? '<button type="button" class="hlq-manage-btn danger" data-wounassign="' + it.id + '">Unassign vendor</button>' : "") +
+          '<button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
           '<button type="button" class="hlq-manage-btn danger" data-wodel="' + it.id + '">Delete</button></span>' +
           '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>" +
         (isOpen ? woDetailHtml(w, it.id) : "");
@@ -5592,6 +5600,38 @@
      appeared to do nothing. This follows the deleteHotLead /
      deleteCustomer pattern: named confirm with the order title, the
      delete, then log + reload; a failure alerts with the real error. */
+  /* Unassign vendor (Ava for Natasha, 2026-11-10): takes a job back
+     from the vendor who accepted it and reopens it. Mirrors the manual
+     fix done by hand on the Eugenia work order: status back to "open",
+     vendorId / vendorBusiness / acceptedAt cleared, broadcast stays
+     true so every approved vendor sees the job again, and
+     vendorNotifyPending is re-armed with a broadcast target so the
+     vendor notify watch alerts vendors again (same fields the Send to
+     vendors flow stamps). Confirm names the vendor and the job, and a
+     failure alerts with the real error, like deleteWorkOrder. */
+  function unassignVendor(id) {
+    var it = woOrders.find(function (x) { return x.id === id; });
+    var w = (it && it.d) || {};
+    var name = w.title || w.customerName || "this work order";
+    var vendor = w.vendorBusiness || "the assigned vendor";
+    if (!confirm("Unassign " + vendor + " from \"" + name + "\"? The job goes back to open and will be offered to all vendors again.")) return;
+    db.collection("work_orders").doc(id).update({
+      status: "open",
+      vendorId: null,
+      vendorBusiness: null,
+      acceptedAt: null,
+      broadcast: true,
+      vendorNotifyPending: true,
+      vendorNotifyTarget: "broadcast",
+      vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      logActivity("Unassigned vendor " + vendor + " from work order: " + name);
+      if (editingId === id) resetWoForm();
+      if (woNoteId === id) closeWorkOrderNotes();
+      loadAll();
+    }).catch(function (e) { alert("Could not unassign vendor: " + (e.message || e)); });
+  }
+
   function deleteWorkOrder(id) {
     var it = woOrders.find(function (x) { return x.id === id; });
     var name = (it && it.d && (it.d.title || it.d.customerName)) || "this work order";
@@ -7151,6 +7191,8 @@
     if (woFilterEl) d = woFilterEl.dataset;
     var woOpenEl = t.closest ? t.closest("[data-woopen]") : null;
     if (woOpenEl) d = woOpenEl.dataset;
+    var woUnassignEl = t.closest ? t.closest("[data-wounassign]") : null;
+    if (woUnassignEl) d = woUnassignEl.dataset;
     var woPhotoEl = t.closest ? t.closest("[data-wophoto]") : null;
     if (woPhotoEl) d = woPhotoEl.dataset;
     var qOfficeEl = t.closest ? t.closest("[data-qofficetoggle]") : null;
@@ -7208,6 +7250,7 @@
       logActivity("Marked a vendor info request answered");
     }
     if (d.wodel) deleteWorkOrder(d.wodel);
+    if (d.wounassign) unassignVendor(d.wounassign);
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (d.woopen) { woOpenId = (woOpenId === d.woopen) ? null : d.woopen; renderWorkOrders(); }
