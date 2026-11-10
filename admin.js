@@ -3428,7 +3428,7 @@
         ((w.area || w.address) ? pgJobToolsHtml(woToolsEntity) : "") +
         (w.details ? '<div class="sr-card"><h4>Job details</h4><p>' + esc(w.details).replace(/\n/g, "<br>") + "</p></div>" : "") +
         (w.kind === "quote_request" ? '<div class="sr-card"><h4>Send to vendors</h4><p class="sr-faint" style="margin-bottom:8px">Sends this work order out for vendor pricing (the background watch emails and pushes the vendor). Converting the lead did not send it.</p>' + woSendHtml(id, w) + "</div>" : "") +
-        (w.vendorId ? '<div class="sr-card"><h4>Assigned vendor</h4><p class="sr-faint" style="margin-bottom:8px">' + esc(w.vendorBusiness || "A vendor") + ' has this job. Unassigning reopens it to all vendors.</p><button class="mini danger" type="button" data-wounassign="' + esc(id) + '">Unassign vendor</button></div>' : "") +
+        '<div class="sr-card"><h4>Crew assignment</h4>' + woAssignHtml(w, id) + "</div>" +
         '<div class="sr-card"><h4>Notes & updates</h4>' +
         '<div class="note-form"><label>New note<textarea id="wonText" rows="3" placeholder="What happened, what is next…"></textarea></label>' +
         '<label>Follow-up date (optional)<input type="date" id="wonFollow"></label></div>' +
@@ -5158,11 +5158,15 @@
     html += row("Progress", woProgressHtml(w, woId, false));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt) + (w.vendorBusiness ? " \u00b7 by " + esc(w.vendorBusiness) : "") + (w.acceptNote ? "<br>Vendor note: " + esc(w.acceptNote) : ""));
-    // Unassign vendor (Ava for Natasha, 2026-11-10): only while a vendor
-    // is assigned. The click handler calls unassignVendor, which clears
-    // the assignment and reopens the job (defined near deleteWorkOrder).
-    if (woId && w.vendorId) {
-      html += row("Crew assignment", '<button type="button" class="mini danger" data-wounassign="' + esc(woId) + '">Unassign vendor</button> <span style="color:#7a7668">Removes ' + esc(w.vendorBusiness || "this vendor") + " and reopens the job to all vendors.</span>");
+    // Crew assignment (Ava for Natasha + Edwin, 2026-11-10): unassign
+    // takes the job back from the vendor who accepted it and reopens
+    // it; assign puts a vendor on the job by hand, or switches the job
+    // to a different vendor, instead of waiting for a portal
+    // acceptance. woAssignHtml builds the shared control (also used in
+    // the Notes modal); unassignVendor / assignVendor do the writes
+    // (defined near deleteWorkOrder).
+    if (woId) {
+      html += row("Crew assignment", woAssignHtml(w, woId));
     }
     if (w.sourceLeadName) html += row("From lead", esc(w.sourceLeadName));
     // v60 (Edwin, Oct 17): the long text blocks and the photos are
@@ -5180,6 +5184,20 @@
       // Photos open in the in-page lightbox (#pgLightbox), never as Drive
       // links: Drive file pages bounce staff to a Google sign-in wall.
       return '<div class="athumbs woq-thumbs">' + urls.map(function (u) { return '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>'; }).join("") + "</div>";
+    }
+    function thumbsManageHtml(urls) {
+      // Same thumbnails, plus a remove (x) on each photo: these are the
+      // job's own photos array entries, which staff manage at will
+      // (Attachments, Edwin 2026-11-10), mirroring the v87 lead photo
+      // manager cells. The x routes through the global click delegation
+      // (data-wophotodel) to removeWoPhoto; the thumb still opens the
+      // lightbox. Only used for the job's own photo groups below, never
+      // for crew-filed visit groups.
+      return '<div class="athumbs woq-thumbs">' + urls.map(function (u) {
+        return '<span class="pg-photo-cell">' +
+          '<button type="button" class="woq-thumb-btn" data-wophoto="' + esc(woPhotoBigUrl(u)) + '" data-wophotoorig="' + esc(u) + '" aria-label="View photo full size"><img src="' + esc(u) + '" alt="work order photo"></button>' +
+          '<button type="button" class="pg-photo-x" data-wophotodel="' + esc(woId) + '" data-wophotourl="' + esc(u) + '" aria-label="Remove this photo" title="Remove this photo">×</button></span>';
+      }).join("") + "</div>";
     }
     var visitLog = Array.isArray(w.visitLog) ? w.visitLog.filter(function (e) { return e && typeof e === "object"; }) : [];
     function urlOk(u) { return typeof u === "string" && /^https?:\/\//i.test(u); }
@@ -5218,9 +5236,18 @@
         html += collapsible(label, inner);
       });
       var refPhotos = photoUrls.filter(function (u) { return !inVisit[u]; });
-      if (refPhotos.length) html += collapsible("Property photos (" + refPhotos.length + ")", thumbsHtml(refPhotos));
+      if (refPhotos.length) html += collapsible("Property photos (" + refPhotos.length + ")", thumbsManageHtml(refPhotos));
     } else if (photoUrls.length) {
-      html += collapsible("Photos (" + photoUrls.length + ")", thumbsHtml(photoUrls));
+      html += collapsible("Photos (" + photoUrls.length + ")", thumbsManageHtml(photoUrls));
+    }
+    // Add photos (Attachments, Edwin 2026-11-10): always available on an
+    // opened job, even one with no photos yet. The file input routes
+    // through the document change listener (data-wophotoadd) to
+    // addWoPhotos, which reuses the v87 upload helpers.
+    if (woId) {
+      html += '<div class="pg-photo-tools"><label class="btn btn-ghost btn-sm" for="wo-photo-add-' + esc(woId) + '">Add photos</label>' +
+        '<input type="file" id="wo-photo-add-' + esc(woId) + '" accept="image/*" multiple class="hidden" data-wophotoadd="' + esc(woId) + '">' +
+        '<span class="pg-photo-status" data-wophotostatus="' + esc(woId) + '"></span></div>';
     }
     var vids = woVideoLinks(w);
     if (vids.length) {
@@ -5631,6 +5658,127 @@
       loadAll();
     }).catch(function (e) { alert("Could not unassign vendor: " + (e.message || e)); });
   }
+
+  /* Manual crew assignment (Edwin, 2026-11-10): staff can put a vendor
+     on a job by hand instead of waiting for a portal acceptance, and
+     assigning a different vendor switches the job to them. The select
+     lists approved vendors from woVendorCache (loadVendorOptions), the
+     same cache the Send to vendors flow uses. The control renders in
+     both the expanded work order card and the Notes modal, so the
+     button resolves its select inside its own .wo-assign-wrap, the way
+     openWoSendPreview resolves its select. Confirming writes exactly
+     what a portal acceptance writes (vendorId, vendorBusiness, status
+     "accepted", acceptedAt), plus the single-target notify fields so
+     the vendor notify watch emails and pushes that vendor about the
+     job. Unassign (above) stays the way to clear a job entirely. */
+  function woAssignHtml(w, id) {
+    var opts = '<option value="">Choose a vendor</option>';
+    (woVendorCache || []).forEach(function (v) {
+      if (v.status !== "approved") return;
+      var label = v.business + (v.name && v.name !== v.business ? " - " + v.name : "");
+      opts += '<option value="' + v.id + '"' + (w.vendorId === v.id ? " selected" : "") + ">" + esc(label) + "</option>";
+    });
+    var html = '<span class="wo-assign-wrap" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"><select data-woassignsel="' + esc(id) + '">' + opts + "</select>" +
+      ' <button class="mini" type="button" data-woassign="' + esc(id) + '">Assign vendor</button></span>';
+    if (w.vendorId) {
+      html += ' <button type="button" class="mini danger" data-wounassign="' + esc(id) + '">Unassign vendor</button>' +
+        '<div style="color:#7a7668;margin-top:4px">Assigned to ' + esc(w.vendorBusiness || "a vendor") + ". Assigning another vendor switches the job to them and notifies them; unassigning reopens it to all vendors.</div>";
+    } else {
+      html += '<div style="color:#7a7668;margin-top:4px">No vendor on this job yet. Assigning puts the vendor on it right away and notifies them.</div>';
+    }
+    return html;
+  }
+
+  function assignVendor(id, btn) {
+    var wrap = btn && btn.closest ? btn.closest(".wo-assign-wrap") : null;
+    var sel = wrap ? wrap.querySelector("select") : null;
+    var vendorId = sel ? sel.value : "";
+    if (!vendorId) { alert("Choose a vendor first, then press Assign vendor."); return; }
+    var v = null;
+    (woVendorCache || []).forEach(function (x) { if (x.id === vendorId) v = x; });
+    var vendorName = (v && (v.business || v.name)) || "the selected vendor";
+    var local = null;
+    woOrders.forEach(function (x) { if (x.id === id) local = x.d; });
+    var begin = function (w) {
+      if (!w) { alert("That work order could not be loaded."); return; }
+      var name = w.title || w.customerName || "this work order";
+      var st = woStatusValue(w);
+      if (st === "done" || st === "cancelled") { alert("This job is " + st + ", so it cannot be assigned."); return; }
+      if (w.vendorId === vendorId) { alert(vendorName + " already has this job."); return; }
+      var msg = w.vendorId
+        ? "Switch \"" + name + "\" from " + (w.vendorBusiness || "the current vendor") + " to " + vendorName + "? " + vendorName + " will be notified and the job will show as accepted on their record."
+        : "Assign \"" + name + "\" to " + vendorName + "? " + vendorName + " will be notified and the job will show as accepted on their record.";
+      if (!confirm(msg)) return;
+      db.collection("work_orders").doc(id).update({
+        vendorId: vendorId,
+        vendorBusiness: vendorName,
+        status: "accepted",
+        acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        vendorNotifyPending: true,
+        vendorNotifyTarget: vendorId,
+        vendorNotifyRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        logActivity("Assigned vendor " + vendorName + " to work order: " + name);
+        if (woNoteId === id) closeWorkOrderNotes();
+        loadAll();
+      }).catch(function (e) { alert("Could not assign vendor: " + (e.message || e)); });
+    };
+    if (local) begin(local);
+    else db.collection("work_orders").doc(id).get().then(function (snap) { begin(snap.exists ? snap.data() : null); }).catch(function () { begin(null); });
+  }
+
+  /* Work order attachments (Edwin, 2026-11-10): the same at-will
+     control for the job's photos array. Remove mirrors the v87 lead
+     photo manager: confirm, arrayRemove the URL, stamp updatedAt.
+     Add reuses the v87 helpers (pgCompressPhotoFile compresses,
+     pgUploadOnePhoto POSTs one photo at a time to the Apps Script
+     photo endpoint), then arrayUnions the hosted URLs. Both live on
+     the work order doc itself, so there is no mirror step. */
+  function removeWoPhoto(id, url) {
+    if (!id || !url) return;
+    var it = woOrders.find(function (x) { return x.id === id; });
+    var name = (it && it.d && (it.d.title || it.d.customerName)) || "this work order";
+    if (!confirm("Remove this photo from \"" + name + "\"?")) return;
+    db.collection("work_orders").doc(id).update({
+      photos: firebase.firestore.FieldValue.arrayRemove(url),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      logActivity("Removed a photo from work order: " + name);
+      loadAll();
+    }).catch(function (e) { alert("Could not remove photo: " + (e.message || e)); });
+  }
+
+  function addWoPhotos(id, input) {
+    var files = Array.prototype.slice.call(input.files || []);
+    if (!id || !files.length) return;
+    var status = document.querySelector('[data-wophotostatus="' + id + '"]');
+    function say(msg) { if (status) status.textContent = msg; }
+    var it = woOrders.find(function (x) { return x.id === id; });
+    var name = (it && it.d && (it.d.title || it.d.customerName)) || "this work order";
+    input.disabled = true;
+    var done = 0, urls = [];
+    var chain = Promise.resolve();
+    files.forEach(function (f) {
+      chain = chain.then(function () {
+        say("Uploading " + (done + 1) + " of " + files.length + "...");
+        return pgCompressPhotoFile(f).then(pgUploadOnePhoto).then(function (u) { if (u) urls.push(u); done++; });
+      });
+    });
+    chain.then(function () {
+      if (!urls.length) throw new Error("No photos uploaded.");
+      return db.collection("work_orders").doc(id).update({
+        photos: firebase.firestore.FieldValue.arrayUnion.apply(null, urls),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }).then(function () {
+      logActivity("Added " + urls.length + " photo(s) to work order: " + name);
+      loadAll();
+    }).catch(function (e) { say("Could not add: " + (e.message || e)); input.disabled = false; });
+  }
+  document.addEventListener("change", function (e) {
+    var inp = e.target && e.target.closest ? e.target.closest("[data-wophotoadd]") : null;
+    if (inp) addWoPhotos(inp.getAttribute("data-wophotoadd"), inp);
+  });
 
   function deleteWorkOrder(id) {
     var it = woOrders.find(function (x) { return x.id === id; });
@@ -7193,6 +7341,10 @@
     if (woOpenEl) d = woOpenEl.dataset;
     var woUnassignEl = t.closest ? t.closest("[data-wounassign]") : null;
     if (woUnassignEl) d = woUnassignEl.dataset;
+    var woAssignEl = t.closest ? t.closest("[data-woassign]") : null;
+    if (woAssignEl) d = woAssignEl.dataset;
+    var woPhotoDelEl = t.closest ? t.closest("[data-wophotodel]") : null;
+    if (woPhotoDelEl) d = woPhotoDelEl.dataset;
     var woPhotoEl = t.closest ? t.closest("[data-wophoto]") : null;
     if (woPhotoEl) d = woPhotoEl.dataset;
     var qOfficeEl = t.closest ? t.closest("[data-qofficetoggle]") : null;
@@ -7251,6 +7403,8 @@
     }
     if (d.wodel) deleteWorkOrder(d.wodel);
     if (d.wounassign) unassignVendor(d.wounassign);
+    if (d.woassign) assignVendor(d.woassign, woAssignEl || t);
+    if (d.wophotodel) removeWoPhoto(d.wophotodel, d.wophotourl);
     if (d.woedit) enterEditMode(d.woedit);
     if (d.wonotes) openWorkOrderNotes(d.wonotes);
     if (d.woopen) { woOpenId = (woOpenId === d.woopen) ? null : d.woopen; renderWorkOrders(); }
