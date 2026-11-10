@@ -75,6 +75,36 @@
     return out;
   }
 
+  /* ----- Required qualification fields (Edwin, 2026-11-10) -----
+     A registration cannot finish until we have enough information
+     to qualify and contact the vendor: full name, business name,
+     phone, email, at least one service, and at least one area.
+     This is enforced here in the save flow itself, because the
+     services and areas pickers are checkbox panels and HTML
+     required attributes alone cannot stop an empty submit. */
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function phoneDigits(p) { return (p || "").replace(/\D/g, ""); }
+  function missingRequired(d) {
+    var missing = [];
+    if (!d.name) missing.push({ label: "your name", target: "vr-name" });
+    if (!d.business) missing.push({ label: "business name", target: "vr-business" });
+    if (!d.email || !EMAIL_RE.test(d.email)) missing.push({ label: "a valid email", target: "vr-email" });
+    if (phoneDigits(d.phone).length < 10) missing.push({ label: "a phone number with at least 10 digits", target: "vr-phone" });
+    if (!d.services || !d.services.length) missing.push({ label: "at least one service", target: "vr-services-btn" });
+    if (!d.areas || !d.areas.length) missing.push({ label: "at least one area you cover", target: "vr-areas-btn" });
+    return missing;
+  }
+  function showMissing(missing, errEl) {
+    var labels = missing.map(function (m) { return m.label; });
+    errEl.textContent = "Almost there. Before your registration can finish, we still need: " + labels.join(", ") + ". Please fill those in and submit again.";
+    errEl.classList.remove("hidden");
+    var first = missing[0] && document.getElementById(missing[0].target);
+    if (first) {
+      first.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (first.focus) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+    }
+  }
+
   function readFileAsDataURL(file) {
     return new Promise(function (resolve, reject) {
       var r = new FileReader();
@@ -125,6 +155,60 @@
      profile onto their existing account when the form submits. If they
      already HAVE a vendor profile, send them straight to the portal. */
   var googleUser = null;
+  var completeUser = null;   // signed-in vendor finishing an incomplete profile
+  var completeData = null;   // their existing (partial) vendors doc
+
+  function setFieldValue(id, val) {
+    var el = document.getElementById(id);
+    if (el && val) el.value = val;
+  }
+  function setCheckedValues(containerId, values) {
+    if (!values || !values.length) return;
+    document.querySelectorAll("#" + containerId + " input[type=checkbox]").forEach(function (el) {
+      if (values.indexOf(el.value) >= 0 && !el.checked) {
+        el.checked = true;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  }
+  /* A vendors doc exists but is missing required information (the
+     half-finished signup case): keep the vendor on this form with
+     whatever they already gave us prefilled, and let the submit
+     gate below make finishing actually finish the profile. */
+  function enterCompleteMode(user, data) {
+    completeUser = user;
+    completeData = data || {};
+    enterGoogleMode(user); // same signed-in, no-password carry-through UI
+    var d = completeData;
+    setFieldValue("vr-business", d.business);
+    setFieldValue("vr-name", d.name);
+    if (d.email) setFieldValue("vr-email", d.email);
+    setFieldValue("vr-phone", d.phone);
+    setFieldValue("vr-address", d.address);
+    setFieldValue("vr-equipment", d.equipment);
+    setFieldValue("vr-crewsize", d.crewSize);
+    if (d.insured) {
+      setFieldValue("vr-insured", d.insured);
+      if (coiWrap) coiWrap.classList.toggle("hidden", d.insured !== "yes");
+    }
+    setFieldValue("vr-zelle", d.payoutZelle);
+    setFieldValue("vr-payname", d.payoutName);
+    setFieldValue("vr-bankname", d.payoutBankName);
+    setFieldValue("vr-routing", d.payoutRouting);
+    setFieldValue("vr-account", d.payoutAccount);
+    var pm = document.getElementById("vr-paymethod");
+    if (pm && d.payoutMethod) {
+      pm.value = d.payoutMethod;
+      pm.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    setCheckedValues("vr-services", d.services);
+    setCheckedValues("vr-areas", d.areas);
+    var bn = document.getElementById("vr-google-banner");
+    if (bn) {
+      bn.innerHTML = "Welcome back. Your vendor profile is not finished yet. We still need a few details before we can send you work, so please fill in what is missing below and tap Finish registration.";
+      bn.classList.remove("hidden");
+    }
+  }
   function enterGoogleMode(user) {
     googleUser = user;
     var em = document.getElementById("vr-email");
@@ -153,7 +237,17 @@
   auth.onAuthStateChanged(function (user) {
     if (!user) return;
     db.collection("vendors").doc(user.uid).get().then(function (snap) {
-      if (snap.exists) { window.location.href = "vendor-dashboard.html"; return; }
+      if (snap.exists) {
+        var data = snap.data() || {};
+        var missing = missingRequired({
+          name: data.name, business: data.business,
+          email: data.email || user.email, phone: data.phone,
+          services: data.services, areas: data.areas
+        });
+        if (missing.length === 0 && !data.profileIncomplete) { window.location.href = "vendor-dashboard.html"; return; }
+        enterCompleteMode(user, data);
+        return;
+      }
       enterGoogleMode(user);
     }).catch(function () { enterGoogleMode(user); });
   });
@@ -175,8 +269,6 @@
     var errEl = document.getElementById("vr-error");
     errEl.classList.add("hidden");
     var btn = document.getElementById("vr-submit");
-    btn.disabled = true;
-    btn.textContent = "Creating account...";
 
     var business = document.getElementById("vr-business").value.trim();
     var name = document.getElementById("vr-name").value.trim();
@@ -208,6 +300,18 @@
     var signature = document.getElementById("vr-signature").value.trim();
     var nowMs = Date.now();
 
+    /* Required-fields gate: no account is created and no vendor doc
+       is saved while any required qualification field is missing. */
+    var missing = missingRequired({
+      name: name, business: business, email: email, phone: phone,
+      services: services, areas: areas
+    });
+    if (missing.length) {
+      showMissing(missing, errEl);
+      return;
+    }
+
+    btn.disabled = true;
     btn.textContent = "Uploading documents...";
     var w9Url = null, coiUrl = null;
     uploadDoc(w9File, "vendor-w9").then(function (u) { w9Url = u; return uploadDoc(coiFile, "vendor-coi"); })
@@ -217,10 +321,11 @@
       if (googleUser) return Promise.resolve({ user: googleUser });
       return auth.createUserWithEmailAndPassword(email, pw);
     }).then(function (cred) {
+      var docEmail = email || (cred.user && cred.user.email) || "";
       var v = {
         business: business,
         name: name,
-        email: email,
+        email: docEmail,
         phone: phone,
         address: address,
         hearAbout: hearAbout,
@@ -250,6 +355,28 @@
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
+      if (completeUser) {
+        // Finishing an incomplete profile: merge into the existing doc
+        // so nothing already on file is lost, and clear the incomplete
+        // flag only now that the gate passed. Approval state stays
+        // whatever it already is, and documents already on file stay
+        // on file unless the vendor just uploaded a replacement.
+        delete v.createdAt;
+        delete v.status;
+        delete v.verified;
+        if (!w9Url && completeData) {
+          v.w9Url = completeData.w9Url || null;
+          v.w9Status = completeData.w9Status || v.w9Status;
+          v.w9Due = completeData.w9Due || v.w9Due;
+        }
+        if (!coiUrl && completeData) {
+          v.coiUrl = completeData.coiUrl || null;
+          v.coiStatus = completeData.coiStatus || v.coiStatus;
+        }
+        v.profileIncomplete = false;
+        v.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        return db.collection("vendors").doc(cred.user.uid).set(v, { merge: true }).then(function () { return v; });
+      }
       return db.collection("vendors").doc(cred.user.uid).set(v).then(function () { return v; });
     }).then(function (v) {
       notifyEdwin(v); // Edwin gets an inbox alert; vendor welcome email sends from the backend when installed
@@ -258,7 +385,7 @@
       errEl.textContent = err.message || "Something went wrong. Please try again.";
       errEl.classList.remove("hidden");
       btn.disabled = false;
-      btn.textContent = "Create vendor account";
+      btn.textContent = (googleUser || completeUser) ? "Finish registration" : "Create vendor account";
     });
   });
 
