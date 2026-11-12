@@ -33,6 +33,12 @@
   .cust-fbtn-cnt { display:inline-block; min-width:18px; padding:1px 5px; border-radius:999px; background:#c9a227; color:#1b1b1b; font-size:.7rem; font-weight:800; text-align:center; }
   .cust-sort-sel { padding:7px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--text); font-size:.8rem; font-weight:700; font-family:inherit; cursor:pointer; max-width:52vw; }
   .pg-light .cust-sort-sel { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
+  /* v110: shared sort toolbar row (Hot Leads, Tasks, Quotes, Contracts,
+     Vendors, Vendor Progress, Referrals). The select itself reuses
+     .cust-sort-sel so every sort control looks the same on a phone. */
+  .pg-sort-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+  .pg-sort-row label { font-size:.8rem; color:var(--muted); font-weight:700; }
+  .hl-filters .pg-sort-row { margin:2px 0 0; }
   .cust-res-count { color:var(--faint); font-size:.85rem; align-self:center; }
   /* Customers filter slide-over: light Books-token panel. Z-stack: above
      page content and the nav drawer (90), below modal overlays (200). */
@@ -1524,7 +1530,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="admin.js?v=109"></script>
+<script src="admin.js?v=110"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];

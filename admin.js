@@ -1,5 +1,10 @@
 // PrimeGuard admin: work orders, quotes, vendors, acquisition managers.
 // Access: edblucorp@gmail.com (admin) or users with a staff/{uid} doc.
+// Admin build v110 (Edwin, Nov 11 2026): sort controls everywhere. Every
+// list/board gets a persisted sort pick (localStorage, same pattern as
+// pgWoSort): Hot Leads (pgHlSort), Tasks (pgFuSort), vendor quotes
+// (pgQSort), awaiting-signature quotes (pgCqSort), Contracts (pgCtSort),
+// Vendors (pgVenSort), Vendor Progress (pgVpSort), Referrals (pgRefSort).
 (function () {
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
   if (!cfg || !cfg.apiKey) return;
@@ -576,6 +581,18 @@
   }
 
   var tkEntityFilter = "all"; // Tasks page entity filter (chips)
+  // v110 sort for the Tasks page (persisted like pgWoSort). "due" is
+  // the classic grouped view (Overdue / Today / Upcoming, due soonest
+  // first); the other picks flatten the groups into one sorted list.
+  var fuSort = "due";
+  try { var pgFuSortSaved = localStorage.getItem("pgFuSort"); if (pgFuSortSaved) fuSort = pgFuSortSaved; } catch (e) {}
+  var FU_SORTS = [
+    ["due", "Sort: Due soonest"],
+    ["due-desc", "Sort: Due latest"],
+    ["name", "Sort: Name A–Z"],
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"]
+  ];
   var fuSnaps = { open: null, done: null, tasks: null };
   var FU_EMPTY_SNAP = { forEach: function () {}, empty: true, size: 0 };
   function loadFollowUps() {
@@ -625,6 +642,21 @@
         return a.createdMs - b.createdMs;
       });
       done.sort(function (a, b) { return b.doneMs - a.doneMs; });
+      // v110: Edwin's sort pick reorders the open queue. The grouped
+      // render below (Overdue / Today / Upcoming) applies only to the
+      // default "due" pick; the other picks render one flat list.
+      if (fuSort === "due-desc") open.sort(function (a, b) {
+        if (a.due !== b.due) return a.due > b.due ? -1 : 1;
+        return b.createdMs - a.createdMs;
+      });
+      else if (fuSort === "name") open.sort(function (a, b) {
+        var na = String(a.entityLabel || "").toLowerCase(), nb = String(b.entityLabel || "").toLowerCase();
+        if (na !== nb) return na < nb ? -1 : 1;
+        if (a.due !== b.due) return a.due < b.due ? -1 : 1;
+        return a.createdMs - b.createdMs;
+      });
+      else if (fuSort === "newest") open.sort(function (a, b) { return b.createdMs - a.createdMs; });
+      else if (fuSort === "oldest") open.sort(function (a, b) { return a.createdMs - b.createdMs; });
       // Header stats + drawer badge (open overdue + due today).
       var nOver = 0, nToday = 0, nUp = 0;
       open.forEach(function (it) {
@@ -665,23 +697,40 @@
       tkChips.innerHTML = tkTypes.map(function (tp) {
         var n = tp[0] === "all" ? tkAllCount : (tkCounts[tp[0]] || 0);
         return '<button type="button" class="tk-chip' + (tkEntityFilter === tp[0] ? " on" : "") + '" data-tkfilter="' + tp[0] + '">' + tp[1] + " (" + n + ")</button>";
-      }).join("");
+      }).join("") +
+        '<span class="pg-sort-row" style="margin:0 0 0 auto"><label for="ad-fu-sort">Sort tasks</label>' +
+        '<select id="ad-fu-sort" class="cust-sort-sel" aria-label="Sort tasks">' +
+        FU_SORTS.map(function (s) {
+          return '<option value="' + s[0] + '"' + (fuSort === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+        }).join("") + "</select></span>";
       box.appendChild(tkChips);
+      var fuSortSel = tkChips.querySelector("#ad-fu-sort");
+      if (fuSortSel) fuSortSel.addEventListener("change", function () {
+        fuSort = fuSortSel.value || "due";
+        try { localStorage.setItem("pgFuSort", fuSort); } catch (e) {}
+        loadFollowUps();
+      });
       if (!open.length) {
         var tkNp = document.createElement("p");
         tkNp.style.color = "var(--faint)";
         tkNp.textContent = tkEntityFilter !== "all" ? "No tasks match this filter." : "Nothing open. Everything is done, nice work.";
         box.appendChild(tkNp);
       }
-      [[0, "Overdue", "overdue"], [1, "Today", ""], [2, "Upcoming", ""]].forEach(function (g) {
-        var items = open.filter(function (it) { return tkDueMeta(it.due, today).group === g[0]; });
-        if (!items.length) return;
-        var h = document.createElement("div");
-        h.className = "tk-group-h" + (g[2] ? " " + g[2] : "");
-        h.textContent = g[1];
-        box.appendChild(h);
-        items.forEach(function (it) { box.appendChild(tkRow(it, today, false)); });
-      });
+      if (fuSort === "due") {
+        [[0, "Overdue", "overdue"], [1, "Today", ""], [2, "Upcoming", ""]].forEach(function (g) {
+          var items = open.filter(function (it) { return tkDueMeta(it.due, today).group === g[0]; });
+          if (!items.length) return;
+          var h = document.createElement("div");
+          h.className = "tk-group-h" + (g[2] ? " " + g[2] : "");
+          h.textContent = g[1];
+          box.appendChild(h);
+          items.forEach(function (it) { box.appendChild(tkRow(it, today, false)); });
+        });
+      } else {
+        // v110: non-default sort picks render one flat list in the
+        // chosen order instead of the due-date groups.
+        open.forEach(function (it) { box.appendChild(tkRow(it, today, false)); });
+      }
       // v86: no "Done" group renders here anymore. The moment a task or
       // follow-up is checked done, its snapshot moves it out of the open
       // set and this list re-renders without it. Data is NOT deleted.
@@ -1008,6 +1057,28 @@
   var hlTempFilter = "all"; // active temperature filter chip: all|hot|warm|cold
   var hlStageFilter = "all"; // active stage filter chip: all|new|contacted|quoted|booked|done|cold
   var hlLeads = []; // cached { id, d } rows from the last loadHotLeads()
+  // v110 sort for the Hot Leads queue (Edwin, Nov 11 2026: "I need to be
+  // able to sort everything out, especially the hot leads, by date, by
+  // name, which one is hotter, which one is open"). Persisted like
+  // pgWoSort. Default "hottest": the old queue already put temperature
+  // first, so this keeps that feel and adds the stage heat Edwin asked
+  // for. Stage heat order (closest to money first): booked > quoted >
+  // contacted > new > done > cold. Booked is signed work about to
+  // convert, quoted has a price in front of the customer, contacted is
+  // a live conversation, new is untouched, done is finished business
+  // that has not converted off the queue yet, cold is parked.
+  var hlSort = "hottest";
+  try { var pgHlSortSaved = localStorage.getItem("pgHlSort"); if (pgHlSortSaved) hlSort = pgHlSortSaved; } catch (e) {}
+  var HL_STAGE_HEAT = { booked: 0, quoted: 1, contacted: 2, new: 3, done: 4, cold: 5 };
+  var HL_SORTS = [
+    ["hottest", "Sort: Hottest first"],
+    ["waiting", "Sort: Longest waiting"],
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["name", "Sort: Name A–Z"],
+    ["name-desc", "Sort: Name Z–A"],
+    ["stage", "Sort: Stage A–Z"]
+  ];
   var woFilter = "active"; // Board opens on Active so Done jobs file away (Edwin, Oct 18); All/Done chips still show them
   var woOrders = []; // cached { id, d } rows from the last loadWorkOrders()
   var woOpenId = null; // work order id whose card is expanded inline (Open/Close toggle)
@@ -1583,6 +1654,10 @@
     var t = leadTemp(d);
     return t === "hot" ? 0 : (t === "warm" ? 1 : 2);
   }
+  function hlStageHeatRank(d) {
+    var r = HL_STAGE_HEAT[hlStageValue(d)];
+    return r == null ? 3 : r;
+  }
   function timeAgo(ms) {
     if (!ms) return "";
     var s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
@@ -1658,7 +1733,18 @@
         '" data-hltempfilter="' + df[0] + '">' + df[1] + ' <span class="cnt">' + tempCounts[df[0]] + "</span></button>";
     }).join("");
     wrap.innerHTML = '<div class="hl-filter-row hl-stage-filter-row" aria-label="Filter by stage">' + stageHtml + "</div>" +
-      '<div class="hl-filter-row hl-temp-filter-row" aria-label="Filter by temperature">' + tempHtml + "</div>";
+      '<div class="hl-filter-row hl-temp-filter-row" aria-label="Filter by temperature">' + tempHtml + "</div>" +
+      '<div class="hl-filter-row pg-sort-row" aria-label="Sort hot leads"><label for="ad-hl-sort">Sort leads</label>' +
+      '<select id="ad-hl-sort" class="cust-sort-sel" aria-label="Sort hot leads">' +
+      HL_SORTS.map(function (s) {
+        return '<option value="' + s[0] + '"' + (hlSort === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+      }).join("") + "</select></div>";
+    var hlSortSel = $("ad-hl-sort");
+    if (hlSortSel) hlSortSel.addEventListener("change", function () {
+      hlSort = hlSortSel.value || "hottest";
+      try { localStorage.setItem("pgHlSort", hlSort); } catch (e) {}
+      renderHotLeads();
+    });
   }
   function hlStepperHtml(id, d) {
     var stage = hlStageValue(d);
@@ -1697,14 +1783,41 @@
       var tempOk = hlTempFilter === "all" || leadTemp(it.d) === hlTempFilter;
       return stageOk && tempOk;
     });
+    // v110: the queue order is Edwin's sort pick (ad-hl-sort, persisted
+    // in pgHlSort). "waiting" reproduces the pre-v110 behavior's core
+    // (longest idle first); every mode ends in a stable newest-first
+    // tie-break.
     visible.sort(function (a, b) {
+      function hlNewestFirst(x, y) { return tsMs(y.d.createdAt) - tsMs(x.d.createdAt); }
+      if (hlSort === "name" || hlSort === "name-desc") {
+        var na = String(a.d.name || "").toLowerCase(), nb = String(b.d.name || "").toLowerCase();
+        if (na !== nb) return (na < nb ? -1 : 1) * (hlSort === "name" ? 1 : -1);
+        return hlNewestFirst(a, b);
+      }
+      if (hlSort === "newest") return hlNewestFirst(a, b);
+      if (hlSort === "oldest") return -hlNewestFirst(a, b);
+      if (hlSort === "waiting") {
+        var idleRank = hlIdleMs(b.d) - hlIdleMs(a.d);
+        if (idleRank) return idleRank;
+        return hlNewestFirst(a, b);
+      }
+      if (hlSort === "stage") {
+        var sa = hlStageMeta(hlStageValue(a.d))[1], sb = hlStageMeta(hlStageValue(b.d))[1];
+        if (sa !== sb) return sa < sb ? -1 : 1;
+      }
+      // "hottest" (default), plus the "stage" tie-break: unseen first,
+      // then temperature (hot, warm, cold), then stage heat (booked >
+      // quoted > contacted > new > done > cold), then most recently
+      // touched first.
       var unseenRank = (a.d.seen ? 1 : 0) - (b.d.seen ? 1 : 0);
       if (unseenRank) return unseenRank;
       var tempRank = hlTempRank(a.d) - hlTempRank(b.d);
       if (tempRank) return tempRank;
-      var idleRank = hlIdleMs(b.d) - hlIdleMs(a.d);
-      if (idleRank) return idleRank;
-      return tsMs(b.d.createdAt) - tsMs(a.d.createdAt);
+      var heatRank = hlStageHeatRank(a.d) - hlStageHeatRank(b.d);
+      if (heatRank) return heatRank;
+      var touchedRank = tsMs(b.d.updatedAt) - tsMs(a.d.updatedAt);
+      if (touchedRank) return touchedRank;
+      return hlNewestFirst(a, b);
     });
     box.innerHTML = "";
     if (!visible.length) {
@@ -4204,25 +4317,64 @@
     });
   };
 
+  // v110 sort for the Referral codes list (persisted like pgWoSort).
+  var refSort = "newest";
+  try { var pgRefSortSaved = localStorage.getItem("pgRefSort"); if (pgRefSortSaved) refSort = pgRefSortSaved; } catch (e) {}
+  var REF_SORTS = [
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["name", "Sort: Name A–Z"],
+    ["uses-desc", "Sort: Most uses"],
+    ["uses-asc", "Sort: Fewest uses"]
+  ];
   function loadReferrals() {
     var box = $("ad-ref-list");
     liveOn("refs", db.collection("referral_codes").orderBy("createdAt", "desc").limit(50), function (qs) {
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No referral codes yet.</p>'; return; }
-      box.innerHTML = "";
-      var done = 0, rows = [];
-      qs.forEach(function (d) { rows.push({ id: d.id, r: d.data() }); });
-      rows.forEach(function (item) {
-        var r = item.r;
-        db.collection("service_requests").where("referralCode", "==", r.code || "").get().then(function (uses) {
+      var rows = [];
+      qs.forEach(function (d) { rows.push({ id: d.id, r: d.data(), uses: 0 }); });
+      // v110: fetch every code's use count first, then render once in
+      // Edwin's sort order (ad-ref-sort, persisted in pgRefSort). The
+      // pre-v110 code appended each row as its count landed, so the
+      // on-screen order was whichever query finished first.
+      Promise.all(rows.map(function (item) {
+        return db.collection("service_requests").where("referralCode", "==", item.r.code || "").get().then(function (uses) {
+          item.uses = uses.size;
+        }).catch(function () {});
+      })).then(function () {
+        rows.sort(function (a, b) {
+          function refNewestFirst(x, y) { return tsMs(y.r.createdAt) - tsMs(x.r.createdAt); }
+          if (refSort === "oldest") return -refNewestFirst(a, b);
+          if (refSort === "name") {
+            var na = String(a.r.name || a.r.code || "").toLowerCase(), nb = String(b.r.name || b.r.code || "").toLowerCase();
+            if (na !== nb) return na < nb ? -1 : 1;
+            return refNewestFirst(a, b);
+          }
+          if (refSort === "uses-desc" || refSort === "uses-asc") {
+            if (a.uses !== b.uses) return refSort === "uses-desc" ? b.uses - a.uses : a.uses - b.uses;
+            return refNewestFirst(a, b);
+          }
+          return refNewestFirst(a, b); // "newest" (default) and any unknown value
+        });
+        box.innerHTML = "";
+        var refBar = pgSortBar("ad-ref-sort", "Sort codes", REF_SORTS, refSort);
+        box.appendChild(refBar);
+        var refSortSel = refBar.querySelector("#ad-ref-sort");
+        if (refSortSel) refSortSel.addEventListener("change", function () {
+          refSort = refSortSel.value || "newest";
+          try { localStorage.setItem("pgRefSort", refSort); } catch (e) {}
+          loadReferrals();
+        });
+        rows.forEach(function (item) {
+          var r = item.r;
           var row = document.createElement("div"); row.className = "arow";
           var when = "";
           try { when = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleDateString() : ""; } catch (e) {}
           row.innerHTML = '<div class="grow"><strong>' + esc(r.code || "") + "</strong><small>" +
             esc(r.name || "") + (r.email ? " · " + esc(r.email) : "") + (when ? " · " + esc(when) : "") + "</small></div>" +
-            '<span class="pill ' + (uses.size ? "p-acc" : "p-open") + '">' + uses.size + (uses.size === 1 ? " use" : " uses") + "</span>";
+            '<span class="pill ' + (item.uses ? "p-acc" : "p-open") + '">' + item.uses + (item.uses === 1 ? " use" : " uses") + "</span>";
           box.appendChild(row);
-        }).catch(function () {});
-        done++;
+        });
       });
     }, function () {
       box.innerHTML = '<p style="color:var(--faint)">Couldn\'t load referral codes.</p>';
@@ -6479,6 +6631,42 @@
   // signed customer-quote ids in cqSignedIds and re-renders this list.
   var cqSignedIds = {};
   var quoteSnapDocs = null;
+  // v110 sorts for the two Quotes-tab lists (persisted like pgWoSort).
+  var qSort = "newest"; // vendor quotes in Quotes to Review
+  try { var pgQSortSaved = localStorage.getItem("pgQSort"); if (pgQSortSaved) qSort = pgQSortSaved; } catch (e) {}
+  var Q_SORTS = [
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["amount-desc", "Sort: Amount high–low"],
+    ["amount-asc", "Sort: Amount low–high"],
+    ["name", "Sort: Vendor A–Z"],
+    ["status", "Sort: Status"]
+  ];
+  var cqSort = "newest"; // customer quotes awaiting signature
+  try { var pgCqSortSaved = localStorage.getItem("pgCqSort"); if (pgCqSortSaved) cqSort = pgCqSortSaved; } catch (e) {}
+  var CQ_SORTS = [
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["amount-desc", "Sort: Amount high–low"],
+    ["amount-asc", "Sort: Amount low–high"],
+    ["name", "Sort: Customer A–Z"],
+    ["expires", "Sort: Expiring soon"]
+  ];
+  // Shared v110 toolbar builder: a labelled sort select in the same
+  // style as the Work Orders / Customers sort selects.
+  function pgSortBarHtml(id, label, defs, current) {
+    return '<label for="' + id + '">' + esc(label) + '</label>' +
+      '<select id="' + id + '" class="cust-sort-sel" aria-label="' + esc(label) + '">' +
+      defs.map(function (s) {
+        return '<option value="' + s[0] + '"' + (current === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+      }).join("") + "</select>";
+  }
+  function pgSortBar(id, label, defs, current) {
+    var bar = document.createElement("div");
+    bar.className = "pg-sort-row";
+    bar.innerHTML = pgSortBarHtml(id, label, defs, current);
+    return bar;
+  }
   // v94: Quotes lists follow Edwin's Option B pick (Oct 23): compact
   // rows first, with the full detail card expanded in place on tap.
   // Expansion is presentation state only; it is intentionally not
@@ -6513,11 +6701,47 @@
     var box = $("ad-quote-list");
     if (!box) return;
     if (!quoteSnapDocs || !quoteSnapDocs.length) { box.innerHTML = '<p style="color:var(--faint)">No quotes submitted yet.</p>'; return; }
-    box.innerHTML = "";
-    var shown = 0;
+    // v110: collect the still-open vendor quotes, then order them by
+    // Edwin's sort pick (ad-q-sort, persisted in pgQSort).
+    var qRows = [];
     quoteSnapDocs.forEach(function (d) {
-        var q = d.data();
-        if (!quoteStillOpen(q)) return;
+      var q = d.data();
+      if (quoteStillOpen(q)) qRows.push({ doc: d, q: q });
+    });
+    if (!qRows.length) { box.innerHTML = '<p style="color:var(--faint)">No quotes waiting for review. Signed quotes live under Contracts.</p>'; return; }
+    qRows.sort(function (a, b) {
+      function qNewestFirst(x, y) { return tsMs(y.q.createdAt) - tsMs(x.q.createdAt); }
+      if (qSort === "oldest") return -qNewestFirst(a, b);
+      if (qSort === "amount-desc" || qSort === "amount-asc") {
+        var pa = parseFloat(a.q.price) || 0, pb = parseFloat(b.q.price) || 0;
+        if (pa !== pb) return qSort === "amount-desc" ? pb - pa : pa - pb;
+        return qNewestFirst(a, b);
+      }
+      if (qSort === "name") {
+        var va = String(a.q.vendorBusiness || "").toLowerCase(), vb = String(b.q.vendorBusiness || "").toLowerCase();
+        if (va !== vb) return va < vb ? -1 : 1;
+        return qNewestFirst(a, b);
+      }
+      if (qSort === "status") {
+        var sta = String(a.q.status || ""), stb = String(b.q.status || "");
+        if (sta !== stb) return sta < stb ? -1 : 1;
+        return qNewestFirst(a, b);
+      }
+      return qNewestFirst(a, b); // "newest" (default) and any unknown value
+    });
+    box.innerHTML = "";
+    var qBar = pgSortBar("ad-q-sort", "Sort quotes", Q_SORTS, qSort);
+    box.appendChild(qBar);
+    var qSortSel = qBar.querySelector("#ad-q-sort");
+    if (qSortSel) qSortSel.addEventListener("change", function () {
+      qSort = qSortSel.value || "newest";
+      try { localStorage.setItem("pgQSort", qSort); } catch (e) {}
+      renderQuoteList();
+    });
+    var shown = 0;
+    qRows.forEach(function (row) {
+        var d = row.doc;
+        var q = row.q;
         shown++;
         var open = q94OpenVendorQuoteId === d.id;
         var item = document.createElement("div");
@@ -6955,8 +7179,40 @@
       pbox.innerHTML = '<p style="color:var(--faint)">No customer quotes waiting on a signature right now.</p>';
       return;
     }
+    // v110: order the awaiting list by Edwin's sort pick (ad-cq-sort,
+    // persisted in pgCqSort); "expires" puts the soonest expiry first
+    // and quotes with no expiry date last.
+    var cqRows = cqAwaitingRows.slice();
+    cqRows.sort(function (a, b) {
+      function cqNewestFirst(x, y) { return tsMs(y.q.createdAt) - tsMs(x.q.createdAt); }
+      if (cqSort === "oldest") return -cqNewestFirst(a, b);
+      if (cqSort === "amount-desc" || cqSort === "amount-asc") {
+        var ta = Number(a.q.total) || 0, tb = Number(b.q.total) || 0;
+        if (ta !== tb) return cqSort === "amount-desc" ? tb - ta : ta - tb;
+        return cqNewestFirst(a, b);
+      }
+      if (cqSort === "name") {
+        var ca = String(a.q.customerName || "").toLowerCase(), cb = String(b.q.customerName || "").toLowerCase();
+        if (ca !== cb) return ca < cb ? -1 : 1;
+        return cqNewestFirst(a, b);
+      }
+      if (cqSort === "expires") {
+        var ea = tsMs(a.q.expiresAt) || Infinity, eb = tsMs(b.q.expiresAt) || Infinity;
+        if (ea !== eb) return ea - eb;
+        return cqNewestFirst(a, b);
+      }
+      return cqNewestFirst(a, b); // "newest" (default) and any unknown value
+    });
     pbox.innerHTML = "";
-    cqAwaitingRows.forEach(function (it) {
+    var cqBar = pgSortBar("ad-cq-sort", "Sort awaiting quotes", CQ_SORTS, cqSort);
+    pbox.appendChild(cqBar);
+    var cqSortSel = cqBar.querySelector("#ad-cq-sort");
+    if (cqSortSel) cqSortSel.addEventListener("change", function () {
+      cqSort = cqSortSel.value || "newest";
+      try { localStorage.setItem("pgCqSort", cqSort); } catch (e) {}
+      renderAwaitingQuoteList();
+    });
+    cqRows.forEach(function (it) {
       var q = it.q;
       var open = q94OpenCustomerQuoteId === it.id;
       var sdMs = tsMs(q.createdAt);
@@ -7062,6 +7318,16 @@
      Signed agreements live here permanently. Quotes to Review keeps
      only files still waiting on action; once a customer signs, the
      contract is the record and the CRM profile is the customer's home. */
+  // v110 sort for the Contracts list (persisted like pgWoSort).
+  var ctSort = "newest";
+  try { var pgCtSortSaved = localStorage.getItem("pgCtSort"); if (pgCtSortSaved) ctSort = pgCtSortSaved; } catch (e) {}
+  var CT_SORTS = [
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["name", "Sort: Customer A–Z"],
+    ["amount-desc", "Sort: Amount high–low"],
+    ["amount-asc", "Sort: Amount low–high"]
+  ];
   function loadContracts() {
     var box = $("ad-contracts-list");
     if (!box) return;
@@ -7080,11 +7346,39 @@
             String(c.contact || "").split(/[\u00b7,;]/).forEach(function (p) { var pp = p.trim().toLowerCase(); if (/@/.test(pp)) byEmail[pp] = cd.id; });
             if (c.name) byName[String(c.name).toLowerCase()] = cd.id;
           });
+          // v110: order the signed contracts by Edwin's sort pick
+          // (ad-ct-sort, persisted in pgCtSort) BEFORE the work-order
+          // lookups below are built, so wos[ix] still matches
+          // signed[ix]. "newest" uses the signed date, falling back to
+          // the quote's created date.
+          signed.sort(function (a, b) {
+            function ctNewestFirst(x, y) { return (tsMs(y.q.signedAt) || tsMs(y.q.createdAt)) - (tsMs(x.q.signedAt) || tsMs(x.q.createdAt)); }
+            if (ctSort === "oldest") return -ctNewestFirst(a, b);
+            if (ctSort === "name") {
+              var na = String(a.q.customerName || "").toLowerCase(), nb = String(b.q.customerName || "").toLowerCase();
+              if (na !== nb) return na < nb ? -1 : 1;
+              return ctNewestFirst(a, b);
+            }
+            if (ctSort === "amount-desc" || ctSort === "amount-asc") {
+              var ta = Number(a.q.total) || 0, tb = Number(b.q.total) || 0;
+              if (ta !== tb) return ctSort === "amount-desc" ? tb - ta : ta - tb;
+              return ctNewestFirst(a, b);
+            }
+            return ctNewestFirst(a, b);
+          });
           var woGets = signed.map(function (it) {
             return it.q.workOrderId ? db.collection("work_orders").doc(it.q.workOrderId).get().catch(function () { return null; }) : Promise.resolve(null);
           });
           Promise.all(woGets).then(function (wos) {
             box.innerHTML = "";
+            var ctBar = pgSortBar("ad-ct-sort", "Sort contracts", CT_SORTS, ctSort);
+            box.appendChild(ctBar);
+            var ctSortSel = ctBar.querySelector("#ad-ct-sort");
+            if (ctSortSel) ctSortSel.addEventListener("change", function () {
+              ctSort = ctSortSel.value || "newest";
+              try { localStorage.setItem("pgCtSort", ctSort); } catch (e) {}
+              loadContracts();
+            });
             signed.forEach(function (it, ix) {
               var q = it.q;
               var email = (/@/.test(q.contact || "") ? q.contact : "") || q.customerEmail || "";
@@ -7146,17 +7440,60 @@
       function () { box.innerHTML = '<p style="color:var(--faint)">Contracts could not load just now.</p>'; });
   }
 
+  // v110 sort for the Vendors list (persisted like pgWoSort).
+  var venSort = "newest";
+  try { var pgVenSortSaved = localStorage.getItem("pgVenSort"); if (pgVenSortSaved) venSort = pgVenSortSaved; } catch (e) {}
+  var VEN_SORTS = [
+    ["newest", "Sort: Newest first"],
+    ["oldest", "Sort: Oldest first"],
+    ["name", "Sort: Name A–Z"],
+    ["name-desc", "Sort: Name Z–A"],
+    ["status", "Sort: Status"]
+  ];
   function loadVendors() {
     liveOn("vendors", db.collection("vendors").orderBy("createdAt", "desc").limit(50), function (qs) {
       var box = $("ad-vendor-list");
       if (qs.empty) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
-      box.innerHTML = "";
-      var shown = 0;
+      // v110: collect the visible vendors, then order them by Edwin's
+      // sort pick (ad-ven-sort, persisted in pgVenSort).
+      var venRows = [];
       qs.forEach(function (d) {
         var v = d.data();
         var st = v.status || (v.verified ? "approved" : "pending");
         if (st === "archived" || st === "rejected") return; // removed vendors live in the Archived & rejected section below
-        shown++;
+        venRows.push({ id: d.id, v: v, st: st });
+      });
+      if (!venRows.length) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
+      venRows.sort(function (a, b) {
+        function venNewestFirst(x, y) { return tsMs(y.v.createdAt) - tsMs(x.v.createdAt); }
+        function venName(r) { return String(r.v.business || r.v.name || "").toLowerCase(); }
+        if (venSort === "oldest") return -venNewestFirst(a, b);
+        if (venSort === "name" || venSort === "name-desc") {
+          var na = venName(a), nb = venName(b);
+          if (na !== nb) return (na < nb ? -1 : 1) * (venSort === "name" ? 1 : -1);
+          return venNewestFirst(a, b);
+        }
+        if (venSort === "status") {
+          if (a.st !== b.st) return a.st < b.st ? -1 : 1;
+          var sa = venName(a), sb = venName(b);
+          if (sa !== sb) return sa < sb ? -1 : 1;
+          return venNewestFirst(a, b);
+        }
+        return venNewestFirst(a, b); // "newest" (default) and any unknown value
+      });
+      box.innerHTML = "";
+      var venBar = pgSortBar("ad-ven-sort", "Sort vendors", VEN_SORTS, venSort);
+      box.appendChild(venBar);
+      var venSortSel = venBar.querySelector("#ad-ven-sort");
+      if (venSortSel) venSortSel.addEventListener("change", function () {
+        venSort = venSortSel.value || "newest";
+        try { localStorage.setItem("pgVenSort", venSort); } catch (e) {}
+        loadVendors();
+      });
+      venRows.forEach(function (item) {
+        var d = { id: item.id };
+        var v = item.v;
+        var st = item.st;
         var row = document.createElement("div"); row.className = "arow";
         row.innerHTML = '<div class="grow"><button type="button" class="vdp-namelink" data-vopen="' + d.id + '">' + esc(v.business || v.name || "Vendor") + '</button><small>' + esc(v.name || "") + " · " + esc(v.phone || "") + " · " + (v.areas || []).join(", ") + (vendorAvailText(v) ? " · " + vendorAvailHtml(v) : "") + "</small></div>" +
           pill(st) + vdLangBadge(v) +
@@ -7164,7 +7501,6 @@
           (isAdmin ? ' <button class="mini" data-varchive="' + d.id + '">Archive</button>' : "");
         box.appendChild(row);
       });
-      if (!shown) box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>';
     });
   }
 
@@ -8474,6 +8810,19 @@
   var vpNotesByVendor = {};  // vendorId -> [item_notes data, entityType "vendor"]
   var vpFileId = null;       // vendor id whose file (view C) is open
   var vpFuOpenFor = null;    // vendor id whose quick-action panel is open
+  // v110 sort for the Vendor Progress list (persisted like pgWoSort).
+  // "attention" is the pre-v110 order: follow-up urgency, then setup
+  // completion, then name.
+  var vpSort = "attention";
+  try { var pgVpSortSaved = localStorage.getItem("pgVpSort"); if (pgVpSortSaved) vpSort = pgVpSortSaved; } catch (e) {}
+  var VP_SORTS = [
+    ["attention", "Sort: Needs attention"],
+    ["name", "Sort: Name A–Z"],
+    ["setup-low", "Sort: Setup % lowest"],
+    ["setup-high", "Sort: Setup % highest"],
+    ["newest", "Sort: Newest first"],
+    ["jobs", "Sort: Most jobs done"]
+  ];
 
   function vpParseDayMs(x) {
     if (!x) return 0;
@@ -8620,6 +8969,25 @@
     });
     if (!rows.length) { box.innerHTML = '<p style="color:var(--faint)">No vendors registered yet.</p>'; return; }
     rows.sort(function (a, b) {
+      // v110: Edwin's sort pick (ad-vp-sort, persisted in pgVpSort).
+      if (vpSort === "name") return vpLabel(a.v).localeCompare(vpLabel(b.v));
+      if (vpSort === "setup-low" || vpSort === "setup-high") {
+        var sp = vpSetup(a.v).pct - vpSetup(b.v).pct;
+        if (sp) return vpSort === "setup-low" ? sp : -sp;
+        return vpLabel(a.v).localeCompare(vpLabel(b.v));
+      }
+      if (vpSort === "newest") {
+        var nd = tsMs(b.v.createdAt) - tsMs(a.v.createdAt);
+        if (nd) return nd;
+        return vpLabel(a.v).localeCompare(vpLabel(b.v));
+      }
+      if (vpSort === "jobs") {
+        var jd = vpJobsDone(b.id) - vpJobsDone(a.id);
+        if (jd) return jd;
+        return vpLabel(a.v).localeCompare(vpLabel(b.v));
+      }
+      // "attention" (default): follow-up urgency, then setup
+      // completion, then name. This was the pre-v110 order.
       var fa = vpNextFollowUp(a.id), fb = vpNextFollowUp(b.id);
       var ra = fa ? (fa.overdue ? 0 : (fa.dueToday ? 1 : 2)) : 3;
       var rb = fb ? (fb.overdue ? 0 : (fb.dueToday ? 1 : 2)) : 3;
@@ -8629,7 +8997,7 @@
       return vpLabel(a.v).localeCompare(vpLabel(b.v));
     });
     var keep = vpCaptureInputs(box);
-    box.innerHTML = rows.map(function (r) {
+    box.innerHTML = '<div class="pg-sort-row">' + pgSortBarHtml("ad-vp-sort", "Sort vendors", VP_SORTS, vpSort) + "</div>" + rows.map(function (r) {
       var v = r.v, id = r.id, su = vpSetup(v), st = vStatus(v);
       var act = vpLastActivity(id, v), fu = vpNextFollowUp(id);
       var pills = su.items.map(function (it) { return it.st.html; }).join(" ");
@@ -8652,6 +9020,12 @@
       return h;
     }).join("");
     vpRestoreInputs(box, keep);
+    var vpSortSel = $("ad-vp-sort");
+    if (vpSortSel) vpSortSel.addEventListener("change", function () {
+      vpSort = vpSortSel.value || "attention";
+      try { localStorage.setItem("pgVpSort", vpSort); } catch (e) {}
+      renderVendorProgress();
+    });
     if (vpFileId) renderVpFile();
   }
   function vpPayoutLine(v) {
