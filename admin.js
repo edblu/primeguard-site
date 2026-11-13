@@ -1,10 +1,11 @@
 // PrimeGuard admin: work orders, quotes, vendors, acquisition managers.
 // Access: edblucorp@gmail.com (admin) or users with a staff/{uid} doc.
-// Admin build v110 (Edwin, Nov 11 2026): sort controls everywhere. Every
-// list/board gets a persisted sort pick (localStorage, same pattern as
-// pgWoSort): Hot Leads (pgHlSort), Tasks (pgFuSort), vendor quotes
-// (pgQSort), awaiting-signature quotes (pgCqSort), Contracts (pgCtSort),
-// Vendors (pgVenSort), Vendor Progress (pgVpSort), Referrals (pgRefSort).
+// Admin build v111 (Edwin, Nov 12 2026): the work order detail now
+// carries an "Accepted by" list (every company that accepted the job,
+// from the accepts array portal v34 writes, with a legacy fallback
+// for older work orders) and its own "Vendor quotes" zone loading
+// every quotes doc for that work order. (v110: sort controls
+// everywhere, persisted per list in localStorage.)
 (function () {
   var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.firebase) || null;
   if (!cfg || !cfg.apiKey) return;
@@ -5498,6 +5499,21 @@
     html += row("Progress", woProgressHtml(w, woId, false));
     if (w.vendorNotifiedAt) html += row("Sent to vendors", fmtWhen(w.vendorNotifiedAt));
     if (w.acceptedAt) html += row("Accepted", fmtWhen(w.acceptedAt) + (w.vendorBusiness ? " \u00b7 by " + esc(w.vendorBusiness) : "") + (w.acceptNote ? "<br>Vendor note: " + esc(w.acceptNote) : ""));
+    // v111 (Edwin, Nov 12 2026): ALL companies that accepted this job,
+    // from the work order's accepts array (portal v34). Older work
+    // orders without the array fall back to the single legacy
+    // vendorId / vendorBusiness / acceptedAt record (woAcceptsHtml).
+    html += woAcceptsHtml(w);
+    // v111: this work order's own vendor quote zone. Portal quotes live
+    // in the quotes collection, so the zone renders as a placeholder
+    // here and hydrateWoQuoteZones fills it after render (it is called
+    // at the end of renderWorkOrders). The work order is stashed so the
+    // zone can fall back to the mirrored quote fields when no quote
+    // docs exist yet.
+    if (woId) {
+      woQuoteZoneFallback[woId] = w;
+      html += row("Vendor quotes", '<span data-woquotes="' + esc(woId) + '">Loading vendor quotes...</span>');
+    }
     // Crew assignment (Ava for Natasha + Edwin, 2026-11-10): unassign
     // takes the job back from the vendor who accepted it and reopens
     // it; assign puts a vendor on the job by hand, or switches the job
@@ -5601,6 +5617,117 @@
     if (metaBits.length) html += '<p class="woq-dmeta">' + metaBits.join(" · ") + "</p>";
     html += "</div>";
     return html;
+  }
+  /* ----- Work order accepts list + vendor quote zone (v111, Edwin Nov 12 2026) -----
+     Two views of the same portal activity, on the work order itself:
+     (1) "Accepted by": every entry of the work order's accepts array
+     (portal v34 arrayUnions one entry per acceptance). Older work
+     orders without the array synthesize one row from the legacy
+     vendorId / vendorBusiness / acceptedAt fields, enriched from
+     woVendorCache when the vendor is in it, so jobs accepted before
+     v34 (Lee Hodges / Francois Charles, Melanie Lopez / Angel
+     Maldonado) still show their acceptor.
+     (2) "Vendor quotes": every doc in the quotes collection with
+     workOrderId == this work order, loaded async into the placeholder
+     woDetailHtml renders, because vendorItemsHtml and friends are
+     synchronous string builders. When no quote docs exist, the zone
+     falls back to the quote fields mirrored on the work order. */
+  var woQuoteZoneFallback = {};
+  function fmtWhenNY(v) {
+    var ms = tsMs(v);
+    if (!ms) return v ? esc(String(v)) : "";
+    return esc(new Date(ms).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }));
+  }
+  function woVendorFromCache(vendorId) {
+    if (!vendorId) return null;
+    var found = null;
+    (woVendorCache || []).forEach(function (v) { if (v.id === vendorId) found = v; });
+    return found;
+  }
+  function woAcceptsHtml(w) {
+    var list = Array.isArray(w.accepts) ? w.accepts.filter(function (a) { return a && typeof a === "object"; }) : [];
+    if (!list.length && w.vendorId) {
+      var cv = woVendorFromCache(w.vendorId);
+      list = [{
+        vendorId: w.vendorId,
+        vendorBusiness: w.vendorBusiness || (cv && cv.business) || "",
+        vendorName: (cv && cv.name) || "",
+        phone: "",
+        email: (cv && cv.email) || "",
+        acceptedAt: w.acceptedAt || null
+      }];
+    }
+    if (!list.length) return "";
+    var lines = list.map(function (a) {
+      var bits = [];
+      if (a.vendorName && a.vendorName !== a.vendorBusiness) bits.push(esc(a.vendorName));
+      if (a.phone) bits.push(esc(a.phone));
+      if (a.email) bits.push(esc(a.email));
+      var when = a.acceptedAt ? fmtWhenNY(a.acceptedAt) : "";
+      return '<div style="margin-top:3px"><strong>' + esc(a.vendorBusiness || a.vendorName || "Vendor") + "</strong>" +
+        (bits.length ? ' <span style="color:#7a7668">' + bits.join(" · ") + "</span>" : "") +
+        (when ? '<br><span style="color:#7a7668">Accepted ' + when + "</span>" : "") + "</div>";
+    }).join("");
+    return '<div class="woq-drow"><span class="woq-dlabel">Accepted by (' + list.length + ')</span><span class="woq-dval">' + lines + "</span></div>";
+  }
+  function woQuoteZoneHtml(q) {
+    var biz = q.vendorBusiness || "";
+    if (!biz && q.vendorId) { var cv = woVendorFromCache(q.vendorId); if (cv) biz = cv.business; }
+    var out = '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--m-line,#e5e0d0)">';
+    out += '<div><strong>' + esc(biz || "Vendor") + "</strong>" +
+      (q.status ? ' <span style="color:#7a7668">' + esc(String(q.status).replace(/_/g, " ")) + "</span>" : "") +
+      (q.createdAt ? ' <span style="color:#7a7668">· submitted ' + fmtWhenNY(q.createdAt) + "</span>" : "") + "</div>";
+    if (q.vendorPhone) out += '<div style="color:#7a7668">' + esc(q.vendorPhone) + "</div>";
+    var hasItems = Array.isArray(q.items) && q.items.length > 0;
+    var priceNum = parseFloat(String(q.price == null ? "" : q.price).replace(/[^0-9.]/g, ""));
+    if (!hasItems && !isNaN(priceNum) && priceNum > 0) out += '<div style="margin-top:2px">Total <strong>' + esc(cqMoney(priceNum)) + "</strong></div>";
+    var itemsHtml = vendorItemsHtml(q, null);
+    if (itemsHtml) out += itemsHtml;
+    if (Array.isArray(q.addons) && q.addons.length) {
+      out += '<div style="margin-top:4px">' + q.addons.map(function (a) {
+        return esc((a && a.label) || "Add-on") + " <strong>" + esc(cqMoney(parseFloat(a && a.price) || 0)) + "</strong>";
+      }).join(" · ") + "</div>";
+    }
+    var mc = Number(q.materialsCost) || 0, lc = Number(q.laborCost) || 0;
+    if (mc > 0 || lc > 0 || q.materialsBy) {
+      var mBits = [];
+      if (mc > 0) mBits.push("Materials " + cqMoney(mc));
+      if (lc > 0) mBits.push("Labor " + cqMoney(lc));
+      if (q.materialsBy && q.materialsBy !== "none") mBits.push("materials by " + String(q.materialsBy));
+      if (q.materialsBy === "none") mBits.push("no materials");
+      if (mBits.length) out += '<div style="margin-top:4px;color:#7a7668">' + esc(mBits.join(" · ")) + "</div>";
+    }
+    if (q.earliestStart) out += '<div style="margin-top:2px;color:#7a7668">Earliest start: ' + esc(String(q.earliestStart)) + "</div>";
+    out += "</div>";
+    return out;
+  }
+  function hydrateWoQuoteZones() {
+    document.querySelectorAll("[data-woquotes]").forEach(function (el) {
+      if (el.getAttribute("data-woqdone")) return;
+      el.setAttribute("data-woqdone", "1");
+      var woId = el.getAttribute("data-woquotes");
+      db.collection("quotes").where("workOrderId", "==", woId).limit(25).get().then(function (qs) {
+        if (!el.isConnected) return;
+        if (qs.empty) {
+          var w = woQuoteZoneFallback[woId];
+          var fb = w ? vendorItemsHtml(null, w) : "";
+          if (!fb && w && (Number(w.vendorOneTimeTotal) > 0 || Number(w.vendorPerVisitTotal) > 0)) {
+            fb = '<div style="margin-top:3px">' +
+              (Number(w.vendorOneTimeTotal) > 0 ? "One-time total <strong>" + esc(cqMoney(Number(w.vendorOneTimeTotal))) + "</strong>" : "") +
+              (Number(w.vendorOneTimeTotal) > 0 && Number(w.vendorPerVisitTotal) > 0 ? " · " : "") +
+              (Number(w.vendorPerVisitTotal) > 0 ? "Per visit total <strong>" + esc(cqMoney(Number(w.vendorPerVisitTotal))) + "</strong>" : "") + "</div>";
+          }
+          el.innerHTML = fb ? '<span style="color:#7a7668">From the latest quote mirrored on this work order:</span>' + fb : "No vendor quotes submitted for this job yet.";
+          return;
+        }
+        var docs = [];
+        qs.forEach(function (d) { docs.push(d.data()); });
+        docs.sort(function (a, b) { return (tsMs(a.createdAt) || 0) - (tsMs(b.createdAt) || 0); });
+        el.innerHTML = docs.map(function (q) { return woQuoteZoneHtml(q); }).join("");
+      }).catch(function () {
+        if (el.isConnected) el.textContent = "Vendor quotes could not be loaded.";
+      });
+    });
   }
   /* ----- Photo lightbox (#pgLightbox) ----- */
   // Work order photos live on Drive as thumbnail URLs, which load fine as
@@ -5767,6 +5894,7 @@
       box.appendChild(card);
     });
     pgWxHydrate();
+    hydrateWoQuoteZones();
     woMapSafe();
   }
   function loadWorkOrders() {

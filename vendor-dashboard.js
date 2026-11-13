@@ -1913,7 +1913,12 @@
           if (boardSeen[d.id]) return;
           boardSeen[d.id] = 1;
           var w = d.data(); w.id = d.id;
-          if (w.status !== "open") return;
+          // v34: a broadcast job another vendor already accepted stays
+          // on the board, so more companies can accept it too and the
+          // office picks from everyone who took it. It leaves the board
+          // once staff assign it by hand (the assignedAt stamp) or it
+          // moves past acceptance (scheduled, in progress, review...).
+          if (w.status !== "open" && !(w.broadcast === true && !w.assignedAt && (w.status === "accepted" || w.status === "evaluation_accepted"))) return;
           boardDocs.push(w);
         });
       }
@@ -2247,10 +2252,13 @@
       // Same actions the portal has always had (data-* hooks unchanged):
       // quote requests -> accept evaluation / give a quote; direct jobs
       // -> accept job. Labels are Spanish-first in the My Day skin.
+      // v34: if I already accepted this one, say so instead of offering
+      // the accept button again. Other vendors still see their button.
+      var iAccepted = !!me && (w.vendorId === me.uid || (Array.isArray(w.accepts) && w.accepts.some(function (a) { return a && a.vendorId === me.uid; })));
       var btn = kind === "quote_request"
-        ? '<button class="btn btn-gold" data-accept-eval="' + w.id + '">' + esc(t("btn_accept_eval2")) + '</button>' +
+        ? (iAccepted ? '<span class="vd-tqp">' + esc(t("status_accepted")) + '</span>' : '<button class="btn btn-gold" data-accept-eval="' + w.id + '">' + esc(t("btn_accept_eval2")) + '</button>') +
           (myQuoted[w.id] ? "" : '<button class="btn btn-gold" data-give-quote="' + w.id + '">' + esc(t("btn_price")) + '</button>')
-        : '<button class="btn btn-gold" data-accept-job="' + w.id + '">' + esc(t("btn_accept_job")) + '</button>';
+        : (iAccepted ? '<span class="vd-tqp">' + esc(t("status_accepted")) + '</span>' : '<button class="btn btn-gold" data-accept-job="' + w.id + '">' + esc(t("btn_accept_job")) + '</button>');
       var pay = fmtPay(w);
       var payHtml = pay
         ? '<div class="vd-payline"><small>' + esc(t("pay_word")) + '</small><strong>' + esc(pay) + "</strong></div>"
@@ -2771,20 +2779,46 @@
     setTimeout(function () { el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 40);
   }
 
+  // v34 (Edwin, Nov 12 2026): every acceptance is ALSO appended to the
+  // work order's accepts array, so the office sees ALL companies that
+  // took the job, not just the latest one. The primary vendorId /
+  // vendorBusiness / acceptedAt / status fields are written exactly as
+  // before ONLY when nobody else holds the job yet (or I already do);
+  // a later vendor's accept records his entry and never overwrites the
+  // first vendor's primary record.
+  function buildAcceptEntry() {
+    return {
+      vendorId: me.uid,
+      vendorBusiness: (vendor && vendor.business) || "",
+      vendorName: (vendor && vendor.name) || "",
+      phone: (vendor && vendor.phone) || "",
+      email: (vendor && vendor.email) || (me && me.email) || "",
+      acceptedAt: new Date().toISOString()
+    };
+  }
+  function recordWoAccept(woId, acceptedStatus) {
+    var ref = db.collection("work_orders").doc(woId);
+    ref.get().then(function (snap) {
+      var w = snap.exists ? snap.data() : {};
+      var upd = { accepts: firebase.firestore.FieldValue.arrayUnion(buildAcceptEntry()) };
+      if (!w.vendorId || w.vendorId === me.uid) {
+        upd.vendorId = me.uid;
+        upd.vendorBusiness = vendor.business;
+        upd.status = acceptedStatus;
+        upd.acceptedAt = firebase.firestore.FieldValue.serverTimestamp();
+      }
+      return ref.update(upd);
+    }).then(loadAll, loadAll);
+  }
+
   // ---------- Actions (event delegation) ----------
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (t.dataset.acceptJob) {
-      db.collection("work_orders").doc(t.dataset.acceptJob).update({
-        vendorId: me.uid, vendorBusiness: vendor.business, status: "accepted",
-        acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(loadAll);
+      recordWoAccept(t.dataset.acceptJob, "accepted");
     }
     if (t.dataset.acceptEval) {
-      db.collection("work_orders").doc(t.dataset.acceptEval).update({
-        vendorId: me.uid, vendorBusiness: vendor.business, status: "evaluation_accepted",
-        acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(loadAll);
+      recordWoAccept(t.dataset.acceptEval, "evaluation_accepted");
     }
     if (t.dataset.enroute) {
       startEnRoute(t.dataset.enroute);
