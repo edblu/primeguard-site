@@ -1,6 +1,13 @@
 // PrimeGuard admin: work orders, quotes, vendors, acquisition managers.
 // Access: edblucorp@gmail.com (admin) or users with a staff/{uid} doc.
-// Admin build v111 (Edwin, Nov 12 2026): the work order detail now
+// Admin build v112 (Edwin, Nov 14 2026): the work order detail Status
+// row is now a manual status changer (dropdown that saves on change);
+// Edwin asked for it after finding the status was read-only text.
+// Also: lead temperature gets a quick-set dropdown in the lead detail
+// modal and the bell detail (was only in the full edit form), and
+// temperature is color-coded everywhere it shows: hot = green,
+// warm = yellow, cold = blue (pills, card borders, filter chips).
+// (v111, Nov 12 2026: the work order detail now
 // carries an "Accepted by" list (every company that accepted the job,
 // from the accepts array portal v34 writes, with a legacy fallback
 // for older work orders) and its own "Vendor quotes" zone loading
@@ -1730,7 +1737,9 @@
     }).join("");
     var tempDefs = [["all", "All"]].concat(HL_TEMPS.map(function (t) { return [t[0], t[1]]; }));
     var tempHtml = tempDefs.map(function (df) {
-      return '<button type="button" class="hl-chip' + (hlTempFilter === df[0] ? " active" : "") +
+      // v112: temperature chips carry their color tint class (hot =
+      // green, warm = yellow, cold = blue), same coding as the pills.
+      return '<button type="button" class="hl-chip' + (df[0] !== "all" ? " hl-temp-chip-" + df[0] : "") + (hlTempFilter === df[0] ? " active" : "") +
         '" data-hltempfilter="' + df[0] + '">' + df[1] + ' <span class="cnt">' + tempCounts[df[0]] + "</span></button>";
     }).join("");
     wrap.innerHTML = '<div class="hl-filter-row hl-stage-filter-row" aria-label="Filter by stage">' + stageHtml + "</div>" +
@@ -2254,7 +2263,14 @@
       var fullDate = function (ms) { return ms ? new Date(ms).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "-"; };
       var hlToolsEntity = { label: d.name || "Lead", area: d.area || hlAreaLabel(d), address: d.address || "", service: d.service || "" };
       var h = '<h3 id="hlNoteTitle">' + esc(d.name || "Lead") + "</h3>" +
-        '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill ' + tm[2] + '">' + esc(tm[1]) + '</span><span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
+        '<p class="sr-meta"><span class="pill ' + st[2] + '">' + esc(st[1]) + '</span><span class="pill ' + tm[2] + '">' + esc(tm[1]) + '</span>' +
+        // v112: quick temperature set right in the lead detail header
+        // (was only in the full edit form). Saves on change via the
+        // delegated data-hltemp handler; disabled on locked leads.
+        '<select class="pg-temp-sel" data-hltemp="' + esc(id) + '"' + (lockedOther ? " disabled" : "") + ' title="Set lead temperature" style="padding:3px 6px;border:1px solid var(--m-line,#ddd);border-radius:8px;font:inherit;font-size:.8rem;vertical-align:middle">' +
+        HL_TEMPS.map(function (t) { return '<option value="' + t[0] + '"' + (leadTemp(d) === t[0] ? " selected" : "") + ">" + t[1] + "</option>"; }).join("") +
+        '</select><span class="pg-temp-msg" style="color:#177245;font-size:.8rem;font-weight:600"></span>' +
+        '<span class="pill p-acc">' + esc(d.source || "Other") + "</span><span>" +
         esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + (d.contact ? " · " + esc(d.contact) : "") +
         (d.address ? " · " + esc(d.address) : "") +
         (whenMs ? " · added " + esc(new Date(whenMs).toLocaleDateString([], { month: "short", day: "numeric" })) : "") + "</span></p>" +
@@ -2521,7 +2537,18 @@
       if (d.contact) rows.push(["Contact", d.contact]);
       if (d.source) rows.push(["Source", d.source]);
       var st = bellStageLabel(d.stage); if (st) rows.push(["Stage", st]);
-      var tp = bellTempLabel(d.temperature); if (tp) rows.push(["Temperature", tp]);
+      // v112: temperature is a quick-set control here, not read-only
+      // text: a color pill plus a Hot/Warm/Cold select that saves on
+      // change (delegated handler, data-hltemp). Disabled when the
+      // lead is locked by another team member.
+      var tmBell = hlTempMeta(leadTemp(d));
+      var tempRowHtml = '<div class="pg-bell-row"><span>Temperature</span>' +
+        '<span style="display:inline-flex;gap:6px;align-items:center">' +
+        '<span class="pill ' + tmBell[2] + '">' + esc(tmBell[1]) + "</span>" +
+        '<select class="pg-temp-sel" data-hltemp="' + esc(it.id) + '"' + (pgLeadLockedByOther(d) ? " disabled" : "") +
+        ' style="padding:4px 6px;border:1px solid var(--m-line,#ddd);border-radius:8px;font:inherit;font-size:.82rem">' +
+        HL_TEMPS.map(function (t) { return '<option value="' + t[0] + '"' + (leadTemp(d) === t[0] ? " selected" : "") + ">" + t[1] + "</option>"; }).join("") +
+        '</select><span class="pg-temp-msg" style="color:#177245;font-size:.8rem;font-weight:600"></span></span></div>';
       var ph = (d.photos || []).length, vd = (d.mediaLinks || []).length;
       if (ph || vd) rows.push(["Media", (ph ? ph + " photo" + (ph === 1 ? "" : "s") : "") + (ph && vd ? " · " : "") + (vd ? vd + " video" + (vd === 1 ? "" : "s") : "")]);
       var rowsHtml = rows.map(function (r) {
@@ -2532,7 +2559,7 @@
         '<div class="pg-bell-head"><div class="pg-bell-main"><strong>' + esc(d.name || "Lead") + '</strong><small>' +
           esc(d.service || "") + (d.area ? " · " + esc(d.area) : "") + " · " + esc(timeAgo(tsMs(d.createdAt))) + '</small></div>' +
           '<span class="pg-bell-chev" aria-hidden="true">▾</span></div>' +
-        '<div class="pg-bell-detail hidden">' + rowsHtml + notesHtml +
+        '<div class="pg-bell-detail hidden">' + rowsHtml + tempRowHtml + notesHtml +
           '<button type="button" class="pg-bell-open">Open lead →</button></div>';
       var detail = wrap.querySelector(".pg-bell-detail");
       wrap.querySelector(".pg-bell-head").addEventListener("click", function () {
@@ -5427,7 +5454,24 @@
     html += row("Area", w.area ? esc(w.area) : "");
     html += row("Service", w.category ? esc(w.category) : "");
     html += row("Type", w.kind ? esc(String(w.kind).replace(/_/g, " ")) : "");
-    html += row("Status", esc(String(woStatusValue(w)).replace(/_/g, " ")));
+    // v112: manual status changer. The Status row is a dropdown that
+    // saves on change (delegated change handler, data-wostatus below).
+    // Statuses outside the manual list (en_route, review, ...) are kept
+    // as a pre-selected extra option so opening the detail never
+    // silently resets them. Without a doc id, fall back to plain text.
+    (function () {
+      var curStatus = woStatusValue(w);
+      if (!woId) { html += row("Status", esc(String(curStatus).replace(/_/g, " "))); return; }
+      var statusOpts = [["open", "Open"], ["pending", "Pending"], ["accepted", "Accepted"], ["scheduled", "Scheduled"], ["in_progress", "In Progress"], ["done", "Done"], ["cancelled", "Cancelled"]];
+      var selHtml = '<select class="wo-status-sel" data-wostatus="' + esc(woId) + '" style="padding:5px 8px;border:1px solid var(--m-line,#ddd);border-radius:8px;font:inherit;font-size:.85rem">';
+      var knownStatus = statusOpts.some(function (o) { return o[0] === curStatus; });
+      if (!knownStatus) selHtml += '<option value="' + esc(curStatus) + '" selected>' + esc(String(curStatus).replace(/_/g, " ")) + "</option>";
+      selHtml += statusOpts.map(function (o) {
+        return '<option value="' + o[0] + '"' + (curStatus === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+      }).join("");
+      selHtml += '</select> <span class="wo-status-msg" style="color:#177245;font-size:.82rem;font-weight:600"></span>';
+      html += row("Status", selHtml);
+    })();
     html += row("Assigned to", assign ? esc(assign) : "");
     html += row("Pay", w.pay ? esc(w.pay) : "");
     // Job costing (Oct 18, Jobber-steal #4): customer price vs crew pay vs
@@ -8016,6 +8060,57 @@
   }
 
   // ---------- Row actions ----------
+  // v112: manual work-order status changer (the detail-view Status
+  // dropdown, data-wostatus). Saves on change with the same update
+  // pattern as the price save, then refreshes via loadAll().
+  document.addEventListener("change", function (e) {
+    var sel = e.target && e.target.closest ? e.target.closest("[data-wostatus]") : null;
+    if (!sel) return;
+    var woStatusId = sel.getAttribute("data-wostatus");
+    var newStatus = sel.value;
+    if (!woStatusId || !newStatus) return;
+    var statusMsg = sel.parentElement ? sel.parentElement.querySelector(".wo-status-msg") : null;
+    if (statusMsg) statusMsg.textContent = "Saving...";
+    db.collection("work_orders").doc(woStatusId).update({
+      status: newStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      if (statusMsg) statusMsg.textContent = "Saved ✓";
+      logActivity("Changed a work order status to " + String(newStatus).replace(/_/g, " "));
+      loadAll();
+    }, function () {
+      if (statusMsg) { statusMsg.style.color = "#c0392b"; statusMsg.textContent = "Save failed, try again."; }
+      loadAll();
+    });
+  });
+  // v112: quick lead temperature changers (lead detail modal header +
+  // bell detail, data-hltemp). Saves on change; pgLeadGate blocks the
+  // save when another team member holds the lead's claim, and the
+  // selects render disabled on locked leads.
+  document.addEventListener("change", function (e) {
+    var tsel = e.target && e.target.closest ? e.target.closest("[data-hltemp]") : null;
+    if (!tsel || tsel.disabled) return;
+    var leadTempId = tsel.getAttribute("data-hltemp");
+    var newTempVal = tsel.value;
+    if (!leadTempId || !newTempVal) return;
+    var leadData = hlLeadData(leadTempId);
+    if (!pgLeadGate(leadData)) { tsel.value = leadTemp(leadData); return; }
+    var tempMsg = tsel.parentElement ? tsel.parentElement.querySelector(".pg-temp-msg") : null;
+    if (tempMsg) tempMsg.textContent = "Saving...";
+    db.collection("hot_leads").doc(leadTempId).update({
+      temperature: newTempVal,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      if (tempMsg) tempMsg.textContent = "Saved ✓";
+      logActivity("Changed a lead temperature to " + newTempVal);
+      loadHotLeads();
+      var noteModal = $("hlNoteModal");
+      if (hlNoteId === leadTempId && noteModal && !noteModal.classList.contains("hidden")) openHotLeadNotes(leadTempId);
+    }, function () {
+      if (tempMsg) { tempMsg.style.color = "#c0392b"; tempMsg.textContent = "Save failed, try again."; }
+      tsel.value = leadTemp(leadData);
+    });
+  });
   document.addEventListener("click", function (e) {
     var t = e.target, d = t.dataset;
     var hlActionEl = t.closest ? t.closest("[data-hlstagefilter],[data-hltempfilter],[data-hldetail],[data-hlstep],[data-hlpark],[data-hlrevive]") : null;

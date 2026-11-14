@@ -258,10 +258,13 @@
   .hl-stage-head { font-size:.8rem; text-transform:uppercase; letter-spacing:.12em; color:var(--gold-bright); margin:18px 0 4px; }
   .hl-stage-head:first-child { margin-top:2px; }
   .hl-stage-head .cnt { color:var(--faint); letter-spacing:0; }
-  .p-cold { background:rgba(160,160,160,.16); color:#c9c9c9; }
-  .pg-light .p-cold { background:#e4e4e7; color:#52525b; }
-  .p-hot { background:rgba(255,110,80,.16); color:#ff9d85; }
-  .pg-light .p-hot { background:#fde3d8; color:#9a3412; }
+  /* v112: temperature color code everywhere it shows: hot = green,
+     warm = yellow, cold = blue. (The "cold" stage pill shares p-cold,
+     so it follows the same blue.) */
+  .p-cold { background:rgba(80,150,255,.18); color:#9cc2ff; }
+  .pg-light .p-cold { background:#dbeafe; color:#1d4ed8; }
+  .p-hot { background:rgba(46,204,113,.18); color:#7be495; }
+  .pg-light .p-hot { background:#d8f3e1; color:#177245; }
   .p-warm { background:rgba(255,190,90,.16); color:#ffd28a; }
   .pg-light .p-warm { background:#fdf0d5; color:#8a5a00; }
   .hl-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
@@ -271,6 +274,15 @@
   .pg-light .hl-chip { background:#ffffff; border-color:#aeb0b5; color:#1b1b1b; }
   .pg-light .hl-chip.active { background:#1b1b1b; border-color:#1b1b1b; color:#ffffff; }
   .pg-light .hl-chip.active .cnt { color:#e8bd4e; }
+  /* v112: temperature filter chips tinted to the same code (hot =
+     green, warm = yellow, cold = blue). Single-class rules on purpose:
+     the .active gold/dark states keep their higher specificity. */
+  .hl-temp-chip-hot { background:rgba(46,204,113,.14); border-color:rgba(46,204,113,.5); }
+  .hl-temp-chip-warm { background:rgba(255,190,90,.14); border-color:rgba(255,190,90,.5); }
+  .hl-temp-chip-cold { background:rgba(80,150,255,.14); border-color:rgba(80,150,255,.5); }
+  .pg-light .hl-temp-chip-hot { background:#d8f3e1; border-color:#7cc79b; }
+  .pg-light .hl-temp-chip-warm { background:#fdf0d5; border-color:#d9b45c; }
+  .pg-light .hl-temp-chip-cold { background:#dbeafe; border-color:#93b8f5; }
   /* Vendor profile editor (v82) */
   .vdp-namelink { background:none; border:none; padding:0; font:inherit; font-weight:800; color:inherit; cursor:pointer; text-align:left; }
   .vdp-namelink:hover { color:var(--gold-bright); text-decoration:underline; }
@@ -439,13 +451,15 @@
   .woprev-thumbs img { width:64px; height:64px; object-fit:cover; border-radius:8px; }
   .woprev-pmeta { font-size:.88rem; margin:8px 0 10px; }
   .hlq-card { background:#151517; border:1px solid rgba(201,162,75,.16); border-left:5px solid #6b7c93; border-radius:14px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25); }
-  .hlq-temp-hot { border-left-color:#d8542e; }
+  /* v112: card edge follows the temperature code: hot = green,
+     warm = yellow, cold = blue. */
+  .hlq-temp-hot { border-left-color:#2e9e5b; }
   .hlq-temp-warm { border-left-color:#d9a92c; }
-  .hlq-temp-cold { border-left-color:#6b7c93; }
+  .hlq-temp-cold { border-left-color:#2f6fd0; }
   .pg-light .hlq-card { background:#ffffff; border-color:#e5e2d8; box-shadow:0 1px 3px rgba(20,20,20,.07), 0 4px 14px rgba(20,20,20,.05); }
-  .pg-light .hlq-temp-hot { border-left-color:#d8542e; }
+  .pg-light .hlq-temp-hot { border-left-color:#2e9e5b; }
   .pg-light .hlq-temp-warm { border-left-color:#d9a92c; }
-  .pg-light .hlq-temp-cold { border-left-color:#6b7c93; }
+  .pg-light .hlq-temp-cold { border-left-color:#2f6fd0; }
   .hlq-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .hlq-name { border:0; background:transparent; color:var(--text); cursor:pointer; font-family:inherit; font-size:1rem; font-weight:750; line-height:1.25; padding:0; text-align:left; }
   .hlq-name:hover { color:var(--gold-bright); text-decoration:underline; text-underline-offset:3px; }
@@ -1530,7 +1544,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="admin.js?v=111"></script>
+<script src="admin.js?v=112"></script>
 <script>
 (function () {
   var tabs = ["home", "work", "hotleads", "quotes", "contracts", "referrals", "vendors", "vprogress", "followups", "customers", "calendar", "team", "activity", "traffic"];
