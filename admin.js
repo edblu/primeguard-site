@@ -1878,7 +1878,7 @@
           (lockedOther
             ? '<span class="hlq-manage"></span>'
             : '<span class="hlq-manage"><button type="button" class="hlq-manage-btn" data-hledit="' + it.id + '">Edit</button>' +
-              (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-hldel="' + it.id + '">Delete</button>' : "") + '</span>') +
+              (vdCanEdit() ? '<button type="button" class="hlq-manage-btn danger" data-hldel="' + it.id + '">Delete</button>' : "") + '</span>') +
           '<span class="hlq-source">' + esc(d.source || "Other") + "</span></div>";
       box.appendChild(row);
     });
@@ -2141,7 +2141,10 @@
   if (hlAddBtn) hlAddBtn.addEventListener("click", function () { openHotLeadForm(null); });
 
   function deleteHotLead(id) {
-    if (!isAdmin) return;
+    // v115 (Edwin, Nov 25, 2026): staff may delete leads and customers,
+    // not just the owner. Rules already allowed staff writes here; the
+    // dashboard UI was the only gate.
+    if (!vdCanEdit()) return;
     var name = "this lead";
     for (var i = 0; i < hlLeads.length; i++) if (hlLeads[i].id === id) { name = hlLeads[i].d.name || name; break; }
     if (!confirm("Delete hot lead " + name + "? This cannot be undone.")) return;
@@ -2988,7 +2991,7 @@
           '<button type="button" class="mini hlq-action hlq-action-ghost" data-custedit="' + it.id + '">Edit</button>' +
         "</div>" +
         '<div class="hlq-foot"><span class="hlq-source">' + esc(d.source || "") + "</span>" +
-          '<span class="hlq-manage">' + (isAdmin ? '<button type="button" class="hlq-manage-btn danger" data-custdel="' + it.id + '">Delete</button>' : "") + "</span></div>";
+          '<span class="hlq-manage">' + (vdCanEdit() ? '<button type="button" class="hlq-manage-btn danger" data-custdel="' + it.id + '">Delete</button>' : "") + "</span></div>";
       box.appendChild(row);
     });
   }
@@ -3069,7 +3072,7 @@
   if (custAddBtn) custAddBtn.addEventListener("click", function () { openCustomerForm(null); });
 
   function deleteCustomer(id) {
-    if (!isAdmin) return;
+    if (!vdCanEdit()) return;
     var d = custRowData(id);
     var name = (d && d.name) || "this customer";
     if (!confirm("Delete customer " + name + "? This cannot be undone.")) return;
