@@ -113,6 +113,7 @@
   .breadonly{color:var(--muted); font-size:.92rem; text-align:center; padding:6px 4px;}
   .hidden{display:none !important;}
 </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8217167106635839" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="bwrap">
@@ -217,30 +218,69 @@
     return (s.scrollHeight - s.scrollTop - s.clientHeight) < 140;
   }
 
-  function renderMessages(docs) {
+  /* Agent channel (Phase 1, Nov 25, 2026): the stream now reads the
+     structured agent_messages collection. Legacy bridge_messages are
+     merged in read only so the history stays visible in the same window.
+     New sends go to agent_messages only. */
+  var agentDocs = [];
+  var legacyDocs = [];
+  var unsubLegacy = null;
+
+  function toMillis(at) {
+    if (!at) return 0;
+    if (at.toDate) return at.toDate().getTime();
+    if (typeof at === "string") return Date.parse(at) || 0;
+    if (typeof at === "number") return at;
+    return 0;
+  }
+
+  function normalizeAgent(doc) {
+    var m = doc.data() || {};
+    return {
+      from: (m.from === "ava") ? "Ava" : "JC",
+      text: (m.body != null ? m.body : (m.text == null ? "" : String(m.text))),
+      at: m.createdAt || m.at || null,
+      status: m.status || null,
+      type: m.type || "message"
+    };
+  }
+
+  function normalizeLegacy(doc) {
+    var m = doc.data() || {};
+    return {
+      from: (m.from === "Ava") ? "Ava" : "JC",
+      text: m.text == null ? "" : String(m.text),
+      at: m.at || null,
+      status: null,
+      type: "message"
+    };
+  }
+
+  function renderStream() {
+    var all = legacyDocs.concat(agentDocs);
+    all.sort(function (a, b) { return toMillis(a.at) - toMillis(b.at); });
+    all = all.slice(-200);
     var stream = $("br-stream");
     var stick = firstLoad || nearBottom();
     stream.textContent = "";
-    if (!docs.length) {
+    if (!all.length) {
       var empty = document.createElement("div");
       empty.className = "bempty";
       empty.textContent = "No messages yet. The first one starts the conversation.";
       stream.appendChild(empty);
     }
-    docs.forEach(function (doc) {
-      var m = doc.data() || {};
-      var from = (m.from === "Ava") ? "Ava" : "JC";
+    all.forEach(function (m) {
       var bubble = document.createElement("div");
-      bubble.className = "bmsg " + (from === "JC" ? "jc" : "ava");
+      bubble.className = "bmsg " + (m.from === "JC" ? "jc" : "ava");
       var name = document.createElement("div");
       name.className = "bname";
-      name.textContent = NAMES[from];
+      name.textContent = NAMES[m.from] + (m.type && m.type !== "message" ? " · " + m.type : "");
       var text = document.createElement("div");
       text.className = "btext";
       text.textContent = m.text == null ? "" : String(m.text);
       var time = document.createElement("div");
       time.className = "btime";
-      time.textContent = fmtTime(m.at);
+      time.textContent = fmtTime(m.at) + (m.status ? " · " + m.status : "");
       bubble.appendChild(name);
       bubble.appendChild(text);
       bubble.appendChild(time);
@@ -250,26 +290,39 @@
     firstLoad = false;
   }
 
+  function streamError(err) {
+    var stream = $("br-stream");
+    stream.textContent = "";
+    var note = document.createElement("div");
+    note.className = "bempty";
+    note.textContent = "This chat is restricted to Edwin's and Natasha's accounts. (" + (err && err.code ? err.code : "error") + ")";
+    stream.appendChild(note);
+  }
+
   function startStream() {
     if (unsub) return;
     firstLoad = true;
-    unsub = db.collection("bridge_messages")
+    unsub = db.collection("agent_messages")
+      .orderBy("createdAt", "asc")
+      .limitToLast(200)
+      .onSnapshot(function (snap) {
+        agentDocs = snap.docs.map(normalizeAgent);
+        renderStream();
+      }, function (err) {
+        streamError(err);
+      });
+    unsubLegacy = db.collection("bridge_messages")
       .orderBy("at", "asc")
       .limitToLast(200)
       .onSnapshot(function (snap) {
-        renderMessages(snap.docs);
-      }, function (err) {
-        var stream = $("br-stream");
-        stream.textContent = "";
-        var note = document.createElement("div");
-        note.className = "bempty";
-        note.textContent = "This chat is restricted to Edwin's and Natasha's accounts. (" + (err && err.code ? err.code : "error") + ")";
-        stream.appendChild(note);
-      });
+        legacyDocs = snap.docs.map(normalizeLegacy);
+        renderStream();
+      }, function () { /* legacy history is best effort */ });
   }
 
   function stopStream() {
     if (unsub) { unsub(); unsub = null; }
+    if (unsubLegacy) { unsubLegacy(); unsubLegacy = null; }
   }
 
   /* Sign in: same flow as admin.html */
@@ -366,9 +419,20 @@
     if (!text) return;
     var errEl = $("br-send-err"); errEl.style.display = "none";
     var btn = $("br-send"); btn.disabled = true;
-    db.collection("bridge_messages").add({
-      from: myRole,
+    var sender = (myRole === "Ava") ? "ava" : "alfred";
+    var recipient = (myRole === "Ava") ? "alfred" : "ava";
+    db.collection("agent_messages").add({
+      from: sender,
+      to: recipient,
+      type: "message",
+      threadId: "bridge-main",
+      status: "sent",
+      priority: "normal",
+      idempotencyKey: "bridge-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10),
       text: text,
+      body: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       at: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
       ta.value = "";
