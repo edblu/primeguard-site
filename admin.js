@@ -56,7 +56,7 @@
   // the vendor portal and wants the same treatment on the admin nav) ----
   (function navEmoji() {
     var EMOJI = {
-      home: "\u{1F3E0}", hotleads: "\u{1F525}", work: "\u{1F4BC}",
+      home: "\u{1F3E0}", hotleads: "\u{1F525}", work: "\u{1F4BC}", recurring: "\u{1F501}",
       quotes: "\u{1F4DD}", vendors: "\u{1F477}", vprogress: "\u{1F4CA}", followups: "\u2705",
       customers: "\u{1F465}", contracts: "\u{1F4C4}", calendar: "\u{1F4C5}",
       team: "\u{1F91D}", activity: "\u{1F440}", referrals: "\u{1F381}",
@@ -312,7 +312,7 @@
     liveCache = {};
   }
 
-  function loadAll() { loadStats(); loadWorkOrders(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); loadVendorProgress(); }
+  function loadAll() { loadStats(); loadWorkOrders(); loadRecurringPlans(); loadHotLeads(); loadQuotes(); loadContracts(); loadVendors(); loadArchivedVendors(); loadTeam(); loadVendorOptions(); loadReferrals(); loadActivity(); loadFollowUps(); loadCustomers(); loadVendorProgress(); }
 
   /* ---------- Staff activity tracking (visible to the owner only) ---------- */
   var mySessionId = null, heartbeatTimer = null, trackingOn = false;
@@ -5931,6 +5931,7 @@
         (sendHtml ? '<div class="woq-send">' + sendHtml + "</div>" : "") +
         '<div class="hlq-foot"><span class="hlq-idle' + idleCls + '">' + idleDays + 'd since update</span>' +
           '<span class="hlq-manage">' + (w.vendorId ? '<button type="button" class="hlq-manage-btn danger" data-wounassign="' + it.id + '">Unassign vendor</button>' : "") +
+          '<button type="button" class="hlq-manage-btn" data-wobuildquote="' + it.id + '">Build quote</button>' +
           '<button type="button" class="hlq-manage-btn" data-woedit="' + it.id + '">Edit</button>' +
           '<button type="button" class="hlq-manage-btn danger" data-wodel="' + it.id + '">Delete</button></span>' +
           '<span class="hlq-source">' + esc(w.vendorBusiness || "Broadcast") + "</span></div>" +
@@ -6986,6 +6987,7 @@
   }
 
   function openCustomerQuoteBuilder(quoteId) {
+    cqWoMode = false;
     cqCtx = null;
     $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="sr-faint" style="margin-top:10px">Loading the vendor quote…</p>';
     $("cqModal").classList.remove("hidden");
@@ -7014,12 +7016,49 @@
       $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="aerr" style="margin-top:10px">Could not load: ' + esc(e.message || e) + "</p>";
     });
   }
+  // v113 (Edwin, Nov 25, 2026): build a customer quote straight from a
+  // work order, with NO vendor quote required. Staff (Natasha included)
+  // enter the vendor pay themselves in the builder; it lands in the
+  // quote's internal vendorAmount, which the customer never sees. This
+  // is the posted-flat-price path: most lawn jobs never get a vendor
+  // quote in the quotes collection, so the old vendor-quote-only entry
+  // left staff blocked (Bruna Luiza's case).
+  var cqWoMode = false;
+  function openWoQuoteBuilder(woId) {
+    cqWoMode = true;
+    cqCtx = null;
+    $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="sr-faint" style="margin-top:10px">Loading the work order…</p>';
+    $("cqModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    db.collection("work_orders").doc(woId).get().then(function (wsnap) {
+      if (!wsnap.exists) {
+        $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="aerr" style="margin-top:10px">That work order could not be found.</p>';
+        return;
+      }
+      var wo = wsnap.data();
+      var leadP = wo.sourceLeadId
+        ? db.collection("hot_leads").doc(wo.sourceLeadId).get().then(function (s) { return s.exists ? s.data() : null; }).catch(function () { return null; })
+        : Promise.resolve(null);
+      var custP = wo.sourceLeadId
+        ? db.collection("customers").where("leadId", "==", wo.sourceLeadId).limit(1).get().then(function (s) { return s.empty ? null : s.docs[0].data(); }).catch(function () { return null; })
+        : Promise.resolve(null);
+      Promise.all([leadP, custP]).then(function (res) {
+        var q = { price: "", vendorBusiness: "", duration: "", workOrderId: woId, vendorId: wo.vendorId || null, addons: null };
+        renderCustomerQuoteBuilder(null, q, wo, res[0], res[1]);
+        if (cqCtx) { cqCtx.woMode = true; cqCtx.quoteId = null; }
+      });
+    }).catch(function (e) {
+      $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3><p class="aerr" style="margin-top:10px">Could not load: ' + esc(e.message || e) + "</p>";
+    });
+  }
+
   function closeCustomerQuoteBuilder() {
     $("cqModal").classList.add("hidden");
     if ($("custModal").classList.contains("hidden") && $("hlNoteModal").classList.contains("hidden")) {
       document.body.style.overflow = "";
     }
     cqCtx = null;
+    cqWoMode = false;
   }
 
   function cqAddonRowHtml(label, amount) {
@@ -7045,8 +7084,12 @@
     var service = (wo && (wo.category || wo.title)) || (lead && lead.service) || "";
     var firstLabel = (wo && (wo.category || wo.title)) || service || "";
     $("cqBody").innerHTML = '<h3 id="cqTitle">Build customer quote</h3>' +
-      '<p class="sr-faint" style="margin-bottom:14px">Vendor quote from ' + esc(q.vendorBusiness || "vendor") + ": <strong>" + esc(cqMoney(vendorAmount)) + "</strong>" +
-      (q.duration ? " · " + esc(q.duration) : "") + ". Set the customer price below. The customer never sees the vendor number.</p>" +
+      (cqWoMode
+        ? '<div style="margin-bottom:14px"><label style="display:block">Vendor pay for this quote, total (internal only, the customer never sees it)' +
+          '<input type="number" id="cq-vendor" min="0" step="0.01" inputmode="decimal" placeholder="0" value="' + (vendorAmount ? esc(vendorAmount) : "") + '" style="width:180px;margin-top:6px"></label>' +
+          '<p class="sr-faint" style="margin-top:6px">Posted rate card, per visit: Small $50 · Medium $55 · Large $65. Enter the TOTAL for the whole quote (per visit x visits). Then set the customer price below.</p></div>'
+        : '<p class="sr-faint" style="margin-bottom:14px">Vendor quote from ' + esc(q.vendorBusiness || "vendor") + ": <strong>" + esc(cqMoney(vendorAmount)) + "</strong>" +
+          (q.duration ? " · " + esc(q.duration) : "") + ". Set the customer price below. The customer never sees the vendor number.</p>") +
       // v77: the vendor's job notes, price details, and the work order's
       // photos sit right here while staff price the job (Edwin, Oct 19).
       quoteOfficeInfoHtml(q, wo) +
@@ -7068,6 +7111,8 @@
       '<div class="sr-actions"><button class="btn btn-gold" type="submit" id="cq-save">Create customer quote</button></div>' +
       "</form>";
     $("cqForm").addEventListener("submit", saveCustomerQuote);
+    var cqVendorEl = $("cq-vendor");
+    if (cqVendorEl) cqVendorEl.addEventListener("input", cqRecalc);
     $("cq-add-item").addEventListener("click", function () {
       var div = document.createElement("div");
       div.innerHTML = cqItemRowHtml("", "");
@@ -7130,11 +7175,13 @@
     var box = $("cq-math");
     if (!box || !cqCtx) return;
     var total = cqItemsTotal();
+    var vEl = $("cq-vendor");
+    if (vEl) cqCtx.vendorAmount = Math.round((parseFloat(vEl.value) || 0) * 100) / 100;
     var vendor = cqCtx.vendorAmount || 0;
     var margin = Math.round((total - vendor) * 100) / 100;
     var pct = total > 0 ? Math.round((margin / total) * 100) : 0;
     var warn = total < vendor;
-    box.innerHTML = "Vendor quote <strong>" + esc(cqMoney(vendor)) + "</strong> · Your margin <strong" +
+    box.innerHTML = (vEl ? "Vendor pay " : "Vendor quote ") + "<strong>" + esc(cqMoney(vendor)) + "</strong> · Your margin <strong" +
       (warn ? ' style="color:#ff9d9d"' : "") + ">" + esc(cqMoney(margin)) + " (" + pct + "%)</strong> · Customer total <strong>" + esc(cqMoney(total)) + "</strong>" +
       (warn ? '<div style="color:#ff9d9d;margin-top:6px;font-size:.88rem">Warning: the customer total is below the vendor quote. PrimeGuard would lose money on this job.</div>' : "");
   }
@@ -7208,8 +7255,10 @@
     var contact = $("cq-contact").value.trim();
     var days = parseInt($("cq-expiry").value, 10) || 14;
     var todayKey = localDateKey(new Date());
+    var vSave = $("cq-vendor");
+    if (vSave) cqCtx.vendorAmount = Math.round((parseFloat(vSave.value) || 0) * 100) / 100;
     var docData = {
-      vendorQuoteId: cqCtx.quoteId,
+      vendorQuoteId: cqCtx.quoteId || null,
       workOrderId: cqCtx.quote.workOrderId || null,
       vendorId: cqCtx.quote.vendorId || null,
       vendorAmount: cqCtx.vendorAmount,
@@ -7234,7 +7283,9 @@
     var btn = $("cq-save"); btn.disabled = true; btn.textContent = "Creating…";
     db.collection("customer_quotes").add(docData).then(function (ref) {
       var newId = ref.id;
-      var patch = db.collection("quotes").doc(cqCtx.quoteId).update({ customerQuoteId: newId }).catch(function () {});
+      var patch = cqCtx.quoteId
+        ? db.collection("quotes").doc(cqCtx.quoteId).update({ customerQuoteId: newId }).catch(function () {})
+        : Promise.resolve();
       var fus = cqCreateFollowUps(newId, docData, todayKey);
       return Promise.all([patch, fus]).then(function () { return newId; });
     }).then(function (newId) {
@@ -7484,6 +7535,120 @@
         })
         .catch(function () {});
     } catch (e) {}
+  }
+
+  /* ----- Recurring Plans tab (v114, Natasha via Ava, 2026-11-25) -----
+     Recurring work gets its own tab, separate from one-time quote
+     requests, so recurring jobs never get buried. A plan row is built
+     per customer from (a) work orders that carry a cadence or a
+     planAnchor (the portal's recurring plans), or whose title/details
+     say recurring, and (b) signed customer quotes whose service is
+     weekly, biweekly, monthly, or recurring. Each row shows the plan
+     and frequency, the next visit date, the crew assigned, the pay
+     (customer per visit plus crew pay when on file), and whether the
+     last visit is done. */
+  var rpWoSnap = null, rpCqSnap = null;
+  function loadRecurringPlans() {
+    var box = $("ad-recurring-list");
+    if (!box) return;
+    liveOn("recplans-wo", db.collection("work_orders").orderBy("createdAt", "desc").limit(300), function (qs) { rpWoSnap = qs; renderRecurringPlans(); },
+      function () { box.innerHTML = '<p style="color:var(--faint)">Recurring plans could not load just now.</p>'; });
+    liveOn("recplans-cq", db.collection("customer_quotes").orderBy("createdAt", "desc").limit(100), function (qs) { rpCqSnap = qs; renderRecurringPlans(); },
+      function () {});
+  }
+  function rpIsRecurringWo(w) {
+    if (!w) return false;
+    if (w.cadence || w.planAnchor || w.recurring === true) return true;
+    return /recurring|biweekly|bi-weekly|weekly plan|monthly plan/i.test(String(w.title || "") + " " + String(w.details || ""));
+  }
+  function rpFreqLabel(w, q) {
+    var cad = w && w.cadence ? String(w.cadence).toLowerCase() : "";
+    var svc = q ? String(q.service || "") : "";
+    if (cad === "weekly" || /weekly/i.test(svc)) return "Weekly";
+    if (cad === "monthly" || /monthly/i.test(svc)) return "Monthly";
+    return "Biweekly";
+  }
+  function rpStepDays(freq) { return freq === "Weekly" ? 7 : freq === "Monthly" ? 30 : 14; }
+  function renderRecurringPlans() {
+    var box = $("ad-recurring-list");
+    if (!box || !rpWoSnap) return;
+    var plans = {};
+    function planFor(name) {
+      var key = String(name || "Customer").toLowerCase();
+      if (!plans[key]) plans[key] = { name: name || "Customer", wos: [], quote: null, freq: "", service: "" };
+      return plans[key];
+    }
+    rpWoSnap.forEach(function (d) {
+      var w = d.data() || {};
+      if (!rpIsRecurringWo(w)) return;
+      var p = planFor(w.customerName || w.customer || "");
+      p.wos.push({ id: d.id, w: w });
+      if (!p.freq) p.freq = rpFreqLabel(w, null);
+      if (!p.service && w.title) p.service = w.title;
+    });
+    if (rpCqSnap) rpCqSnap.forEach(function (d) {
+      var q = d.data() || {};
+      if (q.status !== "signed") return;
+      var recurringQuote = /biweekly|bi-weekly|weekly|monthly|recurring/i.test(String(q.service || "")) || q.perVisitTotal != null;
+      if (!recurringQuote) return;
+      var p = planFor(q.customerName || "");
+      if (!p.quote) p.quote = q;
+      if (!p.freq) p.freq = rpFreqLabel(null, q);
+      if (!p.service && q.service) p.service = q.service;
+    });
+    var rows = Object.keys(plans).map(function (k) { return plans[k]; }).filter(function (p) { return p.wos.length || p.quote; });
+    var badge = $("pg-nav-b-recurring");
+    if (badge) { badge.textContent = rows.length; badge.style.display = rows.length ? "" : "none"; }
+    if (!rows.length) { box.innerHTML = '<p style="color:var(--faint)">No recurring plans yet. When a customer signs a recurring plan, or a recurring work order is created, it shows up here.</p>'; return; }
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    rows.forEach(function (p) {
+      p.freq = p.freq || "Biweekly";
+      var step = rpStepDays(p.freq) * 86400000;
+      var nextMs = 0, lastDoneMs = 0, lastDone = false, crew = "", crewPay = "";
+      p.wos.forEach(function (r) {
+        var w = r.w;
+        if (!crew && w.vendorBusiness) crew = w.vendorBusiness;
+        if (!crewPay && w.pay) crewPay = String(w.pay);
+        var anchorMs = tsMs(w.planAnchor), count = parseInt(w.visitCount, 10) || 0;
+        var schedMs = tsMs(w.scheduledFor) || tsMs(w.scheduledDate) || tsMs(w.serviceDate);
+        if (anchorMs && count > 1) {
+          for (var i = 0; i < count; i++) {
+            var ms = anchorMs + i * step;
+            if (ms >= today.getTime() && (!nextMs || ms < nextMs)) nextMs = ms;
+          }
+        } else if (schedMs && schedMs >= today.getTime() && (!nextMs || schedMs < nextMs)) nextMs = schedMs;
+        var doneMs = tsMs(w.completedAt) || (String(w.status || "") === "done" ? (schedMs || tsMs(w.updatedAt) || tsMs(w.createdAt)) : 0);
+        if (doneMs && doneMs > lastDoneMs) { lastDoneMs = doneMs; lastDone = true; }
+        if (!lastDone && schedMs && schedMs < today.getTime() && String(w.status || "") === "done") lastDone = true;
+      });
+      if (!nextMs && lastDoneMs) {
+        var cand = lastDoneMs + step;
+        while (cand < today.getTime()) cand += step;
+        nextMs = cand;
+      }
+      p.nextMs = nextMs; p.lastDone = lastDone; p.lastDoneMs = lastDoneMs;
+      p.crew = crew; p.crewPay = crewPay;
+      var pv = p.quote ? (p.quote.perVisitTotal != null ? Number(p.quote.perVisitTotal) : 0) : 0;
+      p.custPay = pv > 0 ? cqMoney(pv) + " per visit" : (p.quote && Number(p.quote.total) ? cqMoney(p.quote.total) + " plan total" : "");
+    });
+    rows.sort(function (a, b) { return (a.nextMs || Infinity) - (b.nextMs || Infinity); });
+    box.innerHTML = "";
+    rows.forEach(function (p) {
+      var nextTxt = p.nextMs ? new Date(p.nextMs).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "Not scheduled";
+      var lastTxt = p.lastDone ? ("Last visit done" + (p.lastDoneMs ? " " + new Date(p.lastDoneMs).toLocaleDateString([], { month: "short", day: "numeric" }) : "")) : "Last visit not done yet";
+      var payBits = [];
+      if (p.custPay) payBits.push("Customer pays " + p.custPay);
+      if (p.crewPay) payBits.push("Crew pay " + p.crewPay);
+      var row = document.createElement("div"); row.className = "arow";
+      row.innerHTML = '<div class="grow"><strong>' + esc(p.name) + '</strong><small>' +
+        esc(p.service || "Recurring service") + " \u00b7 " + esc(p.freq) +
+        " \u00b7 Next visit: " + esc(nextTxt) +
+        " \u00b7 Crew: " + esc(p.crew || "Not assigned yet") +
+        (payBits.length ? " \u00b7 " + esc(payBits.join(" \u00b7 ")) : "") +
+        '</small></div>' +
+        (p.lastDone ? '<span class="pill p-done">' + esc(lastTxt) + '</span>' : '<span class="pill p-pend">' + esc(lastTxt) + '</span>');
+      box.appendChild(row);
+    });
   }
 
   /* ----- Contracts tab (v53, Edwin's direction 2026-10-17) -----
@@ -8385,6 +8550,7 @@
     }
     if (d.qno) { logActivity("Declined a quote"); db.collection("quotes").doc(d.qno).update({ status: "declined" }).then(loadAll); }
     if (d.cqbuild) openCustomerQuoteBuilder(d.cqbuild);
+    if (d.wobuildquote) openWoQuoteBuilder(d.wobuildquote);
     if (d.vopen) openVendor(d.vopen);
     if (d.vrestore) restoreVendor(d.vrestore);
     if (d.varchive) archiveVendorById(d.varchive);
@@ -8782,6 +8948,14 @@
         pgChip("Paid", cq.paid, 'data-pgchip="scroll:ad-contracts-list"') +
         pgChip("Balance due", cq.due, 'data-pgchip="scroll:ad-contracts-list"') +
         pgChip("Awaiting signature", cq.sent, 'data-pgchip="tab:quotes"'));
+      // Recurring Plans: count from the plan rows the tab itself built.
+      var rpNames = {};
+      pgSnapDocs("recplans-wo").forEach(function (r) { if (rpIsRecurringWo(r.d)) rpNames[String(r.d.customerName || r.d.customer || "Customer").toLowerCase()] = true; });
+      var rpCount = Object.keys(rpNames).length;
+      pgRenderHead("recurring", "Recurring work", "Recurring Plans",
+        "Recurring customers on their own tab, separate from one-time quote requests, so they never get buried.",
+        pgChip("Active plans", rpCount, 'data-pgchip="scroll:ad-recurring-list"') +
+        pgChip("Work orders", woC.all, 'data-pgchip="tab:work"'));
       // Tasks: entity chips are the page's own filter chips.
       // v86: open items only, matching the visible list exactly.
       var tk = pgTaskItems();
